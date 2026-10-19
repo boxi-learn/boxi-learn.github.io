@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send a picture with a few numbers</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  /* Picture colours are fixed (real black and white squares) so they read the same in light and dark mode. */
+  .boardwrap { padding: 16px 14px 12px; display: flex; justify-content: center; }
+  .board { --c: clamp(19px, calc((100vw - 170px) / 10), 34px); display: grid; gap: 0; outline: none; border-radius: 6px; user-select: none; -webkit-user-select: none; max-width: 100%; }
+  .board:focus-visible { outline: 3px solid var(--hl); outline-offset: 4px; }
+  .board.paint .cells { touch-action: none; cursor: pointer; }
+  .brow { display: flex; align-items: center; gap: 10px; height: var(--c); min-width: 0; border-radius: 4px; }
+  .cells { display: grid; grid-template-columns: repeat(10, var(--c)); flex: none; cursor: pointer; }
+  .cell { width: var(--c); height: var(--c); background: #fbfaf6; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.22); display: grid; place-items: center; font: 650 13px var(--font); color: #1d1d1d; font-variant-numeric: tabular-nums; }
+  .cell.k { background: #1d1d1d; color: #fbfaf6; box-shadow: inset 0 0 0 .5px rgba(255,255,255,.18); }
+  .brow.sel .cells { box-shadow: 0 0 0 3px var(--a); position: relative; z-index: 1; }
+  .board.focus .cell.cur { box-shadow: inset 0 0 0 3px var(--hl); }
+  .code { display: flex; gap: 2px; align-items: center; min-width: 0; overflow: hidden; flex: 1 1 auto; }
+  .code.cut { -webkit-mask-image: linear-gradient(to right, #000 75%, transparent); mask-image: linear-gradient(to right, #000 75%, transparent); }
+  .chip { flex: none; min-width: 17px; height: 19px; padding: 0 3px; border-radius: 4px; font: 700 13px/19px var(--font); text-align: center; font-variant-numeric: tabular-nums; background: #fbfaf6; color: #1d1d1d; box-shadow: inset 0 0 0 1px #b9b4a8; }
+  .chip.k { background: #1d1d1d; color: #fbfaf6; box-shadow: none; }
+  .chip.q { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+  .mark { flex: none; width: 1.1em; font-weight: 800; color: var(--a); text-align: center; font-size: 14px; }
+  .mark:empty { display: none; }
+  .pane { padding: 10px 14px 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 13px; color: var(--muted); font-weight: 650; margin-right: 2px; }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+  .info { background: var(--soft); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; font-size: 14px; display: grid; gap: 6px; }
+  .info .say { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .info .big { font: 750 18px var(--font); color: var(--a); font-variant-numeric: tabular-nums; }
+  .info b { font-variant-numeric: tabular-nums; }
+  .ok::before { content: "✓ "; color: var(--a); font-weight: 800; }
+  .bars { display: grid; gap: 6px; margin: 4px 0 10px; }
+  .bars .bt { font-size: 13px; color: var(--muted); font-weight: 650; }
+  .bar { display: grid; grid-template-columns: 7.2em minmax(0, 1fr) 2.6em; gap: 8px; align-items: center; text-align: left; padding: 4px 8px; font-size: 14px; }
+  .bar.on { background: var(--soft); color: var(--fg); border-color: var(--a); box-shadow: 0 0 0 1px var(--a) inset; }
+  .bar .track { position: relative; height: 14px; background: var(--soft); border-radius: 4px; }
+  .bar.on .track { background: var(--surface); }
+  .bar .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--a); border-radius: 4px; }
+  .bar .fill.over { background: var(--no); }
+  .bar .hund { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--fg); }
+  .bar .n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  @media (max-width: 560px) { .boardwrap { padding: 12px 6px 10px; } .brow { gap: 6px; } .bar { grid-template-columns: 6.4em minmax(0, 1fr) 2.4em; } }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="boardwrap"><div class="board" id="board" tabindex="0" role="group" data-t-aria="figAria"></div></div>
+      <div class="pane" id="pane">
+        <div class="row" id="picRow"><span class="lbl" data-t="picLbl"></span></div>
+        <div class="row" id="row2">
+          <label class="check"><input type="checkbox" id="paint"> <span data-t="paintLbl"></span></label>
+          <button type="button" class="small" id="allBtn" data-t="allBtn"></button>
+        </div>
+        <div class="row" id="row3">
+          <button type="button" class="small" id="fillBtn" data-t="fillBtn"></button>
+          <button type="button" class="small" id="clearBtn" data-t="clearBtn"></button>
+        </div>
+        <p class="msg" id="live"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="info" id="info" hidden></div>
+      <div class="bars" id="bars" hidden></div>
+      <p class="note" id="lossy" data-t="lossy" hidden></p>
+      <p class="note" id="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure logic (no DOM) so it can be checked in node. 1 = black square, 0 = white square. */
+const N = 10;
+const ART = {
+  heart: ["..........", ".##....##.", "####..####", "##########", "##########",
+          ".########.", "..######..", "...####...", "....##....", ".........."],
+  boat: [".....#....", ".....##...", ".....###..", ".....####.", ".....#....",
+         "##########", ".########.", "..######..", "..........", ".........."],
+  blank: Array(N).fill(".........."),
+  stripes: Array(N).fill("##..##..##"),
+  checker: Array.from({ length: N }, (_, y) => (y % 2 ? "#.#.#.#.#." : ".#.#.#.#.#")),
+};
+function parse(rows) {
+  return rows.map((r, y) => {
+    if (r.length !== N) throw new Error("row " + y + " has " + r.length + " squares");
+    return [...r].map((ch) => (ch === "#" ? 1 : 0));
+  });
+}
+const copyGrid = (g) => g.map((r) => r.slice());
+const emptyGrid = () => Array.from({ length: N }, () => Array(N).fill(0));
+/* One row → counts, always starting with white (a 0 when the row starts black). */
+function encodeRow(row) {
+  const out = [];
+  let colour = 0, n = 0;
+  for (const v of row) {
+    if (v === colour) n++;
+    else { out.push(n); colour = v; n = 1; }
+  }
+  out.push(n);
+  return out;
+}
+/* Counts → one row. Returns null if the counts are not whole numbers or do not add up to `width`. */
+function decodeRow(code, width) {
+  const out = [];
+  let colour = 0;
+  for (const c of code) {
+    if (!Number.isInteger(c) || c < 0) return null;
+    for (let i = 0; i < c; i++) out.push(colour);
+    colour = 1 - colour;
+  }
+  return out.length === width ? out : null;
+}
+const encode = (g) => g.map(encodeRow);
+const decode = (codes) => codes.map((c) => decodeRow(c, N));
+const countNumbers = (g) => encode(g).reduce((s, c) => s + c.length, 0);
+/* How many squares of b equal those of a. */
+function sameSquares(a, b) {
+  let k = 0;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (a[y] && b[y] && a[y][x] === b[y][x]) k++;
+  return k;
+}
+const rowEq = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+/* For each square of a row: its place inside its run (1, 2, 3 …), to count along. */
+function runPlaces(row) {
+  const out = [];
+  let n = 0;
+  row.forEach((v, i) => { n = i > 0 && v === row[i - 1] ? n + 1 : 1; out.push(n); });
+  return out;
+}
+if (typeof module !== "undefined") module.exports = { N, ART, parse, copyGrid, emptyGrid, encodeRow, decodeRow, encode, decode, countNumbers, sameSquares, rowEq, runPlaces };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Send a picture with a few numbers", eyebrow: "Computing · Stage 1",
+    h1: "Send a picture by counting the squares of the same colour",
+    intro: "Count the white and black squares in each row, draw a picture from numbers only, then see which pictures need the fewest numbers.",
+    reset: "Reset", figAria: "A 10 by 10 picture of black and white squares, with the numbers for each row beside it",
+    s1: "Guess", s2: "Count", s3: "Rebuild", s4: "Rule",
+    k1: "Predict first", t1: "How can we send this heart?",
+    b1: "The heart has 100 squares. You could say every square: “white, white, black…”. Or you could count: “3 white, 4 black, 3 white”.",
+    q: "If we only send how many same-colour squares come in a row, what happens?",
+    o1: "Fewer numbers, but a bit of the picture gets lost",
+    o2: "Fewer numbers, and the picture comes back exactly",
+    o3: "More numbers than the 100 squares",
+    right: "Good guess! Now check it: count in step 2, rebuild a picture in step 3.",
+    wrong: "Let's test it. Count the numbers in step 2, then rebuild a picture from numbers only in step 3.",
+    k2: "Hands on", t2: "Count each row",
+    b2: "Tap a row, or use the arrow keys. Always start with white and count. When the colour changes, start a new count. If a row starts with black, its first number is 0: zero white squares.",
+    k3: "Hands on", t3: "Draw a picture from numbers only",
+    b3: "A friend sent you only these numbers. In each row, the first number is white squares, the next is black, then white again… Tap squares to make them black or white.",
+    k4: "The rule", t4: "Long runs need few numbers, and nothing is lost",
+    b4: "Pick a picture. Each one comes back square for square from its numbers. Long runs of one colour need few numbers. A checkerboard has no runs, so it needs more numbers than squares.",
+    picLbl: "Pictures:", pHeart: "Heart", pBoat: "Boat", pBlank: "All white", pStripes: "Stripes", pChecker: "Checkerboard", pYours: "Your heart",
+    paintLbl: "Paint (tap squares to change them)", allBtn: "Count all rows", fillBtn: "Fill this row for me", clearBtn: "Clear",
+    runW: "{n} white", runB: "{n} black",
+    rowSay: "Row {r}:", nums: "Numbers: {code}",
+    soFar: "Numbers so far: {n} · rows counted: {r} of 10",
+    done: "Whole picture: {n} numbers instead of {sq} squares.",
+    sent: "Numbers sent:", yourRow: "Your row:", rowsOk: "Rows right: {k} of 10",
+    solved: "Every row matches! It is a boat: all {same} of {sq} squares, from just {n} numbers.",
+    barsT: "Numbers needed (each picture has 100 squares; the line is 100)",
+    back: "Rebuilt from its {n} numbers: {same} of {sq} squares the same.",
+    lossy: "Some ways of making files smaller do throw away tiny details (JPG photos). Counting runs throws nothing away, and neither do PNG files.",
+    keys2: "Keyboard: click the picture, then arrow keys move between squares; Space changes a square when Paint is on.",
+    keys3: "Keyboard: click the picture, then arrow keys move between squares; Space changes a square, F fills the row.",
+    keys4: "Keyboard: Tab to a picture button and press Enter.",
+    liveRow: "Row {r}: {runs}. Numbers {code}.",
+    liveFlip: "Row {r} is now {code}.",
+    resultTitle: "What we found",
+    resultMain: "{sq} squares → {n} numbers → the same {sq} squares",
+    resultNote: "Counting runs makes a picture with long runs much shorter and loses nothing. A checkerboard has no runs: it needs {c} numbers, more than {sq}.",
+    explainK: "Explain it",
+    explainQ: "Read the numbers for one heart row to a friend who can't see it. Why can they colour exactly the same row? Why does a checkerboard need more numbers?",
+    homeK: "Try at home",
+    homeQ: "On squared paper, colour a simple 10 × 10 picture. Read only the row numbers to someone at home and let them colour their own grid. Hold the two papers side by side: are they the same?",
+    foot: "CC BY 4.0 · Boxi Yu · Run-length coding: each row starts with a white count (0 if the row starts black). Idea from the CS Unplugged activity “Image Representation”; fax machines send black-and-white pages line by line the same way. Every count counts as 1 number, however big. Original pictures.",
+  },
+  zh: {
+    title: "用几个数送一张图", eyebrow: "信息科技 · 阶段 1",
+    h1: "数一数连着几格同色，就能把图送出去",
+    intro: "数一数每一行的白格和黑格，只看数字画出一张图，再看看哪种图要的数最少。",
+    reset: "重置", figAria: "一张 10 × 10 的黑白格子图，每一行旁边写着这一行的数",
+    s1: "先猜", s2: "数一数", s3: "画回来", s4: "规律",
+    k1: "先猜一猜", t1: "怎么把这颗心送给朋友？",
+    b1: "这颗心有 100 个格子。可以一格一格说：“白、白、黑……”。也可以数着说：“3 白、4 黑、3 白”。",
+    q: "如果只送「连着几格同色」的数，会怎样？",
+    o1: "要的数变少了，但图会丢掉一点",
+    o2: "要的数变少了，图还能一格不差地画回来",
+    o3: "要的数比 100 个格子还多",
+    right: "猜得好！去验证一下：第 2 步数一数，第 3 步把图画回来。",
+    wrong: "我们来试试看：第 2 步数一数要几个数，第 3 步只看数字把图画回来。",
+    k2: "动手", t2: "一行一行地数",
+    b2: "点一行，或者用方向键。每行都先数白色；颜色一变，就重新数。如果一行开头就是黑色，第一个数就是 0：零个白格。",
+    k3: "动手", t3: "只看数字，把图画出来",
+    b3: "朋友只送来了这些数。每一行：第一个数是白格，下一个是黑格，再下一个又是白格……点格子，把它变黑或变白。",
+    k4: "规律", t4: "同色连得越长，数越少；一格也不丢",
+    b4: "选一张图。每张图都能按它的数一格不差地画回来。同色连得长，要的数就少；棋盘格一格一换色，要的数比格子还多。",
+    picLbl: "图：", pHeart: "心", pBoat: "小船", pBlank: "全白", pStripes: "竖条纹", pChecker: "棋盘格", pYours: "你改的心",
+    paintLbl: "涂色（点格子改颜色）", allBtn: "全部数出来", fillBtn: "帮我填这一行", clearBtn: "擦掉",
+    runW: "{n} 白", runB: "{n} 黑",
+    rowSay: "第 {r} 行：", nums: "数：{code}",
+    soFar: "目前用了 {n} 个数 · 数完 {r} / 10 行",
+    done: "整张图：{n} 个数，而不是 {sq} 个格子。",
+    sent: "送来的数：", yourRow: "你画的这一行：", rowsOk: "画对了 {k} / 10 行",
+    solved: "每一行都对上了！是一条小船：{sq} 个格子 {same} 个全一样，只用了 {n} 个数。",
+    barsT: "要几个数（每张图都是 100 个格子；竖线是 100）",
+    back: "按它的 {n} 个数画回来：{sq} 个格子里 {same} 个一样。",
+    lossy: "有些把文件变小的办法确实会丢掉细节（比如 JPG 照片）。数「连着几格同色」一点都不丢，PNG 文件也不丢。",
+    keys2: "键盘：先点一下图，方向键在格子间移动；勾选「涂色」后按空格改颜色。",
+    keys3: "键盘：先点一下图，方向键在格子间移动；空格改颜色，F 填这一行。",
+    keys4: "键盘：用 Tab 选中一张图的按钮，按回车。",
+    liveRow: "第 {r} 行：{runs}。数是 {code}。",
+    liveFlip: "第 {r} 行现在是 {code}。",
+    resultTitle: "我们发现",
+    resultMain: "{sq} 个格子 → {n} 个数 → 同样的 {sq} 个格子",
+    resultNote: "数「连着几格同色」，同色连得长的图会短很多，而且一点不丢。棋盘格没有连着的同色：要 {c} 个数，比 {sq} 还多。",
+    explainK: "说一说",
+    explainQ: "把心的某一行的数念给看不见图的朋友听。为什么他能涂出一模一样的一行？为什么棋盘格要的数更多？",
+    homeK: "家里做一做",
+    homeQ: "在方格纸上涂一张简单的 10 × 10 图。只把每行的数念给家里人听，让他在自己的格子上涂。把两张纸放在一起：一样吗？",
+    foot: "CC BY 4.0 · Boxi Yu · 游程编码：每行先数白格（开头是黑格就先写 0）。思路来自 CS Unplugged 的「图像表示」活动；传真机也是这样一行一行地送黑白页面。不管多大，每个数都算 1 个数。原创图案。",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const nf = (n) => n.toLocaleString(P.lang === "zh" ? "zh-CN" : "en-US");
+const SQ = N * N;
+const PIC = { heart: parse(ART.heart), boat: parse(ART.boat), blank: parse(ART.blank), stripes: parse(ART.stripes), checker: parse(ART.checker) };
+const BOAT_CODE = encode(PIC.boat);
+const PICS = [["heart", "pHeart"], ["boat", "pBoat"], ["blank", "pBlank"], ["stripes", "pStripes"], ["checker", "pChecker"], ["yours", "pYours"]];
+const board = $("board"), msg = $("live");
+
+let step = 0, mine, guess, seen, cur, pick, fillTimer = null;
+function fresh() {
+  mine = copyGrid(PIC.heart);   // step 2: the heart (paintable)
+  guess = emptyGrid();          // step 3: the child's rebuild
+  seen = Array(N).fill(false);
+  cur = { x: 0, y: 0 };
+  pick = "heart";
+  $("paint").checked = false;
+  stopFill();
+}
+const edited = () => sameSquares(mine, PIC.heart) !== SQ;
+/* Grid shown in the current step. */
+function shown() {
+  if (step === 2) return guess;
+  if (step === 3) return pick === "yours" ? mine : pick === "heart" ? PIC.heart : PIC[pick];
+  return mine;
+}
+const codeText = (c) => c.join(", ");
+function runsText(code) {
+  const parts = [];
+  code.forEach((n, i) => { if (n > 0 || i === 0) parts.push(P.t(i % 2 ? "runB" : "runW", { n })); });
+  return parts.join(P.lang === "zh" ? "、" : ", ");
+}
+
+/* ---------- board ---------- */
+const rowEls = [], cellEls = [];
+for (let y = 0; y < N; y++) {
+  const r = document.createElement("div"); r.className = "brow";
+  const cs = document.createElement("div"); cs.className = "cells";
+  const cells = [];
+  for (let x = 0; x < N; x++) {
+    const c = document.createElement("div"); c.className = "cell"; c.dataset.x = x; c.dataset.y = y;
+    cs.appendChild(c); cells.push(c);
+  }
+  const mk = document.createElement("span"); mk.className = "mark"; mk.setAttribute("aria-hidden", "true");
+  const code = document.createElement("div"); code.className = "code";
+  r.append(cs, mk, code);
+  board.appendChild(r);
+  rowEls.push({ r, code, mk }); cellEls.push(cells);
+}
+function chips(el, code, hide) {
+  el.innerHTML = "";
+  code.forEach((n, i) => {
+    const s = document.createElement("span");
+    s.className = "chip" + (hide ? " q" : i % 2 ? " k" : "");
+    s.textContent = hide ? "?" : n;
+    el.appendChild(s);
+  });
+}
+function renderBoard() {
+  const g = shown();
+  const places = runPlaces(g[cur.y]);
+  for (let y = 0; y < N; y++) {
+    const showCount = step === 1 && y === cur.y;
+    for (let x = 0; x < N; x++) {
+      const c = cellEls[y][x];
+      c.classList.toggle("k", g[y][x] === 1);
+      c.classList.toggle("cur", x === cur.x && y === cur.y);
+      c.textContent = showCount ? places[x] : "";
+    }
+    const R = rowEls[y];
+    R.r.classList.toggle("sel", step !== 0 && y === cur.y);
+    const good = step === 2 && rowEq(encodeRow(guess[y]), BOAT_CODE[y]);
+    R.r.classList.toggle("good", good);
+    R.mk.textContent = good ? "✓" : "";
+    if (step === 0) R.code.innerHTML = "";
+    else if (step === 1) { if (seen[y]) chips(R.code, encodeRow(g[y])); else chips(R.code, [0], true); }
+    else if (step === 2) chips(R.code, BOAT_CODE[y]);
+    else chips(R.code, encodeRow(g[y]));
+  }
+  rowEls.forEach((R) => R.code.classList.toggle("cut", R.code.scrollWidth > R.code.clientWidth + 1));
+  board.classList.toggle("paint", step === 2 || (step === 1 && $("paint").checked));
+}
+
+/* ---------- side panel ---------- */
+function sayRow(box, label, code) {
+  const d = document.createElement("div"); d.className = "say";
+  const l = document.createElement("span"); l.textContent = label; d.appendChild(l);
+  const c = document.createElement("span"); c.className = "say"; chips(c, code); d.appendChild(c);
+  box.appendChild(d);
+}
+function line(box, text, cls) {
+  const d = document.createElement("div"); d.textContent = text; if (cls) d.className = cls; box.appendChild(d); return d;
+}
+function renderInfo() {
+  const box = $("info");
+  box.innerHTML = "";
+  if (step === 1) {
+    const code = encodeRow(mine[cur.y]);
+    line(box, P.t("rowSay", { r: cur.y + 1 }) + " " + runsText(code));
+    sayRow(box, P.t("nums", { code: "" }), code);
+    const r = seen.filter(Boolean).length;
+    const n = mine.reduce((s, row, y) => s + (seen[y] ? encodeRow(row).length : 0), 0);
+    if (r === N) line(box, P.t("done", { n: countNumbers(mine), sq: SQ }), "big");
+    else line(box, P.t("soFar", { n, r }));
+  } else if (step === 2) {
+    line(box, P.t("rowSay", { r: cur.y + 1 }));
+    sayRow(box, P.t("sent"), BOAT_CODE[cur.y]);
+    sayRow(box, P.t("yourRow"), encodeRow(guess[cur.y]));
+    const k = guess.filter((row, y) => rowEq(encodeRow(row), BOAT_CODE[y])).length;
+    if (k === N) line(box, P.t("solved", { same: sameSquares(guess, PIC.boat), sq: SQ, n: countNumbers(PIC.boat) }), "big ok");
+    else line(box, P.t("rowsOk", { k }));
+  } else if (step === 3) {
+    const g = shown(), back = decode(encode(g));
+    line(box, P.t("back", { n: countNumbers(g), same: sameSquares(g, back), sq: SQ }), "ok");
+  }
+}
+function renderBars() {
+  const box = $("bars");
+  box.innerHTML = "";
+  if (step !== 3) return;
+  line(box, P.t("barsT"), "bt");
+  const list = PICS.filter(([id]) => id !== "yours" || edited());
+  const vals = list.map(([id]) => countNumbers(id === "yours" ? mine : PIC[id]));
+  const max = Math.max(110, ...vals);
+  list.forEach(([id, key], i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "bar" + (id === pick ? " on" : "");
+    b.setAttribute("aria-pressed", id === pick ? "true" : "false");
+    const nm = document.createElement("span"); nm.textContent = P.t(key);
+    const tr = document.createElement("span"); tr.className = "track";
+    const fl = document.createElement("span"); fl.className = "fill" + (vals[i] > SQ ? " over" : "");
+    fl.style.width = (100 * vals[i] / max).toFixed(1) + "%";
+    const h = document.createElement("span"); h.className = "hund"; h.style.left = (100 * SQ / max).toFixed(1) + "%";
+    tr.append(fl, h);
+    const n = document.createElement("span"); n.className = "n"; n.textContent = vals[i];
+    b.append(nm, tr, n);
+    b.addEventListener("click", () => choose(id));
+    box.appendChild(b);
+  });
+}
+function renderPicRow() {
+  const row = $("picRow");
+  row.querySelectorAll("button").forEach((b) => b.remove());
+  PICS.forEach(([id, key]) => {
+    if (id === "yours" && !edited()) return;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small" + (id === pick ? " on" : "");
+    b.setAttribute("aria-pressed", id === pick ? "true" : "false");
+    b.textContent = P.t(key);
+    b.addEventListener("click", () => choose(id));
+    row.appendChild(b);
+  });
+}
+function choose(id) {
+  pick = id;
+  refresh();
+  const g = shown();
+  Play.live(msg, P.t(PICS.find((p) => p[0] === id)[1]) + ": " + P.t("back", { n: countNumbers(g), same: sameSquares(g, decode(encode(g))), sq: SQ }));
+}
+function refresh() {
+  renderBoard(); renderInfo(); renderBars();
+  if (step === 3) renderPicRow();
+}
+function announceRow() {
+  const code = encodeRow(shown()[cur.y]);
+  Play.live(msg, P.t("liveRow", { r: cur.y + 1, runs: runsText(code), code: codeText(code) }));
+}
+
+/* ---------- interactions ---------- */
+function canPaint() { return step === 2 || (step === 1 && $("paint").checked); }
+function moveTo(x, y) {
+  cur = { x: Play.clamp(x, 0, N - 1), y: Play.clamp(y, 0, N - 1) };
+  if (step === 1) seen[cur.y] = true;
+  refresh();
+}
+function setCell(x, y, v) {
+  const g = shown();
+  if (g[y][x] === v) return;
+  g[y][x] = v;
+  if (step === 1) seen[y] = true;
+}
+let drag = null;
+board.addEventListener("pointerdown", (e) => {
+  const c = e.target.closest(".cell");
+  if (!c) return;
+  const x = +c.dataset.x, y = +c.dataset.y;
+  if (step === 0 || step === 3) { if (step === 3) { cur = { x, y }; refresh(); } return; }
+  stopFill();
+  cur = { x, y };
+  if (step === 1) seen[y] = true;
+  if (canPaint()) {
+    const v = 1 - shown()[y][x];
+    setCell(x, y, v);
+    drag = { v };
+    if (e.pointerType !== "mouse") e.preventDefault();
+  }
+  refresh();
+  if (canPaint()) Play.live(msg, P.t("liveFlip", { r: y + 1, code: codeText(encodeRow(shown()[y])) }));
+  else announceRow();
+});
+addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const c = el && el.closest && el.closest("#board .cell");
+  if (!c) return;
+  const x = +c.dataset.x, y = +c.dataset.y;
+  if (shown()[y][x] === drag.v && cur.x === x && cur.y === y) return;
+  cur = { x, y };
+  setCell(x, y, drag.v);
+  refresh();
+});
+const endDrag = () => {
+  if (!drag) return;
+  drag = null;
+  Play.live(msg, P.t("liveFlip", { r: cur.y + 1, code: codeText(encodeRow(shown()[cur.y])) }));
+};
+addEventListener("pointerup", endDrag);
+addEventListener("pointercancel", endDrag);
+board.addEventListener("focus", () => { board.classList.add("focus"); });
+board.addEventListener("blur", () => board.classList.remove("focus"));
+board.addEventListener("keydown", (e) => {
+  if (step === 0) return;
+  const k = e.key;
+  if (k === "ArrowLeft") moveTo(cur.x - 1, cur.y);
+  else if (k === "ArrowRight") moveTo(cur.x + 1, cur.y);
+  else if (k === "ArrowUp") { moveTo(cur.x, cur.y - 1); announceRow(); }
+  else if (k === "ArrowDown") { moveTo(cur.x, cur.y + 1); announceRow(); }
+  else if ((k === " " || k === "Enter") && canPaint()) {
+    stopFill();
+    setCell(cur.x, cur.y, 1 - shown()[cur.y][cur.x]); refresh();
+    Play.live(msg, P.t("liveFlip", { r: cur.y + 1, code: codeText(encodeRow(shown()[cur.y])) }));
+  } else if ((k === "f" || k === "F") && step === 2) fillRow();
+  else return;
+  e.preventDefault();
+});
+$("paint").addEventListener("change", refresh);
+$("allBtn").addEventListener("click", () => { seen.fill(true); refresh(); Play.live(msg, P.t("done", { n: countNumbers(mine), sq: SQ })); });
+
+/* Step 3 helper: decode the selected row square by square (instantly when motion is reduced). */
+function stopFill() { if (fillTimer) { clearInterval(fillTimer); fillTimer = null; } }
+function fillRow() {
+  stopFill();
+  const y = cur.y, row = decodeRow(BOAT_CODE[y], N);
+  if (!row) return;
+  const done = () => { refresh(); Play.live(msg, P.t("liveFlip", { r: y + 1, code: codeText(encodeRow(guess[y])) })); };
+  if (Play.reduced) { guess[y] = row.slice(); done(); return; }
+  let x = 0;
+  fillTimer = setInterval(() => {
+    if (step !== 2 || x >= N) { stopFill(); done(); return; }
+    guess[y][x] = row[x]; cur = { x, y }; x++;
+    refresh();
+  }, 90);
+}
+$("fillBtn").addEventListener("click", fillRow);
+$("clearBtn").addEventListener("click", () => { stopFill(); guess = emptyGrid(); refresh(); Play.live(msg, ""); });
+
+/* ---------- steps ---------- */
+fresh();
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  stopFill();
+  drag = null;
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("info").hidden = i === 0;
+  $("bars").hidden = $("lossy").hidden = $("picRow").hidden = i !== 3;
+  $("pane").hidden = i === 0;
+  $("row2").hidden = i !== 1;
+  $("row3").hidden = i !== 2;
+  $("keys").textContent = i ? P.t("keys" + k) : "";
+  if (i === 1) seen[cur.y] = true;
+  refresh();
+  Play.live(msg, "");
+});
+const heartN = countNumbers(PIC.heart), checkN = countNumbers(PIC.checker);
+$("resultMain").textContent = P.t("resultMain", { sq: SQ, n: heartN });
+$("resultNote").textContent = P.t("resultNote", { c: checkN, sq: SQ });
+$("reset").addEventListener("click", () => { fresh(); pr.reset(); st.go(0); });
+addEventListener("resize", renderBoard);
+</script>
+</body>
+</html>

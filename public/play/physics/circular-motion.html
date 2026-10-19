@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which way does the ball fly when the string breaks?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.fig { width: 100%; height: auto; display: block; touch-action: none; overflow: hidden; }
+  #fig:focus-visible { outline: 3px solid var(--a); outline-offset: -3px; }
+  .vcap { font-size: 13px; font-weight: 650; color: var(--fg); padding: 10px 14px 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .vcap span { font-weight: 400; color: var(--muted); }
+  .tbl { fill: var(--soft); stroke: var(--line); stroke-width: 2; }
+  .tick { stroke: var(--muted); stroke-width: 2; }
+  .door { fill: var(--muted); opacity: .55; }
+  .orbit { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 6; opacity: .7; }
+  .string { stroke: var(--fg); stroke-width: 2.5; }
+  .stub { stroke: var(--fg); stroke-width: 2.5; stroke-linecap: round; }
+  .pin { fill: var(--fg); }
+  .ball { fill: var(--a); stroke: var(--fg); stroke-width: 1.5; cursor: grab; }
+  .dotA { fill: var(--a); opacity: .45; }
+  .ghost { fill: var(--muted); opacity: .35; }
+  .tan { stroke: var(--a); stroke-width: 1.5; stroke-dasharray: 6 6; opacity: .6; }
+  .cand { fill: none; stroke: var(--muted); stroke-width: 2.5; stroke-dasharray: 8 7; }
+  .candOn { stroke: var(--hl); stroke-width: 3.5; }
+  .va { stroke: var(--a); stroke-width: 3.5; } .vh { fill: var(--a); }
+  .fa { stroke: var(--no); stroke-width: 3.5; } .fh { fill: var(--no); }
+  .ca { stroke: var(--hl); stroke-width: 3; stroke-dasharray: 6 5; } .ch { fill: var(--hl); }
+  .tgt { fill: none; stroke: var(--c); stroke-width: 3; }
+  .tgtHit { fill: var(--c); opacity: .35; }
+  .best { fill: var(--hl); stroke: var(--fg); stroke-width: 1.2; }
+  .lbl { fill: var(--muted); font-size: 24px; font-family: var(--font); }
+  .lblA { fill: var(--a); font-size: 27px; font-weight: 700; font-family: var(--font); font-style: italic; }
+  .lblF { fill: var(--no); font-size: 27px; font-weight: 700; font-family: var(--font); font-style: italic; }
+  .lblC { fill: var(--hl); font-size: 27px; font-weight: 700; font-family: var(--font); }
+  .lblK { fill: var(--fg); font-size: 27px; font-weight: 750; font-family: var(--font); }
+  .stage svg text { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; pointer-events: none; }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .controls .val { min-width: 4.6em; font-size: 14px; }
+  .controls select { font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); }
+  .pr { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 0; }
+  .pr input[type=range] { flex: 1 1 80px; min-width: 0; }
+  .legend { padding: 0 14px 4px; }
+  .sw { display: inline-block; width: 16px; height: 3px; margin-right: 5px; vertical-align: 3px; border-radius: 2px; }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .readout td:first-child { text-align: left; color: var(--muted); }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+  #rule .big { color: var(--fg); font-weight: 650; font-size: 15px; }
+  #aim { font-weight: 650; color: var(--fg); }
+  .result .math { white-space: normal; }
+  @media (max-width: 560px) { .readout { font-size: 13px; } .readout td { padding: 3px 3px; } }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vcap"><strong id="cap"></strong><span id="tag"></span></div>
+      <svg class="fig" id="fig" viewBox="0 0 600 420" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--a)"></span><span data-t="legV"></span></span>
+        <span><span class="sw" style="background:var(--no)"></span><span data-t="legF"></span></span>
+        <span id="legC"><span class="sw" style="background:var(--hl)"></span><span data-t="legC"></span></span>
+      </div>
+      <div class="controls">
+        <div class="grp">
+          <button type="button" id="play"></button>
+          <button type="button" id="cut"></button>
+          <label for="slow" data-t="slowLabel"></label>
+          <select id="slow"><option value="1">1×</option><option value="0.5" selected>½×</option><option value="0.25">¼×</option><option value="0.1">⅒×</option></select>
+          <label class="check" id="rotWrap"><input type="checkbox" id="rot"> <span data-t="rotLabel"></span></label>
+        </div>
+        <div class="grp">
+          <span class="pr"><label for="v" data-t="vLabel"></label><input type="range" id="v" min="1" max="6" step="0.5" value="3"><span class="val" id="vVal"></span></span>
+          <span class="pr"><label for="r" data-t="rLabel"></label><input type="range" id="r" min="0.3" max="1.5" step="0.1" value="1"><span class="val" id="rVal"></span></span>
+          <span class="pr"><label for="m" data-t="mLabel"></label><input type="range" id="m" min="0.05" max="1" step="0.05" value="0.2"><span class="val" id="mVal"></span></span>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="aim"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Which way does the ball fly when the string breaks?", eyebrow: "Physics · Stage 4",
+    h1: "Which way does the ball fly when the string breaks?",
+    intro: "A ball on a smooth table is tied to a pin and goes round in a circle. Seen from above, cut the string and watch where it goes.",
+    reset: "Reset", s1: "Guess", s2: "Cut it", s3: "Rule",
+    figAria: "Top view of a ball going round a pin on a string. Drag the ball to move it round the circle, tap the string to cut it. Keys: left and right arrows move the ball, Enter or Space cuts or ties the string.",
+    capGround: "Top view, seen from the room", capRot: "Top view, riding round with the string",
+    tagSpin: "{rev} laps per second · slow motion {slow}", tagFly: "string cut · slow motion {slow}",
+    legV: "velocity v", legF: "pull of the string F", legC: "“centrifugal” push (only when riding along)",
+    play: "▶ Play", pause: "❚❚ Pause", cutTop: "✂ Cut at the top", cutNow: "✂ Cut the string", tie: "↺ Tie it again",
+    slowLabel: "Slow motion", rotLabel: "Ride along", vLabel: "Speed v", rLabel: "Radius r", mLabel: "Mass m",
+    k1: "Predict first", t1: "The string snaps at the top",
+    b1: "The ball goes round anticlockwise at {v} m/s. When it reaches the top of the circle, the string is cut. Which dashed path, A, B or C, will it follow? Pick, then press “Cut at the top”.",
+    k2: "Hands on", t2: "Cut it anywhere",
+    b2: "Cut the string at any moment (button, Enter, or tap the string). Drag the ball round to choose the spot. The dots are equal times apart: compare their spacing before and after the cut. Then tick “Ride along”.",
+    k3: "The rule", t3: "An inward pull bends the path; without it, a straight line",
+    b3: "Use the rule: hit the blue ring. The ball leaves along the tangent, so cut where the tangent line points at the ring.",
+    q: "Where does the ball go after the cut?",
+    o1: "A: straight outward, away from the pin", o2: "B: it keeps curving round, slowly widening", o3: "C: straight on, along the line it was moving",
+    right: "Yes. Cut it and check: the dots stay on one straight line, equally spaced.",
+    wrong: "Many people pick that, including physics students. Cut it and look at the dots.",
+    candA: "A", candB: "B", candC: "C", lblV: "v", lblF: "F", lblCf: "?", pin: "pin",
+    rF: "Pull of the string", rV: "Speed", rDir: "Direction of motion", rD: "Distance from the pin", rT: "Time for one lap", rA: "Acceleration",
+    fIn: "{F} N, toward the pin", zero: "0", turning: "turns {w}° per second", fixed: "fixed: a straight line", same: "{v} m/s (unchanged)",
+    liveCut: "Cut at {deg}° from the right. The pull dropped from {F} N to 0. The ball moves on in a straight line along the tangent at {v} m/s.",
+    liveGone: "After {s} s it is {d} m from the pin, on the straight tangent line. Its speed never changed.",
+    liveRot: "Riding along: before the cut the ball looks still, as if a push outward balanced the string. After the cut it seems to slide outward and swerve backward, though nothing pushes it.",
+    liveGround: "Back in the room: the pull points to the pin; after the cut, no force and a straight line.",
+    liveHit: "Hit! The ball left along the tangent straight into the ring.", liveMiss: "Missed by {d} m. The yellow mark shows where the tangent points at the ring.",
+    aimTry: "Target: cut so the ball hits the blue ring.", aimHit: "Hit ✓", aimMiss: "Missed by {d} m. Try cutting at the yellow mark.",
+    ruleBig: "To go round a circle the ball needs a pull toward the centre of size F = mv²/r. Cut the string and the pull is gone: no force, so the velocity stays as it was, and the ball goes straight along the tangent.",
+    ruleNow: "Now: F = {m} kg × ({v} m/s)² ÷ {r} m = {F} N.",
+    ruleTwice: "Double the speed: {F2} N (×4). Double the radius: {F3} N (×½). Double the mass: {F4} N (×2).",
+    ruleMass: "The mass changes the pull needed, not the path: every mass follows the same circle and the same tangent.",
+    ruleFrames: "Riding along (tick the box) the ball looks still, so it seems some push outward must balance the string: that is the “centrifugal force”. It is a correction you need only because your view is turning. In the room there is just the inward pull, and after the cut, nothing. The outward slide and the backward swerve you see when riding along both come from your own turning.",
+    resultTitle: "What we found", resultMain: "F = mv²/r toward the centre · cut → straight along the tangent",
+    resultNote: "No force pushes the ball outward. It gets farther from the pin only because a straight line leaves a circle.",
+    explainK: "Explain it", explainQ: "A friend says the ball flies straight outward when the string snaps, because centrifugal force throws it. Explain where it really goes and why, and why it still ends up farther from the pin.",
+    homeK: "Try at home", homeQ: "Cut a slice out of the rim of a paper plate. Lay it flat and roll a marble fast round the inside of the rim. Where does the marble go when it reaches the gap? Mark the path with flour or a ruler.",
+    foot: "Model: top view of a ball on a smooth horizontal table; gravity is balanced by the table; no friction or air resistance; the string is light and cut instantly. Motion is anticlockwise; angles are measured anticlockwise from the right. Attached: speed v, radius r, F = mv²/r, a = v²/r, one lap takes 2πr/v. After the cut: x = r·cos θ − v·t·sin θ, y = r·sin θ + v·t·cos θ (Newton’s first law). Riding along: the same positions turned back by the string’s angle ωt, ω = v/r. Dots are 1/16 of a lap apart. Arrow lengths: v is 24 units per m/s; F is 20 units plus 12 per newton, cut short before the pin; read exact sizes from the table. Scale: 1 m = 110 units. The misconception that objects keep curving was measured by McCloskey, Caramazza & Green, Science 210 (1980) 1139–1141. · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "绳子断了，球往哪边飞？", eyebrow: "物理 · 阶段 4",
+    h1: "绳子断了，球往哪边飞？",
+    intro: "光滑桌面上的一个球拴在钉子上，绕着它转圈。从上往下看，剪断绳子，看球往哪里去。",
+    reset: "重置", s1: "先猜", s2: "剪绳", s3: "规律",
+    figAria: "俯视图：球被绳子拴着绕钉子转圈。拖动球可以把它挪到圆上别的位置，点绳子就剪断。键盘：左右方向键挪球，回车或空格剪断或重新系上。",
+    capGround: "俯视，站在屋里看", capRot: "俯视，跟着绳子一起转着看",
+    tagSpin: "每秒 {rev} 圈 · 慢放 {slow}", tagFly: "绳已剪断 · 慢放 {slow}",
+    legV: "速度 v", legF: "绳的拉力 F", legC: "“离心力”（只在跟着转时出现）",
+    play: "▶ 播放", pause: "❚❚ 暂停", cutTop: "✂ 转到最上面时剪断", cutNow: "✂ 剪断绳子", tie: "↺ 重新系上",
+    slowLabel: "慢放", rotLabel: "跟着转", vLabel: "速度 v", rLabel: "半径 r", mLabel: "质量 m",
+    k1: "先猜一猜", t1: "绳子在最上面断了",
+    b1: "球以 {v} m/s 的速度逆时针转圈。转到圆的最上面时，绳子被剪断。它会走 A、B、C 哪条虚线？先选，再按「转到最上面时剪断」。",
+    k2: "动手", t2: "随时剪断",
+    b2: "随时剪断绳子（按钮、回车，或者点一下绳子）。拖动球可以选剪断的位置。点与点之间时间相等：比一比剪断前后点的间距。最后勾上「跟着转」。",
+    k3: "规律", t3: "向里的拉力让路线拐弯；没了它，就是直线",
+    b3: "用上这条规律：打中蓝色圆环。球沿切线飞出，所以要在切线正好对准圆环的地方剪断。",
+    q: "剪断以后，球往哪里走？",
+    o1: "A：沿绳子方向直直往外飞，离开钉子", o2: "B：继续拐弯，圈慢慢变大", o3: "C：沿着它原来运动的方向直直往前",
+    right: "对。剪断看看：点都排在一条直线上，间距相等。",
+    wrong: "很多人都这样选，学过物理的人也一样。剪断看看那些点。",
+    candA: "A", candB: "B", candC: "C", lblV: "v", lblF: "F", lblCf: "？", pin: "钉子",
+    rF: "绳的拉力", rV: "速度大小", rDir: "运动方向", rD: "离钉子的距离", rT: "转一圈用时", rA: "加速度",
+    fIn: "{F} N，指向钉子", zero: "0", turning: "每秒转 {w}°", fixed: "不变：一条直线", same: "{v} m/s（没变）",
+    liveCut: "在从右边起逆时针 {deg}° 处剪断。拉力从 {F} N 变成 0。球沿切线以 {v} m/s 直直往前走。",
+    liveGone: "{s} 秒后它离钉子 {d} 米，仍在那条切线上。速度大小一直没变。",
+    liveRot: "跟着转：剪断前球看起来不动，好像有一股往外的力和绳子拉力抵消。剪断后它好像往外滑、又往后拐，其实没有什么在推它。",
+    liveGround: "回到屋里看：拉力指向钉子；剪断后没有力，走直线。",
+    liveHit: "打中了！球沿切线直直飞进圆环。", liveMiss: "偏了 {d} 米。黄色标记是切线正好对准圆环的位置。",
+    aimTry: "目标：剪断绳子，让球打中蓝色圆环。", aimHit: "打中了 ✓", aimMiss: "偏了 {d} 米。试试在黄色标记处剪断。",
+    ruleBig: "要绕圈，球需要一个指向圆心的拉力，大小 F = mv²/r。剪断绳子，拉力就没了：不受力，速度保持原样，球沿切线直直飞出。",
+    ruleNow: "现在：F = {m} kg × ({v} m/s)² ÷ {r} m = {F} N。",
+    ruleTwice: "速度加倍：{F2} N（×4）。半径加倍：{F3} N（×½）。质量加倍：{F4} N（×2）。",
+    ruleMass: "质量改变的是需要多大的拉力，不改变路线：多重的球都走同一个圆、同一条切线。",
+    ruleFrames: "跟着转时（勾上那个框），球看起来不动，于是好像得有一股往外的力和绳子拉力抵消：这就是“离心力”。它只是因为你自己在转才需要补上的一项。在屋里看，只有向里的拉力；剪断以后，什么力都没有。跟着转时看到的往外滑、往后拐，都来自你自己在转。",
+    resultTitle: "我们发现", resultMain: "F = mv²/r，指向圆心 · 剪断 → 沿切线直线飞出",
+    resultNote: "没有力把球往外推。它离钉子越来越远，只是因为直线会离开圆。",
+    explainK: "说一说", explainQ: "朋友说：绳子一断，离心力会把球沿绳子方向往外甩。讲讲球实际往哪里走、为什么；再说说它为什么还是离钉子越来越远。",
+    homeK: "家里做一做", homeQ: "把纸盘的边剪掉一段，平放在桌上，让一颗弹珠沿盘边内侧快速滚一圈。滚到缺口时它往哪里走？撒点面粉或者用尺子比一比它的路线。",
+    foot: "模型：俯视光滑水平桌面上的球；重力被桌面托住；忽略摩擦和空气阻力；绳子很轻、瞬间剪断。逆时针运动；角度从右边起逆时针量。系着时：速度 v、半径 r，F = mv²/r，a = v²/r，转一圈用 2πr/v。剪断后：x = r·cos θ − v·t·sin θ，y = r·sin θ + v·t·cos θ（牛顿第一定律）。跟着转：同样的位置再倒转绳子转过的角度 ωt，ω = v/r。相邻两点相隔 1/16 圈的时间。箭头长度：v 每 1 m/s 画 24 单位；F 画 20 单位再加每牛顿 12 单位，到钉子前截短；准确大小以表格为准。比例：1 米 = 110 单位。“物体会继续拐弯”这一迷思的测量见 McCloskey、Caramazza 与 Green，Science 210（1980）1139–1141。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure kinematics, no DOM (tests extract this block) */
+const LIM = 3.6;                                  // flight ends this far from the pin (m): off the picture
+const num = (x, a, b, d) => (Number.isFinite(x) ? Math.min(b, Math.max(a, x)) : d);
+const omega = (v, r) => num(v, 0.1, 100, 1) / num(r, 0.05, 100, 1);
+const force = (m, v, r) => num(m, 0, 100, 0) * num(v, 0, 100, 0) ** 2 / num(r, 0.05, 100, 1);
+const lapTime = (v, r) => 2 * Math.PI / omega(v, r);
+const dotGap = (v, r) => lapTime(v, r) / 16;
+const flightTime = (v, r) => Math.sqrt(Math.max(0, LIM * LIM - num(r, 0, LIM, 1) ** 2)) / num(v, 0.1, 100, 1);
+const wrap = (a) => { const t = 2 * Math.PI; return ((a % t) + t) % t; };
+// state: {v, r, th0 (angle at t = 0), cut: null | {tc, th}}
+function angleAt(s, t) { return s.th0 + omega(s.v, s.r) * t; }
+function posAt(s, t) {
+  if (!s.cut || t <= s.cut.tc) {
+    const th = angleAt(s, t);
+    return { x: s.r * Math.cos(th), y: s.r * Math.sin(th), vx: -s.v * Math.sin(th), vy: s.v * Math.cos(th), on: true, th };
+  }
+  const th = s.cut.th, u = Math.min(t - s.cut.tc, flightTime(s.v, s.r));
+  return { x: s.r * Math.cos(th) - s.v * u * Math.sin(th), y: s.r * Math.sin(th) + s.v * u * Math.cos(th), vx: -s.v * Math.sin(th), vy: s.v * Math.cos(th), on: false, th, u };
+}
+// angle of the frame that turns with the string (the string points straight up in it)
+const frameAngle = (s, t) => angleAt(s, t) - Math.PI / 2;
+const turn = (p, a) => ({ x: p.x * Math.cos(a) - p.y * Math.sin(a), y: p.x * Math.sin(a) + p.y * Math.cos(a) });
+// first time ≥ t0 at which the ball is at the top (θ ≡ 90°)
+function nextTop(s, t0) {
+  const w = omega(s.v, s.r), n = Math.ceil((angleAt(s, t0) - Math.PI / 2) / (2 * Math.PI) - 1e-12);
+  return Math.max(t0, (Math.PI / 2 + 2 * Math.PI * n - s.th0) / w);
+}
+// does the straight flight from angle th pass within tol of target T? returns miss distance (m), 0 = hit
+function missBy(r, th, T, tol) {
+  const px = r * Math.cos(th), py = r * Math.sin(th), dx = -Math.sin(th), dy = Math.cos(th);
+  const wx = T.x - px, wy = T.y - py, along = wx * dx + wy * dy;
+  const d = along > 0 ? Math.abs(wx * dy - wy * dx) : Math.hypot(wx, wy);
+  return d <= tol ? 0 : d - tol;
+}
+// cut angle whose tangent (anticlockwise motion) points straight at T
+function bestAngle(r, T) {
+  const D = Math.hypot(T.x, T.y);
+  if (!(D > r)) return NaN;
+  return wrap(Math.atan2(T.y, T.x) - Math.acos(r / D));
+}
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const sv = Play.svg;
+const CX = 300, CY = 230, SC = 110;
+const X = (p) => CX + p.x * SC, Y = (p) => CY - p.y * SC;
+const TGT = { x: 2.1, y: 1.3 }, TOL = 0.16;
+const DEF = { v: 3, r: 1, m: 0.2 };
+const S = { v: DEF.v, r: DEF.r, m: DEF.m, th0: -Math.PI / 2, cut: null, t: 0, playing: false, slow: 0.5, rot: false, armTop: false, shotDone: false };
+let raf = 0, last = 0, step = 0, lastLive = "", pick = -1;
+const f2 = (x) => Play.fmt(Math.abs(x) < 5e-4 ? 0 : x, 2);
+const say = (m) => { if (m !== lastLive) { lastLive = m; Play.live($("live"), m); } };
+const deg = (a) => Math.round(wrap(a) * 180 / Math.PI) % 360;
+
+// arrow of length len starting at the rim of the ball (radius off)
+function arrow(g, p, dx, dy, len, cls, off) {
+  if (len < 4) return;
+  const n = Math.hypot(dx, dy) || 1, ux = dx / n, uy = dy / n, o = off || 0, x2 = p.x + ux * (o + len), y2 = p.y + uy * (o + len);
+  sv("line", { class: cls[0], x1: p.x + ux * o, y1: p.y + uy * o, x2: x2 - ux * 10, y2: y2 - uy * 10 }, g);
+  sv("path", { class: cls[1], d: `M${x2},${y2} L${x2 - ux * 15 - uy * 8},${y2 - uy * 15 + ux * 8} L${x2 - ux * 15 + uy * 8},${y2 - uy * 15 - ux * 8} Z` }, g);
+  return { x: x2 + ux * 16, y: y2 + uy * 16 };
+}
+function text(g, x, y, s, cls, anchor) { sv("text", { class: cls, x, y: y + 8, "text-anchor": anchor || "middle" }, g).textContent = s; }
+
+function draw() {
+  const g = $("fig"); g.innerHTML = "";
+  const rot = S.rot && step > 0;
+  const fa = rot ? frameAngle(S, S.t) : 0;
+  const V = (p, t) => (rot ? turn(p, -(t === undefined ? fa : frameAngle(S, t))) : p);   // view of an inertial point at time t
+  const sc = (p) => ({ x: X(p), y: Y(p) });
+  // the room: table outline, ticks, door — fixed in the room, so they turn when riding along
+  const corners = [[-2.6, -1.8], [2.6, -1.8], [2.6, 1.8], [-2.6, 1.8]].map(([x, y]) => sc(V({ x, y })));
+  sv("path", { class: "tbl", d: "M" + corners.map((c) => c.x.toFixed(1) + "," + c.y.toFixed(1)).join("L") + "Z" }, g);
+  for (let k = 0; k < 12; k++) {
+    const a = k * Math.PI / 6, p1 = sc(V({ x: 1.65 * Math.cos(a), y: 1.65 * Math.sin(a) })), p2 = sc(V({ x: 1.78 * Math.cos(a), y: 1.78 * Math.sin(a) }));
+    sv("line", { class: "tick", x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y }, g);
+  }
+  const dr = sc(V({ x: 2.45, y: 0 }));
+  sv("circle", { class: "door", cx: dr.x, cy: dr.y, r: 7 }, g);
+  // orbit circle (same in both views)
+  sv("circle", { class: "orbit", cx: CX, cy: CY, r: S.r * SC }, g);
+  // target (step 3)
+  if (step === 2) {
+    const tp = sc(V(TGT));
+    if (S.cut && S.shotDone && missBy(S.r, S.cut.th, TGT, TOL) === 0) sv("circle", { class: "tgtHit", cx: tp.x, cy: tp.y, r: TOL * SC }, g);
+    sv("circle", { class: "tgt", cx: tp.x, cy: tp.y, r: TOL * SC }, g);
+    if (S.shotDone && missBy(S.r, S.cut.th, TGT, TOL) > 0) {
+      const b = bestAngle(S.r, TGT);
+      if (Number.isFinite(b)) { const bp = sc(V({ x: S.r * Math.cos(b), y: S.r * Math.sin(b) })); sv("path", { class: "best", d: `M${bp.x},${bp.y - 2} l-9,-15 h18 z` }, g); }
+    }
+  }
+  // step 1: candidate paths from the top
+  if (step === 0) {
+    const r = S.r, top = { x: 0, y: r };
+    const A = [top, { x: 0, y: Math.max(r + 0.3, Math.min(r + 0.85, 1.95)) }], C = [top, { x: -2.3, y: r }];
+    const B = [];
+    for (let i = 0; i <= 24; i++) { const a = Math.PI / 2 + i * 0.07, rr = r * (1 + 0.55 * i * 0.07); B.push({ x: rr * Math.cos(a), y: rr * Math.sin(a) }); }
+    [[A, 0], [B, 1], [C, 2]].forEach(([pts, i]) => {
+      sv("path", { class: "cand" + (pick === i ? " candOn" : ""), d: "M" + pts.map((p) => X(p).toFixed(1) + "," + Y(p).toFixed(1)).join("L") }, g);
+      const e = pts[pts.length - 1];
+      text(g, X(e) + (i === 2 ? -16 : i === 1 ? -14 : 0), Math.max(14, Y(e) + (i === 0 ? -18 : i === 1 ? 14 : 0)), P.t(["candA", "candB", "candC"][i]), "lblK");
+    });
+  }
+  // dots: equal times apart, from the start of the current lap view to now
+  const gap = dotGap(S.v, S.r), cur = posAt(S, S.t);
+  if (S.cut) {
+    const tc = S.cut.tc;
+    if (!rot) { const a = sc(posAt(S, tc)), e = sc(posAt(S, tc + flightTime(S.v, S.r))); sv("line", { class: "tan", x1: a.x, y1: a.y, x2: e.x, y2: e.y }, g); }
+    for (let k = 1; k <= 8; k++) { const p = sc(V(posAt(S, tc - k * gap), tc - k * gap)); sv("circle", { class: "ghost", cx: p.x, cy: p.y, r: 4.5 }, g); }
+    if (rot) {   // the curved path seen while riding along
+      let d = "";
+      const n = 60, span = S.t - tc;
+      for (let i = 0; i <= n && span > 0; i++) { const t = tc + span * i / n, p = sc(V(posAt(S, t), t)); d += (i ? "L" : "M") + p.x.toFixed(1) + "," + p.y.toFixed(1); }
+      if (d) sv("path", { class: "cand candOn", d, style: "stroke-dasharray:none;stroke-width:2;opacity:.8" }, g);
+    }
+    for (let k = 0; tc + k * gap <= S.t + 1e-9 && k < 200; k++) {
+      const t = tc + k * gap, p = sc(V(posAt(S, t), t));
+      sv("circle", { class: "dotA", cx: p.x, cy: p.y, r: 5 }, g);
+    }
+  } else if (!rot) {
+    for (let k = 1; k <= 8; k++) { const p = sc(posAt(S, S.t - k * gap)); sv("circle", { class: "ghost", cx: p.x, cy: p.y, r: 4.5 }, g); }
+  }
+  // string, pin, ball
+  const bp = sc(V(cur)), rad = 8 + 8 * Math.sqrt(S.m);
+  if (!S.cut) sv("line", { class: "string", x1: CX, y1: CY, x2: bp.x, y2: bp.y }, g);
+  else { const th = S.cut.th, st = sc(V({ x: 0.25 * S.r * Math.cos(th), y: 0.25 * S.r * Math.sin(th) }, S.cut.tc)); const s2 = rot ? sc(V({ x: 0.25 * S.r * Math.cos(angleAt(S, S.t)), y: 0.25 * S.r * Math.sin(angleAt(S, S.t)) })) : st; sv("line", { class: "stub", x1: CX, y1: CY, x2: s2.x, y2: s2.y }, g); }
+  sv("circle", { class: "pin", cx: CX, cy: CY, r: 6 }, g);
+  // arrows: screen directions
+  if (!rot) {
+    const L = 24 * S.v;
+    const tip = arrow(g, bp, cur.vx, -cur.vy, L, ["va", "vh"], rad);
+    if (tip) text(g, tip.x, tip.y, P.t("lblV"), "lblA");
+    if (!S.cut) {
+      const F = force(S.m, S.v, S.r), Lf = Math.min(S.r * SC - rad - 12, 20 + 12 * F);
+      const tf = arrow(g, bp, CX - bp.x, CY - bp.y, Lf, ["fa", "fh"], rad);
+      if (tf) {
+        // label beside the middle of the force arrow, on the side away from the velocity arrow
+        const dx = CX - bp.x, dy = CY - bp.y, n = Math.hypot(dx, dy) || 1;
+        let nx = -dy / n, ny = dx / n;
+        if (nx * cur.vx - ny * cur.vy > 0) { nx = -nx; ny = -ny; }
+        text(g, bp.x + dx / n * (rad + Lf / 2) + nx * 20, bp.y + dy / n * (rad + Lf / 2) + ny * 20 - 4, P.t("lblF"), "lblF");
+      }
+    }
+  } else if (!S.cut) {
+    const F = force(S.m, S.v, S.r), Lf = Math.min(S.r * SC - rad - 12, 20 + 12 * F);
+    arrow(g, bp, CX - bp.x, CY - bp.y, Lf, ["fa", "fh"], rad);
+    const tc2 = arrow(g, bp, bp.x - CX, bp.y - CY, Lf, ["ca", "ch"], rad);
+    text(g, bp.x + 26, bp.y - 6, P.t("lblF"), "lblF", "start");
+    if (tc2) text(g, tc2.x + 4, tc2.y + 4, P.t("lblCf"), "lblC", "start");
+  }
+  sv("circle", { class: "ball", cx: bp.x, cy: bp.y, r: rad, id: "ballEl" }, g);
+  text(g, CX + 12, CY + 22, P.t("pin"), "lbl", "start");
+  // captions
+  $("cap").textContent = P.t(rot ? "capRot" : "capGround");
+  const sl = $("slow").selectedOptions[0].textContent;
+  $("tag").textContent = S.cut ? P.t("tagFly", { slow: sl }) : P.t("tagSpin", { rev: Play.fmt(1 / lapTime(S.v, S.r), 2), slow: sl });
+  $("legC").hidden = !rot;
+  drawReadout();
+  syncCtl();
+}
+
+function drawReadout() {
+  const F = force(S.m, S.v, S.r), on = !S.cut, p = posAt(S, S.t);
+  const rows = [
+    [P.t("rF"), on ? P.t("fIn", { F: f2(F) }) : P.t("zero") + " N"],
+    [P.t("rV"), on ? Play.fmt(S.v, 1) + " m/s" : P.t("same", { v: Play.fmt(S.v, 1) })],
+    [P.t("rDir"), on ? P.t("turning", { w: Play.fmt(omega(S.v, S.r) * 180 / Math.PI, 0) }) : P.t("fixed")],
+    [P.t("rD"), f2(Math.hypot(p.x, p.y)) + " m"],
+    [P.t("rT"), on ? Play.fmt(lapTime(S.v, S.r), 2) + " s" : "—"],
+    [P.t("rA"), on ? "v²/r = " + f2(S.v * S.v / S.r) + " m/s²" : P.t("zero") + " m/s²"],
+  ];
+  $("readout").innerHTML = rows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("");
+}
+
+function syncCtl() {
+  $("vVal").textContent = Play.fmt(S.v, 1) + " m/s";
+  $("rVal").textContent = Play.fmt(S.r, 1) + " m";
+  $("mVal").textContent = Play.fmt(S.m, 2) + " kg";
+  const done = S.cut && S.t >= S.cut.tc + flightTime(S.v, S.r) - 1e-9;
+  $("play").textContent = P.t(S.playing ? "pause" : "play");
+  $("play").disabled = !!done;
+  $("cut").textContent = S.cut ? P.t("tie") : P.t(step === 0 ? "cutTop" : "cutNow");
+  $("rot").checked = S.rot;
+  if (step === 2) {
+    const aim = $("aim");
+    if (S.shotDone && S.cut) { const d = missBy(S.r, S.cut.th, TGT, TOL); aim.textContent = d === 0 ? P.t("aimHit") : P.t("aimMiss", { d: f2(d) }); }
+    else aim.textContent = P.t("aimTry");
+  }
+}
+
+function landed() {
+  S.shotDone = true;
+  const p = posAt(S, S.t);
+  if (step === 2) { const d = missBy(S.r, S.cut.th, TGT, TOL); say(d === 0 ? P.t("liveHit") : P.t("liveMiss", { d: f2(d) })); }
+  else say(P.t("liveGone", { s: Play.fmt(p.u, 2), d: f2(Math.hypot(p.x, p.y)) }));
+}
+function doCut(t) {
+  const th = angleAt(S, t);
+  S.cut = { tc: t, th }; S.t = t; S.armTop = false; S.shotDone = false;
+  say(P.t("liveCut", { deg: deg(th), F: f2(force(S.m, S.v, S.r)), v: Play.fmt(S.v, 1) }));
+}
+function pause() { S.playing = false; cancelAnimationFrame(raf); }
+function start() { if (S.playing) return; S.playing = true; last = 0; raf = requestAnimationFrame(tick); }
+function finishFlight() { S.t = S.cut.tc + flightTime(S.v, S.r); pause(); landed(); }
+function tick(ts) {
+  if (!S.playing) return;
+  const dt = last ? Math.min(0.1, (ts - last) / 1000) * S.slow : 0;
+  last = ts;
+  let t = S.t + dt;
+  if (!S.cut && S.armTop) { const tt = nextTop(S, S.t); if (t >= tt) doCut(tt); }
+  if (S.cut && t >= S.cut.tc + flightTime(S.v, S.r)) { S.t = S.cut.tc + flightTime(S.v, S.r); S.playing = false; draw(); landed(); return; }
+  S.t = Math.max(S.t, t);
+  draw();
+  if (S.playing) raf = requestAnimationFrame(tick);
+}
+function tie() {
+  // tie again where the string was cut, keep the clock
+  const th = S.cut ? S.cut.th : angleAt(S, S.t);
+  S.cut = null; S.armTop = false; S.shotDone = false;
+  S.th0 = th - omega(S.v, S.r) * S.t;
+}
+function cutAction() {
+  if (S.cut) { tie(); if (!Play.reduced) start(); draw(); return; }
+  if (step === 0) {
+    if (Play.reduced || !S.playing) {
+      // move straight to the top and cut there
+      S.th0 = Math.PI / 2 - omega(S.v, S.r) * S.t;
+      doCut(S.t);
+      if (Play.reduced) finishFlight(); else start();
+    } else S.armTop = true;
+  } else {
+    doCut(S.t);
+    if (Play.reduced) finishFlight(); else start();
+  }
+  draw();
+}
+$("cut").addEventListener("click", cutAction);
+$("play").addEventListener("click", () => { if (S.playing) pause(); else start(); draw(); });
+$("slow").addEventListener("change", () => { S.slow = num(+$("slow").value, 0.05, 1, 0.5); draw(); });
+$("rot").addEventListener("change", () => { S.rot = $("rot").checked; say(P.t(S.rot ? "liveRot" : "liveGround")); draw(); drawRule(); });
+function setParam(k, val) {
+  const th = S.cut ? S.cut.th : angleAt(S, S.t);
+  S[k] = val;
+  if (k !== "m") { if (S.cut) { S.cut = null; S.shotDone = false; S.armTop = false; } S.th0 = th - omega(S.v, S.r) * S.t; }
+  draw(); drawRule();
+}
+$("v").addEventListener("input", () => setParam("v", num(+$("v").value, 1, 6, DEF.v)));
+$("r").addEventListener("input", () => setParam("r", num(+$("r").value, 0.3, 1.5, DEF.r)));
+$("m").addEventListener("input", () => setParam("m", num(+$("m").value, 0.05, 1, DEF.m)));
+
+// direct manipulation: drag the ball round its circle; tap the string to cut
+const fig = $("fig");
+let dragging = false;
+function moveTo(th) {
+  if (S.cut) tie();
+  S.th0 = th - omega(S.v, S.r) * S.t;
+}
+fig.addEventListener("pointerdown", (e) => {
+  const p = Play.pointer(fig, e), cur = posAt(S, S.t);
+  const b = S.rot && step > 0 ? turn(cur, -frameAngle(S, S.t)) : cur;
+  const bx = X(b), by = Y(b);
+  if (!S.cut && !(S.rot && step > 0) && Math.hypot(p.x - bx, p.y - by) < 34) {
+    dragging = true; pause(); fig.setPointerCapture && fig.setPointerCapture(e.pointerId); e.preventDefault(); draw(); return;
+  }
+  // distance to the string segment pin→ball
+  if (!S.cut) {
+    const dx = bx - CX, dy = by - CY, L2 = dx * dx + dy * dy || 1;
+    const u = Play.clamp(((p.x - CX) * dx + (p.y - CY) * dy) / L2, 0, 1);
+    if (Math.hypot(p.x - CX - u * dx, p.y - CY - u * dy) < 22 && u > 0.08) { e.preventDefault(); cutAction(); }
+  }
+});
+fig.addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  const p = Play.pointer(fig, e), q = { x: (p.x - CX) / SC, y: (CY - p.y) / SC };
+  if (Math.hypot(q.x, q.y) < 0.05) return;
+  moveTo(Math.atan2(q.y, q.x)); draw();
+});
+["pointerup", "pointercancel"].forEach((ev) => fig.addEventListener(ev, () => { if (dragging) { dragging = false; draw(); } }));
+fig.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); cutAction(); return; }
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    e.preventDefault(); pause();
+    const th = S.cut ? S.cut.th : angleAt(S, S.t);
+    moveTo(th + (e.key === "ArrowLeft" ? 1 : -1) * Math.PI / 12); draw();
+  }
+});
+
+function drawRule() {
+  const box = $("rule");
+  if (step !== 2) { box.innerHTML = ""; return; }
+  const F = force(S.m, S.v, S.r);
+  box.innerHTML =
+    '<p class="big">' + P.t("ruleBig") + "</p>" +
+    '<p class="mathline">F = m·v² / r</p>' +
+    "<p>" + P.t("ruleNow", { m: Play.fmt(S.m, 2), v: Play.fmt(S.v, 1), r: Play.fmt(S.r, 1), F: f2(F) }) + "</p>" +
+    "<p>" + P.t("ruleTwice", { F2: f2(force(S.m, 2 * S.v, S.r)), F3: f2(force(S.m, S.v, 2 * S.r)), F4: f2(force(2 * S.m, S.v, S.r)) }) + "</p>" +
+    "<p>" + P.t("ruleMass") + "</p>" +
+    "<p>" + P.t("ruleFrames") + "</p>";
+}
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }], right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { pick = i; draw(); });
+const stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k, { v: Play.fmt(S.v, 1) });
+  $("predict").hidden = i !== 0;
+  $("aim").hidden = i !== 2;
+  $("rotWrap").hidden = i === 0;
+  if (i === 2) S.rot = false;
+  if (S.cut) tie();
+  if (i === 2) S.th0 = -Math.PI / 2 - omega(S.v, S.r) * S.t;
+  if (!Play.reduced) start(); else pause();
+  draw(); drawRule();
+});
+function resetAll() {
+  pause();
+  Object.assign(S, { v: DEF.v, r: DEF.r, m: DEF.m, th0: -Math.PI / 2, cut: null, t: 0, slow: 0.5, rot: false, armTop: false, shotDone: false });
+  $("v").value = DEF.v; $("r").value = DEF.r; $("m").value = DEF.m; $("slow").value = "0.5";
+  pick = -1; lastLive = ""; $("live").textContent = "";
+  pr.reset(); stp.go(0);
+}
+$("reset").addEventListener("click", resetAll);
+resetAll();
+</script>
+</body>
+</html>

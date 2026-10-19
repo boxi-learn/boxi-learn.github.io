@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a river bends itself</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  #map { width: 100%; aspect-ratio: 5 / 3; height: auto; display: block; touch-action: none; cursor: pointer; }
+  .stage canvas.main { height: auto; }
+  .cap { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 6px 14px 2px; font-size: 12px; color: var(--muted); }
+  .cap b { color: var(--b); font-weight: 700; }
+  .controls label.lab { min-width: 3.5em; }
+  .controls .val { min-width: 4.5em; font-family: var(--font); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .read { display: grid; grid-template-columns: auto auto; gap: 3px 12px; margin: 6px 0 10px; font-size: 14px; }
+  .read dt { color: var(--muted); }
+  .read dd { margin: 0; font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 650; }
+  .grad { display: inline-block; width: 46px; height: 8px; border-radius: 4px; margin-right: 5px; vertical-align: 0;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--c) 22%, var(--surface)), var(--c)); }
+  .line { display: inline-block; width: 16px; height: 3px; margin-right: 5px; vertical-align: 3px; border-radius: 2px; }
+  .sq { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  #xsWrap { margin: 2px 0 10px; }
+  #xsWrap .xcap { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+  #xs { width: 100%; height: 130px; display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .result .math { white-space: normal; font-family: var(--font); font-size: 18px; font-weight: 650; }
+  @media (max-width: 560px) { .result .math { font-size: 16px; } .read { grid-template-columns: 1fr auto; } }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <canvas class="main" id="map" tabindex="0" role="application" data-t-aria="mapAria"></canvas>
+      <div class="cap"><span data-t="mapCap"></span><b data-t="simTag"></b></div>
+      <div class="legend" style="padding: 0 14px 4px" id="legend"></div>
+      <div class="controls" id="rowFlow">
+        <button type="button" class="small" id="flowBtn"></button>
+        <span data-t="flowHint"></span>
+      </div>
+      <div class="controls" id="rowYear">
+        <label class="lab" for="year" data-t="yearLabel"></label>
+        <input type="range" id="year" min="0" max="500" step="1" value="0">
+        <span class="val" id="yearVal"></span>
+        <button type="button" class="small" id="playBtn"></button>
+        <button type="button" class="small" id="newRiver" data-t="newRiver"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="xsWrap"><div class="xcap" data-t="xsCap"></div><canvas id="xs" role="img" data-t-aria="xsAria"></canvas></div>
+      <dl class="read" id="read"></dl>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "How a river bends itself", eyebrow: "Geography · Stage 3", h1: "A river wears away the outside of its bends and builds up the inside",
+    intro: "Guess what happens to the two banks of a bend, measure the current with a float, then run the river for 1000 years and see which house falls in.",
+    reset: "Reset", play: "Play", pause: "Pause", flowOn: "Pause the flow", flowOff: "Start the flow", flowHint: "Streaks move at the water's speed.",
+    mapAria: "Map of a winding river seen from above, flowing left to right. Step 2: arrow keys move the float, left and right along the river, up and down across it. Steps 3 and 4: arrow keys move the selected house, Enter switches house.",
+    mapCap: "Model river seen from above, 6 km × 3.6 km, flowing left to right.", simTag: "simulation",
+    yearLabel: "Year", yearVal: "{y}", newRiver: "New river",
+    xsCap: "Cross-section at the float, looking downstream", xsAria: "Cross-section of the channel at the float",
+    s1: "Guess", s2: "Measure", s3: "Run time", s4: "Rule",
+    k1: "Predict first", t1: "Which bank wears away?",
+    b1: "Bank A is on the outside of the bend, bank B on the inside. Pick an answer, then go to step 2 and measure the current.",
+    k2: "Hands on", t2: "Measure the current with a float",
+    b2: "The darker the water, the faster it flows. Drag the yellow float across the channel and along it (or use the arrow keys). Where is the water fastest and deepest? Compare the outside of a bend with the inside.",
+    k3: "Hands on", t3: "Run the river for 1000 years",
+    b3: "Drag the two houses to where you would build, then press Play or drag the year slider. Red banks are being worn away; sand-coloured banks are growing. Which house falls in first?",
+    k4: "The rule", t4: "Fast outside wears away, slow inside fills up",
+    b4: "Water going round a bend keeps trying to go straight, so it piles up against the outside. There it flows fastest and deepest and wears the bank into a steep river cliff. On the inside it slows down and drops sand, building a point bar. So each bend grows outwards and creeps downstream. When two bends almost meet, a flood breaks through the narrow neck and the old loop is left behind as an oxbow lake.",
+    q: "Over many years, what happens to bank A (outside of the bend) and bank B (inside)?",
+    o1: "Both are worn away about equally", o2: "A is worn away; sand builds up at B", o3: "B is worn away; sand builds up at A", o4: "Neither: a river stays where it is",
+    right: "Yes. Measure the current in step 2 to see why.", wrong: "A common guess. Measure the current in step 2 and check it.",
+    flow: "flow", lA: "A", lB: "B", lCliff: "river cliff", lBar: "point bar", lOx: "oxbow lake", lDeep: "deep", lShallow: "shallow",
+    gSpeed: "slow → fast water", gErode: "bank worn away", gBuild: "sand builds up", gLand: "new land where the river has been", gOld: "river in year 0", gOx: "oxbow lake",
+    rSpeed: "Speed here", rDepth: "Depth here", rWhere: "Where", rBank: "Nearest bank",
+    vSpeed: "{v} m/s", vDepth: "{d} m",
+    wOuter: "outside of a bend", wInner: "inside of a bend", wMid: "middle of the channel", wStraight: "nearly straight stretch",
+    bErode: "being worn away", bBuild: "getting sand", bCalm: "changes little",
+    rYear: "Year", rSin: "River length ÷ valley length", rOx: "Oxbow lakes", rH: "House {k}", rShare: "Bank worn away on the outside of bends",
+    hStand: "standing, {d} m from the river (year 0: {d0} m)", hFell: "fell in, year {y}", pct: "{p}%", none: "—",
+    liveProbe: "Float: {v} m/s, {d} m deep, {w}.", liveYear: "Year {y}.", liveFell: "House {k} fell into the river in year {y}.", liveOx: "The river cut through a neck: a new oxbow lake.",
+    liveRule: "Look for the red banks: they are on the outside of bends. The sand-coloured land is where the river used to be.",
+    resultTitle: "What we found",
+    resultMain: "In 1000 model years, {p}% of the bank that was worn away was on the outside of bends. The river grew to {s}× the length of its valley and cut off {lakes}.", oxOne: "1 oxbow lake", oxMany: "{n} oxbow lakes",
+    resultNote: "These numbers come from a simple model, not a real river. Real rivers show the same pattern: outside banks erode, insides build point bars, and loops get cut off as oxbow lakes.",
+    explainK: "Explain it", explainQ: "A friend wants to build a house right at the edge of a river bend, on the outside, for the view. Use what you saw to explain what may happen, and where you would build instead.",
+    homeK: "Try at home", homeQ: "In a sandpit or a tray of damp sand, scrape a curved channel and pour water slowly in at one end. Where on the curve is sand washed away, and where does it settle?",
+    foot: "Model: each year the channel centre line moves sideways at a rate set by its curvature plus the push still carried from bends upstream (after Howard & Knutson 1984: Ω = −1, Γ = 2.5, decay length 2 channel widths), capped so the fastest bank retreats {r} m a year; a neck narrower than 1.6 channel widths is cut through. Scale: channel 120 m wide; the model runs 300 years before year 0 so that the first bends have formed, then 1000 more. Real meandering rivers move from under a metre to tens of metres a year, so the time axis is only a rough guide. Speed and depth across the channel are illustrative (mean speed {u} m/s, deepest {h} m); measured rivers show the same pattern, with the fastest, deepest water near the outer bank just past the tip of a bend. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "河流怎样把自己弄弯", eyebrow: "地理 · 阶段 3", h1: "河流冲走河湾外侧，在内侧堆起泥沙",
+    intro: "先猜一猜河湾两岸会怎样，再放一个浮标测水流，然后让河流跑上 1000 年，看哪座房子先掉进河里。",
+    reset: "重置", play: "播放", pause: "暂停", flowOn: "暂停水流", flowOff: "让水流动", flowHint: "水面小线条按水流速度移动。",
+    mapAria: "从上往下看的一条弯曲河流，从左往右流。第 2 步：方向键移动浮标，左右是顺着河，上下是横过河。第 3、4 步：方向键移动选中的房子，回车换一座房子。",
+    mapCap: "模拟河流俯视图，6 千米 × 3.6 千米，从左往右流。", simTag: "模拟",
+    yearLabel: "年份", yearVal: "第 {y} 年", newRiver: "换一条河",
+    xsCap: "浮标处的河道横截面（面朝下游）", xsAria: "浮标处的河道横截面",
+    s1: "先猜", s2: "测一测", s3: "让时间走", s4: "规律",
+    k1: "先猜一猜", t1: "哪一岸会被冲走？",
+    b1: "A 岸在河湾外侧，B 岸在河湾内侧。先选一个答案，再到第 2 步测水流。",
+    k2: "动手", t2: "放一个浮标测水流",
+    b2: "水的颜色越深，流得越快。拖动黄色浮标横过河道、顺着河道走（也可以用方向键）。哪里的水最快、最深？比一比河湾外侧和内侧。",
+    k3: "动手", t3: "让河流跑上 1000 年",
+    b3: "把两座房子拖到你想盖房的地方，再按播放或拖动年份滑块。红色的河岸正在被冲走，沙色的河岸在长出来。哪座房子先掉进河里？",
+    k4: "规律", t4: "外侧水快被冲走，内侧水慢被填高",
+    b4: "水流绕过河湾时总想直着走，于是挤向外侧。外侧水流最快、最深，把河岸冲成陡峭的凹岸陡崖；内侧水流变慢，泥沙沉下来，堆成凸岸边滩。所以每个河湾都向外长大，还慢慢往下游挪。两个河湾快要碰上时，一场洪水冲开狭窄的弯颈，旧河弯被丢在一边，成了牛轭湖。",
+    q: "很多年以后，A 岸（河湾外侧）和 B 岸（河湾内侧）会怎样？",
+    o1: "两岸被冲走的差不多一样多", o2: "A 岸被冲走，B 岸堆起泥沙", o3: "B 岸被冲走，A 岸堆起泥沙", o4: "都不变：河流一直待在原地",
+    right: "对。到第 2 步测一测水流，看看为什么。", wrong: "很多人这样猜。到第 2 步测一测水流，检验一下。",
+    flow: "水流", lA: "A", lB: "B", lCliff: "凹岸陡崖", lBar: "凸岸边滩", lOx: "牛轭湖", lDeep: "深", lShallow: "浅",
+    gSpeed: "水流 慢 → 快", gErode: "河岸被冲走", gBuild: "泥沙堆积", gLand: "河流走过后留下的新陆地", gOld: "第 0 年的河道", gOx: "牛轭湖",
+    rSpeed: "这里的流速", rDepth: "这里的水深", rWhere: "位置", rBank: "最近的河岸",
+    vSpeed: "{v} 米/秒", vDepth: "{d} 米",
+    wOuter: "河湾外侧", wInner: "河湾内侧", wMid: "河道中间", wStraight: "差不多直的河段",
+    bErode: "正在被冲走", bBuild: "正在堆积泥沙", bCalm: "变化很小",
+    rYear: "年份", rSin: "河道长度 ÷ 河谷长度", rOx: "牛轭湖", rH: "房子 {k}", rShare: "被冲走的河岸中在河湾外侧的",
+    hStand: "还在，离河 {d} 米（第 0 年：{d0} 米）", hFell: "第 {y} 年掉进河里", pct: "{p}%", none: "—",
+    liveProbe: "浮标：{v} 米/秒，水深 {d} 米，{w}。", liveYear: "第 {y} 年。", liveFell: "房子 {k} 在第 {y} 年掉进了河里。", liveOx: "河流冲开了一个弯颈：出现一个新的牛轭湖。",
+    liveRule: "找一找红色的河岸：它们都在河湾外侧。沙色的陆地是河流从前流过的地方。",
+    resultTitle: "我们发现",
+    resultMain: "在 1000 个模拟年里，被冲走的河岸有 {p}% 在河湾外侧。河道长到河谷长度的 {s} 倍，截出了 {lakes}。", oxOne: "1 个牛轭湖", oxMany: "{n} 个牛轭湖",
+    resultNote: "这些数来自一个简单模型，不是真实河流。真实河流也是这个规律：外侧河岸被冲刷，内侧堆成边滩，河弯被截断成牛轭湖。",
+    explainK: "说一说", explainQ: "朋友想把房子盖在河湾外侧的岸边，因为风景好。用你看到的现象跟他解释可能会发生什么，你会把房子盖在哪里。",
+    homeK: "家里做一做", homeQ: "在沙坑里或一盘湿沙上划出一条弯弯的小河道，从一头慢慢倒水。弯道的哪一边沙子被冲走，哪一边沙子沉下来？",
+    foot: "模型：每年河道中心线向旁边移动，速度由该处的弯曲程度加上上游河湾传下来的推力决定（参照 Howard & Knutson 1984：Ω = −1，Γ = 2.5，衰减长度为 2 倍河宽），并设上限，使后退最快的河岸每年后退 {r} 米；弯颈窄到 1.6 倍河宽以下就被冲开。比例：河宽 120 米；模型先跑 300 年让河湾成形，再从第 0 年跑 1000 年。真实曲流河每年移动不到 1 米到几十米不等，所以时间轴只是大致参考。河道里的流速和水深是示意（平均流速 {u} 米/秒，最深 {h} 米）；实测河流也是这个规律：最快、最深的水在河湾顶点稍下游的外侧河岸附近。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ===== MODEL START (pure; tested in node) ===== */
+// View: 600 × 360 units, 1 unit = 10 m. Channel centre line = points DS apart; flow runs left → right.
+const VW = 600, VH = 360, YC = 180, M_PER_U = 10;
+const W = 12, DS = 5;                       // channel width 120 m; point spacing
+const OMEGA = -1, GAMMA = 2.5, LD = 2 * W;  // Howard & Knutson (1984): local + upstream-lagged curvature, decay length 2 widths
+const KMAX = Math.ceil(3 * LD / DS), WTS = Array.from({ length: KMAX }, (_, k) => Math.exp(-(k + 1) * DS / LD));
+const RATE = 0.5, CAP = 0.6;                // bank shift per year (units) per unit of C·W, capped
+const NEAR = 1.6 * W;                       // a neck narrower than this is breached in a flood → cut-off
+const STEPS = 1000, EVERY = 2, SMOOTH = 24, SPIN = 300; // years simulated (after SPIN warm-up years); keep a frame every 2 years; curvature smoothing passes
+const X0 = -260, X1 = VW + 260, AMP = 14, LAM = 150;
+const clampN = (x, a, b) => Math.min(b, Math.max(a, x));
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function resample(pts) { // equal spacing DS along the line
+  const out = [pts[0].slice()];
+  let carry = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    let s = DS - carry;
+    while (s <= L) { const f = s / L; out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]); s += DS; }
+    carry = L - (s - DS);
+  }
+  const last = pts[pts.length - 1], tail = out[out.length - 1];
+  if (Math.hypot(last[0] - tail[0], last[1] - tail[1]) > DS * 0.4) out.push(last.slice()); else out[out.length - 1] = last.slice();
+  return out;
+}
+function initial(seed) { // gently wavy channel that starts and ends well outside the view
+  const r = rng(seed), ph = [r() * 6.28, r() * 6.28, r() * 6.28], pts = [];
+  for (let x = X0; x <= X1; x += DS) {
+    const taper = Math.min(1, (x - X0) / 120, (X1 - x) / 120), k = 2 * Math.PI * x / LAM;
+    pts.push([x, YC + taper * AMP * (Math.sin(k + ph[0]) + 0.35 * Math.sin(k / 1.7 + ph[1]) + 0.2 * Math.sin(k / 0.63 + ph[2]))]);
+  }
+  return resample(pts);
+}
+function curvature(pts) { // signed, per unit; + = turning toward the right bank (screen y points down)
+  const n = pts.length, c = new Array(n).fill(0);
+  for (let i = 1; i < n - 1; i++) {
+    const ax = pts[i][0] - pts[i - 1][0], ay = pts[i][1] - pts[i - 1][1], bx = pts[i + 1][0] - pts[i][0], by = pts[i + 1][1] - pts[i][1];
+    const L = (Math.hypot(ax, ay) + Math.hypot(bx, by)) / 2 || 1;
+    c[i] = Math.atan2(ax * by - ay * bx, ax * bx + ay * by) / L;
+  }
+  for (let p = 0; p < SMOOTH; p++) { const d = c.slice(); for (let i = 1; i < n - 1; i++) c[i] = (d[i - 1] + 2 * d[i] + d[i + 1]) / 4; }
+  return c;
+}
+function lagged(c) { // what the banks feel: this bend plus the push still carried from upstream bends
+  const n = c.length, out = new Array(n).fill(0);
+  for (let i = 0; i < n; i++) {
+    let s = 0, w = 0;
+    for (let k = 0; k < KMAX && i - k - 1 >= 0; k++) { s += WTS[k] * c[i - k - 1]; w += WTS[k]; }
+    out[i] = OMEGA * c[i] + GAMMA * (w ? s / w : c[i]);
+  }
+  return out;
+}
+function normals(pts) { // unit normal to the RIGHT bank (looking downstream)
+  const n = pts.length;
+  return pts.map((p, i) => {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+    const tx = b[0] - a[0], ty = b[1] - a[1], L = Math.hypot(tx, ty) || 1;
+    return [-ty / L, tx / L];
+  });
+}
+function bankShift(pts) { // per point: shift (units/yr) of the channel, + = toward the right bank; and the asymmetry a in [-0.75, 0.75]
+  const c = curvature(pts), cl = lagged(c), nr = normals(pts), n = pts.length, m = new Array(n), a = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = pts[i][0], y = pts[i][1];
+    const ends = clampN(Math.min((x - X0) / 100, (X1 - x) / 100), 0, 1);
+    let v = -RATE * clampN(cl[i] * W, -CAP, CAP) * ends; // a right turn (c > 0) pushes water to the LEFT (outer) bank
+    if (nr[i][1] * v * (y - YC) > 0) v *= clampN((VH / 2 - 12 - Math.abs(y - YC)) / 30, 0, 1); // valley sides hold the river in
+    m[i] = v;
+    a[i] = clampN(-1.6 * cl[i] * W, -0.75, 0.75); // + = water piled toward the right bank
+  }
+  return { c, m, a, nr };
+}
+function step(pts, stats) {
+  const n = pts.length, { c, m, nr } = bankShift(pts), out = new Array(n);
+  for (let i = 0; i < n; i++) {
+    out[i] = [pts[i][0] + nr[i][0] * m[i], pts[i][1] + nr[i][1] * m[i]];
+    if (Math.abs(c[i] * W) > 0.04) { const w = Math.abs(m[i]) * DS; stats.all += w; if (m[i] * c[i] < 0) stats.outer += w; }
+    if (pts[i][0] > 0 && pts[i][0] < VW) stats.peak = Math.max(stats.peak, Math.abs(m[i]));
+  }
+  out[0] = pts[0].slice(); out[n - 1] = pts[n - 1].slice();
+  return resample(out);
+}
+function cutoff(pts) { // first neck where the river nearly meets itself → [new channel, abandoned loop] or null
+  const n = pts.length, M = Math.ceil(5 * W / DS), N2 = NEAR * NEAR;
+  for (let i = 0; i < n; i++) for (let j = i + M; j < n; j++) {
+    const dx = pts[j][0] - pts[i][0], dy = pts[j][1] - pts[i][1];
+    if (dx * dx + dy * dy < N2) return [resample(pts.slice(0, i + 1).concat(pts.slice(j))), pts.slice(i, j + 1)];
+  }
+  return null;
+}
+function sinuosity(pts) { // channel length inside the view ÷ valley length
+  let s = 0;
+  for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i]; if (a[0] >= 0 && b[0] <= VW) s += Math.hypot(b[0] - a[0], b[1] - a[1]); }
+  return s / VW;
+}
+function simulate(seed) {
+  let pts = initial(seed);
+  const spin = { all: 0, outer: 0, peak: 0 };
+  for (let s = 0; s < SPIN; s++) { pts = step(pts, spin); const r = cutoff(pts); if (r) pts = r[0]; } // let the first bends form before "year 0"
+  const frames = [pts], oxbows = [], stats = { all: 0, outer: 0, peak: 0 }, sin = [sinuosity(pts)], share = [NaN];
+  for (let s = 1; s <= STEPS; s++) {
+    pts = step(pts, stats);
+    for (let g = 0; g < 4; g++) { const r = cutoff(pts); if (!r) break; pts = r[0]; oxbows.push({ frame: Math.ceil(s / EVERY), pts: r[1] }); }
+    if (s % EVERY === 0) { frames.push(pts); sin.push(sinuosity(pts)); share.push(stats.all ? 100 * stats.outer / stats.all : NaN); }
+  }
+  return { frames, oxbows, sin, share, peak: stats.peak };
+}
+function nearest(pts, x, y) { // nearest centre-line point: index, distance, signed offset (+ = right bank)
+  let bi = 0, bd = Infinity;
+  for (let i = 0; i < pts.length; i++) { const dx = pts[i][0] - x, dy = pts[i][1] - y, d = dx * dx + dy * dy; if (d < bd) { bd = d; bi = i; } }
+  const nr = normals([pts[Math.max(0, bi - 1)], pts[bi], pts[Math.min(pts.length - 1, bi + 1)]])[1];
+  return { i: bi, d: Math.sqrt(bd), off: (x - pts[bi][0]) * nr[0] + (y - pts[bi][1]) * nr[1] };
+}
+const U0 = 1.0, H0 = 4; // mean speed (m/s) and greatest depth of a straight reach (m), illustrative
+function speedAt(a, n) { return U0 * Math.max(0.15, 1 + 0.6 * a * n - 0.25 * n * n); } // n in [-1, 1], + = right bank
+function depthAt(a, n) { // cross-section: deep, steep on the side the water is pushed to; shallow, gentle on the other
+  const s = Math.sign(n) * a, p = clampN(2 + 3 * s, 1, 4.5);
+  return Math.max(0, H0 * (1 - Math.pow(Math.min(1, Math.abs(n)), p)) * (1 + 0.5 * a * n));
+}
+function houseFall(frames, x, y) { // first frame where the river reaches the house; -1 = never
+  for (let f = 0; f < frames.length; f++) if (nearest(frames[f], x, y).d < W / 2 + 2) return f;
+  return -1;
+}
+function focusBend(pts) { // where the bank moves fastest near the middle of the view: index and the eroding side (+1 right, −1 left)
+  const { m } = bankShift(pts);
+  let bi = -1, bm = 0;
+  pts.forEach((p, i) => { if (p[0] > 220 && p[0] < 380 && Math.abs(m[i]) > bm) { bm = Math.abs(m[i]); bi = i; } });
+  if (bi < 0) bi = Math.floor(pts.length / 2);
+  return { i: bi, outer: m[bi] < 0 ? -1 : 1 };
+}
+function inView(o) { const cx = o.pts.reduce((s, q) => s + q[0], 0) / o.pts.length; return cx > 0 && cx < VW; }
+/* ===== MODEL END ===== */
+
+/* ---------- state ---------- */
+const $ = (id) => document.getElementById(id);
+const cv = $("map"), ctx = cv.getContext("2d"), xs = $("xs"), xctx = xs.getContext("2d"), yearEl = $("year");
+const SEEDS = [33, 25, 31, 34, 28, 40], NF = STEPS / EVERY, HGAP = 15;
+let SIM, F0B, OXV, MAXH = 0;
+for (let a = -0.75; a <= 0.75; a += 0.05) for (let n = -1; n <= 1; n += 0.02) MAXH = Math.max(MAXH, depthAt(a, n));
+const S = { step: 0, f: 0, seedI: 0, probe: { i: 0, n: 0.7 }, houses: [], sel: 0, flow: !Play.reduced, playing: false, drag: -1, kb: false, lastOx: 0 };
+
+function sideSpot(pts, i, side, gap) { const nr = normals(pts)[i], p = pts[i], o = side * (W / 2 + gap); return [p[0] + nr[0] * o, p[1] + nr[1] * o]; }
+function load(seedI) {
+  S.seedI = seedI;
+  SIM = simulate(SEEDS[seedI]);
+  F0B = focusBend(SIM.frames[0]);
+  OXV = SIM.oxbows.filter(inView);
+  S.f = 0; S.lastOx = 0;
+  S.probe = { i: F0B.i, n: 0.7 * F0B.outer };
+  S.houses = [sideSpot(SIM.frames[0], F0B.i, F0B.outer, HGAP), sideSpot(SIM.frames[0], F0B.i, -F0B.outer, HGAP)].map(([x, y]) => house(x, y));
+  swept.upTo = -1;
+  seedParticles();
+}
+function house(x, y) { // keep houses on land in year 0 and inside the view; work out when the river reaches them
+  x = Play.clamp(x, 8, VW - 8); y = Play.clamp(y, 10, VH - 8);
+  const q = nearest(SIM.frames[0], x, y), min = W / 2 + 5;
+  if (q.d < min) { const p = SIM.frames[0][q.i], k = q.d > 0.01 ? min / q.d : 0; if (k) { x = p[0] + (x - p[0]) * k; y = p[1] + (y - p[1]) * k; } else { const nr = normals(SIM.frames[0])[q.i]; x = p[0] + nr[0] * min; y = p[1] + nr[1] * min; } }
+  return { x, y, fall: houseFall(SIM.frames, x, y), d0: Math.max(0, nearest(SIM.frames[0], x, y).d - W / 2) };
+}
+const frame = () => SIM.frames[S.step < 2 ? 0 : S.f];
+
+/* ---------- colours ---------- */
+let COL = {};
+function hex(c) { c = c.trim(); if (c[0] === "#" && c.length === 4) c = "#" + c[1] + c[1] + c[2] + c[2] + c[3] + c[3]; const n = parseInt(c.slice(1), 16); return Number.isFinite(n) && c[0] === "#" ? [(n >> 16) & 255, (n >> 8) & 255, n & 255] : [128, 128, 128]; }
+function readColours() { const cs = getComputedStyle(document.body); ["bg", "surface", "fg", "muted", "line", "a", "b", "c", "hl", "no", "soft"].forEach((k) => (COL[k] = hex(cs.getPropertyValue("--" + k)))); COL.font = cs.fontFamily; }
+const rgb = (c, al) => `rgba(${c[0]},${c[1]},${c[2]},${al === undefined ? 1 : al})`;
+const mix = (a, b, t) => [0, 1, 2].map((k) => Math.round(a[k] + (b[k] - a[k]) * t));
+const water = (u) => mix(COL.surface, COL.c, 0.12 + 0.88 * Play.clamp((u - 0.55) / 0.6, 0, 1));
+
+/* ---------- canvas geometry ---------- */
+let SC = 1, OX = 0, OY = 0, DPR = 1, VB = { x0: 0, y0: 0, x1: VW, y1: VH }, ZK = "";
+const ZOOM = 2.4; // step 2 looks closely at one bend
+function measure() {
+  const r = cv.getBoundingClientRect(), w = Math.max(1, r.width), h = Math.max(1, r.height);
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  const pw = Math.round(w * DPR), ph = Math.round(h * DPR);
+  if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; swept.upTo = -1; }
+  const s0 = Math.min(w / VW, h / VH), ox0 = (w - VW * s0) / 2, oy0 = (h - VH * s0) / 2;
+  let z = 1, cx = VW / 2, cy = VH / 2;
+  if (S.step === 1) { const p = SIM.frames[0][F0B.i]; z = ZOOM; cx = Play.clamp(p[0], VW / 2 / z, VW - VW / 2 / z); cy = Play.clamp(p[1], VH / 2 / z, VH - VH / 2 / z); }
+  SC = s0 * z; OX = ox0 + s0 * (VW / 2 - z * cx); OY = oy0 + s0 * (VH / 2 - z * cy);
+  VB = { x0: Math.max(0, -OX / SC), y0: Math.max(0, -OY / SC), x1: Math.min(VW, (w - OX) / SC), y1: Math.min(VH, (h - OY) / SC) };
+  const zk = z + ":" + cx + ":" + cy; if (zk !== ZK) { ZK = zk; swept.upTo = -1; }
+  const xr = xs.getBoundingClientRect(), xw = Math.round(Math.max(1, xr.width) * DPR), xh = Math.round(Math.max(1, xr.height) * DPR);
+  if (xs.width !== xw || xs.height !== xh) { xs.width = xw; xs.height = xh; }
+}
+const setT = (c) => c.setTransform(DPR * SC, 0, 0, DPR * SC, DPR * OX, DPR * OY);
+const toView = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left - OX) / SC, (e.clientY - r.top - OY) / SC]; };
+const px = (n) => n / SC; // CSS px → view units
+function poly(c, pts, off, nr) { c.beginPath(); pts.forEach((p, i) => { const x = p[0] + (nr ? nr[i][0] * off : 0), y = p[1] + (nr ? nr[i][1] * off : 0); i ? c.lineTo(x, y) : c.moveTo(x, y); }); }
+function label(s, x, y, col, bold, align) {
+  ctx.font = `${bold ? "700 " : ""}${px(13)}px ${COL.font}`;
+  ctx.textAlign = align || "center"; ctx.textBaseline = "middle";
+  const w = ctx.measureText(s).width;
+  if (!align || align === "center") x = Play.clamp(x, VB.x0 + w / 2 + px(3), VB.x1 - w / 2 - px(3));
+  y = Play.clamp(y, VB.y0 + px(10), VB.y1 - px(10));
+  ctx.lineWidth = px(3.5); ctx.strokeStyle = rgb(COL.surface, 0.9); ctx.lineJoin = "round"; ctx.strokeText(s, x, y);
+  ctx.fillStyle = rgb(col); ctx.fillText(s, x, y);
+}
+
+/* ---------- the land the river has swept over (drawn once, then added to) ---------- */
+const swept = { cv: document.createElement("canvas"), upTo: -1 };
+function updateSwept(f) {
+  const c = swept.cv.getContext("2d");
+  if (swept.cv.width !== cv.width || swept.cv.height !== cv.height) { swept.cv.width = cv.width; swept.cv.height = cv.height; swept.upTo = -1; }
+  if (f < swept.upTo || swept.upTo < 0) { c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, swept.cv.width, swept.cv.height); swept.upTo = -1; }
+  setT(c); c.strokeStyle = rgb(COL.b); c.lineWidth = W; c.lineJoin = c.lineCap = "round";
+  for (let k = swept.upTo + 1; k <= f; k++) if (k % 2 === 0 || k === f) { poly(c, SIM.frames[k]); c.stroke(); }
+  swept.upTo = f;
+}
+
+/* ---------- particles (streaks that move at the local speed) ---------- */
+let PARTS = [];
+function seedParticles() { const r = (() => { let a = 99; return () => ((a = (a * 16807) % 2147483647) / 2147483647); })(); PARTS = Array.from({ length: 110 }, () => ({ s: r(), n: (r() * 2 - 1) * 0.85 })); }
+function partPos(pts, nr, aa, p) { // s ∈ [0,1) over the visible stretch
+  const lo = visIdx.lo, hi = visIdx.hi, t = lo + p.s * (hi - lo), i = Math.min(pts.length - 2, Math.floor(t)), f = t - i;
+  const x = pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f + nr[i][0] * p.n * W / 2, y = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f + nr[i][1] * p.n * W / 2;
+  const tx = pts[i + 1][0] - pts[i][0], ty = pts[i + 1][1] - pts[i][1], L = Math.hypot(tx, ty) || 1;
+  return { x, y, tx: tx / L, ty: ty / L, u: speedAt(aa[i], p.n) };
+}
+let visIdx = { lo: 0, hi: 1 };
+function findVis(pts) { let lo = 0, hi = pts.length - 1; while (lo < hi && pts[lo][0] < -15) lo++; while (hi > lo && pts[hi][0] > VW + 15) hi--; visIdx = { lo, hi: Math.max(lo + 1, hi) }; }
+
+/* ---------- draw the map ---------- */
+let BS = null, BSkey = "";
+function shiftOf(pts, key) { if (BSkey !== key) { BS = bankShift(pts); BSkey = key; } return BS; }
+function draw() {
+  measure();
+  const pts = frame(), key = S.seedI + ":" + (S.step < 2 ? 0 : S.f), { m, a, nr } = shiftOf(pts, key);
+  findVis(pts);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  setT(ctx);
+  ctx.fillStyle = rgb(COL.soft); ctx.fillRect(0, 0, VW, VH);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, VW, VH); ctx.clip();
+  const later = S.step >= 2;
+  if (later) {
+    updateSwept(S.f);
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.3; ctx.drawImage(swept.cv, 0, 0); ctx.restore();
+    SIM.oxbows.forEach((o) => {
+      if (o.frame > S.f) return;
+      ctx.strokeStyle = rgb(COL.c, Math.max(0.25, 0.7 - (S.f - o.frame) / 260)); ctx.lineWidth = W * 0.85; ctx.lineJoin = ctx.lineCap = "round";
+      poly(ctx, o.pts); ctx.stroke();
+    });
+  }
+  ctx.lineJoin = ctx.lineCap = "round";
+  ctx.strokeStyle = rgb(S.step === 0 ? mix(COL.surface, COL.c, 0.6) : water(0.85)); ctx.lineWidth = W; poly(ctx, pts); ctx.stroke();
+  if (S.step > 0) { // speed lanes
+    const L = 6, buckets = new Map();
+    for (let i = Math.max(0, visIdx.lo - 1); i < Math.min(pts.length - 1, visIdx.hi + 1); i++) for (let k = 0; k < L; k++) {
+      const n0 = -1 + 2 * k / L, n1 = n0 + 2 / L, u = speedAt(a[i], (n0 + n1) / 2), b = Math.round(Play.clamp((u - 0.55) / 0.6, 0, 1) * 14);
+      if (!buckets.has(b)) buckets.set(b, []);
+      buckets.get(b).push([i, n0 * W / 2, n1 * W / 2]);
+    }
+    buckets.forEach((list, b) => {
+      ctx.fillStyle = rgb(water(0.55 + 0.6 * b / 14)); ctx.beginPath();
+      list.forEach(([i, o0, o1]) => {
+        const p = pts[i], q = pts[i + 1], A = nr[i], B = nr[i + 1];
+        ctx.moveTo(p[0] + A[0] * o0, p[1] + A[1] * o0); ctx.lineTo(q[0] + B[0] * o0, q[1] + B[1] * o0);
+        ctx.lineTo(q[0] + B[0] * o1, q[1] + B[1] * o1); ctx.lineTo(p[0] + A[0] * o1, p[1] + A[1] * o1); ctx.closePath();
+      });
+      ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.4; ctx.stroke();
+    });
+    // streaks
+    ctx.strokeStyle = rgb(COL.surface, 0.85); ctx.lineWidth = 0.9; ctx.lineCap = "round"; ctx.beginPath();
+    PARTS.forEach((p) => { const q = partPos(pts, nr, a, p), l = 1.5 + 3 * q.u; ctx.moveTo(q.x - q.tx * l, q.y - q.ty * l); ctx.lineTo(q.x, q.y); });
+    ctx.stroke();
+  }
+  if (later) { // banks: red where worn away, sand where growing
+    for (let i = visIdx.lo; i < visIdx.hi; i++) {
+      const v = (m[i] + m[i + 1]) / 2, mag = Math.abs(v) / (RATE * CAP);
+      if (mag < 0.12) continue;
+      const s = Math.sign(v), o = s * (W / 2 + 0.6);
+      ctx.lineWidth = 1 + 2.4 * Math.min(1, mag);
+      ctx.strokeStyle = rgb(COL.no, Math.min(1, 0.3 + mag)); ctx.beginPath(); ctx.moveTo(pts[i][0] + nr[i][0] * o, pts[i][1] + nr[i][1] * o); ctx.lineTo(pts[i + 1][0] + nr[i + 1][0] * o, pts[i + 1][1] + nr[i + 1][1] * o); ctx.stroke();
+      ctx.strokeStyle = rgb(COL.b, Math.min(1, 0.3 + mag)); ctx.beginPath(); ctx.moveTo(pts[i][0] - nr[i][0] * o, pts[i][1] - nr[i][1] * o); ctx.lineTo(pts[i + 1][0] - nr[i + 1][0] * o, pts[i + 1][1] - nr[i + 1][1] * o); ctx.stroke();
+    }
+    const f0 = SIM.frames[0], n0 = normals(f0); // year-0 banks
+    ctx.setLineDash([px(4), px(4)]); ctx.lineWidth = px(1.2); ctx.strokeStyle = rgb(COL.muted, 0.8);
+    [-1, 1].forEach((s) => { poly(ctx, f0, s * W / 2, n0); ctx.stroke(); });
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+  // flow arrow
+  const ax = VB.x0 + px(12), ay = VB.y0 + px(20);
+  ctx.strokeStyle = ctx.fillStyle = rgb(COL.fg, 0.8); ctx.lineWidth = px(1.6);
+  ctx.beginPath(); ctx.moveTo(ax, ay + px(13)); ctx.lineTo(ax + px(30), ay + px(13)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ax + px(36), ay + px(13)); ctx.lineTo(ax + px(28), ay + px(9)); ctx.lineTo(ax + px(28), ay + px(17)); ctx.fill();
+  label(P.t("flow"), ax, ay, COL.fg, false, "left");
+  if (S.step === 0) {
+    const g = 3 + px(13), A = sideSpot(pts, F0B.i, F0B.outer, g), B = sideSpot(pts, F0B.i, -F0B.outer, g);
+    [[A, "lA", COL.no], [B, "lB", COL.c]].forEach(([p, k, col]) => {
+      ctx.fillStyle = rgb(col); ctx.beginPath(); ctx.arc(p[0], p[1], px(11), 0, 7); ctx.fill();
+      ctx.font = `700 ${px(13)}px ${COL.font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = rgb(COL.surface); ctx.fillText(P.t(k), p[0], p[1] + px(0.5));
+    });
+  }
+  if (S.step === 1) { // float + its cross-section line
+    const i = Play.clamp(S.probe.i, 0, pts.length - 1), p = pts[i], q = nr[i], o = S.probe.n * W / 2;
+    ctx.setLineDash([px(3), px(3)]); ctx.strokeStyle = rgb(COL.fg, 0.7); ctx.lineWidth = px(1.2);
+    ctx.beginPath(); ctx.moveTo(p[0] - q[0] * W * 0.75, p[1] - q[1] * W * 0.75); ctx.lineTo(p[0] + q[0] * W * 0.75, p[1] + q[1] * W * 0.75); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = rgb(COL.hl); ctx.strokeStyle = rgb(COL.fg); ctx.lineWidth = px(1.5);
+    ctx.beginPath(); ctx.arc(p[0] + q[0] * o, p[1] + q[1] * o, px(S.kb ? 8 : 7), 0, 7); ctx.fill(); ctx.stroke();
+  }
+  if (later) {
+    if (S.step === 3) { // name the landforms
+      const g0 = W / 2 + px(14), g1 = W / 2 + px(30), cc = shiftOf(pts, key).c;
+      const clear = (i, s, g) => nearest(pts, pts[i][0] + nr[i][0] * s * g, pts[i][1] + nr[i][1] * s * g).d > W / 2 + px(14);
+      let bi = -1, bm = 0;
+      for (let i = visIdx.lo; i < visIdx.hi; i++) {
+        const s = Math.sign(m[i]);
+        if (pts[i][0] < 90 || pts[i][0] > 510 || pts[i][1] < 70 || pts[i][1] > 290 || Math.abs(nr[i][1]) < 0.8 || m[i] * cc[i] >= 0 || Math.abs(m[i]) <= bm) continue;
+        if (clear(i, s, g0) && clear(i, -s, g1)) { bm = Math.abs(m[i]); bi = i; }
+      }
+      if (bi >= 0) {
+        const s = Math.sign(m[bi]);
+        label(P.t("lCliff"), pts[bi][0] + nr[bi][0] * s * g0, pts[bi][1] + nr[bi][1] * s * g0, COL.no, true);
+        label(P.t("lBar"), pts[bi][0] - nr[bi][0] * s * g1, pts[bi][1] - nr[bi][1] * s * g1, COL.b, true);
+      }
+      const ox = OXV.filter((o) => o.frame <= S.f).pop();
+      if (ox) { const mid = ox.pts[Math.floor(ox.pts.length / 2)]; label(P.t("lOx"), mid[0], mid[1] + (mid[1] < YC ? -1 : 1) * (W / 2 + px(12)), COL.fg, true); }
+    }
+    S.houses.forEach((h, k) => drawHouse(h, k));
+  }
+}
+function drawHouse(h, k) {
+  const fell = h.fall >= 0 && h.fall <= S.f, s = px(9), x = h.x, y = h.y;
+  ctx.save(); ctx.translate(x, y); if (fell) ctx.rotate(0.5);
+  if (S.sel === k && (S.kb || S.drag === k)) { ctx.strokeStyle = rgb(COL.hl); ctx.lineWidth = px(3); ctx.beginPath(); ctx.arc(0, 0, s * 1.6, 0, 7); ctx.stroke(); }
+  ctx.fillStyle = rgb(fell ? COL.no : COL.surface); ctx.strokeStyle = rgb(COL.fg); ctx.lineWidth = px(1.4); ctx.lineJoin = "round";
+  ctx.beginPath(); ctx.moveTo(-s, -s * 0.1); ctx.lineTo(0, -s); ctx.lineTo(s, -s * 0.1); ctx.lineTo(s * 0.75, -s * 0.1); ctx.lineTo(s * 0.75, s * 0.8); ctx.lineTo(-s * 0.75, s * 0.8); ctx.lineTo(-s * 0.75, -s * 0.1); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  label(String(k + 1), x, y - s * 1.9, fell ? COL.no : COL.fg, true);
+}
+
+/* ---------- cross-section ---------- */
+function drawXS() {
+  const w = xs.width / DPR, h = xs.height / DPR;
+  xctx.setTransform(DPR, 0, 0, DPR, 0, 0); xctx.clearRect(0, 0, w, h);
+  const pts = frame(), i = Play.clamp(S.probe.i, 0, pts.length - 1), a = shiftOf(pts, S.seedI + ":" + (S.step < 2 ? 0 : S.f)).a[i];
+  const x0 = 34, x1 = w - 34, top = 30, dz = (h - top - 14) / (MAXH * 1.05), X = (n) => x0 + (n + 1) / 2 * (x1 - x0), Y = (d) => top + d * dz;
+  xctx.fillStyle = rgb(COL.c, 0.35); xctx.beginPath(); xctx.moveTo(X(-1), Y(0));
+  for (let n = -1; n <= 1.0001; n += 0.02) xctx.lineTo(X(n), Y(depthAt(a, n)));
+  xctx.closePath(); xctx.fill();
+  xctx.fillStyle = rgb(COL.b, 0.55); xctx.beginPath(); xctx.moveTo(4, top - 10); xctx.lineTo(X(-1), top - 10); xctx.lineTo(X(-1), Y(0));
+  for (let n = -1; n <= 1.0001; n += 0.02) xctx.lineTo(X(n), Y(depthAt(a, n)));
+  xctx.lineTo(X(1), top - 10); xctx.lineTo(w - 4, top - 10); xctx.lineTo(w - 4, h - 2); xctx.lineTo(4, h - 2); xctx.closePath(); xctx.fill();
+  xctx.strokeStyle = rgb(COL.c); xctx.lineWidth = 1.5; xctx.beginPath(); xctx.moveTo(X(-1), Y(0)); xctx.lineTo(X(1), Y(0)); xctx.stroke();
+  const n = S.probe.n, d = depthAt(a, n);
+  xctx.strokeStyle = rgb(COL.fg); xctx.lineWidth = 1.5; xctx.setLineDash([3, 3]); xctx.beginPath(); xctx.moveTo(X(n), Y(0)); xctx.lineTo(X(n), Y(d)); xctx.stroke(); xctx.setLineDash([]);
+  xctx.fillStyle = rgb(COL.hl); xctx.strokeStyle = rgb(COL.fg); xctx.beginPath(); xctx.arc(X(n), Y(0) - 1, 5, 0, 7); xctx.fill(); xctx.stroke();
+  xctx.font = `13px ${COL.font}`; xctx.textBaseline = "top"; xctx.fillStyle = rgb(COL.fg);
+  if (Math.abs(a) > 0.2) {
+    const deepRight = a > 0;
+    xctx.textAlign = deepRight ? "right" : "left"; xctx.fillStyle = rgb(COL.no); xctx.fillText(P.t("lCliff"), deepRight ? w - 6 : 6, 3);
+    xctx.textAlign = deepRight ? "left" : "right"; xctx.fillStyle = rgb(COL.b); xctx.fillText(P.t("lBar"), deepRight ? 6 : w - 6, 3);
+  }
+}
+
+/* ---------- text panel ---------- */
+const row = (dt, dd) => `<dt>${dt}</dt><dd>${dd}</dd>`;
+const yr = (f) => f * EVERY;
+function probeInfo() {
+  const pts = frame(), i = Play.clamp(S.probe.i, 0, pts.length - 1), { a, m } = shiftOf(pts, S.seedI + ":" + (S.step < 2 ? 0 : S.f)), n = S.probe.n;
+  const v = speedAt(a[i], n), d = depthAt(a[i], n), bend = Math.abs(a[i]) > 0.2, outerSide = Math.sign(a[i]);
+  const w = !bend ? "wStraight" : Math.abs(n) < 0.3 ? "wMid" : Math.sign(n) === outerSide ? "wOuter" : "wInner";
+  const mv = m[i], bank = Math.abs(mv) < 0.12 * RATE * CAP || Math.abs(n) < 0.3 ? "bCalm" : Math.sign(mv) === Math.sign(n) ? "bErode" : "bBuild";
+  return { v, d, w, bank };
+}
+function houseText(h) {
+  if (h.fall >= 0 && h.fall <= S.f) return P.t("hFell", { y: yr(h.fall) });
+  const d = Math.max(0, nearest(SIM.frames[S.f], h.x, h.y).d - W / 2);
+  return P.t("hStand", { d: Play.fmt(d * M_PER_U, 0), d0: Play.fmt(h.d0 * M_PER_U, 0) });
+}
+function legend() {
+  const L = [];
+  if (S.step >= 1) L.push(`<span><span class="grad"></span>${P.t("gSpeed")}</span>`);
+  if (S.step >= 2) {
+    L.push(`<span><span class="line" style="background:var(--no)"></span>${P.t("gErode")}</span>`, `<span><span class="line" style="background:var(--b)"></span>${P.t("gBuild")}</span>`);
+    L.push(`<span><span class="sq" style="background:color-mix(in srgb, var(--b) 30%, var(--soft))"></span>${P.t("gLand")}</span>`, `<span><span class="line" style="background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 7px)"></span>${P.t("gOld")}</span>`);
+    if (OXV.some((o) => o.frame <= S.f)) L.push(`<span><span class="sq" style="background:color-mix(in srgb, var(--c) 55%, var(--soft))"></span>${P.t("gOx")}</span>`);
+  }
+  $("legend").innerHTML = L.join("");
+}
+let lastLive = "";
+function text(liveMsg) {
+  yearEl.value = S.f;
+  $("yearVal").textContent = P.t("yearVal", { y: yr(S.f) });
+  $("rowFlow").hidden = S.step === 0;
+  $("rowYear").hidden = S.step < 2;
+  $("xsWrap").hidden = S.step !== 1;
+  $("flowBtn").textContent = P.t(S.flow ? "flowOn" : "flowOff");
+  $("playBtn").textContent = P.t(S.playing ? "pause" : "play");
+  let html = "", live = "";
+  if (S.step === 1) {
+    const q = probeInfo();
+    html = row(P.t("rSpeed"), P.t("vSpeed", { v: Play.fmt(q.v, 2) })) + row(P.t("rDepth"), P.t("vDepth", { d: Play.fmt(q.d, 1) })) + row(P.t("rWhere"), P.t(q.w)) + row(P.t("rBank"), P.t(q.bank));
+    live = P.t("liveProbe", { v: Play.fmt(q.v, 2), d: Play.fmt(q.d, 1), w: P.t(q.w) });
+  }
+  if (S.step >= 2) {
+    const nox = OXV.filter((o) => o.frame <= S.f).length;
+    html = row(P.t("rYear"), String(yr(S.f))) + row(P.t("rSin"), Play.fmt(SIM.sin[S.f], 2)) + row(P.t("rOx"), String(nox));
+    S.houses.forEach((h, k) => (html += row(P.t("rH", { k: k + 1 }), houseText(h))));
+    if (S.step === 3) html += row(P.t("rShare"), Number.isFinite(SIM.share[S.f]) ? P.t("pct", { p: Play.fmt(SIM.share[S.f], 0) }) : P.t("none"));
+    live = liveMsg || (S.step === 3 ? P.t("liveRule") : P.t("liveYear", { y: yr(S.f) }));
+  }
+  $("read").innerHTML = html; $("read").hidden = !html;
+  if (live !== lastLive) { Play.live($("live"), live); lastLive = live; }
+  cv.setAttribute("aria-valuetext", live);
+  legend();
+  const last = SIM.frames.length - 1;
+  $("resultMain").textContent = P.t("resultMain", { p: Play.fmt(SIM.share[last], 0), s: Play.fmt(SIM.sin[last], 1), n: OXV.length, lakes: P.t(OXV.length === 1 ? "oxOne" : "oxMany", { n: OXV.length }) });
+  $("foot").textContent = P.t("foot", { r: Play.fmt(SIM.peak * M_PER_U, 1), u: Play.fmt(U0, 1), h: Play.fmt(MAXH, 1) });
+}
+function render(liveMsg) { text(liveMsg); draw(); if (S.step === 1) drawXS(); }
+
+/* ---------- time + animation ---------- */
+let raf = 0, lastT = 0, acc = 0;
+function setFrame(f) {
+  const old = S.f;
+  S.f = Play.clamp(Math.round(f), 0, NF);
+  let msg = "";
+  S.houses.forEach((h, k) => { if (h.fall >= 0 && h.fall > old && h.fall <= S.f) msg = P.t("liveFell", { k: k + 1, y: yr(h.fall) }); });
+  if (!msg && OXV.some((o) => o.frame > old && o.frame <= S.f)) msg = P.t("liveOx");
+  return msg;
+}
+function loop(t) {
+  raf = 0;
+  const dt = lastT ? Math.min(60, t - lastT) : 16; lastT = t;
+  let msg = "";
+  if (S.playing && S.step >= 2) {
+    acc += dt;
+    while (acc >= 30) { acc -= 30; msg = setFrame(S.f + 1) || msg; if (S.f >= NF) { S.playing = false; break; } }
+  }
+  const moving = S.flow && S.step >= 1; // starts off when Play.reduced; the viewer can still switch it on
+  if (moving) {
+    const pts = frame(), { a } = shiftOf(pts, S.seedI + ":" + (S.step < 2 ? 0 : S.f)), span = Math.max(1, visIdx.hi - visIdx.lo);
+    PARTS.forEach((p) => { const i = Play.clamp(Math.floor(visIdx.lo + p.s * span), 0, a.length - 1); p.s += 0.12 * dt / 16 * speedAt(a[i], p.n) / span; if (p.s >= 1) p.s -= 1; });
+  }
+  if (S.playing || msg) render(msg); else draw();
+  if (moving || S.playing) raf = requestAnimationFrame(loop); else lastT = 0;
+}
+function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+$("playBtn").addEventListener("click", () => {
+  if (S.playing) { S.playing = false; render(); return; }
+  if (S.f >= NF) setFrame(0);
+  if (Play.reduced) { const msg = setFrame(NF); render(msg); return; } // no animation: jump to the end
+  S.playing = true; acc = 0; render(); kick();
+});
+yearEl.addEventListener("input", () => { S.playing = false; render(setFrame(+yearEl.value)); });
+$("flowBtn").addEventListener("click", () => { S.flow = !S.flow; render(); kick(); });
+$("newRiver").addEventListener("click", () => { S.playing = false; load((S.seedI + 1) % SEEDS.length); render(); });
+
+/* ---------- pointer + keyboard ---------- */
+function moveProbe(x, y) { const pts = frame(), q = nearest(pts, x, y); S.probe = { i: q.i, n: Play.clamp(q.off / (W / 2), -0.95, 0.95) }; }
+function pickHouse(x, y) { let best = -1, bd = 22; S.houses.forEach((h, k) => { const d = Math.hypot(h.x - x, h.y - y); if (d < bd) { bd = d; best = k; } }); return best; }
+cv.addEventListener("pointerdown", (e) => {
+  const [x, y] = toView(e);
+  S.kb = false;
+  if (S.step === 1) { S.drag = 9; moveProbe(x, y); }
+  else if (S.step >= 2) { const k = pickHouse(x, y); if (k < 0) return; S.drag = k; S.sel = k; }
+  else return;
+  try { cv.setPointerCapture(e.pointerId); } catch (err) { /* synthetic or ended pointer */ }
+  e.preventDefault(); render();
+});
+cv.addEventListener("pointermove", (e) => {
+  if (S.drag < 0) return;
+  const [x, y] = toView(e);
+  if (S.drag === 9) moveProbe(x, y);
+  else { const h = S.houses[S.drag]; h.x = Play.clamp(x, 8, VW - 8); h.y = Play.clamp(y, 10, VH - 8); h.fall = -2; }
+  render();
+});
+function endDrag() { if (S.drag >= 0 && S.drag !== 9) { const h = S.houses[S.drag]; S.houses[S.drag] = house(h.x, h.y); } S.drag = -1; render(); }
+cv.addEventListener("pointerup", endDrag);
+cv.addEventListener("pointercancel", endDrag);
+cv.addEventListener("keydown", (e) => {
+  const dir = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+  if (S.step === 1 && dir) {
+    const pts = frame(), big = e.shiftKey ? 6 : 1;
+    S.probe = { i: Play.clamp(S.probe.i + dir[0] * big * 2, visIdx.lo, visIdx.hi), n: Play.clamp(S.probe.n + dir[1] * 0.15, -0.95, 0.95) };
+    S.probe.i = Play.clamp(S.probe.i, 0, pts.length - 1);
+    S.kb = true; render(); e.preventDefault();
+  } else if (S.step >= 2 && dir) {
+    const h = S.houses[S.sel], st = e.shiftKey ? 15 : 4;
+    S.houses[S.sel] = house(h.x + dir[0] * st, h.y + dir[1] * st); S.kb = true; render(); e.preventDefault();
+  } else if (S.step >= 2 && (e.key === "Enter" || e.key === " ")) { S.sel = 1 - S.sel; S.kb = true; render(); e.preventDefault(); }
+});
+cv.addEventListener("blur", () => { if (S.kb) { S.kb = false; render(); } });
+
+/* ---------- steps ---------- */
+readColours();
+load(0);
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }, { label: P.t("o4") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  const k = i + 1;
+  S.step = i;
+  if (i < 2) S.playing = false;
+  if (i === 3) { const first = OXV[0]; if (first && S.f < first.frame + 20) setFrame(Math.min(NF, first.frame + 20)); if (!first && S.f < NF / 2) setFrame(NF); }
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  render(); kick();
+});
+$("reset").addEventListener("click", () => {
+  S.playing = false; S.flow = !Play.reduced; S.sel = 0; S.kb = false;
+  load(0); pr.reset(); st.go(0);
+});
+function themeChange() { readColours(); swept.upTo = -1; render(); }
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", themeChange); } catch (e) { /* old browsers */ }
+if ("ResizeObserver" in window) new ResizeObserver(() => { swept.upTo = -1; render(); }).observe(cv);
+</script>
+</body>
+</html>

@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whose year is it?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main#fig { height: auto; aspect-ratio: 600 / 420; user-select: none; -webkit-user-select: none; touch-action: pan-y; cursor: ew-resize; }
+  #fig text { font-size: 13px; fill: var(--fg); }
+  #fig .mut { fill: var(--muted); }
+  #fig .acc { fill: var(--a); font-weight: 700; }
+  #fig .bold { font-weight: 700; }
+  #fig .big { font-size: 17px; font-weight: 700; }
+  #fig .huge { font-size: 28px; font-weight: 700; }
+  #fig .onTx { fill: var(--surface); font-weight: 700; }
+  #fig .ax { stroke: var(--muted); stroke-width: 1.5px; fill: none; }
+  #fig .grid { stroke: var(--line); stroke-width: 1px; fill: none; }
+  #fig .ring { stroke: var(--line); stroke-width: 26px; fill: none; }
+  #fig .cell { fill: var(--soft); stroke: var(--line); }
+  #fig .cellOn { fill: var(--a); }
+  #fig .dotOn { fill: var(--a); }
+  #fig .dotB { fill: var(--b); }
+  #fig .barBg { fill: var(--soft); }
+  #fig .barFg { fill: var(--a); }
+  #fig .gap { fill: var(--no); font-weight: 700; }
+  #fig .gapL { stroke: var(--no); stroke-width: 2px; stroke-dasharray: 3 3; }
+  #fig .brk { stroke: var(--a); stroke-width: 2px; fill: none; }
+  #fig .tab { fill: var(--surface); stroke: var(--b); stroke-width: 2px; }
+  #fig .hot { cursor: pointer; }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .controls .val { font-family: var(--font); font-size: 13px; color: var(--fg); min-width: 0; }
+  .controls button { min-width: 38px; }
+  .controls select { border: 1px solid var(--line); border-radius: 9px; padding: 5px 8px; background: var(--surface); max-width: 100%; }
+  .sgrp { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 0; }
+  .sgrp input { flex: 1; }
+  .jumpbox { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+  .info { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 0 0 10px; }
+  .info div + div { margin-top: 4px; }
+  .info .gp { font-weight: 750; color: var(--a); font-size: 16px; }
+  .info .dt { color: var(--muted); font-size: 13px; }
+  .task { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin: 0 0 10px; font-size: 14px; }
+  .task .ins { font-size: 17px; font-weight: 700; margin: 4px 0 8px; }
+  .task .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .task .fbk { margin-top: 8px; font-size: 13px; min-height: 1.2em; }
+  .task .ok { color: var(--a); font-weight: 650; }
+  .task .no { color: var(--no); font-weight: 650; }
+  .rules { margin: 0 0 10px; padding-left: 1.2em; font-size: 14px; }
+  .rules li + li { margin-top: 4px; }
+  #resMain { white-space: normal; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 420" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlYear" hidden>
+        <button type="button" id="bL" data-t-aria="bL">◀</button>
+        <input type="range" id="yr" min="-840" max="2100" step="1" value="2024" data-t-aria="yrLabel">
+        <button type="button" id="bR" data-t-aria="bR">▶</button>
+        <span class="val" id="yrVal"></span>
+        <button type="button" class="small" id="m60" data-t="m60"></button>
+        <button type="button" class="small" id="p60" data-t="p60"></button>
+        <button type="button" class="small" id="run" data-t="run"></button>
+        <span class="jumpbox"><label for="jump" data-t="jumpLabel"></label> <select id="jump"></select></span>
+      </div>
+      <div class="controls" id="ctlSpan" hidden>
+        <span class="sgrp"><label for="sa" data-t="saLabel"></label><input type="range" id="sa" min="-9" max="10" step="1" value="-2"></span>
+        <span class="sgrp"><label for="sb" data-t="sbLabel"></label><input type="range" id="sb" min="-9" max="10" step="1" value="4"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="task" id="task" hidden>
+        <div class="kicker" id="taskK"></div>
+        <div class="ins" id="taskIns"></div>
+        <div class="row">
+          <button type="button" class="small" id="check" data-t="check"></button>
+          <button type="button" class="small" id="hint" data-t="hint"></button>
+          <button type="button" class="small" id="next" data-t="next"></button>
+        </div>
+        <div class="fbk" id="taskFb" aria-live="polite"></div>
+      </div>
+      <div class="info" id="info" hidden></div>
+      <ul class="rules" id="rules" hidden></ul>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+const P = Play.setup({
+  en: {
+    title: "Whose year is it?", eyebrow: "History · Stage 2", h1: "Whose year is it?",
+    intro: "One year can have several names. Turn three dials — CE/BCE, the 60-year 干支 cycle and Chinese reign eras — and learn to convert between them.",
+    reset: "Reset", figAria: "Year dials: a CE/BCE number line, the ten stems and twelve branches of the 干支 cycle, and a list of reign eras",
+    s1: "Guess", s2: "Turn the dials", s3: "Read the inscriptions", s4: "The rule",
+    k1: "Predict first", t1: "Is there a year 0?",
+    b1: "The three tablets name the same year. Before turning any dial: how long is it from 1 BCE to 1 CE?",
+    q: "How many years from New Year's Day of 1 BCE to New Year's Day of 1 CE?",
+    o1: "2 — 1 BCE, then year 0, then 1 CE", o2: "1 — 1 CE comes straight after 1 BCE", o3: "0 — they are the same year",
+    right: "Yes. There is no year 0: 1 BCE is followed directly by 1 CE.",
+    wrong: "Look at the line under the tablets: there is no year 0, so 1 CE comes straight after 1 BCE — just 1 year.",
+    k2: "Hands on", t2: "Three ways to name one year",
+    b2: "Drag the figure sideways, use ◀ ▶ or the arrow keys (Shift = 10 years, Page Up/Down = 60). Watch the stem and the branch move on together. Press −60 / +60: the 干支 name comes back, but the reign era does not. Tap an era to jump to its first year.",
+    k3: "Your turn", t3: "Date the inscriptions",
+    b3: "Each line below is a made-up inscription for practice. Turn the dials to the year it means, then press “Check”. Use an anchor from the list to get close fast.",
+    k4: "The rule", t4: "A year number is a count from a chosen start",
+    b4: "Drag the two dots (or use the sliders) to measure across the BCE/CE line.",
+    bL: "One year earlier", bR: "One year later", yrLabel: "Year", m60: "−60", p60: "+60", run: "Run ▶", pause: "Pause ❚❚",
+    jumpLabel: "Anchor", jumpPick: "Jump to an anchor…", saLabel: "From", sbLabel: "To",
+    check: "Check", hint: "Hint", next: "Next ›",
+    ce: "CE", bce: "BCE", yearCE: "{n} CE", yearBCE: "{n} BCE", noZero: "no year 0 here",
+    tabCE: "CE count", tabGZ: "干支 cycle", tabEra: "reign era", sameYear: "One year, three names",
+    gzHead: "干支: 10 stems (outer) + 12 branches (inner)", eraHead: "Reign eras (年号)", noEra: "no era from this list",
+    china: "China", japan: "Japan", ofSixty: "no. {i} of 60",
+    gzLine: "干支: {gz} ({py} · {an}) — no. {i} of 60; the same name falls in {p} and {n}",
+    eraLine: "Reign era: {e}", eraNone: "Reign era: none from this page's list",
+    eraName: "{zh} ({py} year {n}) — {who}",
+    early525: "Nobody at the time wrote this number: the CE count was devised in 525 CE and is counted backwards to here.",
+    earlyBCE: "BCE years were counted backwards later; 干支 year names became standard in China around the Han dynasty, so this one is counted backwards too.",
+    liveY: "{y}: {gz}. {e}",
+    taskK: "Inscription {i} of {n}", tries: "Solved {s} of {n}",
+    tOk: "Right: {why}", tNo: "Not yet: the dials say {y} = {gz}{e}.", allDone: "All solved. Every answer needed an anchor.",
+    i1: "A stone tablet reads: 贞观三年 (Zhenguan, year 3)", h1t: "Jump to the anchor 贞观元年 = 627, then step forward.", w1: "贞观元年 is 627, so year 3 is 627 + 3 − 1 = {y}.",
+    i2: "A scroll says it was written 10 years before 5 CE.", h2t: "Count back from 5 CE one year at a time. Watch what comes after 1 CE.", w2: "5 CE − 10 years lands on {y}, not 5 BCE, because there is no year 0.",
+    i3: "A document is dated 永乐三年 (Yongle, year 3).", h3t: "Anchor: 永乐元年 = 1403.", w3: "1403 + 3 − 1 = {y}; its 干支 is {gz}.",
+    i4: "A bell is cast with 康熙甲子 (a 甲子 year in the Kangxi era).", h4t: "Jump to 康熙元年 = 1662, then use the 干支 dial to find 甲子 inside the era.", w4: "{y} is the only 甲子 year in the Kangxi era ({a}–{b}). The era narrowed the cycle to one year.",
+    i5: "A scrap of paper says only: 甲子年", h5t: "Jump to the anchor 1984 = 甲子, or find 甲子 with ±60.", w5: "{y} works — but so do {list}. Without an era, a 干支 name repeats every 60 years.",
+    i6: "A Japanese coin is stamped 令和元年 (Reiwa, year 1).", h6t: "Japan still names years by era. Look for 令和 in the list.", w6: "令和元年 = {y}. Regnal years are still in use today.",
+    r1: "From {a} BCE to {b} CE: {a} + {b} − 1 = {n} years.", r2: "{a} BCE: no year 0 — the CE count starts at 1.",
+    rRight: "Real count: {expr}", rZero: "If there were a year 0, you would get {w} — one too many.", rSame: "Same side of the line: just subtract, {expr}.",
+    yrs: "{n} years", yr1: "1 year", yr0: "same year",
+    rule1: "BCE/CE: from a BCE to b CE is a + b − 1 years (there is no year 0).",
+    rule2: "干支: for year Y CE, stem = (Y − 4) mod 10, branch = (Y − 4) mod 12; anchors 1984 = 甲子, {now}.",
+    rule3: "The pair repeats every 60 years, so 甲子 alone can mean {list}…",
+    rule4: "Reign era: year n of an era that began in year S is S + n − 1, so 贞观三年 = 627 + 3 − 1 = {zg}.",
+    resultTitle: "What we found",
+    resMain: "1 BCE → 1 CE = {g} year · 甲子 = 1984 ± 60 · 贞观三年 = {zg}",
+    resultNote: "Each system counts from its own start. To convert, you need an anchor: a year whose names you know in both systems.",
+    explainK: "Explain it", explainQ: "Someone says, “In ancient China they wrote 629 on things too.” Explain what they would really have written, and how a historian turns it into 629.",
+    homeK: "Try at home", homeQ: "Ask three family members the year they were born and work out its 干支 (stem = (Y − 4) mod 10, branch = (Y − 4) mod 12). Who shares a branch, and how many years apart are they? Then make a 10-ring and a 12-ring from paper and turn them together.",
+    foot: "Anchors: 1984 was a 甲子 year and 2024 a 甲辰 year. Era start years follow standard tables: 贞观 627–649, 洪武 1368–1398, 永乐 1403–1424, 康熙 1662–1722, 乾隆 1736–1795; Japan 平成 1989–2019, 令和 from 2019. 干支 and Chinese era years begin at the Chinese New Year (late January–February), and Japanese eras change on the day of accession, so a year here means its middle months. Dionysius Exiguus devised the Anno Domini (AD = CE) count in 525; the numbers he used had no zero, so 1 BC is followed by AD 1. Astronomers do use a year 0 (= 1 BCE) to make subtraction easy, and so does this page's code. Chinese year-by-year records begin in 841 BCE (共和元年), the earliest year on the slider. The inscriptions are made up for practice. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "这是哪一年？谁的年？", eyebrow: "历史 · 阶段 2", h1: "这是哪一年？谁的年？",
+    intro: "同一年可以有好几个名字。转动三个刻度盘——公元、六十年一轮的干支、中国的年号——学会在它们之间换算。",
+    reset: "重置", figAria: "年份刻度盘：公元数轴、干支的十天干和十二地支、年号列表",
+    s1: "先猜", s2: "转刻度盘", s3: "读铭文", s4: "规律",
+    k1: "先猜一猜", t1: "有没有公元 0 年？",
+    b1: "三块牌子说的是同一年。先别转刻度盘：从公元前 1 年到公元 1 年有多久？",
+    q: "从公元前 1 年元旦到公元 1 年元旦，相隔几年？",
+    o1: "2 年——公元前 1 年、公元 0 年、公元 1 年", o2: "1 年——公元前 1 年后面紧接着公元 1 年", o3: "0 年——它们是同一年",
+    right: "对。没有公元 0 年：公元前 1 年后面直接就是公元 1 年。",
+    wrong: "看牌子下面的数轴：没有公元 0 年，公元前 1 年后面紧接着公元 1 年——只隔 1 年。",
+    k2: "动手", t2: "同一年的三种叫法",
+    b2: "左右拖动图，或用 ◀ ▶、方向键（按住 Shift 一次 10 年，Page Up/Down 一次 60 年）。看天干、地支一起往前走。按 −60 / +60：干支名字回来了，年号却不一样。点一个年号可以跳到它的元年。",
+    k3: "轮到你", t3: "给铭文定年",
+    b3: "下面每一条都是为练习编的铭文。把刻度盘转到它说的那一年，再按「核对」。用「锚点」先跳到附近更快。",
+    k4: "规律", t4: "年份是从选定起点数下来的数",
+    b4: "拖两个圆点（或用滑块），量一量跨过公元前后的时长。",
+    bL: "早一年", bR: "晚一年", yrLabel: "年份", m60: "−60", p60: "+60", run: "走 ▶", pause: "暂停 ❚❚",
+    jumpLabel: "锚点", jumpPick: "跳到一个锚点……", saLabel: "从", sbLabel: "到",
+    check: "核对", hint: "提示", next: "下一条 ›",
+    ce: "公元", bce: "公元前", yearCE: "公元 {n} 年", yearBCE: "公元前 {n} 年", noZero: "这里没有 0 年",
+    tabCE: "公元纪年", tabGZ: "干支纪年", tabEra: "年号纪年", sameYear: "同一年，三个名字",
+    gzHead: "干支：外圈十天干 + 内圈十二地支", eraHead: "年号纪年", noEra: "不在本页列表里",
+    china: "中国", japan: "日本", ofSixty: "第 {i} / 60 个",
+    gzLine: "干支：{gz}（{an}年）——六十个里的第 {i} 个；{p}、{n} 也叫这个名字",
+    eraLine: "年号：{e}", eraNone: "年号：不在本页列表里",
+    eraName: "{zh}{n}年——{who}",
+    early525: "当时没人写这个数：公元纪年是 525 年才设计出来的，这里是往回推算的。",
+    earlyBCE: "公元前的年份是后来往回数的；用干支纪年在中国大约汉代才成为通行做法，所以这里的干支也是往回推的。",
+    liveY: "{y}：{gz}。{e}",
+    taskK: "铭文 {i} / {n}", tries: "已解出 {s} / {n}",
+    tOk: "对：{why}", tNo: "还不对：刻度盘现在是{y}，{gz}{e}。", allDone: "全部解出。每一条都要靠一个锚点。",
+    i1: "一块石碑上刻着：贞观三年", h1t: "先跳到锚点「贞观元年 = 627」，再往后走。", w1: "贞观元年是 627 年，所以三年是 627 + 3 − 1 = {y}。",
+    i2: "一卷文书说：它写于公元 5 年之前 10 年。", h2t: "从公元 5 年一年一年往回数，看公元 1 年前面是哪一年。", w2: "公元 5 年往前 10 年是{y}，不是公元前 5 年，因为没有公元 0 年。",
+    i3: "一份文书落款：永乐三年", h3t: "锚点：永乐元年 = 1403。", w3: "1403 + 3 − 1 = {y}；这一年的干支是{gz}。",
+    i4: "一口钟上铸着：康熙甲子", h4t: "先跳到康熙元年 = 1662，再看干支刻度盘，在康熙年间找甲子。", w4: "{y}是康熙年间（{a}—{b}）唯一的甲子年。年号把六十年一轮缩小到了一年。",
+    i5: "一张纸片上只写着：甲子年", h5t: "跳到锚点「1984 = 甲子」，或用 ±60 找甲子。", w5: "{y}可以——可是{list}也都可以。没有年号，干支名字每 60 年就重复一次。",
+    i6: "一枚日本硬币上印着：令和元年", h6t: "日本今天还用年号纪年。在列表里找「令和」。", w6: "令和元年 = {y}。年号纪年今天还在用。",
+    r1: "从公元前 {a} 年到公元 {b} 年：{a} + {b} − 1 = {n} 年。", r2: "公元前 {a} 年：没有 0 年——公元从 1 数起。",
+    rRight: "真实相隔：{expr}", rZero: "要是有公元 0 年，就会算成 {w}——多了一年。", rSame: "在同一边：直接相减，{expr}。",
+    yrs: "{n} 年", yr1: "1 年", yr0: "同一年",
+    rule1: "公元：从公元前 a 年到公元 b 年相隔 a + b − 1 年（没有公元 0 年）。",
+    rule2: "干支：公元 Y 年，天干 = (Y − 4) 除以 10 的余数，地支 = (Y − 4) 除以 12 的余数；锚点 1984 = 甲子，{now}。",
+    rule3: "这一对每 60 年重复一次，所以单说「甲子」可以是 {list}……",
+    rule4: "年号：某年号从 S 年开始，它的第 n 年 = S + n − 1，所以贞观三年 = 627 + 3 − 1 = {zg}。",
+    resultTitle: "我们发现",
+    resMain: "公元前 1 年 → 公元 1 年 = {g} 年 · 甲子 = 1984 ± 60 · 贞观三年 = {zg}",
+    resultNote: "每种纪年都从自己的起点数。要换算，得有一个「锚点」：一个在两种纪年里名字都知道的年份。",
+    explainK: "说一说", explainQ: "有人说：「古代中国人也在东西上写 629。」讲讲当时的人其实会怎么写，历史学家又是怎么把它换算成 629 的。",
+    homeK: "家里做一做", homeQ: "问三位家人出生的年份，算出它们的干支（天干 = (Y − 4) 除以 10 的余数，地支 = (Y − 4) 除以 12 的余数）。谁的地支相同？相差几年？再用纸做一个 10 格圆环和一个 12 格圆环，一起转一转。",
+    foot: "锚点：1984 年是甲子年，2024 年是甲辰年。年号起止年按通行年表：贞观 627—649、洪武 1368—1398、永乐 1403—1424、康熙 1662—1722、乾隆 1736—1795；日本平成 1989—2019、令和 2019 年起。干支和中国年号的年从农历新年（1 月下旬到 2 月）算起，日本年号在新天皇即位当天改，所以本页的「一年」指这一年的年中。公元纪年（AD）由狄奥尼修斯（Dionysius Exiguus）在 525 年设计；他用的数字没有 0，所以公元前 1 年后面就是公元 1 年。天文学家为了方便相减，确实用「0 年」（= 公元前 1 年），本页的代码也这样算。中国有确切逐年纪年始于公元前 841 年（共和元年），也就是滑块最左端。铭文都是为练习编的。CC BY 4.0 · Boxi Yu",
+  },
+});
+const ZH = P.lang === "zh";
+const $ = (id) => document.getElementById(id);
+
+/* ===== LOGIC (pure; tested in node) =====
+   Years are kept as astronomical numbers A: 1 BCE = 0, 2 BCE = -1, 1 CE = 1 (no gap). */
+const STEMS = "甲乙丙丁戊己庚辛壬癸", BRANCHES = "子丑寅卯辰巳午未申酉戌亥";
+const STEM_PY = ["jiǎ", "yǐ", "bǐng", "dīng", "wù", "jǐ", "gēng", "xīn", "rén", "guǐ"];
+const BR_PY = ["zǐ", "chǒu", "yín", "mǎo", "chén", "sì", "wǔ", "wèi", "shēn", "yǒu", "xū", "hài"];
+const ANIMAL_EN = ["Rat", "Ox", "Tiger", "Rabbit", "Dragon", "Snake", "Horse", "Goat", "Monkey", "Rooster", "Dog", "Pig"];
+const ANIMAL_ZH = "鼠牛虎兔龙蛇马羊猴鸡狗猪";
+const mod = (a, n) => ((a % n) + n) % n;
+const MIN_A = -840, MAX_A = 2100;                          // 841 BCE … 2100 CE
+const histYear = (A) => (A <= 0 ? A - 1 : A);              // 0 → -1 (1 BCE)
+const astroOf = (h) => (h < 0 ? h + 1 : h);
+function gz(A) {                                           // 甲子 = index 0; 1984 → 0
+  const i = mod(A - 4, 60);
+  return { i, s: i % 10, b: i % 12, name: STEMS[i % 10] + BRANCHES[i % 12] };
+}
+const TODAY = new Date().getFullYear();
+const ERAS = [
+  { zh: "贞观", py: "Zhenguan", from: 627, to: 649, en: "Tang dynasty, Emperor Taizong", cn: "唐太宗" },
+  { zh: "洪武", py: "Hongwu", from: 1368, to: 1398, en: "Ming dynasty, Hongwu Emperor", cn: "明太祖" },
+  { zh: "永乐", py: "Yongle", from: 1403, to: 1424, en: "Ming dynasty, Yongle Emperor", cn: "明成祖" },
+  { zh: "康熙", py: "Kangxi", from: 1662, to: 1722, en: "Qing dynasty, Kangxi Emperor", cn: "清圣祖" },
+  { zh: "乾隆", py: "Qianlong", from: 1736, to: 1795, en: "Qing dynasty, Qianlong Emperor", cn: "清高宗" },
+  { zh: "平成", py: "Heisei", from: 1989, to: 2019, en: "Japan", cn: "日本" },
+  { zh: "令和", py: "Reiwa", from: 2019, to: null, en: "Japan", cn: "日本" },
+];
+const eraEnd = (e) => (e.to == null ? Math.max(TODAY, e.from) : e.to);
+function erasAt(A) {                                       // all eras covering year A, with year number n
+  return ERAS.filter((e) => A >= e.from && A <= eraEnd(e)).map((e) => ({ e, n: A - e.from + 1 }));
+}
+const CN_D = "〇一二三四五六七八九";
+function cnNum(n) {                                        // 1 → 元, 23 → 二十三 (1–99)
+  if (n === 1) return "元";
+  const t = Math.floor(n / 10), o = n % 10;
+  return (t === 0 ? "" : t === 1 ? "十" : CN_D[t] + "十") + (o ? CN_D[o] : "");
+}
+const eraYearZh = (r) => r.e.zh + cnNum(r.n) + "年";
+function span(a, b) {                                      // a, b astronomical; returns years between and crossing info
+  const lo = Math.min(a, b), hi = Math.max(a, b);
+  return { lo, hi, n: hi - lo, cross: lo <= 0 && hi >= 1 };
+}
+function sameGzList(A, k) {                                // up to k other years in range with the same 干支, nearest first
+  const out = [];
+  for (let d = 60; out.length < k && d <= MAX_A - MIN_A; d += 60) {
+    if (A + d <= MAX_A) out.push(A + d);
+    if (A - d >= MIN_A && out.length < k) out.push(A - d);
+  }
+  return out.sort((x, y) => x - y);
+}
+const TASKS = [
+  { k: 1, targets: () => [627 + 3 - 1] },
+  { k: 2, targets: () => [5 - 10] },                       // astronomical -5 = 6 BCE
+  { k: 3, targets: () => [1403 + 3 - 1] },
+  { k: 4, targets: () => { const e = ERAS[3], r = []; for (let A = e.from; A <= e.to; A++) if (gz(A).i === 0) r.push(A); return r; } },
+  { k: 5, targets: () => { const r = []; for (let A = MIN_A; A <= MAX_A; A++) if (gz(A).i === 0) r.push(A); return r; } },
+  { k: 6, targets: () => [ERAS[6].from] },
+];
+/* ===== END LOGIC ===== */
+
+function yearText(A) {
+  const h = histYear(A);
+  return h < 0 ? P.t("yearBCE", { n: -h }) : P.t("yearCE", { n: h });
+}
+const gzLabel = (A) => gz(A).name;
+function eraText(A, short) {
+  const rs = erasAt(A);
+  if (!rs.length) return short ? "" : P.t("eraNone");
+  const s = rs.map((r) => ZH ? P.t("eraName", { zh: r.e.zh, n: cnNum(r.n), who: r.e.cn }) : P.t("eraName", { zh: eraYearZh(r), py: r.e.py, n: r.n, who: r.e.en })).join(" / ");
+  return short ? s : P.t("eraLine", { e: s });
+}
+function eraShort(A) { return erasAt(A).map(eraYearZh).join(" / "); }
+
+const fig = $("fig"), S = (tag, a, p) => Play.svg(tag, a, p || fig);
+function T(x, y, s, cls, anchor, p) { const t = S("text", { x, y, class: cls || "", "text-anchor": anchor || "start" }, p); t.textContent = s; return t; }
+const state = { A: Math.min(TODAY, MAX_A), guessed: false, sa: -2, sb: 4, task: 0, solved: new Set(), showHint: false };
+
+/* ---------- step 1: three tablets ---------- */
+function drawIntro() {
+  setView(300);
+  const A = 629, cards = [[yearText(A), "tabCE"], [gzLabel(A) + (ZH ? "年" : ""), "tabGZ"], [eraShort(A), "tabEra"]];
+  T(300, 24, P.t("sameYear"), "mut", "middle");
+  cards.forEach(([txt, k], i) => {
+    const x = 20 + i * 192;
+    S("rect", { x, y: 40, width: 176, height: 96, rx: 10, class: "tab" });
+    T(x + 88, 96, txt, "big", "middle");
+    T(x + 88, 160, P.t(k), "mut", "middle");
+  });
+  const y0 = 232, xs = [90, 230, 370, 510], lab = [-1, 0, 1, 2];
+  S("line", { x1: 40, y1: y0, x2: 560, y2: y0, class: "ax" });
+  lab.forEach((A2, j) => {
+    S("circle", { cx: xs[j], cy: y0, r: 5, class: "dotOn" });
+    T(xs[j], y0 - 14, yearText(A2), "", "middle");
+  });
+  if (state.guessed) {
+    S("path", { d: `M${xs[1]} ${y0 + 14} v8 H${xs[2]} v-8`, class: "brk" });
+    T(300, y0 + 42, P.t("yr1"), "acc", "middle");
+    T(300, y0 + 64, P.t("noZero"), "gap", "middle");
+  } else T(300, y0 + 40, "?", "huge", "middle");
+}
+
+/* ---------- steps 2–3: the dials ---------- */
+const TICK = 84;
+function drawDials() {
+  setView(420);
+  const A = state.A, g = gz(A);
+  // band 1: CE/BCE line
+  T(14, 22, P.t("ce") + " / " + P.t("bce"), "mut");
+  S("line", { x1: 10, y1: 78, x2: 590, y2: 78, class: "ax" });
+  for (let k = -3; k <= 3; k++) {
+    const B = A + k;
+    if (B < MIN_A || B > MAX_A) continue;
+    const x = 300 + k * TICK, h = histYear(B), on = k === 0;
+    const grp = S("g", { class: "hot", "data-y": B });
+    if (on) S("rect", { x: x - 38, y: 40, width: 76, height: 58, rx: 8, class: "cellOn" }, grp);
+    S("circle", { cx: x, cy: 78, r: on ? 0 : 4, class: "dotOn" }, grp);
+    T(x, 64, String(Math.abs(h)), on ? "onTx big" : "", "middle", grp);
+    T(x, 94, h < 0 ? P.t("bce") : P.t("ce"), on ? "onTx" : "mut", "middle", grp);
+    if (B === 0 && k < 3) {                                // gap between 1 BCE and 1 CE
+      const gx = x + TICK / 2;
+      S("line", { x1: gx, y1: 70, x2: gx, y2: 86, class: "gapL" });
+      T(gx, 116, P.t("noZero"), "gap", "middle");
+    }
+  }
+  // band 2: 干支 wheel
+  const cx = 150, cy = 282;
+  T(14, 150, P.t("gzHead"), "mut");
+  S("circle", { cx, cy, r: 110, class: "ring" });
+  S("circle", { cx, cy, r: 72, class: "ring" });
+  for (let i = 0; i < 10; i++) {
+    const ang = (-90 + i * 36) * Math.PI / 180, x = cx + 110 * Math.cos(ang), y = cy + 110 * Math.sin(ang);
+    if (i === g.s) S("circle", { cx: x, cy: y, r: 13, class: "cellOn" });
+    T(x, y + 5, STEMS[i], i === g.s ? "onTx" : "", "middle");
+  }
+  for (let i = 0; i < 12; i++) {
+    const ang = (-90 + i * 30) * Math.PI / 180, x = cx + 72 * Math.cos(ang), y = cy + 72 * Math.sin(ang);
+    if (i === g.b) S("circle", { cx: x, cy: y, r: 13, class: "cellOn" });
+    T(x, y + 5, BRANCHES[i], i === g.b ? "onTx" : "", "middle");
+  }
+  T(cx, cy + 6, g.name, "huge", "middle");
+  T(cx, cy + 28, P.t("ofSixty", { i: g.i + 1 }), "mut", "middle");
+  // band 2: era list
+  T(318, 150, P.t("eraHead"), "mut");
+  const SC = 134 / 61;
+  T(318, 172, P.t("china"), "mut");
+  T(318, 330, P.t("japan"), "mut");
+  ERAS.forEach((e, i) => {
+    const y = i < 5 ? 196 + i * 27 : 354 + (i - 5) * 27, end = eraEnd(e), inE = A >= e.from && A <= end;
+    const grp = S("g", { class: "hot", "data-y": e.from });
+    S("rect", { x: 312, y: y - 18, width: 278, height: 25, rx: 6, fill: "transparent" }, grp);
+    T(318, y, ZH ? e.zh : e.py, inE ? "acc" : "", "start", grp);
+    T(446, y, e.from + "–" + (e.to == null ? "" : e.to), inE ? "acc" : "mut", "end", grp);
+    const w = Math.max(4, (end - e.from + 1) * SC);
+    S("rect", { x: 452, y: y - 10, width: w, height: 10, rx: 3, class: "barBg" }, grp);
+    if (inE) S("rect", { x: 452, y: y - 10, width: Math.max(3, (A - e.from + 1) * SC), height: 10, rx: 3, class: "barFg" }, grp);
+  });
+  const es = eraShort(A);
+  T(318, 410, es || P.t("noEra"), es ? "big" : "mut", "start");
+}
+
+/* ---------- step 4: span ruler ---------- */
+const SX = (A) => 30 + (A + 9) * (540 / 19);
+function drawSpan() {
+  setView(300);
+  const a = state.sa, b = state.sb, sp = span(a, b), y0 = 120;
+  S("line", { x1: 20, y1: y0, x2: 580, y2: y0, class: "ax" });
+  for (let A = -9; A <= 10; A++) {
+    const x = SX(A), h = histYear(A);
+    S("line", { x1: x, y1: y0 - 6, x2: x, y2: y0 + 6, class: "ax" });
+    T(x, y0 - 14, String(Math.abs(h)), A > sp.lo && A <= sp.hi ? "acc" : "", "middle");
+  }
+  const gx = (SX(0) + SX(1)) / 2;
+  S("line", { x1: gx, y1: y0 + 10, x2: gx, y2: y0 + 22, class: "gapL" });
+  T(gx, y0 + 40, P.t("noZero"), "gap", "middle");
+  T(SX(-9), y0 + 40, "← " + P.t("bce"), "mut", "start");
+  T(SX(10), y0 + 40, P.t("ce") + " →", "mut", "end");
+  if (sp.n > 0) S("path", { d: `M${SX(sp.lo)} ${y0 - 34} v-8 H${SX(sp.hi)} v8`, class: "brk" });
+  T((SX(sp.lo) + SX(sp.hi)) / 2, y0 - 50, sp.n === 0 ? P.t("yr0") : sp.n === 1 ? P.t("yr1") : P.t("yrs", { n: sp.n }), "acc", "middle");
+  [[a, "dotOn", "sa"], [b, "dotB", "sb"]].forEach(([A, cls, id]) => S("circle", { cx: SX(A), cy: y0, r: 10, class: cls + " hot", "data-h": id }));
+  const L = spanLines();
+  L.forEach((s, i) => T(300, 200 + i * 28, s, i === 0 ? "big" : "mut", "middle"));
+}
+function spanLines() {
+  const sp = span(state.sa, state.sb), hl = histYear(sp.lo), hh = histYear(sp.hi);
+  if (sp.cross) {
+    const a = -hl, b = hh;
+    return [P.t("rRight", { expr: `${a} + ${b} − 1 = ${sp.n}` }), P.t("rZero", { w: a + b })];
+  }
+  const ex = hl < 0 ? `${-hl} − ${-hh} = ${sp.n}` : `${hh} − ${hl} = ${sp.n}`;
+  return [P.t("rSame", { expr: ex })];
+}
+
+function setView(h) { fig.setAttribute("viewBox", "0 0 600 " + h); fig.style.aspectRatio = "600 / " + h; }
+
+/* ---------- side panel ---------- */
+function line(cls, text, parent) { const d = document.createElement("div"); d.className = cls; d.textContent = text; parent.appendChild(d); return d; }
+function info() {
+  const box = $("info"), A = state.A, g = gz(A);
+  box.innerHTML = "";
+  line("gp", yearText(A), box);
+  const nb = sameGzList(A, 2);
+  line("", P.t("gzLine", { gz: g.name, py: STEM_PY[g.s] + " " + BR_PY[g.b], an: ZH ? ANIMAL_ZH[g.b] : ANIMAL_EN[g.b], i: g.i + 1, p: nb[0] != null ? yearText(nb[0]) : "—", n: nb[1] != null ? yearText(nb[1]) : "—" }), box);
+  line("", eraText(A), box);
+  if (A <= 0) line("dt", P.t("earlyBCE"), box);
+  if (A < 525) line("dt", P.t("early525"), box);
+}
+function taskPanel() {
+  const t = TASKS[state.task], n = TASKS.length;
+  $("taskK").textContent = P.t("taskK", { i: state.task + 1, n }) + " · " + P.t("tries", { s: state.solved.size, n });
+  $("taskIns").textContent = P.t("i" + t.k);
+  $("taskFb").textContent = state.showHint ? P.t("h" + t.k + "t") : "";
+  $("taskFb").className = "fbk";
+}
+function checkTask() {
+  const t = TASKS[state.task], A = state.A, tg = t.targets(), fb = $("taskFb");
+  if (tg.includes(A)) {
+    state.solved.add(state.task);
+    const v = { y: yearText(A), gz: gzLabel(A) };
+    if (t.k === 4) { v.a = ERAS[3].from; v.b = ERAS[3].to; }
+    if (t.k === 5) v.list = tg.filter((x) => x !== A && Math.abs(x - A) <= 120).map(yearText).join(ZH ? "、" : ", ");
+    taskPanel();
+    fb.textContent = P.t("tOk", { why: P.t("w" + t.k, v) }) + (state.solved.size === TASKS.length ? " " + P.t("allDone") : "");
+    fb.className = "fbk ok";
+  } else {
+    const es = eraShort(A);
+    fb.textContent = P.t("tNo", { y: yearText(A), gz: gzLabel(A), e: es ? (ZH ? "，" : ", ") + es : "" });
+    fb.className = "fbk no";
+  }
+  Play.live($("live"), fb.textContent);
+}
+function rules() {
+  const ul = $("rules");
+  ul.innerHTML = "";
+  const now = TODAY + " = " + gzLabel(TODAY);
+  const list = [1924, 1984, 2044].map(yearText).join(ZH ? "、" : ", ");
+  ["rule1", "rule2", "rule3", "rule4"].forEach((k) => {
+    const li = document.createElement("li");
+    li.textContent = P.t(k, { now, list, zg: 627 + 3 - 1 });
+    ul.appendChild(li);
+  });
+}
+
+/* ---------- drawing + state ---------- */
+function draw() {
+  fig.innerHTML = "";
+  const i = st ? st.i : 0;
+  if (i === 0) drawIntro();
+  else if (i === 3) drawSpan();
+  else drawDials();
+  $("yr").value = state.A;
+  $("yrVal").textContent = yearText(state.A);
+  $("sa").value = state.sa; $("sb").value = state.sb;
+  if (i === 1 || i === 2) info();
+  document.querySelector(".result").hidden = i === 0 && !state.guessed;
+}
+function setYear(A, announce) {
+  const v = Play.clamp(Math.round(A), MIN_A, MAX_A);
+  if (!Number.isFinite(v)) return;
+  state.A = v;
+  draw();
+  if (announce !== false) Play.live($("live"), P.t("liveY", { y: yearText(v), gz: gzLabel(v), e: eraText(v, true) }));
+}
+
+let timer = null;
+function stopRun() { if (timer) { clearInterval(timer); timer = null; } $("run").textContent = P.t("run"); }
+$("run").addEventListener("click", () => {
+  if (timer) return stopRun();
+  $("run").textContent = P.t("pause");
+  timer = setInterval(() => { if (state.A >= MAX_A) return stopRun(); setYear(state.A + 1, false); }, 400);
+});
+
+let st = null;
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { state.guessed = true; draw(); });
+
+st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  stopRun();
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("ctlYear").hidden = !(i === 1 || i === 2);
+  $("ctlSpan").hidden = i !== 3;
+  $("info").hidden = !(i === 1 || i === 2);
+  $("task").hidden = i !== 2;
+  $("rules").hidden = i !== 3;
+  fig.style.cursor = i === 0 ? "default" : "";
+  if (i === 2) taskPanel();
+  if (i === 3) rules();
+  $("live").textContent = "";
+  draw();
+});
+
+/* controls */
+$("yr").addEventListener("input", (e) => setYear(+e.target.value));
+$("bL").addEventListener("click", () => setYear(state.A - 1));
+$("bR").addEventListener("click", () => setYear(state.A + 1));
+$("m60").addEventListener("click", () => setYear(state.A - 60));
+$("p60").addEventListener("click", () => setYear(state.A + 60));
+const JUMPS = [[TODAY, ""], [2024, "甲辰"], [1984, "甲子"], ...ERAS.map((e) => [e.from, e.zh + "元年"]), [1, ""], [-840, "共和元年"]];
+(function fillJump() {
+  const sel = $("jump"), o0 = document.createElement("option");
+  o0.value = ""; o0.textContent = P.t("jumpPick"); sel.appendChild(o0);
+  JUMPS.forEach(([A, lab]) => {
+    const o = document.createElement("option");
+    o.value = A; o.textContent = yearText(A) + (lab ? " = " + lab : "");
+    sel.appendChild(o);
+  });
+})();
+$("jump").addEventListener("change", (e) => { if (e.target.value !== "") setYear(+e.target.value); e.target.value = ""; });
+$("sa").addEventListener("input", (e) => { state.sa = +e.target.value; draw(); Play.live($("live"), spanLines()[0]); });
+$("sb").addEventListener("input", (e) => { state.sb = +e.target.value; draw(); Play.live($("live"), spanLines()[0]); });
+$("check").addEventListener("click", checkTask);
+$("hint").addEventListener("click", () => { state.showHint = true; taskPanel(); });
+$("next").addEventListener("click", () => { state.task = (state.task + 1) % TASKS.length; state.showHint = false; taskPanel(); });
+
+/* pointer: drag the dials sideways; tap a year or an era; drag the span dots */
+let drag = null, lastHandle = "sb";
+fig.addEventListener("pointerdown", (ev) => {
+  const i = st.i;
+  if (i === 0) return;
+  const p = Play.pointer(fig, ev), h = ev.target.closest("[data-h]");
+  if (i === 3) {
+    let id = h ? h.dataset.h : (Math.abs(p.x - SX(state.sa)) < Math.abs(p.x - SX(state.sb)) ? "sa" : "sb");
+    drag = { span: id }; lastHandle = id;
+    moveHandle(id, p.x);
+  } else drag = { x0: p.x, A0: state.A, moved: false, tgt: ev.target.closest("[data-y]") };
+  try { fig.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ }
+});
+function moveHandle(id, x) {
+  const A = Play.clamp(Math.round((x - 30) / (540 / 19)) - 9, -9, 10);
+  if (state[id] === A) return;
+  state[id] = A; draw(); Play.live($("live"), spanLines()[0]);
+}
+fig.addEventListener("pointermove", (ev) => {
+  if (!drag) return;
+  const p = Play.pointer(fig, ev);
+  if (drag.span) return moveHandle(drag.span, p.x);
+  const dx = p.x - drag.x0;
+  if (Math.abs(dx) > 6) drag.moved = true;
+  if (drag.moved) { const A = drag.A0 - Math.round(dx / TICK); if (A !== state.A) setYear(A); }
+});
+function up() {
+  if (drag && !drag.span && !drag.moved && drag.tgt) setYear(+drag.tgt.dataset.y);
+  drag = null;
+}
+fig.addEventListener("pointerup", up);
+fig.addEventListener("pointercancel", () => (drag = null));
+fig.addEventListener("keydown", (e) => {
+  const i = st.i;
+  if (i === 0) return;
+  let d = 0;
+  if (e.key === "ArrowRight" || e.key === "ArrowUp") d = e.shiftKey ? 10 : 1;
+  else if (e.key === "ArrowLeft" || e.key === "ArrowDown") d = e.shiftKey ? -10 : -1;
+  else if (e.key === "PageUp") d = 60;
+  else if (e.key === "PageDown") d = -60;
+  else return;
+  e.preventDefault();
+  if (i === 3) { state[lastHandle] = Play.clamp(state[lastHandle] + Math.sign(d), -9, 10); draw(); Play.live($("live"), spanLines()[0]); }
+  else setYear(state.A + d);
+});
+
+$("reset").addEventListener("click", () => {
+  stopRun();
+  Object.assign(state, { A: Math.min(TODAY, MAX_A), guessed: false, sa: -2, sb: 4, task: 0, showHint: false });
+  state.solved = new Set();
+  pr.reset(); st.go(0);
+});
+
+$("resMain").textContent = P.t("resMain", { g: span(0, 1).n, zg: TASKS[0].targets()[0] });
+draw();
+</script>
+</body>
+</html>

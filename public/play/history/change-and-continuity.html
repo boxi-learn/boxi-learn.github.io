@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What changed, and what stayed the same?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .pane { padding: 12px 14px; }
+  .vhead { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+  .cmp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; }
+  .cmp .yh { font-weight: 750; color: var(--a); font-size: 14px; }
+  .cmp .sn { grid-column: 1 / -1; font-weight: 700; font-size: 13px; margin-top: 6px; display: flex; justify-content: space-between; gap: 8px; }
+  .cmp .tag { font-weight: 600; font-size: 12px; color: var(--muted); }
+  .cmp .tag.s1 { color: var(--c); } .cmp .tag.s2 { color: var(--a); }
+  .cc { border: 1px solid var(--line); border-radius: 10px; padding: 6px 9px; font-size: 13px; background: var(--surface); line-height: 1.4; }
+  .cc.hid { color: var(--muted); text-align: center; border-style: dashed; background: var(--soft); }
+  svg.board { width: 100%; height: auto; display: block; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  .board text { font-size: 13px; fill: var(--fg); }
+  .board .yr { fill: var(--muted); }
+  .board .row { cursor: pointer; outline: none; }
+  .board .row .bg { fill: transparent; }
+  .board .row.sel .bg { fill: var(--soft); }
+  .board .row:focus-visible .bg { stroke: var(--hl); stroke-width: 2px; }
+  .board .trk { stroke: var(--line); stroke-width: 2px; }
+  .board .g0 { stroke: var(--muted); stroke-width: 2px; stroke-dasharray: 2 4; }
+  .board .g1 { stroke: var(--c); stroke-width: 5px; stroke-linecap: round; }
+  .board .g2 { stroke: var(--a); stroke-width: 9px; stroke-linecap: round; }
+  .board .pt { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5px; }
+  .board .mk { fill: var(--hl); stroke: var(--fg); stroke-width: 1.2px; }
+  .board .ok { fill: var(--a); font-weight: 700; } .board .no { fill: var(--no); font-weight: 700; }
+  .board .lst { fill: var(--muted); }
+  .board .grid { stroke: var(--line); stroke-dasharray: 3 4; }
+  .legend .sw { display: inline-block; width: 18px; height: 0; vertical-align: 3px; margin-right: 5px; border-top: 2px dotted var(--muted); }
+  .legend .sw.s1 { border-top: 5px solid var(--c); } .legend .sw.s2 { border-top: 9px solid var(--a); vertical-align: 1px; }
+  .legend .sw.mk { width: 10px; height: 10px; border: 1px solid var(--fg); background: var(--hl); transform: rotate(45deg); vertical-align: 0; }
+  .detail { border-top: 1px solid var(--line); }
+  .dnav { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .dnav .dq { flex: 1; font-weight: 700; font-size: 14px; text-align: center; }
+  .tl { display: flex; flex-direction: column; gap: 0; }
+  .tl .cc { display: flex; gap: 10px; align-items: baseline; }
+  .tl .cc b { color: var(--a); min-width: 2.6em; font-variant-numeric: tabular-nums; }
+  .gapb { margin: 4px 0 4px 18px; font-size: 13px; padding: 5px 10px; border-style: dashed; text-align: left; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .gapb.on { border-style: solid; border-color: var(--hl); background: var(--soft); color: var(--fg); font-weight: 650; }
+  .gapb .rv { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .gapb .rv.s1 { color: var(--c); } .gapb .rv.s2 { color: var(--a); }
+  .nobig { margin-top: 8px; }
+  .controls { padding: 10px 0 0; }
+  .crow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  #resMain { white-space: normal; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+  <section class="stage">
+    <div class="visual">
+      <div class="pane" id="cmpPane">
+        <p class="vhead" data-t="cmpHead"></p>
+        <div class="cmp" id="cmp"></div>
+      </div>
+      <div class="pane" id="boardPane" hidden>
+        <p class="vhead" id="boardHead"></p>
+        <svg class="board" id="board" viewBox="0 0 600 260" role="group" data-t-aria="boardAria"></svg>
+        <div class="legend" id="legend"></div>
+        <div class="crow" id="sortRow" hidden><button type="button" class="small" id="sortBtn"></button></div>
+      </div>
+      <div class="pane detail" id="detail" hidden>
+        <div class="dnav">
+          <button type="button" class="small" id="prev" data-t-aria="prevAria">◀</button>
+          <div class="dq" id="dq"></div>
+          <button type="button" class="small" id="next" data-t-aria="nextAria">▶</button>
+        </div>
+        <div class="tl" id="tl"></div>
+        <div class="controls">
+          <label for="jump" data-t="jumpLabel"></label>
+          <input type="range" id="jump" min="0" max="3" step="1" value="0">
+          <span class="val" id="jumpVal"></span>
+        </div>
+        <div class="crow"><button type="button" id="check" data-t="check"></button><span id="progress"></span></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+  <div class="result">
+    <div><div class="rt" id="resTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" id="resNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+/* ---- Data: one made-up farming village, four snapshots ---- */
+const YEARS = [1300, 1700, 1900, 2000];
+const KM = 50;                       // distance to the market town
+const SPEED = [5, 5, 40, 70];        // km/h: walking, walking, train (average incl. stops), bus/car — approximate
+const BIG_RATIO = 4, SOME_RATIO = 1.5; // travel: time falls ≥4× → big change, ≥1.5× → some change
+const HOURS = SPEED.map((v) => KM / v);
+const IDS = ["travel", "light", "food", "lang", "fest", "farm", "news"];
+/* Page's rough rating of each gap (0 about the same, 1 some change, 2 big change); travel is computed. */
+const RATED = { light: [0, 1, 2], food: [1, 0, 1], lang: [1, 1, 1], fest: [0, 0, 1], farm: [0, 1, 2], news: [1, 2, 2] };
+const NG = YEARS.length - 1, SPAN = YEARS[NG] - YEARS[0];
+function ratioScore(a, b) { const r = b > 0 ? a / b : 1; return r >= BIG_RATIO ? 2 : r >= SOME_RATIO ? 1 : 0; }
+function scores(id) {
+  if (id === "travel") return YEARS.slice(0, NG).map((_, g) => ratioScore(HOURS[g], HOURS[g + 1]));
+  return RATED[id];
+}
+const firstBig = (id) => { const i = scores(id).indexOf(2); return i < 0 ? NG : i; };   // NG = "no big jump"
+const lasted = (id) => YEARS[firstBig(id)] - YEARS[0];                                 // years the 1300 way was still there (at least)
+function stats() {
+  const gaps = YEARS.slice(0, NG).map((y, g) => {
+    const c = [0, 0, 0];
+    IDS.forEach((id) => c[scores(id)[g]]++);
+    return { from: y, to: YEARS[g + 1], len: YEARS[g + 1] - y, same: c[0], some: c[1], big: c[2] };
+  });
+  const never = IDS.filter((id) => firstBig(id) === NG);
+  return { gaps, never };
+}
+const ST = stats();
+
+const EN = {
+  title: "What changed, and what stayed the same?", eyebrow: "History · Stage 4", h1: "What changed, and what stayed the same?",
+  intro: "One made-up farming village, seen in 1300, 1700, 1900 and 2000. Read the cards for seven parts of daily life and mark when each one changed a lot.",
+  reset: "Reset", s1: "Guess", s2: "Mark", s3: "Rule",
+  cmpHead: "The village in 1300 and 1700 — one row per part of daily life.",
+  boardAria: "Speed-of-change board: one row per part of daily life, on a timeline from 1300 to 2000 drawn to scale. Tab to a row and press Enter to open its cards; arrow keys move between rows.",
+  prevAria: "Previous part of life", nextAria: "Next part of life",
+  k1: "Predict first", t1: "A farmer from 1300 visits 1700",
+  b1: "Four hundred years later, the same village. Pick an answer — then the 1700 cards turn over.",
+  q: "A farmer from {y0} walks into the same village in {y1}. How much of daily life has changed?",
+  o1: "Nothing at all — the past stood still", o2: "Almost everything has changed", o3: "Most things are the same, but a few shifted slowly",
+  right: "Yes. In {y1}: {z} of {n} parts about the same, {s} shifted a little, none jumped. Change was slow — not zero.",
+  wrong: "Look at the cards: in {y1}, {z} of {n} parts are about the same and {s} shifted a little (new crops, drifting words, a few printed sheets). Not frozen, not transformed.",
+  hidden: "?",
+  k2: "Hands on", t2: "When did each part change a lot?",
+  b2: "Pick a row on the board (or use ◀ ▶). Read its four cards, then mark the first BIG jump: click a gap between two cards, or use the slider. When you have marked all {n}, press Check.",
+  k3: "The rule", t3: "Different speeds, different times",
+  b3: "Big jumps: {b0} in the {l0} years from {y0} to {y1}, {b1} in the next {l1}, {b2} in the last {l2}. They came at different times, and {nv} of {n} parts — {list} — had no big jump at all in {span} years.",
+  boardHead2: "Your marks (◆) on a timeline drawn to scale.",
+  boardHead3: "What the cards show. Right column: how long the {y0} way lasted (at least).",
+  jumpLabel: "First big jump", gap: "{a}→{b}", none: "No big jump", noneLong: "No big jump in {span} years",
+  gapLong: "Big jump here? {a}→{b} ({l} years)",
+  check: "Check", progress: "Marked {m} of {n}", checked: "{r} of {n} match the cards.",
+  sc0: "about the same", sc1: "some change", sc2: "big change",
+  lgSame: "about the same", lgSome: "some change", lgBig: "big change", lgMark: "your mark",
+  lastedV: "≥{y} y", lastedNever: "{y}+ y",
+  sortBy: "Order by how long the old way lasted", sortOrig: "Original order",
+  marked: "{s}: you marked {g}.", rowInfo: "{s}: {list}. The {y0} way lasted at least {y} years.",
+  rowNever: "{s}: {list}. No big jump in {y} years.",
+  hours: "≈ {h} h for {km} km",
+  n_travel: "Travel", n_light: "Night light", n_food: "Staple food", n_lang: "Language", n_fest: "Customs", n_farm: "Farm power", n_news: "News",
+  q_travel: "How do you reach the market town {km} km away?", q_light: "What lights the house at night?", q_food: "What is the main food?",
+  q_lang: "What language do people speak?", q_fest: "Festivals and family customs", q_farm: "What pulls the plough and brings in the harvest?", q_news: "How does news reach the village?",
+  c_travel_0: "On foot or by ox cart", c_travel_1: "Still on foot; a horse if you can afford one", c_travel_2: "Walk to the station, then the train", c_travel_3: "Bus or car",
+  c_light_0: "Firelight, candles, oil lamps", c_light_1: "Still candles and oil lamps", c_light_2: "Kerosene lamp — brighter", c_light_3: "Electric light at a switch",
+  c_food_0: "Bread or porridge from local grain (or rice)", c_food_1: "Same grains; in many places maize or potatoes from the Americas added", c_food_2: "Same staple", c_food_3: "Same staple, mostly bought in shops",
+  c_lang_0: "The local language", c_lang_1: "Same language; words and sounds slowly drift", c_lang_2: "Same language; more people can read it", c_lang_3: "Same language, with new words (radio, car…)",
+  c_fest_0: "Harvest and seasonal festivals; families farm together", c_fest_1: "Same festivals, same family ways", c_fest_2: "Same festivals, same family ways", c_fest_3: "Same festivals; many children now work in towns",
+  c_farm_0: "People, oxen and horses", c_farm_1: "Still people, oxen and horses", c_farm_2: "Still horses; some machines (reapers, threshers)", c_farm_3: "Tractors and combine harvesters",
+  c_news_0: "Word of mouth, market days, travellers", c_news_1: "Still mostly word of mouth; a few printed sheets and letters", c_news_2: "Newspapers; a telegraph in town", c_news_3: "Radio, TV, phone, internet",
+  resT1: "Your guess", resM1: "1300 → 1700: frozen?", resN1: "Pick an answer, then look at the 1700 cards.",
+  resT2: "Your board", resM2: "{m} of {n} marked", resN2: "Mark the first big jump for each part of life, then press Check.",
+  resT3: "Rule", resM3: "Different parts of life change at different speeds — not all at once.",
+  resN3: "Big jumps: {b0} in {l0} y · {b1} in {l1} y · {b2} in {l2} y · never: {nv} of {n}.",
+  explainK: "Explain it", explainQ: "A friend says: “In the old days nothing changed, then modern times changed everything.” Use two rows from this board — one that changed fast and one that hardly changed — to answer them.",
+  homeK: "Try at home", homeQ: "Ask an older relative to compare their childhood with today for: travel, lighting, the main food, how news arrives, a family festival. Which changed a lot, and which stayed the same?",
+  foot: "The village is made up: a typical farming village in a region where railways arrived in the 1800s; real dates differ a lot from place to place. Travel to a town {km} km away uses approximate speeds {sp} km/h (walking; walking; train incl. stops; bus or car); a time cut of ≥{br}× counts as a big change, ≥{sr}× as some change. The other rows use this page's rough rating of the cards. Background (common textbook dates): crops from the Americas (maize, potato, sweet potato) spread across Europe, Africa and Asia in the 1500s–1700s; printing in East Asia for centuries and in Europe from the 1450s; railways from the 1830s; telegraph from the 1840s; kerosene lamps from the 1850s–60s; electric light from the 1880s in cities, reaching many villages only in the 1900s; radio broadcasting from the 1920s; tractors common on many farms from the mid-1900s. Text: Boxi Yu, CC BY 4.0.",
+};
+const ZH = {
+  title: "什么变了，什么没变？", eyebrow: "历史 · 阶段 4", h1: "什么变了，什么没变？",
+  intro: "一个虚构的农村，分别看 1300、1700、1900、2000 年。读一读日常生活七个方面的卡片，标出每一方面什么时候变化最大。",
+  reset: "重置", s1: "先猜", s2: "标记", s3: "规律",
+  cmpHead: "1300 年和 1700 年的村子——每行是日常生活的一个方面。",
+  boardAria: "变化速度板：每行是日常生活的一个方面，时间轴从 1300 到 2000 年按比例画。用 Tab 选中一行，按回车打开它的卡片；方向键在行之间移动。",
+  prevAria: "上一个方面", nextAria: "下一个方面",
+  k1: "先猜一猜", t1: "1300 年的农民来到 1700 年",
+  b1: "四百年后，还是这个村子。先选一个答案，1700 年的卡片就会翻开。",
+  q: "一个 {y0} 年的农民走进 {y1} 年的同一个村子。日常生活变了多少？",
+  o1: "什么都没变——过去是静止的", o2: "几乎全变了", o3: "大部分没变，少数几样慢慢变了",
+  right: "对。到 {y1} 年：{n} 个方面里 {z} 个差不多没变，{s} 个变了一点，没有一个突变。变化很慢，但不是零。",
+  wrong: "看看卡片：到 {y1} 年，{n} 个方面里 {z} 个差不多没变，{s} 个变了一点（新作物、词语慢慢变、少量印刷品）。既不是静止，也不是巨变。",
+  hidden: "？",
+  k2: "动手", t2: "每个方面什么时候变化最大？",
+  b2: "在变化板上选一行（或用 ◀ ▶）。读它的四张卡片，标出第一次「大变化」：点两张卡片之间的空档，或拖滑块。{n} 行都标完后按「核对」。",
+  k3: "规律", t3: "速度不同，时间也不同",
+  b3: "大变化：{y0}–{y1} 年这 {l0} 年里 {b0} 个，接下来 {l1} 年 {b1} 个，最后 {l2} 年 {b2} 个。它们来的时间不同；{n} 个方面里有 {nv} 个（{list}）在 {span} 年里一次大变化都没有。",
+  boardHead2: "你的标记（◆），时间轴按比例画。",
+  boardHead3: "卡片显示的情况。右栏：{y0} 年的老样子至少延续了多久。",
+  jumpLabel: "第一次大变化", gap: "{a}→{b}", none: "没有大变化", noneLong: "{span} 年里没有大变化",
+  gapLong: "大变化在这里？{a}→{b}（{l} 年）",
+  check: "核对", progress: "已标 {m} / {n}", checked: "{n} 个里 {r} 个和卡片一致。",
+  sc0: "差不多没变", sc1: "有些变化", sc2: "大变化",
+  lgSame: "差不多没变", lgSome: "有些变化", lgBig: "大变化", lgMark: "你的标记",
+  lastedV: "≥{y} 年", lastedNever: "{y}+ 年",
+  sortBy: "按老样子延续多久排序", sortOrig: "原来的顺序",
+  marked: "{s}：你标在 {g}。", rowInfo: "{s}：{list}。{y0} 年的老样子至少延续了 {y} 年。",
+  rowNever: "{s}：{list}。{y} 年里没有大变化。",
+  hours: "{km} 公里约 {h} 小时",
+  n_travel: "出行", n_light: "夜间照明", n_food: "主食", n_lang: "语言", n_fest: "节日与家庭", n_farm: "农活动力", n_news: "消息",
+  q_travel: "怎么去 {km} 公里外的集镇？", q_light: "晚上屋里靠什么照明？", q_food: "主食是什么？",
+  q_lang: "大家说什么话？", q_fest: "节日和家庭生活", q_farm: "靠什么犁地、收庄稼？", q_news: "消息怎么传到村里？",
+  c_travel_0: "步行或坐牛车", c_travel_1: "仍靠步行；有钱的骑马", c_travel_2: "走到车站，再坐火车", c_travel_3: "坐汽车或公交",
+  c_light_0: "火光、蜡烛、油灯", c_light_1: "仍是蜡烛和油灯", c_light_2: "煤油灯，更亮", c_light_3: "电灯，一按开关就亮",
+  c_food_0: "本地粮食做的面食、粥（或米饭）", c_food_1: "主粮不变；很多地方添了美洲来的玉米或土豆", c_food_2: "主食没变", c_food_3: "主食没变，多半从商店买",
+  c_lang_0: "本地的语言", c_lang_1: "还是这种语言；词和发音慢慢在变", c_lang_2: "还是这种语言；识字的人多了", c_lang_3: "还是这种语言，多了新词（收音机、汽车……）",
+  c_fest_0: "丰收和节令节日；一家人一起种地", c_fest_1: "节日照旧，家庭习惯照旧", c_fest_2: "节日照旧，家庭习惯照旧", c_fest_3: "节日照旧；很多孩子去城里工作",
+  c_farm_0: "人力、牛和马", c_farm_1: "仍靠人力、牛和马", c_farm_2: "仍用马；有了一些机器（收割机、脱粒机）", c_farm_3: "拖拉机、联合收割机",
+  c_news_0: "口耳相传、赶集、过路人", c_news_1: "仍多靠口传；有了少量印刷品和书信", c_news_2: "报纸；镇上有了电报", c_news_3: "广播、电视、电话、互联网",
+  resT1: "你的猜测", resM1: "1300 → 1700：一成不变？", resN1: "先选答案，再看 1700 年的卡片。",
+  resT2: "你的变化板", resM2: "已标 {m} / {n}", resN2: "给每个方面标出第一次大变化，然后按「核对」。",
+  resT3: "规律", resM3: "生活的不同方面变化速度不同——不是一下子全变。",
+  resN3: "大变化：{l0} 年 {b0} 个 · {l1} 年 {b1} 个 · {l2} 年 {b2} 个 · 从没有：{n} 个里 {nv} 个。",
+  explainK: "说一说", explainQ: "朋友说：「从前什么都不变，到了近代一下子全变了。」用这块板上的两行——一行变得快、一行几乎没变——来回答他。",
+  homeK: "家里做一做", homeQ: "请一位长辈比较他小时候和现在：出行、照明、主食、怎么得到消息、一个家里过的节日。哪些变了很多，哪些没变？",
+  foot: "村子是虚构的：一个典型的农村，所在地区 19 世纪通了铁路；真实年代各地差别很大。去 {km} 公里外集镇的时间按近似速度 {sp} 公里/小时计算（步行；步行；火车含停站；汽车或公交）；时间缩短到 1/{br} 以下算大变化，1/{sr} 以下算有些变化。其他各行是本页对卡片的粗略评级。背景（教科书常用年代）：美洲作物（玉米、土豆、红薯）在 16–18 世纪传遍欧洲、非洲和亚洲；东亚印刷早已有几百年，欧洲从 15 世纪 50 年代开始；铁路始于 19 世纪 30 年代；电报 19 世纪 40 年代；煤油灯 19 世纪 50–60 年代；电灯 19 世纪 80 年代先进城市，许多村子到 20 世纪才通电；无线电广播 20 世纪 20 年代；拖拉机在许多国家 20 世纪中期普及到农场。文字：Boxi Yu，CC BY 4.0。",
+};
+const P = Play.setup({ en: EN, zh: ZH });
+const $ = (id) => document.getElementById(id);
+const zh = P.lang === "zh";
+const SEP = zh ? "、" : ", ";
+const nm = (id) => P.t("n_" + id);
+const gapName = (g) => (g >= NG ? P.t("none") : P.t("gap", { a: YEARS[g], b: YEARS[g + 1] }));
+const G = ST.gaps;
+const V = {
+  y0: YEARS[0], y1: YEARS[1], n: IDS.length, span: SPAN, km: KM, br: BIG_RATIO, sr: SOME_RATIO,
+  z: G[0].same, s: G[0].some, b0: G[0].big, b1: G[1].big, b2: G[2].big, l0: G[0].len, l1: G[1].len, l2: G[2].len,
+  nv: ST.never.length, list: ST.never.map(nm).join(SEP), sp: SPEED.join(" / "),
+};
+$("foot").textContent = P.t("foot", V);
+function card(id, k) {
+  let s = P.t("c_" + id + "_" + k);
+  if (id === "travel") s += " · " + P.t("hours", { h: Play.fmt(HOURS[k], HOURS[k] >= 5 ? 0 : 1), km: KM });
+  return s;
+}
+
+/* ---- state ---- */
+let step = 0, answered = false, checked = false, sel = 0, sorted = false;
+const marks = {};               // id -> gap index 0..NG (NG = no big jump)
+const nMarked = () => IDS.filter((id) => id in marks).length;
+const nRight = () => IDS.filter((id) => marks[id] === firstBig(id)).length;
+const order = () => (sorted ? IDS.slice().sort((a, b) => lasted(b) - lasted(a) || IDS.indexOf(a) - IDS.indexOf(b)) : IDS);
+
+/* ---- step 1: 1300 vs 1700 cards ---- */
+function drawCmp() {
+  const box = $("cmp");
+  box.innerHTML = "";
+  const el = (cls, txt, parent) => { const d = document.createElement("div"); d.className = cls; d.textContent = txt; (parent || box).appendChild(d); return d; };
+  el("yh", YEARS[0]); el("yh", YEARS[1]);
+  IDS.forEach((id) => {
+    const h = el("sn", "");
+    const a = document.createElement("span"); a.textContent = nm(id); h.appendChild(a);
+    if (answered) { const sc = scores(id)[0]; const t = document.createElement("span"); t.className = "tag s" + sc; t.textContent = P.t("sc" + sc); h.appendChild(t); }
+    el("cc", card(id, 0));
+    el("cc" + (answered ? "" : " hid"), answered ? card(id, 1) : P.t("hidden"));
+  });
+}
+
+/* ---- board: rows on a to-scale timeline (pixel units so text stays 13 px) ---- */
+const board = $("board");
+let W = 600;
+function drawBoard() {
+  const reveal = step === 2 || checked;
+  const narrow = W < 480;
+  const lw = narrow ? 104 : 140, rw = narrow ? 58 : 70, top = 26, rh = 30;
+  const x0 = lw, x1 = W - rw - 14;
+  const X = (y) => x0 + (y - YEARS[0]) / SPAN * (x1 - x0);
+  const ids = order();
+  const H = top + ids.length * rh + 6;
+  board.setAttribute("viewBox", "0 0 " + W + " " + H);
+  board.innerHTML = "";
+  YEARS.forEach((y, i) => {
+    const anchor = i === 0 || i === NG ? "start" : "end";
+    const dx = i === 0 ? -4 : i === NG ? -3 : 3;
+    const t = Play.svg("text", { x: X(y) + dx, y: 15, "text-anchor": anchor, class: "yr" }, board); t.textContent = y;
+    Play.svg("line", { x1: X(y), x2: X(y), y1: top - 4, y2: H - 4, class: "grid" }, board);
+  });
+  ids.forEach((id, r) => {
+    const yc = top + r * rh + rh / 2, sc = scores(id);
+    const g = Play.svg("g", { class: "row" + (step === 1 && IDS[sel] === id ? " sel" : ""), tabindex: step === 0 ? -1 : 0, role: "button", "data-id": id }, board);
+    g.setAttribute("aria-label", rowText(id));
+    Play.svg("rect", { x: 1, y: yc - rh / 2 + 1, width: W - 2, height: rh - 2, rx: 8, class: "bg" }, g);
+    const t = Play.svg("text", { x: 8, y: yc + 4.5 }, g); t.textContent = nm(id);
+    Play.svg("line", { x1: x0, x2: x1, y1: yc, y2: yc, class: "trk" }, g);
+    if (reveal) sc.forEach((s, k) => Play.svg("line", { x1: X(YEARS[k]) + 6, x2: X(YEARS[k + 1]) - 6, y1: yc, y2: yc, class: "g" + s }, g));
+    YEARS.forEach((y) => Play.svg("circle", { cx: X(y), cy: yc, r: 3.5, class: "pt" }, g));
+    if (id in marks) {
+      const m = marks[id], mx = m >= NG ? x1 + 13 : X((YEARS[m] + YEARS[m + 1]) / 2), s = 6;
+      Play.svg("path", { d: `M${mx} ${yc - s} L${mx + s} ${yc} L${mx} ${yc + s} L${mx - s} ${yc} Z`, class: "mk" }, g);
+    }
+    let right = "", cls = "lst";
+    if (step === 2) right = P.t(firstBig(id) === NG ? "lastedNever" : "lastedV", { y: lasted(id) });
+    else if (checked && id in marks) { const ok = marks[id] === firstBig(id); right = ok ? "✓" : "✗"; cls = ok ? "ok" : "no"; }
+    if (right) { const rt = Play.svg("text", { x: W - 6, y: yc + 4.5, "text-anchor": "end", class: cls }, g); rt.textContent = right; }
+  });
+}
+function rowText(id) {
+  const sc = scores(id);
+  const parts = sc.map((s, g) => gapName(g) + " " + P.t("sc" + s)).join(SEP);
+  if (step === 2 || checked) {
+    return firstBig(id) === NG ? P.t("rowNever", { s: nm(id), list: parts, y: SPAN })
+      : P.t("rowInfo", { s: nm(id), list: parts, y: lasted(id), y0: YEARS[0] });
+  }
+  return id in marks ? P.t("marked", { s: nm(id), g: gapName(marks[id]) }) : nm(id);
+}
+function drawLegend() {
+  const lg = $("legend");
+  lg.innerHTML = "";
+  const items = step === 2 || checked ? [["", "lgSame"], ["s1", "lgSome"], ["s2", "lgBig"]] : [];
+  if (step === 1 || nMarked()) items.push(["mk", "lgMark"]);
+  items.forEach(([c, k]) => { const s = document.createElement("span"); const w = document.createElement("i"); w.className = "sw " + c; s.append(w, P.t(k)); lg.appendChild(s); });
+}
+
+/* ---- step 2 detail: four cards with clickable gaps ---- */
+function drawDetail() {
+  const id = IDS[sel], tl = $("tl"), sc = scores(id);
+  $("dq").textContent = (sel + 1) + "/" + IDS.length + " · " + P.t("q_" + id, V);
+  tl.innerHTML = "";
+  YEARS.forEach((y, k) => {
+    const c = document.createElement("div"); c.className = "cc";
+    const b = document.createElement("b"); b.textContent = y;
+    const s = document.createElement("span"); s.textContent = card(id, k);
+    c.append(b, s); tl.appendChild(c);
+    if (k < NG) tl.appendChild(gapButton(id, k, sc[k]));
+  });
+  const nb = gapButton(id, NG, null); nb.classList.add("nobig"); tl.appendChild(nb);
+  $("jump").value = id in marks ? marks[id] : 0;
+  $("jump").max = NG;
+  $("jumpVal").textContent = id in marks ? gapName(marks[id]) : "—";
+  $("progress").textContent = checked ? P.t("checked", { r: nRight(), n: IDS.length }) : P.t("progress", { m: nMarked(), n: IDS.length });
+}
+function gapButton(id, g, s) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small gapb" + (marks[id] === g ? " on" : "");
+  b.setAttribute("aria-pressed", marks[id] === g ? "true" : "false");
+  const l = document.createElement("span");
+  l.textContent = g >= NG ? P.t("noneLong", V) : P.t("gapLong", { a: YEARS[g], b: YEARS[g + 1], l: YEARS[g + 1] - YEARS[g] });
+  b.appendChild(l);
+  if (checked && s !== null) { const r = document.createElement("span"); r.className = "rv s" + s; r.textContent = P.t("sc" + s); b.appendChild(r); }
+  b.addEventListener("click", () => { setMark(id, g); const again = $("tl").querySelectorAll(".gapb")[g]; if (again) again.focus(); });
+  return b;
+}
+function setMark(id, g) {
+  marks[id] = Play.clamp(Math.round(g), 0, NG);
+  Play.live($("live"), P.t("marked", { s: nm(id), g: gapName(marks[id]) }));
+  render();
+}
+function pick(i) { sel = (i + IDS.length) % IDS.length; render(); }
+
+/* ---- texts + result ---- */
+function render() {
+  $("cmpPane").hidden = step !== 0;
+  $("boardPane").hidden = step === 0;
+  $("detail").hidden = step !== 1;
+  $("sortRow").hidden = step !== 2;
+  $("predict").hidden = step !== 0;
+  $("boardHead").textContent = P.t(step === 2 ? "boardHead3" : "boardHead2", V);
+  $("sortBtn").textContent = P.t(sorted ? "sortOrig" : "sortBy");
+  $("kicker").textContent = P.t("k" + (step + 1));
+  $("stepTitle").textContent = P.t("t" + (step + 1));
+  $("stepBody").textContent = P.t("b" + (step + 1), V);
+  if (step === 0) drawCmp();
+  else { W = Math.max(300, Math.round(board.clientWidth || 600)); drawBoard(); drawLegend(); }
+  if (step === 1) drawDetail();
+  if (step === 0) { $("resTitle").textContent = P.t("resT1"); $("resMain").textContent = P.t("resM1"); $("resNote").textContent = P.t("resN1"); }
+  else if (step === 1) { $("resTitle").textContent = P.t("resT2"); $("resMain").textContent = checked ? P.t("checked", { r: nRight(), n: IDS.length }) : P.t("resM2", { m: nMarked(), n: IDS.length }); $("resNote").textContent = P.t("resN2"); }
+  else { $("resTitle").textContent = P.t("resT3"); $("resMain").textContent = P.t("resM3"); $("resNote").textContent = P.t("resN3", V); }
+}
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q", V),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right", V), wrong: P.t("wrong", V),
+}, () => { answered = true; render(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => { step = i; Play.live($("live"), ""); render(); });
+
+/* ---- input ---- */
+function rowFrom(e) { const g = e.target.closest && e.target.closest(".row"); return g ? g.dataset.id : null; }
+board.addEventListener("click", (e) => {
+  const id = rowFrom(e); if (!id) return;
+  if (step === 1) pick(IDS.indexOf(id));
+  else if (step === 2) Play.live($("live"), rowText(id));
+});
+board.addEventListener("keydown", (e) => {
+  const id = rowFrom(e); if (!id) return;
+  const ids = order(), r = ids.indexOf(id);
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    if (step === 1) { pick(IDS.indexOf(id)); const b = $("tl").querySelector(".gapb"); if (b) b.focus(); }
+    else Play.live($("live"), rowText(id));
+  } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    const nr = Play.clamp(r + (e.key === "ArrowDown" ? 1 : -1), 0, ids.length - 1);
+    if (step === 1) pick(IDS.indexOf(ids[nr]));
+    else Play.live($("live"), rowText(ids[nr]));
+    const g = board.querySelector('.row[data-id="' + ids[nr] + '"]'); if (g) g.focus();
+  }
+});
+$("prev").addEventListener("click", () => pick(sel - 1));
+$("next").addEventListener("click", () => pick(sel + 1));
+$("jump").addEventListener("input", (e) => setMark(IDS[sel], +e.target.value));
+$("check").addEventListener("click", () => { checked = true; render(); Play.live($("live"), P.t("checked", { r: nRight(), n: IDS.length })); });
+$("sortBtn").addEventListener("click", () => { sorted = !sorted; render(); });
+$("reset").addEventListener("click", () => {
+  answered = false; checked = false; sorted = false; sel = 0;
+  IDS.forEach((id) => delete marks[id]);
+  pr.reset(); Play.live($("live"), ""); st.go(0);
+});
+let rz = 0;
+addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if (step > 0) render(); }); });
+</script>
+</body>
+</html>

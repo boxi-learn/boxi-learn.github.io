@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move a comma, change the meaning</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .han { font-family: "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", "Songti SC", serif; }
+  .board { padding: 16px 14px 14px; display: flex; flex-direction: column; gap: 12px; min-height: 360px; }
+  .pickrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .pickrow button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .target { background: var(--soft); border-left: 4px solid var(--a); border-radius: 10px; padding: 8px 12px; font-size: 15px; }
+  .target .lab { font-size: 13px; color: var(--muted); }
+  .strip { display: flex; flex-wrap: wrap; row-gap: 6px; align-items: stretch; padding: 4px 0; }
+  .unit { display: inline-flex; align-items: stretch; white-space: nowrap; }
+  .ch { font-size: 28px; line-height: 44px; min-width: 30px; text-align: center; color: var(--fg); }
+  .gap { min-width: 22px; height: 46px; padding: 0 2px; border-radius: 8px; border: 1px dashed transparent; background: transparent;
+         font-size: 26px; line-height: 1; color: var(--a); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+  .gap .dot0 { width: 5px; height: 5px; border-radius: 50%; background: var(--line); }
+  .gap:hover { border-color: var(--line); background: var(--soft); }
+  .gap.sel { border: 2px solid var(--hl); background: var(--soft); }
+  .gap:disabled { cursor: default; }
+  .gap:disabled:hover { border-color: transparent; background: transparent; }
+  .palette { display: flex; flex-wrap: wrap; gap: 6px; }
+  .palette .mk { font-size: 22px; min-width: 44px; min-height: 40px; padding: 2px 8px; font-weight: 700; }
+  .palette .mk.clr { font-size: 14px; font-weight: 600; }
+  .readout { background: var(--soft); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .readout .zh { font-size: 21px; line-height: 1.5; }
+  .readout .zh .m, .form .m { color: var(--a); font-weight: 700; }
+  .readout .row { font-size: 14px; }
+  .readout .row b { font-weight: 650; }
+  .readout .lab { font-size: 13px; color: var(--muted); }
+  .status { font-size: 14px; font-weight: 650; }
+  .status.no { color: var(--no); }
+  .found { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-size: 13px; color: var(--muted); }
+  .chip.on { border-color: var(--a); color: var(--fg); }
+  .pair { border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  .pair .src { font-size: 13px; color: var(--muted); }
+  .pair .form { font-size: 19px; line-height: 1.6; }
+  .pair .para { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+  .rules { display: flex; flex-direction: column; gap: 10px; }
+  .fb3 { font-size: 14px; min-height: 1.4em; }
+  .shake { animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  @media (prefers-reduced-motion: reduce) { .shake { animation: none; } }
+  @media (max-width: 560px) {
+    .ch { font-size: 23px; min-width: 24px; }
+    .gap { min-width: 20px; font-size: 22px; }
+    .readout .zh { font-size: 18px; }
+    .palette .mk { min-width: 38px; }
+  }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="board" id="board" role="group" data-t-aria="boardAria">
+        <div class="pickrow" id="pick"></div>
+        <div class="target" id="target"></div>
+        <div class="strip han" id="strip" role="group" data-t-aria="stripAria"></div>
+        <div class="palette" id="palette" role="group" data-t-aria="paletteAria"></div>
+        <div class="pickrow" id="tools2">
+          <button type="button" class="small" id="say" data-t="say"></button>
+          <button type="button" class="small" id="clearAll" data-t="clearAll"></button>
+        </div>
+        <div class="readout" id="readout"></div>
+        <div class="found" id="found"></div>
+        <div class="rules" id="rules"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="fb3" id="fb3" aria-live="polite"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math han" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// 下雨天留客天留我不留 is a folk tale (相传, versions differ). Every other sentence is original to this page.
+// Chinese content stays Chinese in both UI languages; only the explanations are translated.
+// A reading is a pattern: Han characters, and at a gap "[a|b|]" = the marks allowed there ("" = nothing).
+// Gaps not written in the pattern must stay empty. The first alternative is the one shown.
+const SENTS = [
+  { chars: "下雨天留客天留我不留", folk: true, R: [
+    { pat: "下雨天留客[，|。]天留[，|]我不留[。|！]",
+      who: { en: "the host who wrote it", zh: "写字的主人" },
+      tag: { en: "host: you can't stay", zh: "主人：不留" },
+      para: { en: "Rain is the sky keeping a guest — the sky may keep you, but I won't. The host wants the guest to go.", zh: "下雨天是老天留客——天留你，我可不留。主人想让客人走。" } },
+    { pat: "下雨天[，|]留客天[，|。]留我不[？]留[！|。]",
+      who: { en: "the guest, asking and answering himself", zh: "客人，自问自答" },
+      tag: { en: "guest: keep me!", zh: "客人：留！" },
+      para: { en: "A rainy day is a day for keeping guests. Keep me? Yes, keep me! The guest wants to stay.", zh: "下雨天，正是留客的天。留我吗？留！客人想住下来。" } },
+  ] },
+  { chars: "小林说我画得最好", R: [
+    { pat: "小林说我画得最好[。|！]",
+      who: { en: "the person telling you this (我 = the teller)", zh: "讲这句话的人（「我」就是他）" },
+      tag: { en: "the teller is praised", zh: "夸的是讲话的人" },
+      para: { en: "Xiaolin praised me — the person telling you this drew best.", zh: "小林夸的是「我」——讲这句话的人画得最好。" } },
+    { pat: "小林说[：“|：]我画得最好[。”|！”|。|！]",
+      who: { en: "Xiaolin (the 我 inside the quotes is Xiaolin)", zh: "小林（引号里的「我」是小林）" },
+      tag: { en: "Xiaolin praises himself", zh: "小林夸自己" },
+      para: { en: "Xiaolin is praising himself: the 我 in his words is Xiaolin.", zh: "小林在夸自己：他说的「我」就是小林。" } },
+    { pat: "小林说我画得最好[？|？！]",
+      who: { en: "the person telling you this", zh: "讲这句话的人" },
+      tag: { en: "the teller can't believe it", zh: "讲话的人不信" },
+      para: { en: "The teller can hardly believe it: Xiaolin really said I drew best?", zh: "讲的人不太相信：小林真的说我画得最好？" } },
+    { pat: "小林说[：“]我画得最好[？”]",
+      who: { en: "Xiaolin", zh: "小林" },
+      tag: { en: "Xiaolin asks", zh: "小林在问" },
+      para: { en: "Xiaolin is asking: do I draw best?", zh: "小林在问别人：我是不是画得最好？" } },
+  ] },
+  { chars: "妈妈问爸爸去哪儿了", R: [
+    { pat: "妈妈问[：“|：]爸爸去哪儿了[？”|？]",
+      who: { en: "Mum, asking someone else", zh: "妈妈，问的是别人" },
+      tag: { en: "Dad is missing", zh: "爸爸不在" },
+      para: { en: "Mum asks someone else (maybe you): where has Dad gone? Dad isn't here.", zh: "妈妈在问别人（比如你）：爸爸去哪儿了？——爸爸不在跟前。" } },
+    { pat: "妈妈问爸爸[：“|：]去哪儿了[？”|？]",
+      who: { en: "Mum, asking Dad", zh: "妈妈，问的是爸爸" },
+      tag: { en: "Dad is right there", zh: "爸爸就在跟前" },
+      para: { en: "Mum asks Dad to his face: where have you been? Dad is right there.", zh: "妈妈当面问爸爸：你去哪儿了？——爸爸就站在她面前。" } },
+    { pat: "妈妈问爸爸去哪儿了[。]",
+      who: { en: "the teller, reporting", zh: "讲故事的人，在转述" },
+      tag: { en: "a report, not a question", zh: "转述，不是问句" },
+      para: { en: "The teller reports what happened: Mum asked Dad where he had been. The whole sentence is a statement, not a question.", zh: "讲的人在告诉你一件事：妈妈问过爸爸去哪儿了。整句话是在陈述，不是在提问。" } },
+  ] },
+  { chars: "小狗会自己开门", R: [
+    { pat: "小狗会自己开门[。]",
+      who: { en: "whoever says it", zh: "说这句话的人" }, tag: { en: "a fact", zh: "说事实" },
+      para: { en: "A plain fact: this puppy can open the door by itself.", zh: "告诉你一件事：这只小狗会自己开门。" } },
+    { pat: "小狗会自己开门[？]",
+      who: { en: "whoever says it", zh: "说这句话的人" }, tag: { en: "doubt", zh: "不相信" },
+      para: { en: "The speaker doubts it and asks: can a puppy really open the door by itself?", zh: "说话的人不相信，在问：小狗真会自己开门吗？" } },
+    { pat: "小狗会自己开门[！]",
+      who: { en: "whoever says it", zh: "说这句话的人" }, tag: { en: "amazement", zh: "很吃惊" },
+      para: { en: "The speaker is amazed: the puppy can open the door by itself!", zh: "说话的人很吃惊：小狗居然会自己开门！" } },
+  ] },
+];
+// Step 3: reach a target meaning. s = sentence, r = reading that counts.
+const TASKS = [
+  { s: 0, r: 1, goal: { en: "Make the guest stay.", zh: "让客人留下来。" } },
+  { s: 1, r: 0, goal: { en: "Make the praise go to the person telling it, not to Xiaolin.", zh: "让被夸的人是讲这句话的人，不是小林。" } },
+  { s: 2, r: 1, goal: { en: "Put Dad right in front of Mum.", zh: "让爸爸就站在妈妈面前。" } },
+  { s: 3, r: 1, goal: { en: "Make the speaker doubt it.", zh: "让说话的人不相信。" } },
+];
+const MARKS = ["，", "。", "？", "！", "：", "“", "”"];
+const ENDS = "。？！", STOPS = "，。？！：";
+
+// ---- pure logic (also tested in node) ----
+function parsePat(pat) {
+  const gaps = [[""]];
+  let chars = "";
+  for (let i = 0; i < pat.length; i++) {
+    const c = pat[i];
+    if (c === "[") {
+      const j = pat.indexOf("]", i);
+      gaps[gaps.length - 1] = pat.slice(i + 1, j).split("|");
+      i = j;
+    } else { chars += c; gaps.push([""]); }
+  }
+  return { chars, gaps, show: assemble(chars, gaps.map((g) => g[0])) };
+}
+function assemble(chars, marks) {
+  let s = marks[0] || "";
+  for (let i = 0; i < chars.length; i++) s += chars[i] + (marks[i + 1] || "");
+  return s;
+}
+const emptyMarks = (chars) => new Array(chars.length + 1).fill("");
+// Order marks inside one gap: pause/stop marks, then a closing quote, then an opening quote.
+const markKey = (m) => (m === "“" ? 2 : m === "”" ? 1 : 0);
+function addMark(cur, m) {
+  if (cur === m) return "";                        // tap the same single mark again: take it off
+  const next = cur.length >= 2 ? m : cur + m;      // at most two marks in a gap (e.g. 。” or ：“)
+  return [...next].sort((a, b) => markKey(a) - markKey(b)).join("");
+}
+// Problems that make a punctuation pattern not a proper sentence.
+function problems(chars, marks) {
+  const out = [];
+  const text = assemble(chars, marks);
+  if ([...marks[0]].some((m) => m !== "“")) out.push("start");
+  if (marks.some((g) => [...g].filter((m) => STOPS.includes(m)).length > 1 && g !== "？！")) out.push("double");
+  let depth = 0, ok = true;
+  for (const c of text) {
+    if (c === "“") { depth++; if (depth > 1) ok = false; }
+    if (c === "”") { depth--; if (depth < 0) ok = false; }
+  }
+  if (!ok || depth !== 0) out.push("quotes");
+  if (!ENDS.includes(text.replace(/”+$/, "").slice(-1))) out.push("noEnd");
+  return out;
+}
+// Split into sentences; kind from the end mark: s = statement, q = question, e = exclamation, n = none.
+function sentences(text) {
+  const out = [];
+  let cur = "";
+  for (let i = 0; i < text.length; i++) {
+    cur += text[i];
+    if (ENDS.includes(text[i])) {
+      while (i + 1 < text.length && "？！”".includes(text[i + 1])) cur += text[++i];
+      out.push(cur); cur = "";
+    }
+  }
+  if (cur.replace(/[“”，：]/g, "")) out.push(cur);
+  return out.map((s) => ({ s, kind: s.includes("？") ? "q" : s.includes("！") ? "e" : s.includes("。") ? "s" : "n" }));
+}
+// Who speaks the quoted words: the chunk right before "：“" (or "："), else nobody inside the sentence.
+function speaker(text) {
+  const k = text.indexOf("：");
+  if (k < 0) return text.includes("“") ? "?" : "";
+  let j = k - 1;
+  while (j >= 0 && !"，。？！“”".includes(text[j])) j--;
+  return text.slice(j + 1, k);
+}
+function matchReading(sent, marks) {
+  if (problems(sent.chars, marks).length) return -1;
+  return sent.R.findIndex((r) => {
+    const p = parsePat(r.pat);
+    return p.gaps.length === marks.length && p.gaps.every((alts, g) => alts.includes(marks[g]));
+  });
+}
+const strip = (s) => s.replace(/[，。？！：“”]/g, "");
+
+const P = Play.setup({
+  en: {
+    title: "Move a comma, change the meaning", eyebrow: "Chinese · Stage 2", h1: "Move a comma, change the meaning",
+    intro: "Same characters, same order. Tap the gaps between them and add punctuation: watch who is speaking, whether it is a question, and what the sentence now means.",
+    reset: "Reset", boardAria: "Punctuation board", stripAria: "Characters with gaps between them", paletteAria: "Punctuation marks",
+    say: "▶ Read aloud", clearAll: "Clear all marks", pickLabel: "Sentence", taskLabel: "Task",
+    s1: "Guess", s2: "Punctuate", s3: "Challenge", s4: "Rule",
+    k1: "Predict first", t1: "Can the same characters say opposite things?",
+    b1: "Pick an answer. Then go to step 2 and punctuate the characters yourself.",
+    k2: "Hands on", t2: "Tap a gap, then a mark",
+    b2: "Tap a gap between two characters, then tap a mark below. Keyboard: Tab to a gap, ←/→ move, type , . ? ! : \" or press Backspace to clear. Each sentence hides several readings — find them.",
+    k3: "Hands on", t3: "Punctuate to hit the target",
+    b3: "Each task names a meaning. Change only the punctuation until the sentence says exactly that.",
+    k4: "The rule", t4: "Punctuation is part of the meaning",
+    b4: "In every pair below the characters are identical. Only the marks moved — and with them the pauses, the speaker and whether it is a question.",
+    q: "A folk tale says someone wrote ten characters with no punctuation: 「下雨天留客天留我不留」. Without changing or moving a single character, can punctuation alone make them say two opposite things?",
+    o1: "No — the characters carry the meaning; punctuation is just for pausing to breathe",
+    o2: "Yes — move the marks and 'stay' can flip to 'don't stay'",
+    o3: "It only changes the tone a little, never the meaning",
+    right: "Yes. The host meant 「{a}」 — don't stay. The guest read it as 「{b}」 — stay!",
+    wrong: "Look: the host meant 「{a}」 — don't stay. The guest read it as 「{b}」 — stay! Same characters, opposite meaning.",
+    now: "Now it reads", who: "Who is speaking", kind: "Sentence type", mean: "Meaning",
+    kq: "question", ks: "statement", ke: "exclamation", kn: "unfinished",
+    nobody: "the teller — no quotation marks, nobody else speaks", quoted: "someone else speaks inside the quotes — the speaker comes before the colon: 「{w}」", unknown: "can't tell — a quote needs 说：“ … ” around it",
+    noMatch: "This page has no reading for this one. Read it aloud: does it make sense?",
+    pStart: "A sentence can't start with that mark.", pDouble: "Two stop marks in one gap — keep one.", pQuotes: "Quotation marks come in pairs: “ opens, ” closes.", pNoEnd: "No end mark yet: finish with 。？ or ！",
+    bare: "No marks yet. Tap a gap.", pickGap: "Tap a gap between two characters first.",
+    found: "Readings found: {k} of {n}", newFound: "New reading found: {t}.", allFound: "You found all {n} readings of this one!",
+    folk: "folk tale", own: "made up for this page",
+    hit: "✓ Done: {t}", near: "That is another reading: {t}. Not the target yet.", keep: "Not yet. Change only the marks.", tasksDone: "All {n} tasks done!",
+    ruleCount: "{n} strings of characters · {r} readings · characters unchanged in {ok} of {r} · {q} readings ask a question (？), {s} do not.",
+    resultTitle: "What we found", resultMain: "同样的字 + 不同的标点 = 不同的意思",
+    resultNote: "Punctuation decides where the pauses fall, who is speaking and what is asked — so it is part of the meaning, not just a breath.",
+    explainK: "Explain it", explainQ: "Write 「小林说我画得最好」 for someone, once with 说：“ ” and once without. Ask them who 我 is each time, and explain why it changes.",
+    homeK: "Try at home", homeQ: "Write a short sentence on paper without punctuation, cut out marks from sticky notes, and take turns placing them. Read each version aloud — who can make it say the opposite?",
+    foot: "Marks follow the national standard 标点符号用法 (GB/T 15834-2011): ， pause inside a sentence; 。 end of a statement; ？ question; ！ exclamation; ： introduces what is said; “ ” mark someone's own words. 「下雨天留客天留我不留」 is a folk tale retold in many versions; the other sentences are original. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "标点一挪，意思就变", eyebrow: "语文 · 阶段 2", h1: "标点一挪，意思就变",
+    intro: "字一样，顺序也一样。点字和字之间的空隙，加上标点：看看谁在说话、是不是在问、这句话现在是什么意思。",
+    reset: "重置", boardAria: "加标点的台子", stripAria: "一串字和字之间的空隙", paletteAria: "标点符号",
+    say: "▶ 读一读", clearAll: "清空标点", pickLabel: "句子", taskLabel: "任务",
+    s1: "先猜", s2: "加标点", s3: "挑战", s4: "规律",
+    k1: "先猜一猜", t1: "同样几个字，能说出相反的意思吗？",
+    b1: "先选一个答案，再到第 2 步亲手加一加标点。",
+    k2: "动手", t2: "先点空隙，再点标点",
+    b2: "点两个字之间的空隙，再点下面的标点。键盘：Tab 到空隙，←/→ 移动，直接打 ，。？！：“” 或按退格键清除。每串字都藏着几种读法，把它们找出来。",
+    k3: "动手", t3: "加标点，读出指定的意思",
+    b3: "每个任务给一个意思。只改标点，直到句子正好说的是这个意思。",
+    k4: "规律", t4: "标点也是意思的一部分",
+    b4: "下面每一组，字一个没改，只是标点挪了地方——停在哪儿、谁在说话、是不是在问，都跟着变了。",
+    q: "相传有人写了十个字，没加标点：「下雨天留客天留我不留」。一个字不改、顺序不换，只加标点，能读出相反的两个意思吗？",
+    o1: "不能——意思全在字里，标点只是换气用的",
+    o2: "能——标点一挪，「留」可以变成「不留」",
+    o3: "只能让语气轻一点重一点，意思不会反过来",
+    right: "对。主人的意思是「{a}」——不留；客人读成「{b}」——留！",
+    wrong: "看：主人的意思是「{a}」——不留；客人读成「{b}」——留！字一样，意思正相反。",
+    now: "现在读作", who: "谁在说话", kind: "句子", mean: "意思",
+    kq: "问句", ks: "陈述句", ke: "感叹句", kn: "没说完",
+    nobody: "讲这句话的人——没有引号，没有别人开口", quoted: "引号里是别人开口说的话，说话的人在冒号前：「{w}」", unknown: "看不出来——引用别人的话要写成 说：“……”",
+    noMatch: "这种点法本页没收。读出来听听，通不通？",
+    pStart: "句子不能用这个标点开头。", pDouble: "一个空隙里放了两个停顿的标点，留一个就好。", pQuotes: "引号要成对：“ 开头，” 结尾。", pNoEnd: "还没有句末标点：用 。？或 ！收尾。",
+    bare: "还没有标点。点一个空隙试试。", pickGap: "先点两个字之间的空隙。",
+    found: "已找到读法：{k} / {n}", newFound: "找到新读法：{t}。", allFound: "这串字的 {n} 种读法全找到了！",
+    folk: "民间故事", own: "本页原创",
+    hit: "✓ 做到了：{t}", near: "这是另一种读法：{t}。还不是目标。", keep: "还不对。只改标点试试。", tasksDone: "{n} 个任务全部完成！",
+    ruleCount: "{n} 串字 · {r} 种读法 · 去掉标点后字一模一样：{ok} / {r} · 带问号的 {q} 种，不带的 {s} 种。",
+    resultTitle: "我们发现", resultMain: "同样的字 + 不同的标点 = 不同的意思",
+    resultNote: "标点决定在哪里停、谁在说话、是不是在问。它是意思的一部分，不只是换气。",
+    explainK: "说一说", explainQ: "把「小林说我画得最好」写给家人看，一次加 说：“ ”，一次不加。问问他们两次的「我」各是谁，再讲讲为什么会变。",
+    homeK: "家里做一做", homeQ: "在纸上写一句不带标点的短句，用便利贴剪出标点，和家人轮流摆。每摆一次读出来——谁能让它说出相反的意思？",
+    foot: "标点用法依照国家标准《标点符号用法》（GB/T 15834-2011）：逗号表示句中停顿，句号用于陈述句末，问号用于疑问句末，叹号用于感叹句末，冒号引出要说的话，引号标出直接引用的话。「下雨天留客天留我不留」是民间故事，相传有多种讲法；其余例句均为本页原创。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const stripEl = $("strip"), palEl = $("palette"), readout = $("readout"), foundEl = $("found"), rulesEl = $("rules"), fb3 = $("fb3"), liveEl = $("live");
+const PARSED = SENTS.map((s) => s.R.map((r) => parsePat(r.pat)));
+
+let step = 0, si = 0, ti = 0, guessed = false, sel = null;
+let marks = {}, found = SENTS.map(() => new Set()), solved = new Set();
+const key = () => (step === 2 ? "t" + ti : step === 0 ? "g" : "s" + si);
+const cur = () => SENTS[step === 2 ? TASKS[ti].s : step === 0 ? 0 : si];
+function getMarks() { const k = key(); if (!marks[k]) marks[k] = emptyMarks(cur().chars); return marks[k]; }
+function shake(el) { if (!Play.reduced && el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); } }
+
+// Text with the marks coloured.
+function formEl(text, cls) {
+  const d = document.createElement("div");
+  d.className = cls + " han";
+  d.lang = "zh-CN";
+  for (const c of text) {
+    if (MARKS.includes(c)) { const m = document.createElement("span"); m.className = "m"; m.textContent = c; d.appendChild(m); }
+    else d.appendChild(document.createTextNode(c));
+  }
+  return d;
+}
+function row(label, value, cls) {
+  const d = document.createElement("div");
+  d.className = "row" + (cls ? " " + cls : "");
+  const b = document.createElement("b");
+  b.textContent = label + "：";
+  if (L === "en") b.textContent = label + ": ";
+  d.append(b, document.createTextNode(value));
+  return d;
+}
+
+// ---- picker (sentences in step 2, tasks in step 3) ----
+function renderPick() {
+  const pick = $("pick");
+  pick.innerHTML = "";
+  const lab = document.createElement("span");
+  lab.textContent = P.t(step === 2 ? "taskLabel" : "pickLabel");
+  pick.appendChild(lab);
+  const list = step === 2 ? TASKS : SENTS;
+  list.forEach((x, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "small";
+    b.textContent = (step === 2 && solved.has(i) ? "✓ " : "") + (i + 1);
+    const on = step === 2 ? i === ti : i === si;
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.setAttribute("aria-label", step === 2 ? x.goal[L] : x.chars);
+    b.addEventListener("click", () => { if (step === 2) ti = i; else si = i; sel = null; fb3.textContent = ""; render(); });
+    pick.appendChild(b);
+  });
+}
+
+// ---- the strip of characters and gaps ----
+function renderStrip(interactive) {
+  const s = cur(), m = getMarks();
+  stripEl.innerHTML = "";
+  // Each unit = [char c][gap after it] (gap 0 joins the first unit), so a mark never wraps to the start of a line.
+  const gapBtn = (g) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "gap" + (sel === g && interactive ? " sel" : "");
+    b.dataset.g = g;
+    b.disabled = !interactive;
+    if (m[g]) b.textContent = m[g];
+    else { const d = document.createElement("span"); d.className = "dot0"; b.appendChild(d); }
+    const left = g ? s.chars[g - 1] : "^", right = g < s.chars.length ? s.chars[g] : "$";
+    b.setAttribute("aria-label", left + " | " + right + (m[g] ? " · " + m[g] : ""));
+    b.addEventListener("click", () => { sel = g; renderStrip(true); focusGap(g); });
+    b.addEventListener("keydown", (e) => onGapKey(e, g));
+    return b;
+  };
+  for (let c = 0; c < s.chars.length; c++) {
+    const unit = document.createElement("span");
+    unit.className = "unit";
+    if (c === 0) unit.appendChild(gapBtn(0));
+    const ch = document.createElement("span");
+    ch.className = "ch";
+    ch.textContent = s.chars[c];
+    ch.setAttribute("aria-hidden", "true");
+    unit.append(ch, gapBtn(c + 1));
+    stripEl.appendChild(unit);
+  }
+}
+function focusGap(g) { const b = stripEl.querySelector('[data-g="' + g + '"]'); if (b) b.focus(); }
+function onGapKey(e, g) {
+  const n = cur().chars.length;
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+    sel = Play.clamp(g + (e.key === "ArrowRight" ? 1 : -1), 0, n);
+    renderStrip(true); focusGap(sel); e.preventDefault(); return;
+  }
+  const map = { ",": "，", "，": "，", ".": "。", "。": "。", "?": "？", "？": "？", "!": "！", "！": "！", ":": "：", "：": "：", "“": "“", "”": "”" };
+  let mk = map[e.key];
+  if (e.key === '"') {
+    const text = assemble(cur().chars, getMarks().map((x, i) => (i < g ? x : "")));
+    mk = (text.split("“").length - text.split("”").length) > 0 ? "”" : "“";
+  }
+  if (mk) { sel = g; put(mk); e.preventDefault(); return; }
+  if (e.key === "Backspace" || e.key === "Delete") { sel = g; put(""); e.preventDefault(); }
+}
+// Put a mark (or "" = clear) into the selected gap.
+function put(mk) {
+  if (sel === null) { fb3.textContent = P.t("pickGap"); shake(stripEl); return; }
+  const m = getMarks();
+  m[sel] = mk ? addMark(m[sel], mk) : "";
+  const g = sel;
+  update();
+  focusGap(g);
+}
+
+function renderPalette() {
+  palEl.innerHTML = "";
+  MARKS.concat([""]).forEach((mk) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "mk" + (mk ? " han" : " clr");
+    b.textContent = mk || "⌫";
+    b.setAttribute("aria-label", mk || "clear gap");
+    // keep the gap selected: don't steal focus on mouse down
+    b.addEventListener("mousedown", (e) => e.preventDefault());
+    b.addEventListener("click", () => put(mk));
+    palEl.appendChild(b);
+  });
+}
+
+// ---- readout: who speaks, what kind, what it means ----
+function renderReadout() {
+  const s = cur(), m = getMarks();
+  const text = assemble(s.chars, m);
+  const sIdx = SENTS.indexOf(s);
+  readout.innerHTML = "";
+  const lab = document.createElement("div");
+  lab.className = "lab";
+  lab.textContent = P.t("now") + " · " + P.t(s.folk ? "folk" : "own");
+  readout.append(lab, formEl(text, "zh"));
+  if (!m.some((x) => x)) {
+    readout.appendChild(row(P.t("mean"), P.t("bare")));
+    Play.live(liveEl, text);
+    return -1;
+  }
+  const probs = problems(s.chars, m);
+  const ri = matchReading(s, m);
+  const kinds = sentences(text).map((x) => P.t("k" + x.kind)).join(" + ");
+  readout.appendChild(row(P.t("kind"), kinds));
+  let who;
+  if (ri >= 0) who = s.R[ri].who[L];
+  else { const sp = speaker(text); who = sp === "" ? P.t("nobody") : sp === "?" ? P.t("unknown") : P.t("quoted", { w: sp }); }
+  readout.appendChild(row(P.t("who"), who));
+  let mean;
+  if (ri >= 0) mean = s.R[ri].para[L];
+  else if (probs.length) mean = probs.map((p) => P.t("p" + p[0].toUpperCase() + p.slice(1))).join(" ");
+  else mean = P.t("noMatch");
+  readout.appendChild(row(P.t("mean"), mean, ri < 0 && probs.length ? "status no" : ""));
+  Play.live(liveEl, text + " — " + mean);
+  if (ri >= 0 && step === 1 && !found[sIdx].has(ri)) {
+    found[sIdx].add(ri);
+    fb3.textContent = found[sIdx].size === s.R.length ? P.t("allFound", { n: s.R.length }) : P.t("newFound", { t: s.R[ri].tag[L] });
+  }
+  return ri;
+}
+function renderFound() {
+  foundEl.innerHTML = "";
+  const s = SENTS[si], f = found[si];
+  const lab = document.createElement("span");
+  lab.textContent = P.t("found", { k: f.size, n: s.R.length });
+  foundEl.appendChild(lab);
+  s.R.forEach((r, i) => {
+    const c = document.createElement("span");
+    c.className = "chip" + (f.has(i) ? " on" : "");
+    c.textContent = f.has(i) ? "✓ " + r.tag[L] : "?";
+    foundEl.appendChild(c);
+  });
+}
+
+// ---- step 1: the folk tale, before and after the guess ----
+function renderGuess() {
+  readout.innerHTML = "";
+  const s = SENTS[0];
+  const lab = document.createElement("div");
+  lab.className = "lab";
+  lab.textContent = P.t("folk");
+  readout.appendChild(lab);
+  if (!guessed) { readout.appendChild(formEl(s.chars, "zh")); return; }
+  s.R.forEach((r, i) => {
+    const d = document.createElement("div");
+    d.className = "pair";
+    d.append(formEl(PARSED[0][i].show, "form"));
+    const p = document.createElement("div");
+    p.className = "para";
+    p.textContent = r.who[L] + " — " + r.para[L];
+    d.appendChild(p);
+    readout.appendChild(d);
+  });
+}
+
+// ---- step 3: challenge ----
+function renderTask(ri) {
+  const t = TASKS[ti];
+  const tg = $("target");
+  tg.innerHTML = "";
+  const lab = document.createElement("div");
+  lab.className = "lab";
+  lab.textContent = P.t("taskLabel") + " " + (ti + 1) + " / " + TASKS.length;
+  tg.append(lab, document.createTextNode(t.goal[L]));
+  const m = getMarks();
+  if (!m.some((x) => x)) { fb3.textContent = ""; return; }
+  const s = SENTS[t.s];
+  if (ri === t.r) {
+    const was = solved.size;
+    solved.add(ti);
+    fb3.textContent = P.t("hit", { t: s.R[ri].tag[L] }) + (solved.size === TASKS.length && was < TASKS.length ? " " + P.t("tasksDone", { n: TASKS.length }) : "");
+  } else if (ri >= 0) fb3.textContent = P.t("near", { t: s.R[ri].tag[L] });
+  else fb3.textContent = P.t("keep");
+}
+
+// ---- step 4: rule ----
+function renderRules() {
+  rulesEl.innerHTML = "";
+  let r = 0, ok = 0, q = 0, s = 0;
+  SENTS.forEach((sent, si2) => {
+    const d = document.createElement("div");
+    d.className = "pair";
+    const src = document.createElement("div");
+    src.className = "src";
+    src.textContent = sent.chars + " · " + P.t(sent.folk ? "folk" : "own");
+    d.appendChild(src);
+    sent.R.forEach((rd, i) => {
+      const show = PARSED[si2][i].show;
+      r++;
+      if (strip(show) === sent.chars && matchReading(sent, parsePat(rd.pat).gaps.map((g) => g[0])) === i) ok++;
+      if (show.includes("？")) q++; else s++;
+      d.appendChild(formEl(show, "form"));
+      const p = document.createElement("div");
+      p.className = "para";
+      p.textContent = rd.para[L];
+      d.appendChild(p);
+    });
+    rulesEl.appendChild(d);
+  });
+  const c = document.createElement("div");
+  c.className = "status";
+  c.textContent = P.t("ruleCount", { n: SENTS.length, r, ok, q, s });
+  rulesEl.appendChild(c);
+  Play.live(liveEl, c.textContent);
+}
+
+function update() {
+  if (step === 0) { renderGuess(); return; }
+  if (step === 3) { renderRules(); return; }
+  renderStrip(true);
+  const ri = renderReadout();
+  if (step === 1) renderFound();
+  if (step === 2) { renderTask(ri); renderPick(); }
+}
+function render() {
+  const play = step === 1 || step === 2;
+  $("pick").hidden = !play;
+  $("target").hidden = step !== 2;
+  stripEl.hidden = step === 3;
+  palEl.hidden = !play;
+  $("tools2").hidden = step === 3;
+  $("clearAll").hidden = !play;
+  readout.hidden = step === 3 || (step === 0 && !guessed);
+  foundEl.hidden = step !== 1;
+  rulesEl.hidden = step !== 3;
+  if (play) renderPick();
+  if (step === 0) renderStrip(false);
+  update();
+}
+
+$("say").addEventListener("click", () => {
+  const s = cur();
+  Play.speak(step === 0 ? s.chars : assemble(s.chars, getMarks()), "zh-CN");
+});
+$("clearAll").addEventListener("click", () => { marks[key()] = emptyMarks(cur().chars); fb3.textContent = ""; update(); });
+
+const A = PARSED[0][0].show, B = PARSED[0][1].show;
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right", { a: A, b: B }), wrong: P.t("wrong", { a: A, b: B }),
+}, () => { guessed = true; render(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  sel = null;
+  fb3.textContent = "";
+  render();
+});
+$("reset").addEventListener("click", () => {
+  si = 0; ti = 0; sel = null; guessed = false; marks = {}; found = SENTS.map(() => new Set()); solved = new Set();
+  pr.reset(); fb3.textContent = ""; st.go(0);
+});
+renderPalette();
+render();
+</script>
+</body>
+</html>

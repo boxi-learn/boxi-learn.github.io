@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where does the sugar go?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main#fig { height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #fig text { font-family: var(--font); fill: var(--muted); }
+  #fig .cube { cursor: grab; }
+  #fig .cube:focus { outline: none; }
+  #fig .cube:focus-visible rect.cb { stroke: var(--hl); stroke-width: 4; }
+  #fig .cube.drag { cursor: grabbing; }
+  #fig .cube.fixed { cursor: default; }
+  #fig .disp { font-family: var(--math); fill: var(--on-panel); font-weight: 650; }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 5em; }
+  .controls button[aria-pressed="true"] { border-color: var(--a); background: var(--soft); }
+  .meters { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 8px; align-items: center; font-size: 13px; margin: 4px 0 10px; }
+  .meters .bar { height: 8px; background: var(--soft); border-radius: 4px; overflow: hidden; min-width: 40px; }
+  .meters .bar i { display: block; height: 100%; border-radius: 4px; transition: width .25s; }
+  .meters .v { font-family: var(--math); color: var(--fg); min-width: 3.6em; text-align: right; }
+  .taste { font-size: 14px; color: var(--fg) !important; }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+  .result .math { font-family: var(--serif); white-space: normal; font-size: 20px; line-height: 1.4; }
+  @media (prefers-reduced-motion: reduce) { .meters .bar i { transition: none; } }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="pause" aria-pressed="false"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" role="group" data-t-aria="figAria"></svg>
+      <div id="c2" class="controls" hidden>
+        <label for="stir" data-t="stirLabel"></label>
+        <input type="range" id="stir" min="0" max="90" step="1" value="0">
+        <output id="stirVal" for="stir"></output>
+        <button type="button" class="small" id="taste" data-t="taste"></button>
+      </div>
+      <div id="c3" class="controls" hidden>
+        <label for="evap" data-t="evapLabel"></label>
+        <input type="range" id="evap" min="0" max="200" step="1" value="0">
+        <output id="evapVal" for="evap"></output>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="extra"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" id="data"></p>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Where does the sugar go?", eyebrow: "Science · Stage 2",
+    h1: "Dissolved sugar has not gone: it is still there, as particles too small to see",
+    intro: "Guess first. Then drop sugar cubes into water on a scale, stir, and look through the zoom lens.",
+    reset: "Reset", pause: "Pause", play: "Play",
+    figAria: "A beaker of water on a digital scale, a dish of sugar cubes you can drag into the water, and a zoom lens showing water and sugar particles",
+    s1: "Guess", s2: "Dissolve", s3: "Get it back",
+    k1: "Predict first", t1: "Sugar into water, on a scale",
+    b1: "The scale was zeroed with the empty beaker, so it shows only the {w} g of water. Five sugar cubes of {c} g each wait on the dish.",
+    b1done: "Now test it: go to step 2, drop all the cubes in and stir until you cannot see any sugar.",
+    q: "You put {s} g of sugar into the water, so the scale reads {m} g. You stir until the sugar has dissolved and you can’t see it. What does the scale read now?",
+    o1: "Less, about {w} g: the sugar has gone", o2: "Still {m} g", o3: "More than {m} g",
+    right: "Yes. Check it in step 2: watch the scale while the sugar dissolves.",
+    wrong: "Many people think so. Check it in step 2: drop the cubes in, stir, and watch the scale.",
+    k2: "Hands on", t2: "Drop it in and stir",
+    b2: "Drag sugar cubes into the water (or focus one and press Enter). Then drag “Stir”. Watch the cubes shrink, the zoom lens and the scale.",
+    b2done: "All {s} g of sugar has dissolved. You cannot see it, but the scale still reads {m} g and every sip is sweet. In the lens, the same sugar particles are now spread out between the water particles.",
+    stirLabel: "Stir", stirVal: "{t} s", taste: "Taste a sip",
+    tasteNone: "Taste: just water. There is no sugar in it yet.",
+    tasteCube: "Taste: hardly sweet. The sugar is still in the cubes at the bottom.",
+    tasteSweet: "Taste: sweet. Stirred, every sip, from the top or the bottom, has about {c} g of sugar in each 100 g.",
+    cubeAria: "Sugar cube {i}, {c} grams, {where}", onDish: "on the dish", inWater: "in the water",
+    stuck: "That cube has started to dissolve, so you can’t take it out. Press Reset to start again.",
+    mSee: "Sugar you can see", mSpread: "Sugar spread in the water", mWater: "Water", mCrys: "Sugar crystals", gV: "{g} g",
+    live2: "Scale {m} g = water {w} g + sugar in cubes {v} g + sugar spread in the water {d} g.",
+    k3: "The rule", t3: "Can we get the sugar back?",
+    b3: "All {s} g of sugar is dissolved. Drag the slider to let the water evaporate (on a warm windowsill this takes days). The water goes into the air; the sugar stays.",
+    evapLabel: "Evaporate", evapVal: "{w} g water left",
+    rule3: "Water at 20 °C can hold at most about {sol} g of sugar in every 100 g. So {s} g of sugar needs at least {wsat} g of water. With less water than that, the extra sugar comes back as crystals: the same particles, packed together again.",
+    live3: "Scale {m} g = water {w} g + sugar {s} g ({d} g dissolved, {x} g as crystals).",
+    lgW: "water particle", lgS: "sugar particle", lensCap: "Zoom lens (a model)",
+    resultTitle: "What we found", resultMain: "{w} g water + {s} g sugar = {m} g sugar water",
+    resultNote: "Nothing is lost. {s} g of sugar is about {n} sugar particles (molecules), each about 1 nanometre long: far too small to see, even with a light microscope.",
+    explainK: "Explain it", explainQ: "A friend says the sugar disappeared because you can’t see it any more. Use the scale reading and the word “particles” to explain where the sugar went, and how you could get it back.",
+    homeK: "Try at home", homeQ: "Put a glass of water on a kitchen scale and note the reading. Add two spoons of sugar and note it again. Stir until it dissolves: the reading stays the same. Taste a sip. Then leave a little on a saucer in a warm place for a few days and look for sugar crystals.",
+    dataNote: "Numbers used: {w} g of water at 20 °C; the scale was zeroed with the empty beaker, and no water evaporates while you stir. A sugar cube is taken as {c} g of sucrose (real cubes are about 3–6 g). Solubility of sucrose at 20 °C: about {sol} g per 100 g of water (CRC Handbook of Chemistry and Physics). Sucrose is C₁₂H₂₂O₁₁, molar mass {M} g/mol; Avogadro constant {NA} per mole. A sucrose molecule is about 1 nm long, a water molecule about 0.3 nm. Solid or dissolved, sugar takes up about {v} cm³ per gram, so the water level hardly changes when it dissolves. Dissolving model: a stirred cube shrinks evenly from every side and is gone after {T} s; real times depend on how hard you stir and how warm the water is. The lens is a model: each dot stands for a huge number of particles, and sizes and numbers are not to scale. The idea that dissolved sugar “disappears” is well documented in science-education research (e.g. Driver et al. 1994, Making Sense of Secondary Science).",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "糖到哪里去了？", eyebrow: "科学 · 阶段 2",
+    h1: "溶解的糖没有消失：它还在，只是散成了看不见的小颗粒",
+    intro: "先猜，再把方糖放进秤上的水里，搅一搅，用放大镜看一看。",
+    reset: "重置", pause: "暂停", play: "播放",
+    figAria: "电子秤上放着一杯水，旁边一碟方糖可以拖进水里；放大镜里是水的颗粒和糖的颗粒",
+    s1: "先猜", s2: "溶解", s3: "取回来",
+    k1: "先猜一猜", t1: "秤上的糖和水",
+    b1: "秤已经放着空杯子归零，所以只显示杯里 {w} 克水的重量。碟子里有五块方糖，每块 {c} 克。",
+    b1done: "现在来验证：到第 2 步，把方糖全部放进去，一直搅到看不见糖为止。",
+    q: "把 {s} 克糖放进水里，秤显示 {m} 克。一直搅到糖溶解、看不见了。现在秤显示多少？",
+    o1: "变少，约 {w} 克：糖没有了", o2: "还是 {m} 克", o3: "比 {m} 克多",
+    right: "对。到第 2 步验证：糖溶解的时候盯着秤看。",
+    wrong: "很多人都这么想。到第 2 步验证：放糖、搅拌，盯着秤看。",
+    k2: "动手", t2: "放进去，搅一搅",
+    b2: "把方糖拖进水里（或选中一块按回车）。再拖「搅拌」滑块。看方糖变小，看放大镜，也看秤。",
+    b2done: "{s} 克糖全部溶解了。你看不见它，可秤上还是 {m} 克，每一口都是甜的。放大镜里，还是那些糖颗粒，只是散到了水的颗粒中间。",
+    stirLabel: "搅拌", stirVal: "{t} 秒", taste: "尝一口",
+    tasteNone: "尝一尝：只是清水，还没放糖。",
+    tasteCube: "尝一尝：几乎不甜。糖还在杯底的方糖里。",
+    tasteSweet: "尝一尝：甜的。搅匀以后，上面、下面每一口，每 100 克里都有约 {c} 克糖。",
+    cubeAria: "第 {i} 块方糖，{c} 克，{where}", onDish: "在碟子里", inWater: "在水里",
+    stuck: "这块方糖已经开始溶解，拿不出来了。按「重置」重新开始。",
+    mSee: "看得见的糖", mSpread: "散在水里的糖", mWater: "水", mCrys: "糖晶体", gV: "{g} 克",
+    live2: "秤 {m} 克 = 水 {w} 克 + 方糖里的糖 {v} 克 + 散在水里的糖 {d} 克。",
+    k3: "规律", t3: "糖还能取回来吗？",
+    b3: "{s} 克糖都溶解了。拖动滑块，让水慢慢蒸发（放在暖和的窗台上要好几天）。水跑到空气里，糖留下来。",
+    evapLabel: "蒸发", evapVal: "还剩 {w} 克水",
+    rule3: "20 °C 时，每 100 克水最多能溶解约 {sol} 克糖。所以 {s} 克糖至少要 {wsat} 克水才溶得下。水再少，多出来的糖就变回晶体：还是那些颗粒，重新挤在了一起。",
+    live3: "秤 {m} 克 = 水 {w} 克 + 糖 {s} 克（溶着的 {d} 克，晶体 {x} 克）。",
+    lgW: "水的颗粒", lgS: "糖的颗粒", lensCap: "放大镜（模型）",
+    resultTitle: "我们发现", resultMain: "{w} 克水 + {s} 克糖 = {m} 克糖水",
+    resultNote: "什么都没少。{s} 克糖约有 {n} 个糖颗粒（分子），每个只有约 1 纳米长：太小了，用普通显微镜也看不见。",
+    explainK: "说一说", explainQ: "朋友说：糖看不见了，所以糖没有了。用秤上的读数和「颗粒」这个词，讲讲糖去了哪里，又怎样把它取回来。",
+    homeK: "家里做一做", homeQ: "把一杯水放在厨房秤上，记下读数；放两勺糖，再记一次。搅到糖溶解：读数不变。尝一口。再倒一点在小碟子里，放在暖和的地方几天，找一找糖的晶体。",
+    dataNote: "所用数值：20 °C 的水 {w} 克；秤放着空杯子归零，搅拌时不计水的蒸发。一块方糖按 {c} 克蔗糖算（真的方糖约 3–6 克）。蔗糖 20 °C 的溶解度：每 100 克水约 {sol} 克（《CRC 化学与物理手册》）。蔗糖分子式 C₁₂H₂₂O₁₁，摩尔质量 {M} 克/摩；阿伏伽德罗常数 {NA} 每摩。一个蔗糖分子约 1 纳米长，水分子约 0.3 纳米。糖不论是固体还是溶在水里，每克都占约 {v} 立方厘米，所以溶解时水面几乎不变。溶解模型：搅拌时方糖从各个面均匀变小，{T} 秒溶完；真实时间看搅得多用力、水多热。放大镜是模型：每个点代表极多的颗粒，大小和数量都不按比例。「溶解的糖消失了」这一迷思在科学教育研究中有大量记录（如 Driver 等 1994，Making Sense of Secondary Science）。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+const $ = (id) => document.getElementById(id);
+
+// ---------- data ----------
+const D = { water: 200, cube: 4, n: 5, sol: 204, M: 342.30, NA: 6.02214076e23, vol: 0.63, T: 60, cap: 250 };
+const SUGAR = D.cube * D.n; // g
+const WSAT = (SUGAR / D.sol) * 100; // least water that holds all the sugar
+const round1 = (x) => Math.round(x * 10) / 10;
+const fmtG = (x) => { x = round1(x); return Number.isInteger(x) ? Play.fmt(x, 0) : Play.fmt(x, 1); };
+const SUP = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻" };
+function sci(x, dg = 1) {
+  if (!(x > 0) || !Number.isFinite(x)) return "—";
+  let e = Math.floor(Math.log10(x)), m = x / Math.pow(10, e);
+  if (Number(m.toFixed(dg)) >= 10) { m /= 10; e += 1; }
+  return Play.fmt(m, dg) + " × 10" + String(e).split("").map((c) => SUP[c]).join("");
+}
+// cube remaining mass after `age` seconds of stirring: side shrinks at a steady rate
+const remain = (age) => D.cube * Math.pow(1 - Play.clamp(age, 0, D.T) / D.T, 3);
+
+// ---------- state ----------
+const cubes = Array.from({ length: D.n }, () => ({ inB: false, base: 0 }));
+let stir = 0, evap = 0, cur = 0, answered = false, tasted = false, stuckMsg = false;
+const age = (c) => (c.inB ? c.base + stir : 0);
+function amounts() { // grams; step 3 uses the evaporation model, steps 1–2 the cubes
+  if (cur === 2) {
+    const w = Play.clamp(D.water - evap, 0, D.water), d = Math.min(SUGAR, (D.sol / 100) * w);
+    return { w, inB: SUGAR, see: SUGAR - d, d, m: w + SUGAR };
+  }
+  let inB = 0, see = 0;
+  cubes.forEach((c) => { if (c.inB) { inB += D.cube; see += remain(age(c)); } });
+  see = round1(see);
+  return { w: D.water, inB, see, d: round1(inB - see), m: D.water + inB };
+}
+
+// ---------- particle model in the lens (unit circle coordinates) ----------
+const NW = 110, NS = SUGAR * 1.5, RW = 0.05, RS = 0.075, NP = NW + NS;
+const X = new Float64Array(NP), Y = new Float64Array(NP);
+const st = new Int8Array(NP); // 0 hidden, 1 pinned in a crystal, 2 free
+const TX = new Float64Array(NP), TY = new Float64Array(NP), hasT = new Uint8Array(NP); // where a freed sugar particle wanders off to
+const rad = (i) => (i < NW ? RW : RS);
+const slots = [];
+for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) slots.push({ x: (c - 2.5) * 2 * RS, y: 0.76 - r * 2 * RS, k: r + Math.abs(c - 2.5) * 0.8 });
+slots.sort((a, b) => a.k - b.k); // inner/bottom first: the outer particles leave the crystal first
+let seed = 7;
+const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+const gauss = () => { let u = 0; while (!u) u = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rand()); };
+function randIn(i) { const a = 2 * Math.PI * rand(), r = Math.sqrt(rand()) * (1 - rad(i) - 0.02); X[i] = r * Math.cos(a); Y[i] = r * Math.sin(a); }
+let swirl = 0;
+function relax() {
+  for (let i = 0; i < NP; i++) {
+    if (!st[i]) continue;
+    for (let j = i + 1; j < NP; j++) {
+      if (!st[j] || (st[i] === 1 && st[j] === 1) || hasT[i] || hasT[j]) continue;
+      const dx = X[j] - X[i], dy = Y[j] - Y[i], min = rad(i) + rad(j) + 0.008, d2 = dx * dx + dy * dy;
+      if (d2 >= min * min) continue;
+      const d = Math.sqrt(d2) || 1e-6, o = min - d, ux = d2 ? dx / d : 1, uy = d2 ? dy / d : 0;
+      const wi = st[i] === 1 ? 0 : st[j] === 1 ? 1 : 0.5, wj = 1 - wi;
+      X[i] -= ux * o * wi; Y[i] -= uy * o * wi; X[j] += ux * o * wj; Y[j] += uy * o * wj;
+    }
+  }
+  for (let i = 0; i < NP; i++) {
+    if (st[i] !== 2) continue;
+    const lim = 1 - rad(i) - 0.01, r = Math.hypot(X[i], Y[i]);
+    if (r > lim) { X[i] *= lim / r; Y[i] *= lim / r; }
+  }
+}
+function jiggle(J) {
+  for (let i = 0; i < NP; i++) {
+    if (st[i] !== 2) continue;
+    const s = i < NW ? J : J * 0.7; // bigger particles jiggle a little less
+    X[i] += gauss() * s - Y[i] * swirl * 0.04; Y[i] += gauss() * s + X[i] * swirl * 0.04;
+  }
+}
+function settle(n) { for (let k = 0; k < n; k++) { jiggle(0.01); relax(); } }
+function setCounts(still) { // match the particles to the amounts; `still` = no animation, so place freed ones at random
+  const a = amounts();
+  const nw = Math.round((NW * a.w) / D.water), pres = Math.round(a.inB * 1.5), crys = Math.min(pres, Math.round(a.see * 1.5));
+  let changed = false;
+  for (let i = 0; i < NW; i++) {
+    const want = i < nw ? 2 : 0;
+    if (want !== st[i]) { changed = true; hasT[i] = 0; if (want) randIn(i); st[i] = want; }
+  }
+  for (let j = 0; j < NS; j++) {
+    const i = NW + j, want = j < crys ? 1 : j < pres ? 2 : 0;
+    if (want === st[i]) continue;
+    changed = true;
+    if (want === 1 || (want === 2 && st[i] === 0)) { X[i] = slots[j].x; Y[i] = slots[j].y; }
+    hasT[i] = 0;
+    if (want === 2 && still) randIn(i);
+    else if (want === 2) { // trade places with a random water particle: both glide, passing through the others
+      const ws = []; for (let k = 0; k < NW; k++) if (st[k] === 2 && !hasT[k]) ws.push(k);
+      if (ws.length) { const k = ws[Math.floor(rand() * ws.length)]; TX[i] = X[k]; TY[i] = Y[k]; TX[k] = X[i]; TY[k] = Y[i]; hasT[i] = hasT[k] = 1; }
+    }
+    st[i] = want;
+  }
+  if (changed && still) settle(60);
+}
+
+// ---------- layout (drawn in screen pixels so labels stay ≥ 13 px) ----------
+const fig = $("fig");
+let L = null;
+function layout(W) {
+  if (W >= 560) return {
+    vw: 600, vh: 360, fs: 15, lens: { cx: 455, cy: 134, R: 110 }, legend: { x: 362, y: 272 },
+    beaker: { x0: 70, x1: 250, rim: 70, bot: 296 }, scale: { x0: 35, x1: 285, y0: 296, y1: 352, dx: 160 },
+    dish: { x0: 335, x1: 585, y: 336 }, dslots: [0, 1, 2, 3, 4].map((i) => [345 + i * 48, 308]),
+    bslot: (i) => 80 + i * 33, zoom: { x: 161, y: 281, r: 16 }, cs: 26,
+  };
+  const vw = Play.clamp(Math.round(W), 300, 560), o = (vw - 360) / 2;
+  return {
+    vw, vh: 590, fs: 14, lens: { cx: 180 + o, cy: 136, R: 112 }, legend: { x: 224 + o, y: 356, stack: true },
+    beaker: { x0: 20 + o, x1: 200 + o, rim: 320, bot: 510 }, scale: { x0: 10 + o, x1: 210 + o, y0: 510, y1: 570, dx: 110 + o },
+    dish: { x0: 220 + o, x1: 352 + o, y: 498 }, dslots: [[226, 422], [268, 422], [310, 422], [247, 464], [289, 464]].map(([x, y]) => [x + o, y]),
+    bslot: (i) => 30 + o + i * 33, zoom: { x: 111 + o, y: 495, r: 16 }, cs: 26,
+  };
+}
+let E = {}; // dynamic svg parts
+function build() {
+  const W = fig.getBoundingClientRect().width || 600;
+  L = layout(W);
+  fig.setAttribute("viewBox", `0 0 ${L.vw} ${L.vh}`);
+  fig.style.height = Math.round((W * L.vh) / L.vw) + "px";
+  fig.innerHTML = "";
+  const S = (t, a, p) => Play.svg(t, a, p || fig), b = L.beaker, sc = L.scale, ln = L.lens;
+  // zoom lines from the bottom of the beaker to the lens
+  const dx = ln.cx - L.zoom.x, dy = ln.cy - L.zoom.y, dl = Math.hypot(dx, dy), ux = dx / dl, uy = dy / dl, nx = -uy, ny = ux;
+  [1, -1].forEach((s) => {
+    const a = 1.2;
+    S("line", { x1: L.zoom.x + s * nx * L.zoom.r, y1: L.zoom.y + s * ny * L.zoom.r,
+      x2: ln.cx + ln.R * (-ux * Math.cos(a) + s * nx * Math.sin(a)), y2: ln.cy + ln.R * (-uy * Math.cos(a) + s * ny * Math.sin(a)),
+      stroke: "var(--muted)", "stroke-dasharray": "4 4", "stroke-width": 1.2 });
+  });
+  // scale
+  S("rect", { x: sc.x0 + 10, y: sc.y0, width: sc.x1 - sc.x0 - 20, height: 10, rx: 3, fill: "var(--muted)" });
+  S("rect", { x: sc.x0, y: sc.y0 + 10, width: sc.x1 - sc.x0, height: sc.y1 - sc.y0 - 10, rx: 8, fill: "var(--soft)", stroke: "var(--line)" });
+  S("rect", { x: sc.dx - 58, y: sc.y0 + 17, width: 116, height: sc.y1 - sc.y0 - 24, rx: 5, fill: "var(--ink-panel)" });
+  E.disp = S("text", { class: "disp", x: sc.dx + 50, y: sc.y1 - 15, "text-anchor": "end", "font-size": 22 });
+  // beaker: water, crystals, glass, ticks
+  E.water = S("rect", { x: b.x0 + 3, width: b.x1 - b.x0 - 6, fill: "var(--c)", opacity: 0.2 });
+  E.surf = S("line", { x1: b.x0 + 3, x2: b.x1 - 3, stroke: "var(--c)", "stroke-width": 2 });
+  E.crys = S("g", {});
+  S("path", { d: `M${b.x0 - 6} ${b.rim} L${b.x0} ${b.rim + 6} L${b.x0} ${b.bot - 6} Q${b.x0} ${b.bot} ${b.x0 + 6} ${b.bot} L${b.x1 - 6} ${b.bot} Q${b.x1} ${b.bot} ${b.x1} ${b.bot - 6} L${b.x1} ${b.rim}`,
+    fill: "none", stroke: "var(--fg)", "stroke-width": 2.5, "stroke-linejoin": "round", opacity: 0.75 });
+  const yOf = (v) => b.bot - (v / D.cap) * (b.bot - b.rim);
+  E.yOf = yOf;
+  [50, 100, 150, 200].forEach((v) => S("line", { x1: b.x0, x2: b.x0 + (v % 100 ? 8 : 14), y1: yOf(v), y2: yOf(v), stroke: "var(--muted)" }));
+  S("text", { x: b.x0 + 18, y: yOf(200) + 20, "font-size": L.fs - 1 }).textContent = "200 mL";
+  E.steam = S("g", { fill: "none", stroke: "var(--muted)", "stroke-width": 2, "stroke-linecap": "round" });
+  [0.3, 0.5, 0.7].forEach((f) => {
+    const x = b.x0 + f * (b.x1 - b.x0), y = b.rim - 6;
+    S("path", { d: `M${x} ${y} q-6 -6 0 -12 q6 -6 0 -12` }, E.steam);
+  });
+  S("circle", { cx: L.zoom.x, cy: L.zoom.y, r: L.zoom.r, fill: "none", stroke: "var(--muted)", "stroke-dasharray": "3 3", "stroke-width": 1.5 });
+  // dish
+  S("rect", { x: L.dish.x0, y: L.dish.y, width: L.dish.x1 - L.dish.x0, height: 8, rx: 4, fill: "var(--soft)", stroke: "var(--line)" });
+  // lens
+  S("circle", { cx: ln.cx, cy: ln.cy, r: ln.R, fill: "var(--surface)" });
+  S("circle", { cx: ln.cx, cy: ln.cy, r: ln.R, fill: "var(--c)", opacity: 0.07 });
+  E.parts = S("g", {});
+  E.dots = [];
+  for (let i = 0; i < NP; i++) {
+    E.dots.push(S("circle", { r: rad(i) * ln.R, fill: i < NW ? "var(--c)" : "var(--hl)", stroke: i < NW ? "none" : "var(--b)", "stroke-width": 1.2, opacity: i < NW ? 0.75 : 1 }, E.parts));
+  }
+  S("circle", { cx: ln.cx, cy: ln.cy, r: ln.R, fill: "none", stroke: "var(--fg)", "stroke-width": 3 });
+  // legend
+  const lg = L.legend, f = L.fs;
+  S("circle", { cx: lg.x + 6, cy: lg.y - 5, r: 5.5, fill: "var(--c)", opacity: 0.75 });
+  const t1 = S("text", { x: lg.x + 16, y: lg.y, "font-size": f - 1 }); t1.textContent = P.t("lgW");
+  const w1 = t1.getComputedTextLength ? t1.getComputedTextLength() : 90;
+  const sx = lg.stack ? lg.x - 24 : lg.x + w1, sy = lg.stack ? lg.y + 24 : lg.y;
+  S("circle", { cx: sx + 30, cy: sy - 5, r: 7, fill: "var(--hl)", stroke: "var(--b)", "stroke-width": 1.2 });
+  S("text", { x: sx + 42, y: sy, "font-size": f - 1 }).textContent = P.t("lgS");
+  S("text", { x: ln.cx, y: ln.cy - ln.R - 7, "text-anchor": "middle", "font-size": f - 1 }).textContent = P.t("lensCap");
+  // cubes (drawn last so they sit on top)
+  E.cubes = cubes.map((c, i) => {
+    const g = S("g", { class: "cube", tabindex: 0, role: "button" });
+    S("rect", { class: "cb", x: 0, y: 0, width: L.cs, height: L.cs, rx: 3, fill: "var(--surface)", stroke: "var(--fg)", "stroke-width": 1.5 }, g);
+    S("path", { d: "", fill: "none", stroke: "var(--muted)", "stroke-width": 1, class: "tex" }, g);
+    g.addEventListener("pointerdown", (e) => startDrag(e, i));
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { toggle(i); e.preventDefault(); } });
+    return g;
+  });
+}
+
+// ---------- drawing ----------
+function cubePos(i) {
+  const c = cubes[i];
+  if (drag && drag.i === i) return { x: drag.x - L.cs / 2, y: drag.y - L.cs / 2, s: L.cs };
+  if (c.inB) {
+    const s = L.cs * Math.cbrt(remain(age(c)) / D.cube), x = L.bslot(i) + (L.cs - s) / 2;
+    return { x, y: L.beaker.bot - 2 - s, s };
+  }
+  const [x, y] = L.dslots[i];
+  return { x, y, s: L.cs };
+}
+function drawScene() {
+  const a = amounts(), b = L.beaker;
+  E.disp.textContent = Play.fmt(Math.round(a.m), 0) + " g";
+  const yl = E.yOf(a.w + D.vol * a.inB);
+  E.water.setAttribute("y", Math.min(yl, b.bot - 1)); E.water.setAttribute("height", Math.max(0, b.bot - 3 - yl));
+  E.surf.setAttribute("y1", yl); E.surf.setAttribute("y2", yl); E.surf.setAttribute("opacity", a.w > 0 ? 1 : 0);
+  E.steam.setAttribute("opacity", cur === 2 && evap > 0 && a.w > 0 ? 0.7 : 0);
+  // regrown crystals in step 3
+  E.crys.innerHTML = "";
+  if (cur === 2) {
+    const n = Math.min(60, Math.round(a.see * 2.5)), per = Math.floor((b.x1 - b.x0 - 12) / 9);
+    for (let k = 0; k < n; k++) {
+      const x = b.x0 + 7 + (k % per) * 9 + (Math.floor(k / per) % 2) * 4, y = b.bot - 10 - Math.floor(k / per) * 7;
+      Play.svg("rect", { x, y, width: 7, height: 7, fill: "var(--surface)", stroke: "var(--fg)", "stroke-width": 1, transform: `rotate(${(k * 37) % 40 - 20} ${x + 3.5} ${y + 3.5})` }, E.crys);
+    }
+  }
+  cubes.forEach((c, i) => {
+    const g = E.cubes[i], p = cubePos(i), gone = c.inB && remain(age(c)) < 0.005;
+    g.style.display = cur === 2 || gone ? "none" : "";
+    g.setAttribute("transform", `translate(${p.x},${p.y}) scale(${p.s / L.cs})`);
+    g.querySelector(".tex").setAttribute("d", `M${L.cs / 2} 3 V${L.cs - 3} M3 ${L.cs / 2} H${L.cs - 3}`);
+    g.classList.toggle("drag", !!(drag && drag.i === i));
+    g.classList.toggle("fixed", c.inB && age(c) > 0);
+    g.setAttribute("aria-label", P.t("cubeAria", { i: i + 1, c: fmtG(remain(age(c))), where: P.t(c.inB ? "inWater" : "onDish") }));
+  });
+  drawDots();
+}
+function drawDots() {
+  const ln = L.lens;
+  for (let i = 0; i < NP; i++) {
+    const d = E.dots[i];
+    if (!st[i]) { d.setAttribute("display", "none"); continue; }
+    d.removeAttribute("display");
+    d.setAttribute("cx", (ln.cx + X[i] * ln.R).toFixed(1)); d.setAttribute("cy", (ln.cy + Y[i] * ln.R).toFixed(1));
+  }
+}
+
+// ---------- animation ----------
+let paused = Play.reduced, raf = 0, visible = true;
+function tick() {
+  raf = 0;
+  if (paused || !visible) return;
+  for (let i = 0; i < NP; i++) {
+    if (!hasT[i] || st[i] !== 2) continue;
+    const dx = TX[i] - X[i], dy = TY[i] - Y[i], d = Math.hypot(dx, dy);
+    if (d < 0.025) { hasT[i] = 0; continue; }
+    X[i] += (dx / d) * 0.02; Y[i] += (dy / d) * 0.02;
+  }
+  jiggle(0.007); relax(); relax();
+  swirl *= 0.96; if (swirl < 0.01) swirl = 0;
+  drawDots();
+  raf = requestAnimationFrame(tick);
+}
+function wake() { if (!raf && !paused && visible) raf = requestAnimationFrame(tick); }
+if ("IntersectionObserver" in window) new IntersectionObserver((es) => { visible = es[0].isIntersecting; wake(); }).observe(fig);
+const pauseBtn = $("pause");
+function setPause(p) {
+  paused = p;
+  pauseBtn.textContent = P.t(p ? "play" : "pause"); pauseBtn.setAttribute("aria-pressed", p ? "true" : "false");
+  if (p) { for (let i = 0; i < NP; i++) if (hasT[i]) { X[i] = TX[i]; Y[i] = TY[i]; hasT[i] = 0; } settle(30); drawDots(); } else wake();
+}
+pauseBtn.addEventListener("click", () => setPause(!paused));
+
+// ---------- update everything ----------
+let pend = false;
+function update() { // throttled to one per frame
+  if (pend) return;
+  pend = true;
+  requestAnimationFrame(() => { pend = false; setCounts(paused); drawScene(); text(); });
+}
+function updateNow() { setCounts(paused); drawScene(); text(); }
+
+// ---------- cube interaction ----------
+let drag = null;
+const inBeakerZone = (x, y) => x > L.beaker.x0 - 12 && x < L.beaker.x1 + 12 && y > L.beaker.rim - 40 && y < L.beaker.bot + 12;
+function addCube(i) {
+  if (stir > 0) { cubes.forEach((c) => { if (c.inB) c.base += stir; }); stir = 0; $("stir").value = 0; }
+  cubes[i].inB = true; cubes[i].base = 0;
+}
+function toggle(i) {
+  const c = cubes[i];
+  stuckMsg = false;
+  if (!c.inB) addCube(i);
+  else if (age(c) === 0) c.inB = false;
+  else stuckMsg = true;
+  updateNow();
+}
+function startDrag(e, i) {
+  if (cur === 2) return;
+  const c = cubes[i];
+  if (c.inB && age(c) > 0) { stuckMsg = true; text(); return; }
+  const p = Play.pointer(fig, e);
+  drag = { i, x: p.x, y: p.y, x0: p.x, y0: p.y, moved: false };
+  fig.setPointerCapture(e.pointerId);
+  E.cubes[i].focus();
+  drawScene();
+  e.preventDefault();
+}
+fig.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = Play.pointer(fig, e);
+  drag.x = Play.clamp(p.x, 0, L.vw); drag.y = Play.clamp(p.y, 0, L.vh);
+  if (Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > 5) drag.moved = true;
+  drawScene();
+});
+function endDrag() {
+  if (!drag) return;
+  const d = drag, c = cubes[d.i];
+  drag = null;
+  if (!d.moved) { toggle(d.i); return; }
+  const inZ = inBeakerZone(d.x, d.y);
+  stuckMsg = false;
+  if (inZ && !c.inB) addCube(d.i);
+  else if (!inZ && c.inB) c.inB = false;
+  updateNow();
+}
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", () => { drag = null; drawScene(); });
+
+// ---------- controls ----------
+$("stir").addEventListener("input", () => {
+  const v = +$("stir").value;
+  if (v > stir) swirl = Math.min(1, swirl + 0.5);
+  stir = v; stuckMsg = false; update();
+});
+$("taste").addEventListener("click", () => { tasted = true; text(); });
+$("evap").addEventListener("input", () => { evap = +$("evap").value; update(); });
+
+// ---------- text ----------
+const extra = $("extra"), live = $("live");
+const el = (tag, txt, cls) => { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; };
+function meters(rows) {
+  const box = el("div", null, "meters");
+  rows.forEach(([label, v, max, color]) => {
+    const b = el("div", null, "bar"), i = el("i");
+    i.style.width = Play.clamp((v / max) * 100, 0, 100) + "%"; i.style.background = color;
+    b.appendChild(i);
+    box.append(el("span", label), b, el("span", P.t("gV", { g: fmtG(v) }), "v"));
+  });
+  return box;
+}
+function text() {
+  const a = amounts(), V = { w: fmtG(D.water), c: fmtG(D.cube), s: fmtG(SUGAR), m: fmtG(D.water + SUGAR) };
+  $("kicker").textContent = P.t("k" + (cur + 1));
+  $("stepTitle").textContent = P.t("t" + (cur + 1));
+  $("stirVal").textContent = P.t("stirVal", { t: stir });
+  $("evapVal").textContent = P.t("evapVal", { w: fmtG(a.w) });
+  extra.innerHTML = "";
+  if (cur === 0) {
+    $("stepBody").textContent = P.t("b1", V) + (answered ? " " + P.t("b1done") : "");
+    Play.live(live, P.t("live2", { m: fmtG(a.m), w: fmtG(a.w), v: fmtG(a.see), d: fmtG(a.d) }));
+  } else if (cur === 1) {
+    const all = a.inB === SUGAR && a.see === 0;
+    $("stepBody").textContent = all ? P.t("b2done", V) : P.t("b2");
+    extra.append(meters([[P.t("mSee"), a.see, SUGAR, "var(--b)"], [P.t("mSpread"), a.d, SUGAR, "var(--hl)"]]));
+    if (tasted) extra.append(el("p", a.inB === 0 ? P.t("tasteNone") : a.d < 0.05 ? P.t("tasteCube") : P.t("tasteSweet", { c: Play.fmt((a.d / (a.w + a.d)) * 100, 1) }), "taste"));
+    if (stuckMsg) extra.append(el("p", P.t("stuck"), "taste"));
+    Play.live(live, P.t("live2", { m: fmtG(a.m), w: fmtG(a.w), v: fmtG(a.see), d: fmtG(a.d) }));
+  } else {
+    $("stepBody").textContent = P.t("b3", V);
+    extra.append(meters([[P.t("mWater"), a.w, D.water, "var(--c)"], [P.t("mSpread"), a.d, SUGAR, "var(--hl)"], [P.t("mCrys"), a.see, SUGAR, "var(--b)"]]));
+    extra.append(el("p", P.t("rule3", { sol: fmtG(D.sol), s: V.s, wsat: Play.fmt(WSAT, 1) })));
+    Play.live(live, P.t("live3", { m: fmtG(a.m), w: fmtG(a.w), s: V.s, d: fmtG(a.d), x: fmtG(a.see) }));
+  }
+}
+
+// ---------- steps, reset ----------
+const pr = Play.predict($("predict"), {
+  q: P.t("q", { s: fmtG(SUGAR), m: fmtG(D.water + SUGAR) }),
+  options: [{ label: P.t("o1", { w: fmtG(D.water) }) }, { label: P.t("o2", { m: fmtG(D.water + SUGAR) }), right: true }, { label: P.t("o3", { m: fmtG(D.water + SUGAR) }) }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { answered = true; text(); });
+
+build();
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  cur = i;
+  $("predict").hidden = i !== 0;
+  $("c2").hidden = i !== 1; $("c3").hidden = i !== 2;
+  if (i === 2) cubes.forEach((c) => { c.inB = true; c.base = Math.max(c.base, D.T); });
+  stuckMsg = false;
+  updateNow(); wake();
+});
+function start() {
+  cubes.forEach((c) => { c.inB = false; c.base = 0; });
+  stir = 0; evap = 0; $("stir").value = 0; $("evap").value = 0;
+  answered = false; tasted = false; stuckMsg = false; swirl = 0;
+  seed = 7; st.fill(0); hasT.fill(0);
+  for (let i = 0; i < NW; i++) { st[i] = 2; randIn(i); }
+  settle(120);
+}
+$("reset").addEventListener("click", () => { pr.reset(); setPause(Play.reduced); start(); steps.go(0); });
+let lastW = 0;
+window.addEventListener("resize", () => {
+  const w = Math.round(fig.getBoundingClientRect().width);
+  if (w && w !== lastW) { lastW = w; build(); drawScene(); }
+});
+
+$("resultMain").textContent = P.t("resultMain", { w: fmtG(D.water), s: fmtG(SUGAR), m: fmtG(D.water + SUGAR) });
+$("resultNote").textContent = P.t("resultNote", { s: fmtG(SUGAR), n: sci((SUGAR / D.M) * D.NA) });
+$("data").textContent = P.t("dataNote", { w: fmtG(D.water), c: fmtG(D.cube), sol: fmtG(D.sol), M: Play.fmt(D.M, 2), NA: sci(D.NA, 3), v: Play.fmt(D.vol, 2), T: D.T });
+start(); setPause(paused); lastW = Math.round(fig.getBoundingClientRect().width); updateNow();
+</script>
+</body>
+</html>

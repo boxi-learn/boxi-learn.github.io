@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find it on the grid</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  #map { user-select: none; -webkit-user-select: none; height: 400px; }
+  #map.turn { cursor: grab; }
+  #map.turn.dragging { cursor: grabbing; }
+  #map.tap { cursor: pointer; }
+  #map text { font-size: 13px; fill: var(--fg); }
+  #map .lb { fill: var(--muted); }
+  #map .lbf { font-weight: 650; }
+  #map .big { font-size: 34px; font-weight: 700; fill: var(--muted); }
+  #map .nn { font-weight: 800; fill: var(--no); }
+  #map .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round; }
+  @media (max-width: 560px) { #map { height: 470px; } }
+  .legend { padding: 0 14px 12px; margin: 0; gap: 6px 14px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
+  .legend svg { width: 22px; height: 22px; flex: none; }
+  .controls .val { min-width: 2.5em; }
+  .quizhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 4px 0 6px; font-size: 13px; color: var(--muted); }
+  .quizhead strong { color: var(--fg); font-size: 14px; }
+  #qText { color: var(--fg) !important; font-weight: 650; font-size: 15px !important; }
+  #qFb { min-height: 1.4em; }
+  #qFb.ok { color: var(--a); font-weight: 650; }
+  #qFb.no { color: var(--no); font-weight: 650; }
+  #dirBox .predict { margin: 4px 0 8px; }
+  #dirBox .predict .q { display: none; }
+  #dirBox .choices button { min-width: 3.2em; }
+  .status { font-weight: 650; color: var(--fg) !important; }
+  .status.ok { color: var(--a) !important; }
+  .result .math { white-space: normal; }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="map" viewBox="0 0 600 380" role="application" tabindex="0" data-t-aria="mapAria"></svg>
+      <div class="controls" id="turnRow">
+        <label for="turn" data-t="turnLabel"></label>
+        <input type="range" id="turn" min="-180" max="180" step="5" value="0">
+        <button type="button" class="small" id="showMe" data-t="showMe"></button>
+        <button type="button" class="small" id="newNeedle" data-t="newNeedle"></button>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="status" id="status"></p>
+      <div id="quizBox" hidden>
+        <div class="quizhead"><strong id="roundK"></strong><span id="score"></span></div>
+        <p id="qText"></p>
+        <div id="dirBox"></div>
+        <p id="qFb" aria-live="polite"></p>
+        <button type="button" class="small" id="next" data-t="next"></button>
+      </div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Find it on the grid", eyebrow: "Geography · Stage 1",
+    h1: "North is a direction on the ground, not \"up\"",
+    intro: "Turn a park map until it matches the real park. Then use a letter and a number to find any square.",
+    reset: "Reset",
+    mapAria: "The real park seen from above with a compass, and your paper map. In step 2, drag the map or press the left and right arrow keys to turn it. In step 3, arrow keys move a cursor: left and right change the letter, up and down change the number, Enter picks the square.",
+    turnLabel: "Turn the map", showMe: "Show me", newNeedle: "New compass", next: "Next",
+    s1: "Guess", s2: "Turn", s3: "Grid",
+    k1: "Predict first", t1: "Where is the real pond?",
+    b1: "On the paper map the pond is at the top, next to the N arrow. The real park is still in fog. Look at the compass: its red needle always points north.",
+    k2: "Hands on", t2: "Turn the map to match the needle",
+    b2: "Drag the paper map round, or use the slider. Stop when the map's N arrow points the same way as the red needle. Then the map looks just like the park. Try \"New compass\" to face a new way.",
+    k3: "The rule", t3: "North is where the arrow points, not up",
+    b3: "On any map, find the N arrow first. East is a quarter turn to the right of north. Every square has a name: the letter across, then the number up. The map turns every round, so use its arrow.",
+    q: "On the map, the pond is at the top, by the N. Where is the pond in the real park?",
+    o1: "At the top: north is up", o2: "Where the red needle points", o3: "At the bottom",
+    right: "Yes! North is where the needle points. Here that is to the left, so the real pond is on the left.",
+    wrong: "Look: the red needle points to the left, so north is to the left. The real pond is on the left, not at the top.",
+    ground: "The real park", paper: "Your paper map", fog: "Answer first", you: "You",
+    offL: "Not yet. Turn the map to the left ↺", offR: "Not yet. Turn the map to the right ↻",
+    onLine: "Lined up! The N arrow and the needle point the same way. Now the path from the gate to the pond goes the same way on the map and in the park.",
+    liveTurn: "The map's north points {a}° away from the needle.",
+    pond: "pond", slide: "slide", cafe: "shop", tree: "big tree", flowers: "flower bed", gate: "gate",
+    dN: "north", dNE: "north-east", dE: "east", dSE: "south-east", dS: "south", dSW: "south-west", dW: "west", dNW: "north-west",
+    roundK: "Round {i} of {n}", score: "Right: {r} of {n}", again: "New set",
+    qRef: "Tap square {ref}.",
+    qDir: "Which way is the {b} from the {a}?",
+    qHunt: "Start at the {a} ({ref}). {moves} Tap the square where you stop.",
+    mv1: "Go 1 square {d}.", mvN: "Go {n} squares {d}.",
+    has: "It has the {x}.", empty: "It is just grass.",
+    refRight: "Yes, that is {ref}. {what}", refWrong: "You tapped {got}. {ref} is the green square. {what}",
+    huntRight: "Yes! You stop at {ref}.", huntWrong: "You tapped {got}. Follow the arrows: you stop at {ref}.",
+    dirRight: "Yes: the {b} is {d} of the {a}.", dirWrong: "Use the N arrow, not the top of the screen. The {b} is {d} of the {a}.",
+    done: "Set done: {r} of {n} right. Press \"New set\" for more.",
+    cursor: "Cursor on {ref}.",
+    capRef: "Find {ref}", capDir: "From the {a}, which way is the {b}?", capHunt: "From {ref}: {e} {de}, then {n} {dn}",
+    resultTitle: "What we found", resultMain: "North = where the arrow points · a square = letter + number",
+    resultNote: "First turn the map so its N arrow points the same way as the compass needle. Then \"C2\" means: go across to C, then up to 2. The top of the page is not always north.",
+    explainK: "Explain it", explainQ: "A friend holds the park map with the N arrow pointing at their feet and says: \"North is up, so the pond is straight ahead.\" Tell them how to find which way north really is, and how \"B4\" helps them find the pond.",
+    homeK: "Try at home", homeQ: "Draw your room on squared paper. Write A, B, C… across the bottom and 1, 2, 3… up the side, and add an N arrow (a phone compass can tell you north). Hide a toy and give a grown-up the square, like \"C2\". Then turn the paper round: is your N arrow still right?",
+    foot: "The park is made up. On this map, columns A–E go from west to east and rows 1–4 go from south to north; a square is named by its letter, then its number. Direction questions only use pairs of squares that lie exactly along one of the 8 compass points. A real compass needle points to magnetic north, which can be a few degrees away from the true north on a map (more near the poles); in a park the difference does not matter. Many maps put north at the top, but not all, which is why maps carry a north arrow. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "在方格里找到它", eyebrow: "地理 · 阶段 1",
+    h1: "北是地上的一个方向，不是「上面」",
+    intro: "把公园地图转一转，转到和真公园一样。再用一个字母加一个数字，找到任何一格。",
+    reset: "重置",
+    mapAria: "从上面看到的真公园和指南针，还有你手里的纸地图。第 2 步：拖动地图，或按左右方向键，来转动地图。第 3 步：方向键移动光标，左右换字母，上下换数字，回车选中这一格。",
+    turnLabel: "转动地图", showMe: "演示一下", newNeedle: "换个方向", next: "下一题",
+    s1: "先猜", s2: "转图", s3: "方格",
+    k1: "先猜一猜", t1: "真正的池塘在哪里？",
+    b1: "纸地图上，池塘在最上面，挨着 N（北）箭头。真公园还在雾里。看指南针：红色的针总是指向北。",
+    k2: "动手", t2: "转动地图，对准指南针",
+    b2: "拖着纸地图转，或者拖滑块。转到地图上的 N 箭头和红针指向同一边就停。这时地图看起来就和公园一模一样。再点「换个方向」，换一个朝向试试。",
+    k3: "规律", t3: "北是箭头指的方向，不是上面",
+    b3: "看任何地图，先找 N 箭头。东在北的右手边，转四分之一圈。每一格都有名字：先横着找字母，再往上找数字。每一题地图都会转，要看它的箭头。",
+    q: "地图上，池塘在最上面，挨着 N。真公园里的池塘在哪里？",
+    o1: "在最上面：北就是上", o2: "在红针指的那一边", o3: "在最下面",
+    right: "对！北就是针指的方向。这里针指向左边，所以真池塘在左边。",
+    wrong: "看：红针指向左边，所以北在左边。真池塘在左边，不在上面。",
+    ground: "真公园", paper: "你的纸地图", fog: "先回答", you: "你",
+    offL: "还没对上。把地图往左转 ↺", offR: "还没对上。把地图往右转 ↻",
+    onLine: "对上了！N 箭头和红针指向同一边。现在从大门到池塘的小路，在地图上和公园里朝同一个方向。",
+    liveTurn: "地图的北和红针差 {a}°。",
+    pond: "池塘", slide: "滑梯", cafe: "小卖部", tree: "大树", flowers: "花坛", gate: "大门",
+    dN: "北", dNE: "东北", dE: "东", dSE: "东南", dS: "南", dSW: "西南", dW: "西", dNW: "西北",
+    roundK: "第 {i} 题，共 {n} 题", score: "答对 {r} / {n}", again: "再来一组",
+    qRef: "点一点 {ref} 这一格。",
+    qDir: "{b}在{a}的哪个方向？",
+    qHunt: "从{a}（{ref}）出发。{moves}点一点你停下的那一格。",
+    mv1: "向{d}走 1 格。", mvN: "向{d}走 {n} 格。",
+    has: "那里是{x}。", empty: "那里只有草地。",
+    refRight: "对，这就是 {ref}。{what}", refWrong: "你点的是 {got}。{ref} 是绿色那一格。{what}",
+    huntRight: "对！你停在 {ref}。", huntWrong: "你点的是 {got}。跟着箭头走：你停在 {ref}。",
+    dirRight: "对：{b}在{a}的{d}方。", dirWrong: "要看 N 箭头，不是看屏幕上面。{b}在{a}的{d}方。",
+    done: "这一组做完了：答对 {r} / {n}。点「再来一组」继续。",
+    cursor: "光标在 {ref}。",
+    capRef: "找到 {ref}", capDir: "{b}在{a}的哪个方向？", capHunt: "从 {ref}：向{de} {e} 格，再向{dn} {n} 格",
+    resultTitle: "我们发现", resultMain: "北 = 箭头指的方向 · 一格 = 字母 + 数字",
+    resultNote: "先把地图转到 N 箭头和指南针的针指向同一边。然后「C2」的意思是：横着找到 C，再往上找到 2。纸的上面不一定是北。",
+    explainK: "说一说", explainQ: "朋友拿着公园地图，N 箭头朝着自己的脚，却说：「北就是上面，所以池塘就在正前方。」告诉他怎样找到真正的北，以及「B4」怎样帮他找到池塘。",
+    homeK: "家里做一做", homeQ: "在方格纸上画你的房间。底下横着写 A、B、C……，旁边往上写 1、2、3……，再画一个 N 箭头（手机指南针能告诉你哪边是北）。藏一个玩具，告诉大人它在哪一格，比如「C2」。然后把纸转个方向：你的 N 箭头还对吗？",
+    foot: "公园是虚构的。这张图上，A–E 列从西到东，1–4 行从南到北；一格的名字先写字母，再写数字。方向题只问正好在 8 个方向之一上的两格。真指南针指的是磁北，和地图上的真北可能差几度（越靠近两极差得越多）；在公园里这点差别没关系。很多地图把北放在上面，但不是全部，所以地图上要画指北箭头。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- the park, in grid squares: col 0..4 = A..E (west → east), row 1..4 (south → north) ---------- */
+const COLS = 5, ROWS = 4, LET = "ABCDE";
+const FEAT = [
+  { id: "gate", col: 1, row: 1 }, { id: "pond", col: 1, row: 4 }, { id: "slide", col: 3, row: 3 },
+  { id: "cafe", col: 4, row: 1 }, { id: "tree", col: 0, row: 2 }, { id: "flowers", col: 2, row: 2 },
+];
+const DIRS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+
+/* ---------- pure helpers (tested in node) ---------- */
+const norm = (a) => { const r = ((a % 360) + 540) % 360 - 180; return r === -180 ? 180 : r; }; // → (-180, 180]
+const ref = (col, row) => LET[col] + row;
+const inGrid = (col, row) => col >= 0 && col < COLS && row >= 1 && row <= ROWS;
+const featAt = (col, row) => FEAT.find((f) => f.col === col && f.row === row) || null;
+function dirIndex(a, b) { // 8-point direction from square a to square b, or -1 if not exactly on one of the 8 lines
+  const dx = b.col - a.col, dy = b.row - a.row;
+  if (!dx && !dy) return -1;
+  if (dx && dy && Math.abs(dx) !== Math.abs(dy)) return -1;
+  const bearing = Math.atan2(dx, dy) * 180 / Math.PI;
+  return ((Math.round(bearing / 45) % 8) + 8) % 8;
+}
+const DIR_PAIRS = [];
+FEAT.forEach((a) => FEAT.forEach((b) => { if (a !== b && dirIndex(a, b) >= 0) DIR_PAIRS.push([a, b]); }));
+const ALIGN = 10; // degrees: close enough to snap
+
+// map geometry: grid cell c, label margin L, arrow column A on the east side; rotation about the card centre
+const margins = (c) => ({ L: 17, A: Math.max(22, 0.8 * c) });
+function cardSize(c) { const m = margins(c); return { w: COLS * c + 2 * m.L + m.A, h: ROWS * c + 2 * m.L }; }
+function fitC(D) { // biggest cell size whose card fits a circle of diameter D at any angle
+  let lo = 4, hi = 200;
+  for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2, s = cardSize(mid); if (Math.hypot(s.w, s.h) <= D) lo = mid; else hi = mid; }
+  return lo;
+}
+function cellCentre(c, col, row) { return [(col - (COLS - 1) / 2) * c, ((ROWS + 1) / 2 - row) * c]; } // local, y down = south
+function cellAt(G, px, py) { // screen point → {col,row} on a map drawn with geometry G, or null
+  const r = G.rot * Math.PI / 180, dx = px - G.cx, dy = py - G.cy;
+  const x = dx * Math.cos(r) + dy * Math.sin(r) + G.shift, y = -dx * Math.sin(r) + dy * Math.cos(r);
+  const col = Math.floor((x + COLS * G.c / 2) / G.c), row = ROWS - Math.floor((y + ROWS * G.c / 2) / G.c);
+  return inGrid(col, row) ? { col, row } : null;
+}
+function rng(seed) { let s = seed % 2147483647 || 1; return () => ((s = (s * 16807) % 2147483647) / 2147483647); }
+function mkRounds(seed) {
+  const r = rng(seed), pick = (a) => a[Math.floor(r() * a.length)];
+  const types = ["ref", "dir", "hunt", "ref", "dir", "hunt"];
+  let lastRot = 0;
+  return types.map((type) => {
+    let rot; do rot = 45 * (1 + Math.floor(r() * 7)); while (rot === lastRot);
+    lastRot = rot;
+    if (type === "ref") { const col = Math.floor(r() * COLS), row = 1 + Math.floor(r() * ROWS); return { type, rot, col, row }; }
+    if (type === "dir") { const [a, b] = pick(DIR_PAIRS); return { type, rot, a, b, d: dirIndex(a, b) }; }
+    for (;;) {
+      const a = pick(FEAT), ex = Math.floor(r() * 7) - 3, ny = Math.floor(r() * 7) - 3;
+      if (!ex || !ny) continue; // one east/west leg and one north/south leg
+      if (inGrid(a.col + ex, a.row + ny)) return { type, rot, a, ex, ny, col: a.col + ex, row: a.row + ny };
+    }
+  });
+}
+
+/* ---------- state ---------- */
+const $ = (id) => document.getElementById(id);
+const svg = $("map"), turnEl = $("turn");
+const NEEDLE0 = 270; // bearing on screen, clockwise from up: 270 = to the left
+const S = {};
+function defaults() { Object.assign(S, { revealed: false, rot: 0, needle: NEEDLE0, seed: 1, ri: 0, score: 0, answered: false, tapped: null, cur: { col: 2, row: 2 } }); S.rounds = mkRounds(S.seed); }
+defaults();
+let step = 0, W = 600, H = 380, G = null, anim = 0;
+
+/* ---------- drawing ---------- */
+function txt(parent, x, y, s, cls, anchor) {
+  const t = Play.svg("text", { x, y, class: cls || "", "text-anchor": anchor || "middle" }, parent);
+  t.textContent = s;
+  return t;
+}
+function icon(g, id, x, y, s) { // drawn upright in the map's own frame
+  const k = s;
+  if (id === "pond") Play.svg("ellipse", { cx: x, cy: y, rx: 0.4 * k, ry: 0.27 * k, fill: "var(--c)", "fill-opacity": 0.5, stroke: "var(--c)", "stroke-width": 1.5 }, g);
+  else if (id === "tree") {
+    Play.svg("rect", { x: x - 0.05 * k, y: y + 0.05 * k, width: 0.1 * k, height: 0.28 * k, fill: "var(--b)" }, g);
+    Play.svg("circle", { cx: x, cy: y - 0.07 * k, r: 0.28 * k, fill: "var(--a)", "fill-opacity": 0.8 }, g);
+  } else if (id === "slide") {
+    const sw = Math.max(1.6, 0.07 * k);
+    Play.svg("path", { d: `M${x - 0.3 * k} ${y + 0.3 * k}L${x - 0.18 * k} ${y - 0.3 * k}Q${x + 0.05 * k} ${y - 0.25 * k} ${x + 0.34 * k} ${y + 0.3 * k}`, fill: "none", stroke: "var(--b)", "stroke-width": sw, "stroke-linejoin": "round", "stroke-linecap": "round" }, g);
+  } else if (id === "cafe") {
+    Play.svg("rect", { x: x - 0.26 * k, y: y - 0.08 * k, width: 0.52 * k, height: 0.38 * k, fill: "var(--h)", "fill-opacity": 0.75 }, g);
+    Play.svg("path", { d: `M${x - 0.34 * k} ${y - 0.08 * k}L${x} ${y - 0.34 * k}L${x + 0.34 * k} ${y - 0.08 * k}Z`, fill: "var(--h)" }, g);
+  } else if (id === "flowers") {
+    [[0, -0.18], [-0.2, 0.02], [0.2, 0.02], [-0.1, 0.22], [0.12, 0.22]].forEach(([a, b], i) =>
+      Play.svg("circle", { cx: x + a * k, cy: y + b * k, r: 0.09 * k, fill: i % 2 ? "var(--h)" : "var(--hl)" }, g));
+  } else if (id === "gate") {
+    [-1, 1].forEach((sg) => Play.svg("rect", { x: x + sg * 0.26 * k - 0.05 * k, y: y + 0.12 * k, width: 0.1 * k, height: 0.38 * k, fill: "var(--fg)" }, g));
+    Play.svg("path", { d: `M${x - 0.2 * k} ${y + 0.22 * k}L${x - 0.04 * k} ${y + 0.34 * k}M${x + 0.2 * k} ${y + 0.22 * k}L${x + 0.04 * k} ${y + 0.34 * k}`, stroke: "var(--fg)", "stroke-width": Math.max(1.2, 0.04 * k) }, g);
+  }
+}
+function park(g, c, paper) { // the park in local coords centred on the grid; paper = draw grid + labels
+  const w = COLS * c, h = ROWS * c;
+  Play.svg("rect", { x: -w / 2, y: -h / 2, width: w, height: h, rx: paper ? 0 : 8, fill: "var(--a)", "fill-opacity": paper ? 0.08 : 0.16, stroke: paper ? "none" : "var(--a)", "stroke-width": 2 }, g);
+  const [gx, gy] = cellCentre(c, 1, 1), [px, py] = cellCentre(c, 1, 4);
+  Play.svg("line", { x1: gx, y1: gy + 0.1 * c, x2: px, y2: py + 0.3 * c, stroke: "var(--b)", "stroke-opacity": 0.55, "stroke-width": Math.max(3, 0.16 * c), "stroke-linecap": "round" }, g);
+  if (paper) {
+    for (let i = 0; i <= COLS; i++) Play.svg("line", { x1: -w / 2 + i * c, y1: -h / 2, x2: -w / 2 + i * c, y2: h / 2, stroke: "var(--muted)", "stroke-opacity": 0.45 }, g);
+    for (let j = 0; j <= ROWS; j++) Play.svg("line", { x1: -w / 2, y1: -h / 2 + j * c, x2: w / 2, y2: -h / 2 + j * c, stroke: "var(--muted)", "stroke-opacity": 0.45 }, g);
+  }
+  FEAT.forEach((f) => { const [x, y] = cellCentre(c, f.col, f.row); icon(g, f.id, x, y, c); });
+}
+function paperMap(parent, c, cx, cy, rot, opts) {
+  const m = margins(c), sz = cardSize(c), shift = m.A / 2; // grid centre sits A/2 left of the card centre
+  const outer = Play.svg("g", { transform: `translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${rot.toFixed(1)})` }, parent);
+  const g = Play.svg("g", { transform: `translate(${-shift} 0)` }, outer);
+  const w = COLS * c, h = ROWS * c;
+  Play.svg("rect", { x: -w / 2 - m.L, y: -h / 2 - m.L, width: sz.w, height: sz.h, rx: 6, fill: "var(--surface)", stroke: "var(--fg)", "stroke-width": 1.5 }, g);
+  park(g, c, true);
+  for (let i = 0; i < COLS; i++) { const x = -w / 2 + (i + 0.5) * c; txt(g, x, -h / 2 - 4, LET[i], "lbf"); txt(g, x, h / 2 + 13, LET[i], "lbf"); }
+  for (let j = 1; j <= ROWS; j++) { const y = cellCentre(c, 0, j)[1] + 4.5; txt(g, -w / 2 - m.L / 2, y, String(j), "lbf"); txt(g, w / 2 + m.L / 2, y, String(j), "lbf"); }
+  const ax = w / 2 + m.L + m.A / 2, top = -h / 2 + 16, bot = Math.min(h / 2, top + Math.max(46, 1.6 * c));
+  Play.svg("path", { d: `M${ax} ${bot}L${ax} ${top + 6}M${ax - 6} ${top + 14}L${ax} ${top + 4}L${ax + 6} ${top + 14}`, stroke: "var(--no)", "stroke-width": 2.5, fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
+  txt(g, ax, top - 2, "N", "nn");
+  if (opts && opts.draw) opts.draw(g);
+  return { cx, cy, c, rot, shift };
+}
+function compass(g, x, y, R, needle) {
+  Play.svg("circle", { cx: x, cy: y, r: R, fill: "var(--surface)", stroke: "var(--fg)", "stroke-width": 1.5 }, g);
+  const n = Play.svg("g", { transform: `translate(${x} ${y}) rotate(${needle})` }, g);
+  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, r1 = i % 2 ? R - 5 : R - 8; Play.svg("line", { x1: Math.sin(a) * r1, y1: -Math.cos(a) * r1, x2: Math.sin(a) * (R - 1), y2: -Math.cos(a) * (R - 1), stroke: "var(--muted)" }, n); }
+  const nw = Math.max(4, R * 0.18), nl = R - 9;
+  Play.svg("path", { d: `M0 ${-nl}L${nw} 0L${-nw} 0Z`, fill: "var(--no)" }, n);
+  Play.svg("path", { d: `M0 ${nl}L${nw} 0L${-nw} 0Z`, fill: "var(--muted)" }, n);
+  Play.svg("circle", { cx: 0, cy: 0, r: 2.5, fill: "var(--fg)" }, n);
+  const a = needle * Math.PI / 180;
+  txt(g, x + Math.sin(a) * (R + 9), y - Math.cos(a) * (R + 9) + 4.5, "N", "nn halo");
+}
+function frame(px, py, pw, ph, title) { // panel layout: where the map and the compass go
+  const g = Play.svg("g", {}, svg);
+  txt(g, px + 10, py + 18, title, "lbf", "start");
+  const top = py + 24, ah = ph - 28, wide = pw >= ah;
+  const D = wide ? Math.min(pw - 84, ah) : Math.min(pw - 6, ah - 84);
+  const mx = wide ? px + (pw - 84) / 2 + 3 : px + pw / 2, my = wide ? top + ah / 2 : top + (ah - 84) / 2;
+  const kx = wide ? px + pw - 42 : px + pw / 2, ky = wide ? top + ah / 2 : top + ah - 42;
+  return { g, D, mx, my, kx, ky, R: 27 };
+}
+function drawDual() {
+  const side = W >= 560, pw = side ? W / 2 : W, ph = side ? H : H / 2;
+  const F1 = frame(0, 0, pw, ph, P.t("ground")), F2 = frame(side ? W / 2 : 0, side ? 0 : H / 2, pw, ph, P.t("paper"));
+  Play.svg("line", side ? { x1: W / 2, y1: 8, x2: W / 2, y2: H - 8, stroke: "var(--line)" } : { x1: 8, y1: H / 2, x2: W - 8, y2: H / 2, stroke: "var(--line)" }, svg);
+  const c = fitC(Math.min(F1.D, F2.D));
+  // ground: the same park, with north where the needle points
+  const gg = Play.svg("g", { transform: `translate(${F1.mx.toFixed(1)} ${F1.my.toFixed(1)}) rotate(${S.needle})` }, F1.g);
+  park(gg, c, false);
+  const [yx, yy] = cellCentre(c, 1, 1);
+  const youY = yy + 0.5 * c + 8;
+  Play.svg("circle", { cx: yx, cy: youY, r: 6, fill: "var(--h)", stroke: "var(--surface)", "stroke-width": 2 }, gg);
+  if (!S.revealed) {
+    Play.svg("circle", { cx: F1.mx, cy: F1.my, r: Math.min(F1.D, Math.hypot(COLS * c, ROWS * c) + 24) / 2 + 6, fill: "var(--soft)", stroke: "var(--line)" }, F1.g);
+    txt(F1.g, F1.mx, F1.my, "?", "big");
+    txt(F1.g, F1.mx, F1.my + 24, P.t("fog"), "lbf");
+  } else {
+    const a = S.needle * Math.PI / 180, ux = Math.cos(a) * yx - Math.sin(a) * youY, uy = Math.sin(a) * yx + Math.cos(a) * youY;
+    txt(F1.g, F1.mx + ux, F1.my + uy + 22, P.t("you"), "lbf halo");
+    if (step === 0) { const [qx, qy] = cellCentre(c, 1, 4); Play.svg("circle", { cx: qx, cy: qy, r: 0.55 * c, fill: "none", stroke: "var(--hl)", "stroke-width": 3 }, gg); }
+  }
+  compass(F1.g, F1.kx, F1.ky, F1.R, S.needle);
+  // paper map, turned by the reader; the compass lies on the table next to it
+  G = paperMap(F2.g, c, F2.mx, F2.my, S.rot, step === 0 && S.revealed ? { draw: (g) => { const [qx, qy] = cellCentre(c, 1, 4); Play.svg("circle", { cx: qx, cy: qy, r: 0.55 * c, fill: "none", stroke: "var(--hl)", "stroke-width": 3 }, g); } } : null);
+  compass(F2.g, F2.kx, F2.ky, F2.R, S.needle);
+}
+function hiCell(g, c, col, row, colr) {
+  const [x, y] = cellCentre(c, col, row);
+  Play.svg("rect", { x: x - c / 2 + 1.5, y: y - c / 2 + 1.5, width: c - 3, height: c - 3, fill: colr, "fill-opacity": 0.25, stroke: colr, "stroke-width": 3 }, g);
+}
+function arrowPath(g, c, pts) {
+  const d = pts.map(([col, row], i) => { const [x, y] = cellCentre(c, col, row); return (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1); }).join("");
+  Play.svg("path", { d, fill: "none", stroke: "var(--a)", "stroke-width": 3.5, "stroke-linejoin": "round", "stroke-linecap": "round", "marker-end": "url(#ah)" }, g);
+}
+function drawGrid() {
+  const defs = Play.svg("defs", {}, svg), mk = Play.svg("marker", { id: "ah", viewBox: "0 0 10 10", refX: 6, refY: 5, markerWidth: 4, markerHeight: 4, orient: "auto" }, defs);
+  Play.svg("path", { d: "M0 0L10 5L0 10Z", fill: "var(--a)" }, mk);
+  const R = S.rounds[S.ri], c = fitC(Math.min(W, H - 44) - 8);
+  const cap = R.type === "ref" ? P.t("capRef", { ref: ref(R.col, R.row) }) : R.type === "dir" ? P.t("capDir", { a: nm(R.a), b: nm(R.b) })
+    : P.t("capHunt", { ref: ref(R.a.col, R.a.row), e: Math.abs(R.ex), de: dirName(R.ex > 0 ? 2 : 6), n: Math.abs(R.ny), dn: dirName(R.ny > 0 ? 0 : 4) });
+  const ct = txt(svg, 12, 22, cap, "lbf", "start");
+  ct.setAttribute("style", "font-size:14px");
+  try { if (ct.getComputedTextLength() > W - 24) ct.setAttribute("style", "font-size:13px"); if (ct.getComputedTextLength() > W - 24) ct.setAttribute("textLength", W - 24); } catch (e) { /* not rendered yet */ }
+  G = paperMap(svg, c, W / 2, H / 2 + 14, R.rot, { draw: (g) => {
+    if (S.answered) {
+      if (R.type === "dir") arrowPath(g, c, [[R.a.col, R.a.row], [R.b.col, R.b.row]]);
+      else {
+        if (S.tapped && (S.tapped.col !== R.col || S.tapped.row !== R.row)) hiCell(g, c, S.tapped.col, S.tapped.row, "var(--no)");
+        hiCell(g, c, R.col, R.row, "var(--a)");
+        if (R.type === "hunt") arrowPath(g, c, [[R.a.col, R.a.row], [R.a.col + R.ex, R.a.row], [R.col, R.row]]);
+      }
+    } else if (R.type === "dir") { hiCell(g, c, R.a.col, R.a.row, "var(--hl)"); hiCell(g, c, R.b.col, R.b.row, "var(--hl)"); }
+    else if (R.type === "hunt") hiCell(g, c, R.a.col, R.a.row, "var(--hl)");
+    if (kbd && R.type !== "dir") { const [x, y] = cellCentre(c, S.cur.col, S.cur.row); Play.svg("rect", { x: x - c / 2 + 4, y: y - c / 2 + 4, width: c - 8, height: c - 8, fill: "none", stroke: "var(--fg)", "stroke-width": 2, "stroke-dasharray": "4 3" }, g); }
+  } });
+}
+function render() {
+  const bb = svg.getBoundingClientRect();
+  W = Math.max(300, Math.round(bb.width) || 600); H = Math.max(260, Math.round(bb.height) || 380);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = "";
+  if (step < 2) drawDual(); else drawGrid();
+  turnEl.value = norm(S.rot);
+  if (step === 1) {
+    const off = norm(S.needle - S.rot), st = $("status");
+    st.textContent = Math.abs(off) < 0.5 ? P.t("onLine") : P.t(off < 0 ? "offL" : "offR");
+    st.classList.toggle("ok", Math.abs(off) < 0.5);
+    Play.live($("live"), P.t("liveTurn", { a: Play.fmt(Math.abs(off)) }));
+  }
+}
+
+/* ---------- step 2: turning the map ---------- */
+function setRot(a, snap) {
+  S.rot = ((a % 360) + 360) % 360;
+  if (snap && Math.abs(norm(S.needle - S.rot)) <= ALIGN) S.rot = S.needle;
+  render();
+}
+function turnTo(target) {
+  cancelAnimationFrame(anim);
+  const from = S.rot, d = norm(target - from);
+  if (Play.reduced || !d) { setRot(target, true); return; }
+  const t0 = performance.now(), dur = 300 + 4 * Math.abs(d);
+  const tick = (t) => { const u = Math.min(1, (t - t0) / dur), e = u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u); setRot(from + d * e, u >= 1); if (u < 1) anim = requestAnimationFrame(tick); };
+  anim = requestAnimationFrame(tick);
+}
+turnEl.addEventListener("input", () => { cancelAnimationFrame(anim); setRot(+turnEl.value, true); });
+$("showMe").addEventListener("click", () => turnTo(S.needle));
+$("newNeedle").addEventListener("click", () => {
+  cancelAnimationFrame(anim);
+  let n; do n = 45 * Math.floor(Math.random() * 8); while (n === S.needle || n === S.rot);
+  S.needle = n; render();
+});
+let drag = null, kbd = false;
+const bearing = (x, y) => Math.atan2(x - G.cx, -(y - G.cy)) * 180 / Math.PI;
+svg.addEventListener("pointerdown", (e) => {
+  kbd = false;
+  if (!G) return;
+  const p = Play.pointer(svg, e);
+  if (step === 1) {
+    cancelAnimationFrame(anim);
+    drag = { b: bearing(p.x, p.y), rot: S.rot };
+    svg.setPointerCapture(e.pointerId); svg.classList.add("dragging"); e.preventDefault();
+  } else if (step === 2) {
+    const cell = cellAt(G, p.x, p.y);
+    if (cell) { S.cur = cell; answerTap(cell); }
+  }
+});
+svg.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = Play.pointer(svg, e);
+  setRot(drag.rot + norm(bearing(p.x, p.y) - drag.b), false);
+});
+function endDrag() { if (!drag) return; drag = null; svg.classList.remove("dragging"); setRot(Math.round(S.rot), true); }
+svg.addEventListener("pointerup", endDrag);
+svg.addEventListener("pointercancel", endDrag);
+svg.addEventListener("keydown", (e) => {
+  if (step === 1) {
+    const d = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (d) { cancelAnimationFrame(anim); setRot(S.rot + d * (e.shiftKey ? 5 : 15), true); e.preventDefault(); }
+  } else if (step === 2) {
+    const mv = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+    if (mv) {
+      kbd = true;
+      S.cur = { col: Play.clamp(S.cur.col + mv[0], 0, COLS - 1), row: Play.clamp(S.cur.row + mv[1], 1, ROWS) };
+      render(); Play.live($("live"), P.t("cursor", { ref: ref(S.cur.col, S.cur.row) })); e.preventDefault();
+    } else if (e.key === "Enter" || e.key === " ") { kbd = true; answerTap(S.cur); e.preventDefault(); }
+  }
+});
+
+/* ---------- step 3: grid rounds, every answer computed ---------- */
+const nm = (f) => P.t(f.id);
+const dirName = (i) => P.t("d" + DIRS[i]);
+function what(col, row) { const f = featAt(col, row); return f ? P.t("has", { x: nm(f) }) : P.t("empty"); }
+function moves(R) {
+  const leg = (n, d) => P.t(n === 1 ? "mv1" : "mvN", { n, d: dirName(d) });
+  return leg(Math.abs(R.ex), R.ex > 0 ? 2 : 6) + (P.lang === "zh" ? "" : " ") + leg(Math.abs(R.ny), R.ny > 0 ? 0 : 4);
+}
+function showRound() {
+  const R = S.rounds[S.ri], n = S.rounds.length;
+  $("roundK").textContent = P.t("roundK", { i: S.ri + 1, n });
+  $("score").textContent = P.t("score", { r: S.score, n });
+  const fb = $("qFb"); fb.textContent = ""; fb.className = "";
+  $("next").textContent = P.t("next"); $("next").disabled = true;
+  const box = $("dirBox"); box.innerHTML = "";
+  if (R.type === "ref") $("qText").textContent = P.t("qRef", { ref: ref(R.col, R.row) });
+  else if (R.type === "hunt") $("qText").textContent = P.t("qHunt", { a: nm(R.a), ref: ref(R.a.col, R.a.row), moves: moves(R) });
+  else {
+    $("qText").textContent = P.t("qDir", { a: nm(R.a), b: nm(R.b) });
+    const ok = P.t("dirRight", { a: nm(R.a), b: nm(R.b), d: dirName(R.d) }), no = P.t("dirWrong", { a: nm(R.a), b: nm(R.b), d: dirName(R.d) });
+    Play.predict(box, { q: "", options: DIRS.map((_, i) => ({ label: dirName(i), right: i === R.d })), right: ok, wrong: no }, (i, right) => {
+      if (S.answered) return;
+      finish(right, "");
+      box.querySelectorAll("button").forEach((b) => (b.disabled = true));
+    });
+  }
+  render();
+}
+function finish(right, msg) {
+  S.answered = true;
+  if (right) S.score++;
+  const fb = $("qFb"), n = S.rounds.length;
+  if (msg) { fb.textContent = msg; fb.className = right ? "ok" : "no"; }
+  $("score").textContent = P.t("score", { r: S.score, n });
+  const last = S.ri === n - 1;
+  $("next").textContent = P.t(last ? "again" : "next"); $("next").disabled = false;
+  if (last) Play.live($("live"), P.t("done", { r: S.score, n }));
+  render();
+}
+function answerTap(cell) {
+  const R = S.rounds[S.ri];
+  if (S.answered || R.type === "dir") { render(); return; }
+  S.tapped = cell;
+  const right = cell.col === R.col && cell.row === R.row, r = ref(R.col, R.row), got = ref(cell.col, cell.row);
+  if (R.type === "ref") finish(right, P.t(right ? "refRight" : "refWrong", { ref: r, got, what: what(R.col, R.row) }));
+  else finish(right, P.t(right ? "huntRight" : "huntWrong", { ref: r, got }));
+}
+$("next").addEventListener("click", () => {
+  if (S.ri === S.rounds.length - 1) { S.seed = 2 + Math.floor(Math.random() * 1e6); S.rounds = mkRounds(S.seed); S.ri = 0; S.score = 0; }
+  else S.ri++;
+  S.answered = false; S.tapped = null; $("live").textContent = "";
+  showRound();
+});
+
+/* ---------- legend ---------- */
+FEAT.forEach((f) => {
+  const s = document.createElement("span"), ic = Play.svg("svg", { viewBox: "-11 -11 22 22", "aria-hidden": "true" });
+  icon(ic, f.id, 0, f.id === "gate" ? -6 : 0, 20);
+  const name = nm(f); s.append(ic, document.createTextNode(name.charAt(0).toUpperCase() + name.slice(1)));
+  $("legend").appendChild(s);
+});
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+}, () => { S.revealed = true; render(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  cancelAnimationFrame(anim); drag = null;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("turnRow").hidden = i !== 1;
+  $("status").hidden = i !== 1;
+  $("quizBox").hidden = i !== 2;
+  if (i >= 1) S.revealed = true;
+  svg.classList.toggle("turn", i === 1); svg.classList.toggle("tap", i === 2);
+  svg.setAttribute("tabindex", i === 0 ? "-1" : "0");
+  $("live").textContent = "";
+  if (i === 2) showRound(); else render();
+});
+$("reset").addEventListener("click", () => { cancelAnimationFrame(anim); defaults(); kbd = false; pr.reset(); st.go(0); });
+if ("ResizeObserver" in window) {
+  let lastW = 0;
+  new ResizeObserver(() => { const w = Math.round(svg.getBoundingClientRect().width); if (w !== lastW) { lastW = w; render(); } }).observe(svg);
+}
+</script>
+</body>
+</html>

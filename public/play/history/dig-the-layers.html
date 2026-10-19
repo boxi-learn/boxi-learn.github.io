@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dig down, go back in time</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main#fig { height: 460px; user-select: none; -webkit-user-select: none; }
+  @media (max-width: 560px) { .stage svg.main#fig { height: 440px; } }
+  #fig.tap { cursor: pointer; }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  #fig text { font-size: 13px; fill: var(--fg); }
+  #fig .mut { fill: var(--muted); }
+  #fig .acc { fill: var(--a); font-weight: 700; }
+  #fig .bold { font-weight: 700; }
+  #fig .warnT { fill: var(--no); font-weight: 700; }
+  #fig .l0 { fill: var(--b); fill-opacity: .42; }
+  #fig .l1 { fill: var(--hl); fill-opacity: .34; }
+  #fig .l2 { fill: var(--no); fill-opacity: .26; }
+  #fig .l3 { fill: var(--b); fill-opacity: .2; }
+  #fig .l4 { fill: var(--fg); fill-opacity: .17; }
+  #fig .l5 { fill: var(--hl); fill-opacity: .12; }
+  #fig .lyr { stroke: var(--fg); stroke-opacity: .25; stroke-width: 1px; }
+  #fig .pit { fill: var(--fg); fill-opacity: .3; stroke: var(--fg); stroke-width: 1.5px; stroke-dasharray: 5 3; }
+  #fig .bur { stroke: var(--b); stroke-opacity: .85; stroke-width: 10px; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  #fig .hole { fill: var(--surface); stroke: var(--muted); stroke-width: 1px; stroke-dasharray: 4 3; }
+  #fig .holeB { stroke: var(--surface); stroke-width: 10px; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  #fig .trench { fill: none; stroke: var(--muted); stroke-width: 1px; stroke-dasharray: 4 3; }
+  #fig .grass { stroke: var(--a); stroke-width: 3px; fill: none; }
+  #fig .sel { fill: none; stroke: var(--a); stroke-width: 3px; }
+  #fig .selB { fill: none; stroke: var(--a); stroke-width: 15px; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: .55; }
+  #fig .tag { fill: var(--surface); stroke: var(--line); }
+  #fig .tagW { fill: var(--surface); stroke: var(--no); }
+  #fig .call { stroke: var(--fg); stroke-width: 1.2px; fill: none; }
+  #fig .ring { fill: none; stroke: var(--hl); stroke-width: 3px; }
+  #fig .coin { fill: var(--hl); stroke: var(--fg); stroke-width: 1px; }
+  #fig .pot { fill: var(--no); stroke: var(--fg); stroke-width: .8px; }
+  #fig .bone { fill: var(--surface); stroke: var(--fg); stroke-width: 1px; }
+  #fig .flint { fill: var(--c); stroke: var(--fg); stroke-width: .8px; }
+  #fig .toy { fill: var(--h); stroke: var(--fg); stroke-width: .8px; }
+  #fig .pipe { stroke: var(--fg); stroke-width: 2.4px; fill: var(--surface); }
+  #fig .char { fill: var(--fg); }
+  #fig .ghost { opacity: .22; }
+  #fig .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5px; }
+  #fig .boxC { fill: var(--soft); stroke: var(--fg); stroke-width: 1.5px; stroke-dasharray: 5 3; }
+  #fig .edge { stroke: var(--muted); stroke-width: 1.5px; fill: none; }
+  @media (prefers-reduced-motion: no-preference) { #fig .fade { animation: fadeIn .35s ease-out; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .controls .val { font-family: var(--font); font-size: 13px; color: var(--fg); min-width: 0; }
+  .controls button { font-size: 13px; padding: 5px 10px; }
+  .info { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 0 0 10px; }
+  .info div + div { margin-top: 4px; }
+  .info .gp { font-weight: 750; color: var(--a); font-size: 15px; }
+  .info .warn { color: var(--no); font-weight: 650; }
+  .info .dt { color: var(--muted); font-size: 13px; }
+  .info ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
+  #resMain { white-space: normal; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 460" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlDig" hidden></div>
+      <div class="controls" id="ctlDate" hidden>
+        <label class="check"><input type="checkbox" id="missed"> <span data-t="missedLabel"></span></label>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="info" id="info" hidden></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" id="resNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+const P = Play.setup({
+  en: {
+    title: "Dig down, go back in time", eyebrow: "History · Stage 2",
+    h1: "Dig down, go back in time — usually",
+    intro: "Guess which find is older, dig an invented site layer by layer, then date each layer from what is inside it.",
+    reset: "Reset",
+    figAria: "Section through an invented dig site. Tap a layer, or use the arrow keys to pick one and Enter to dig or inspect it.",
+    s1: "Guess", s2: "Dig", s3: "Date it", s4: "The rule",
+    k1: "Predict first", t1: "Is the deeper find older?",
+    b1: "This is a slice through an invented site: a field on top, an old village under it and a stone-tool camp at the bottom. Diggers found a coin {dc} cm down and a piece of pottery {dp} cm down.",
+    q: "The coin lies deeper than the pot sherd. Which is older?",
+    o1: "The coin — deeper always means older",
+    o2: "Can't tell from depth alone — first check how the coin got down there",
+    o3: "Same age — both are in the old village layers",
+    right: "Good caution. The dashed outline is a pit dug down from the farm layer. The coin fell into it: minted in {yc}, about {gap} years newer than the pot, whose style dates from about {yp}.",
+    wrong: "Not here. The dashed outline is a pit dug down from the farm layer. The coin fell into it: minted in {yc}, about {gap} years newer than the pot, whose style dates from about {yp}. Deeper, but newer.",
+    k2: "Hands on", t2: "Dig it, newest first",
+    b2: "Tap a layer (or a button) to dig it away. You may only dig something when nothing lies on it or cuts into it — that is how archaeologists keep things from different times apart.",
+    digBtn: "Dig: {c}", allDug: "All dug.",
+    k3: "Hands on", t3: "Date each layer by its newest find",
+    b3: "A layer cannot be older than the newest thing in it: a coin minted in 1340 cannot fall into soil before 1340. Older things (an old flint tool, an old sherd) can still turn up in newer layers. Tap a layer to see its finds, then tick the box.",
+    missedLabel: "Pretend we missed the pit and the burrow",
+    k4: "The rule", t4: "Deeper is usually older — but check, and date by the newest find",
+    b4: "Layers pile up, so lower usually means older. Nicolas Steno wrote this down for rock layers in 1669 (the law of superposition), and archaeologists use it for soil. But pits, graves and burrows cut down from above and carry newer things deep. So dig the newest part first, and remember that one layer mixes objects of different ages: it formed no earlier than its newest find.",
+    surface: "ground today", depth: "cm",
+    L1: "Topsoil", L2: "Farm soil", L3: "Burnt village", L4: "Village floor", L5: "Camp", L6: "Natural",
+    P: "Pit", B: "Burrow",
+    dL1: "today's field", dL2: "fields after the village", dL3: "the village burnt down", dL4: "where people lived", dL5: "a stone-tool camp", dL6: "no people yet",
+    dP: "a pit dug down from the farm layer", dB: "an animal's burrow",
+    fcoin: "coin, minted {y}", fpot: "pot sherd, style first made c. {y}", fpipe: "clay pipe, style first made c. {y}",
+    ftoy: "plastic toy, made {y} or later", fbead: "plastic bead, made {y} or later", fchar: "charcoal, radiocarbon date c. {y}",
+    fflint: "flint tool (no date on it)", fbone: "animal bone (no date on it)",
+    nCoin: "coin", nPot: "pot sherd", atD: "{d} cm",
+    progress: "Dug {n} of {m} parts · {f} finds so far",
+    dug: "Dug: {c} ({d}).", dugNone: "Nothing found in it.",
+    blocked: "Not yet — still in the way: {list}. Whatever lies on {c} or cuts into it is newer, so it comes out first.",
+    already: "Already dug.",
+    newP: "The pit cuts through three layers, so it is newer than all of them and had to come out first.",
+    newB: "An animal dug this tunnel. It carried a bead made in {y} or later down into the {c} layer.",
+    allDone: "Everything is dug. In step 3, date each layer.",
+    pick: "Tap a layer to see its finds.",
+    own: "Newest dated find: {f} → formed in {y} or later.",
+    noDate: "No dated finds — only that it is older than what lies on it.",
+    ownList: "{c} ({d}) contains:",
+    mixed: "Its finds span {s} years, yet they lie in one layer.",
+    warnMiss: "Without the pit and burrow, {c} gets “{y} or later” — but its own pottery is from about {p}.",
+    warnUp: "Layers on top must be later still, so the village would have burnt after {y}. The pit and the burrow explain the mix-up.",
+    okMiss: "Untick the box to put the coin back in its pit.",
+    ge: "≥ {y}", none: "no date",
+    yBce: "{y} BCE", yCe: "{y}", yC: "c.{y}",
+    mTitle: "Order of this site", mNew: "newer ↑", mOld: "older ↓",
+    resultTitle: "What we found",
+    resMain: "A layer is no earlier than its newest find",
+    resNote: "Burnt village: newest find {y3} → formed {y3} or later, although its flint tool is far older. The coin {dc} cm down is from {yc}: a pit carried it there.",
+    liveDig: "{c} dug, {f} finds", liveSel: "{c}: {y}",
+    explainK: "Explain it",
+    explainQ: "A friend says: “This coin was found deeper than that pot, so it must be older.” Use the pit or the burrow from this page to explain why that is not always true, and say how you would date the layer instead.",
+    homeK: "Try at home",
+    homeQ: "In a clear cup, make layers of rice, lentils, flour and coffee grounds. On each layer drop a paper “coin” with a year, older years lower down. Then dig a “pit” with a spoon from the top and drop in a coin with this year. Is the deepest coin still the oldest? Date each layer by its newest coin.",
+    foot: "The site, its layers, finds and dates are invented for teaching; depths are a schematic scale. Law of superposition: Nicolas Steno, 1669. A “no earlier than” date is called a terminus post quem (Latin: “limit after which”). A diagram of the order of layers is called a Harris matrix (Edward Harris, 1973). CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "往下挖，就是往回走", eyebrow: "历史 · 阶段 2",
+    h1: "往下挖，就是往回走——通常是",
+    intro: "先猜哪件东西更老，再一层一层挖开一处虚构的遗址，最后用每层里的东西给它定年代。",
+    reset: "重置",
+    figAria: "一处虚构遗址的剖面。点一个土层，或用方向键选、按回车挖开或查看。",
+    s1: "先猜", s2: "挖", s3: "定年代", s4: "规律",
+    k1: "先猜一猜", t1: "埋得深的更老吗？",
+    b1: "这是一处虚构遗址的剖面：上面是农田，下面是一个古村子，最底下是用石器的人留下的营地。发掘者在 {dc} 厘米深处找到一枚硬币，在 {dp} 厘米深处找到一块陶片。",
+    q: "硬币比陶片埋得深。哪个更老？",
+    o1: "硬币——越深一定越老",
+    o2: "光看深度说不准——先查查硬币是怎么到那么深的",
+    o3: "一样老——都在古村子的土层里",
+    right: "很谨慎。虚线圈出的是一个从农田层往下挖的坑。硬币掉在坑里：{yc} 年铸造，比陶片新了约 {gap} 年——那种陶器大约 {yp} 年才出现。",
+    wrong: "这里不是。虚线圈出的是一个从农田层往下挖的坑。硬币掉在坑里：{yc} 年铸造，比陶片新了约 {gap} 年——那种陶器大约 {yp} 年才出现。更深，却更新。",
+    k2: "动手", t2: "挖开它，最新的先挖",
+    b2: "点一个土层（或点按钮）把它挖掉。只有上面没有东西压着、也没有别的东西切进来时才能挖——考古学家就是这样把不同时期的东西分开的。",
+    digBtn: "挖：{c}", allDug: "全挖完了。",
+    k3: "动手", t3: "用最新的那件给每层定年代",
+    b3: "一层土不会早于它里面最新的东西：1340 年铸的硬币，不可能在 1340 年以前就掉进土里。但更老的东西（古老的石器、旧陶片）照样会出现在较新的土层里。点一层看看里面有什么，再勾上方框。",
+    missedLabel: "假装我们没发现那个坑和那条洞",
+    k4: "规律", t4: "越深通常越老——但要查一查，并按最新的东西定年代",
+    b4: "土层一层层堆上去，所以下面的通常更老。斯泰诺（Nicolas Steno）在 1669 年为岩层写下了这条规律（叠压定律），考古学家把它用在土层上。但坑、墓和动物的洞会从上往下切，把新东西带到深处。所以要先挖最新的部分；而且一层土里混着不同年代的东西：它形成的年代不会早于其中最新的那件。",
+    surface: "今天的地面", depth: "厘米",
+    L1: "表土", L2: "农田土", L3: "村子烧毁层", L4: "村子地面", L5: "营地", L6: "生土",
+    P: "坑", B: "动物洞",
+    dL1: "今天的农田", dL2: "村子废弃后的田", dL3: "村子被烧毁", dL4: "人们生活的地面", dL5: "用石器的人的营地", dL6: "还没有人来过",
+    dP: "从农田层往下挖的坑", dB: "动物挖的洞",
+    fcoin: "硬币，{y} 年铸造", fpot: "陶片，这种样式约 {y} 年出现", fpipe: "陶烟斗，这种样式约 {y} 年出现",
+    ftoy: "塑料玩具，{y} 年或以后制造", fbead: "塑料珠子，{y} 年或以后制造", fchar: "木炭，碳-14 测年约 {y}",
+    fflint: "燧石工具（本身看不出年代）", fbone: "动物骨头（本身看不出年代）",
+    nCoin: "硬币", nPot: "陶片", atD: "{d} 厘米",
+    progress: "已挖 {n}/{m} 处 · 找到 {f} 件",
+    dug: "挖开了：{c}（{d}）。", dugNone: "里面什么也没有。",
+    blocked: "还不行——挡着的还有：{list}。压在「{c}」上或切进它的东西更新，要先挖。",
+    already: "已经挖过了。",
+    newP: "这个坑切穿了三层土，所以比这三层都新，必须先挖出来。",
+    newB: "这条地道是动物挖的。它把一颗 {y} 年或以后制造的珠子带进了「{c}」层。",
+    allDone: "全挖完了。到第 3 步给每层定年代。",
+    pick: "点一层，看看里面有什么。",
+    own: "最新的有年代的东西：{f} → 这层形成于 {y}或以后。",
+    noDate: "没有带年代的东西——只能说它比压在上面的更老。",
+    ownList: "{c}（{d}）里有：",
+    mixed: "这些东西相差 {s} 年，却在同一层里。",
+    warnMiss: "没发现坑和洞的话，「{c}」就成了「{y}或以后」——可它自己的陶器约是 {p}。",
+    warnUp: "压在上面的层只会更晚，于是村子得在 {y}以后才被烧毁。坑和动物洞解释了这个错乱。",
+    okMiss: "取消勾选，把硬币放回坑里。",
+    ge: "≥ {y}", none: "无年代",
+    yBce: "公元前 {y} 年", yCe: "{y} 年", yC: "约{y}",
+    mTitle: "这处遗址的先后", mNew: "更新 ↑", mOld: "更老 ↓",
+    resultTitle: "我们发现",
+    resMain: "一层土的年代，不早于其中最新的那件东西",
+    resNote: "村子烧毁层：最新的东西是 {y3} → 形成于 {y3}或以后，尽管里面的燧石工具老得多。{dc} 厘米深的硬币是 {yc} 的：是一个坑把它带下去的。",
+    liveDig: "挖开了{c}，找到 {f} 件", liveSel: "{c}：{y}",
+    explainK: "说一说",
+    explainQ: "朋友说：「这枚硬币比那块陶片埋得深，所以一定更老。」用本页的坑或动物洞给他解释为什么不一定，再说说你会怎样给那一层定年代。",
+    homeK: "家里做一做",
+    homeQ: "在透明杯子里铺几层：米、扁豆、面粉、咖啡渣。每铺一层放一张写着年份的纸「硬币」，越往下年份越早。然后用勺子从上往下挖一个「坑」，放进一枚写着今年的硬币。最深的硬币还是最老的吗？用每层最新的硬币给它定年代。",
+    foot: "遗址、土层、出土物和年代都是为教学虚构的；深度是示意比例。叠压定律：斯泰诺（Nicolas Steno），1669 年。「不早于某年」的年代叫 terminus post quem（拉丁文：「此后」的界限）。表示土层先后的图叫哈里斯矩阵（Edward Harris，1973 年）。CC BY 4.0 · Boxi Yu",
+  },
+});
+const ZHL = P.lang === "zh";
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent || fig);
+const T = (x, y, s, cls, anchor, parent) => { const t = S("text", { x, y, class: cls || "", "text-anchor": anchor || "start" }, parent); t.textContent = s; return t; };
+
+/* ---------- the invented site (all positions in x ∈ [0,1], depth d in cm) ---------- */
+const DMAX = 250;
+const BND = [
+  (x) => 2 * Math.sin(6 * x),
+  (x) => 30 + 4 * Math.sin(5 * x + 1),
+  (x) => 75 + 6 * Math.sin(4 * x + 2),
+  (x) => 115 + 5 * Math.sin(6 * x),
+  (x) => 160 + 6 * Math.sin(3 * x + 1),
+  (x) => 200 + 5 * Math.sin(5 * x + 3),
+  () => DMAX,
+];
+const LAYERS = ["L1", "L2", "L3", "L4", "L5", "L6"];
+const PIT = { c: 0.70, hw: 0.11, bottom: 142 };
+const pitBot = (x) => { const u = (x - PIT.c) / PIT.hw; return Math.abs(u) >= 1 ? BND[1](x) : BND[1](x) + (PIT.bottom - BND[1](x)) * Math.pow(1 - u * u, 0.35); };
+const inPit = (x, d) => Math.abs(x - PIT.c) < PIT.hw && d >= BND[1](x) && d <= pitBot(x);
+const BUR = [[0.40, BND[1](0.40)], [0.43, 48], [0.40, 66], [0.44, 84], [0.47, 96]];
+// "above": what must be dug away before this part (lies on it or cuts into it)
+const CTX = { L1: [], P: ["L1"], B: ["L1"], L2: ["L1", "P", "B"], L3: ["L2", "P", "B"], L4: ["L3", "P"], L5: ["L4"], L6: ["L5"] };
+const ORDER = ["L1", "P", "B", "L2", "L3", "L4", "L5", "L6"];
+const FINDS = [
+  { c: "L1", k: "toy", x: 0.74, d: 14, y: 1950 }, { c: "L1", k: "coin", x: 0.92, d: 20, y: 1902 },
+  { c: "B", k: "bead", x: 0.47, d: 96, y: 1950 },
+  { c: "P", k: "pipe", x: 0.66, d: 80, y: 1720 }, { c: "P", k: "coin", x: 0.71, d: 128, y: 1750, key: "coin" },
+  { c: "L2", k: "coin", x: 0.34, d: 52, y: 1610 }, { c: "L2", k: "pipe", x: 0.53, d: 52, y: 1650 }, { c: "L2", k: "pot", x: 0.90, d: 50, y: 1300 },
+  { c: "L3", k: "pot", x: 0.36, d: 100, y: 1300, key: "pot" }, { c: "L3", k: "coin", x: 0.93, d: 100, y: 1340 }, { c: "L3", k: "flint", x: 0.56, d: 106, y: null },
+  { c: "L4", k: "pot", x: 0.40, d: 140, y: 1150 }, { c: "L4", k: "bone", x: 0.90, d: 138, y: null },
+  { c: "L5", k: "flint", x: 0.40, d: 182, y: null }, { c: "L5", k: "char", x: 0.62, d: 186, y: -2500 }, { c: "L5", k: "bone", x: 0.86, d: 180, y: null },
+];
+const KEYCOIN = FINDS.find((f) => f.key === "coin"), KEYPOT = FINDS.find((f) => f.key === "pot");
+
+/* ---------- pure logic ---------- */
+function layerAt(x, d) { for (let k = 0; k < 6; k++) if (d < BND[k + 1](x)) return LAYERS[k]; return "L6"; }
+function home(f, missed) { return missed && (f.c === "P" || f.c === "B") ? layerAt(f.x, f.d) : f.c; }
+function ctxs(missed) { return missed ? LAYERS : ORDER; }
+function above(c, missed) { return missed ? (c === "L1" ? [] : [LAYERS[LAYERS.indexOf(c) - 1]]) : CTX[c]; }
+function findsIn(c, missed) { return FINDS.filter((f) => home(f, missed) === c); }
+function own(c, missed) { const ys = findsIn(c, missed).filter((f) => f.y !== null).map((f) => f.y); return ys.length ? Math.max(...ys) : null; }
+function eff(c, missed) {          // a part is also no earlier than anything it lies on or cuts into
+  let v = own(c, missed);
+  ctxs(missed).forEach((o) => { if (above(o, missed).includes(c)) { const e = eff(o, missed); if (e !== null && (v === null || e > v)) v = e; } });
+  return v;
+}
+function canDig(c, dug) { return !dug.has(c) && CTX[c].every((a) => dug.has(a)); }
+function blockers(c, dug) { return CTX[c].filter((a) => !dug.has(a)); }
+function closure(c) { const s = new Set(); const go = (x) => CTX[x].forEach((a) => { if (!s.has(a)) { s.add(a); go(a); } }); go(c); return s; }
+function reducedEdges() {           // keep only direct "lies on / cuts" links (transitive reduction)
+  const out = [];
+  ORDER.forEach((c) => CTX[c].forEach((a) => { if (!CTX[c].some((b) => b !== a && closure(b).has(a))) out.push([a, c]); }));
+  return out;
+}
+function level(c) { return CTX[c].length ? 1 + Math.max(...CTX[c].map(level)) : 0; }
+function hitAt(x, d, holes) {       // which part is under the pointer (holes: dug pit/burrow ignored)
+  if (!holes.has("B")) for (let i = 1; i < BUR.length; i++) if (segDist(x, d, BUR[i - 1], BUR[i]) < 0.025) return "B";
+  if (!holes.has("P") && inPit(x, d)) return "P";
+  return layerAt(x, Play.clamp(d, 0, DMAX));
+}
+let SX = 300, SY = 1.5;              // px per unit x, px per cm (for hit distances)
+function segDist(x, d, a, b) {
+  const px = x * SX, py = d * SY, ax = a[0] * SX, ay = a[1] * SY, bx = b[0] * SX, by = b[1] * SY;
+  const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy, t = L ? Play.clamp(((px - ax) * dx + (py - ay) * dy) / L, 0, 1) : 0;
+  return Math.hypot(px - ax - t * dx, py - ay - t * dy) / SX;
+}
+
+/* ---------- formatting ---------- */
+const yr = (y) => (y < 0 ? P.t("yBce", { y: -y }) : P.t("yCe", { y }));
+const yShort = (f) => (f.y === null ? "" : f.y < 0 ? (ZHL ? "前" + -f.y : -f.y + " BCE") : f.k === "pot" || f.k === "pipe" ? P.t("yC", { y: f.y }) : String(f.y));
+const fname = (f) => P.t("f" + f.k, { y: f.y === null ? "" : f.k === "char" ? yr(f.y) : f.y });
+const cname = (c) => P.t(c);
+const cdesc = (c) => P.t("d" + c);
+
+/* ---------- state ---------- */
+let step = 0, guessed = false, dug = new Set(), lastDug = null, msg = "", sel = "L3", missed = false;
+let W = 600, H = 460, G = null;
+
+/* ---------- drawing ---------- */
+function geom() {
+  const SL = W < 480 ? 38 : 48, SR = W - 10, ST = 38, SB = H - 14;
+  SX = SR - SL; SY = (SB - ST) / DMAX;
+  return { SL, SR, ST, SB, X: (x) => SL + x * (SR - SL), Y: (d) => ST + (d / DMAX) * (SB - ST) };
+}
+function bandPath(k) {
+  const g = G, n = 60;
+  let d = "";
+  for (let i = 0; i <= n; i++) d += (i ? "L" : "M") + g.X(i / n).toFixed(1) + " " + g.Y(BND[k](i / n)).toFixed(1);
+  for (let i = n; i >= 0; i--) d += "L" + g.X(i / n).toFixed(1) + " " + g.Y(BND[k + 1](i / n)).toFixed(1);
+  return d + "Z";
+}
+function pitPath() {
+  const g = G, n = 40, a = PIT.c - PIT.hw, b = PIT.c + PIT.hw;
+  let d = "";
+  for (let i = 0; i <= n; i++) { const x = a + (b - a) * i / n; d += (i ? "L" : "M") + g.X(x).toFixed(1) + " " + g.Y(BND[1](x)).toFixed(1); }
+  for (let i = n; i >= 0; i--) { const x = a + (b - a) * i / n; d += "L" + g.X(x).toFixed(1) + " " + g.Y(pitBot(x)).toFixed(1); }
+  return d + "Z";
+}
+function burPath() { return BUR.map((p, i) => (i ? "L" : "M") + G.X(p[0]).toFixed(1) + " " + G.Y(p[1]).toFixed(1)).join(""); }
+function icon(f, cls) {
+  const x = G.X(f.x), y = G.Y(f.d), g = S("g", { class: cls || "" });
+  if (f.k === "coin") S("circle", { cx: x, cy: y, r: 6, class: "coin" }, g);
+  else if (f.k === "pot") S("path", { d: `M${x - 8} ${y - 3}Q${x} ${y + 7} ${x + 8} ${y - 3}L${x + 6} ${y + 3}Q${x} ${y + 9} ${x - 6} ${y + 3}Z`, class: "pot" }, g);
+  else if (f.k === "bone") S("rect", { x: x - 9, y: y - 3, width: 18, height: 6, rx: 3, class: "bone" }, g);
+  else if (f.k === "flint") S("path", { d: `M${x - 7} ${y + 5}L${x} ${y - 7}L${x + 6} ${y + 5}Z`, class: "flint" }, g);
+  else if (f.k === "toy") { S("rect", { x: x - 4, y: y - 3, width: 8, height: 10, rx: 2, class: "toy" }, g); S("circle", { cx: x, cy: y - 6, r: 3.5, class: "toy" }, g); }
+  else if (f.k === "bead") S("circle", { cx: x, cy: y, r: 4.5, class: "toy" }, g);
+  else if (f.k === "pipe") { S("line", { x1: x - 9, y1: y + 2, x2: x + 4, y2: y + 2, class: "pipe" }, g); S("rect", { x: x + 3, y: y - 6, width: 6, height: 9, rx: 2, class: "pipe" }, g); }
+  else if (f.k === "char") S("circle", { cx: x, cy: y, r: 5, class: "char" }, g);
+  return g;
+}
+function tag(x, y, s, cls, warn) {
+  const w = s.length * (ZHL ? 13 : 7.4) + 10;
+  S("rect", { x: x - w / 2, y: y - 13, width: w, height: 19, rx: 5, class: warn ? "tagW" : "tag" });
+  T(x, y + 1, s, cls || "bold", "middle");
+}
+function layerLabel(k, extra, warn) {
+  const g = G, c = LAYERS[k], ym = g.Y((BND[k](0.04) + BND[k + 1](0.04)) / 2);
+  T(g.SL + 6, ym + (extra ? -3 : 5), cname(c), "bold");
+  if (extra) T(g.SL + 6, ym + 13, extra, warn ? "warnT" : "acc");
+}
+function drawSection() {
+  const g = (G = geom()), mode = ["guess", "dig", "date"][step];
+  // depth axis + surface
+  for (let d = 0; d <= DMAX; d += 50) { S("line", { class: "lyr", x1: g.SL - 4, x2: g.SL, y1: g.Y(d), y2: g.Y(d) }); T(g.SL - 7, g.Y(d) + 4, String(d), "mut", "end"); }
+  T(g.SL - 7, g.ST - 18, P.t("depth"), "mut", "end");
+  S("rect", { class: "trench", x: g.SL, y: g.Y(-2), width: g.SR - g.SL, height: g.SB - g.Y(-2) });
+  if (!(mode === "dig" && dug.has("L1"))) {
+    let d = ""; for (let i = 0; i <= 60; i++) d += (i ? "L" : "M") + g.X(i / 60).toFixed(1) + " " + (g.Y(BND[0](i / 60)) - 1).toFixed(1);
+    S("path", { class: "grass", d });
+  }
+  T(g.SR, g.ST - 18, P.t("surface"), "mut", "end");
+  const isDug = (c) => mode === "dig" && dug.has(c);
+  LAYERS.forEach((c, k) => { if (!isDug(c)) S("path", { d: bandPath(k), class: "l" + k + " lyr" }); });
+  const showCuts = mode === "dig" || (mode === "date" && !missed) || (mode === "guess" && guessed);
+  if (showCuts) {
+    S("path", { d: pitPath(), class: isDug("P") ? "hole" : "pit" + (mode === "guess" ? " fade" : "") });
+    S("path", { d: burPath(), class: isDug("B") ? "holeB" : "bur" });
+  }
+  // selection outline
+  if ((mode === "date" || mode === "dig") && sel && ctxs(mode === "date" && missed).includes(sel) && !isDug(sel)) {
+    if (sel === "P") S("path", { d: pitPath(), class: "sel" });
+    else if (sel === "B") S("path", { d: burPath(), class: "selB" });
+    else S("path", { d: bandPath(LAYERS.indexOf(sel)), class: "sel" });
+  }
+  // finds
+  FINDS.forEach((f) => {
+    if (mode === "dig" && dug.has(f.c)) { icon(f, "ghost"); return; }
+    icon(f, "");
+  });
+  // labels
+  if (mode === "date") {
+    LAYERS.forEach((c, k) => { const o = own(c, missed); layerLabel(k, o === null ? P.t("none") : P.t("ge", { y: yr(o) }), missed && o !== own(c, false)); });
+    FINDS.forEach((f) => { if (f.y !== null) T(G.X(f.x) + (f.k === "bead" ? 12 : 0), G.Y(f.d) - (f.k === "bead" ? -4 : 10), yShort(f), "mut", f.k === "bead" ? "start" : "middle"); });
+    if (!missed) {
+      tag(g.X(PIT.c), g.Y(PIT.bottom + 13), cname("P") + " " + P.t("ge", { y: yr(own("P", false)) }));
+      const bt = cname("B") + " " + P.t("ge", { y: yr(own("B", false)) });
+      tag(g.X(0.28) + (bt.length * (ZHL ? 13 : 7.4) + 10) / 2, g.Y(26), bt);
+    }
+  } else {
+    LAYERS.forEach((c, k) => { if (!isDug(c)) layerLabel(k); });
+    if (mode === "dig") {
+      if (!dug.has("P")) tag(g.X(PIT.c), g.Y(100), cname("P"));
+      if (!dug.has("B")) tag(g.X(0.40), g.Y(24), cname("B"));
+    }
+  }
+  if (mode === "guess") {
+    [KEYCOIN, KEYPOT].forEach((f) => S("circle", { class: "ring", cx: g.X(f.x), cy: g.Y(f.d), r: 12 }));
+    const cx = g.X(KEYCOIN.x), cy = g.Y(KEYCOIN.d), px = g.X(KEYPOT.x), py = g.Y(KEYPOT.d);
+    const lc = P.t("nCoin") + " · " + P.t("atD", { d: KEYCOIN.d }) + (guessed ? " · " + KEYCOIN.y : "");
+    const lp = P.t("nPot") + " · " + P.t("atD", { d: KEYPOT.d }) + (guessed ? " · " + P.t("yC", { y: KEYPOT.y }) : "");
+    S("path", { class: "call", d: `M${cx} ${cy + 12}V${cy + 30}` });
+    tag(Play.clamp(cx, g.SL + 80, g.SR - 80), cy + 44, lc);
+    S("path", { class: "call", d: `M${px} ${py - 12}V${py - 24}` });
+    tag(Play.clamp(px, g.SL + 80, g.SR - 80), py - 30, lp);
+  }
+}
+function drawMatrix() {
+  const L = 14, R = W - 14, top = 52, rows = 1 + Math.max(...ORDER.map(level)), rh = (H - top - 16) / rows, bh = Math.min(38, rh - 12);
+  T(L, 24, P.t("mTitle"), "bold");
+  T(R, 24, P.t("mNew"), "mut", "end"); T(R, H - 8, P.t("mOld"), "mut", "end");
+  const pos = {};
+  for (let r = 0; r < rows; r++) {
+    const row = ORDER.filter((c) => level(c) === r), n = row.length, span = Math.min(R - L - 50, n * 230), bw = Math.min(210, (span - (n - 1) * 12) / n);
+    row.forEach((c, i) => { const cx = (L + R - 40) / 2 + (i - (n - 1) / 2) * (bw + 12); pos[c] = { x: cx, y: top + r * rh + bh / 2, w: bw }; });
+  }
+  reducedEdges().forEach(([a, c]) => S("path", { class: "edge", d: `M${pos[a].x} ${pos[a].y + bh / 2}L${pos[c].x} ${pos[c].y - bh / 2}` }));
+  ORDER.forEach((c) => {
+    const p = pos[c], o = own(c, false), cut = c === "P" || c === "B";
+    S("rect", { class: cut ? "boxC" : "box", x: p.x - p.w / 2, y: p.y - bh / 2, width: p.w, height: bh, rx: 8 });
+    T(p.x, p.y + 5, cname(c) + " " + (o === null ? "· " + P.t("none") : P.t("ge", { y: yr(o) })), o === null ? "mut" : "bold", "middle");
+  });
+}
+function draw() {
+  fig.innerHTML = "";
+  fig.classList.toggle("tap", step === 1 || step === 2);
+  if (step === 3) drawMatrix(); else drawSection();
+}
+
+/* ---------- info panel ---------- */
+function line(cls, text) { const d = document.createElement("div"); d.className = cls; d.textContent = text; $("info").appendChild(d); return d; }
+function list(fs) {
+  const ul = document.createElement("ul");
+  fs.slice().sort((a, b) => (b.y ?? -1e9) - (a.y ?? -1e9)).forEach((f) => { const li = document.createElement("li"); li.textContent = fname(f) + " · " + P.t("atD", { d: f.d }); ul.appendChild(li); });
+  $("info").appendChild(ul);
+}
+function nFound() { return FINDS.filter((f) => dug.has(f.c)).length; }
+function digButtons() {
+  const box = $("ctlDig");
+  box.innerHTML = "";
+  const can = ORDER.filter((c) => canDig(c, dug));
+  if (!can.length) { const s = document.createElement("span"); s.className = "val"; s.textContent = P.t("allDug"); box.appendChild(s); return; }
+  can.forEach((c) => { const b = document.createElement("button"); b.type = "button"; b.textContent = P.t("digBtn", { c: cname(c) }); b.addEventListener("click", () => tryDig(c)); box.appendChild(b); });
+}
+function info() {
+  const box = $("info");
+  box.innerHTML = "";
+  if (step === 1) {
+    digButtons();
+    line("gp", P.t("progress", { n: dug.size, m: ORDER.length, f: nFound() }));
+    if (msg) line(msg.startsWith("!") ? "warn" : "", msg.replace(/^!/, ""));
+    if (lastDug && !msg.startsWith("!")) {
+      const fs = FINDS.filter((f) => f.c === lastDug);
+      if (fs.length) list(fs); else line("dt", P.t("dugNone"));
+      if (lastDug === "P") line("dt", P.t("newP"));
+      if (lastDug === "B") line("dt", P.t("newB", { y: FINDS.find((f) => f.k === "bead").y, c: cname(layerAt(BUR[BUR.length - 1][0], BUR[BUR.length - 1][1])) }));
+    }
+    if (dug.size === ORDER.length) line("gp", P.t("allDone"));
+  } else if (step === 2) {
+    const c = ctxs(missed).includes(sel) ? sel : null;
+    if (!c) line("dt", P.t("pick"));
+    else {
+      line("", P.t("ownList", { c: cname(c), d: cdesc(c) }));
+      const fs = findsIn(c, missed), o = own(c, missed);
+      if (fs.length) list(fs);
+      if (o === null) line("dt", P.t("noDate"));
+      else {
+        const nf = fs.filter((f) => f.y === o)[0];
+        line("gp", P.t("own", { f: fname(nf), y: yr(o) }));
+        const ys = fs.filter((f) => f.y !== null).map((f) => f.y);
+        if (ys.length > 1 && o - Math.min(...ys) > 0) line("dt", P.t("mixed", { s: o - Math.min(...ys) }));
+      }
+    }
+    if (missed) {
+      const bad = LAYERS.filter((x) => own(x, true) !== own(x, false));
+      bad.forEach((x) => {
+        const pots = findsIn(x, false).filter((f) => f.k === "pot").map((f) => f.y);
+        line("warn", P.t("warnMiss", { c: cname(x), y: yr(own(x, true)), p: pots.length ? yr(Math.max(...pots)) : "—" }));
+      });
+      line("warn", P.t("warnUp", { y: yr(eff("L3", true)) }));
+      line("dt", P.t("okMiss"));
+    }
+  }
+  const y3 = own("L3", false);
+  $("resMain").textContent = P.t("resMain");
+  $("resNote").textContent = P.t("resNote", { y3: yr(y3), dc: KEYCOIN.d, yc: yr(KEYCOIN.y) });
+}
+function update() { draw(); info(); }
+
+/* ---------- actions ---------- */
+function tryDig(c) {
+  if (dug.has(c)) { msg = "!" + P.t("already"); update(); return; }
+  if (!canDig(c, dug)) {
+    const sep = ZHL ? "、" : ", ";
+    msg = "!" + P.t("blocked", { list: blockers(c, dug).map(cname).join(sep), c: cname(c) });
+    update(); Play.live($("live"), msg.slice(1)); return;
+  }
+  dug.add(c); lastDug = c; sel = c;
+  msg = P.t("dug", { c: cname(c), d: cdesc(c) });
+  const next = ORDER.find((x) => canDig(x, dug));
+  if (next) sel = next;
+  update();
+  Play.live($("live"), P.t("liveDig", { c: cname(c), f: nFound() }));
+}
+function select(c) {
+  sel = c; update();
+  const o = own(c, missed);
+  Play.live($("live"), P.t("liveSel", { c: cname(c), y: o === null ? P.t("none") : P.t("ge", { y: yr(o) }) }));
+}
+fig.addEventListener("pointerdown", (ev) => {
+  if (step !== 1 && step !== 2) return;
+  const g = G, p = Play.pointer(fig, ev);
+  if (!g || p.x < g.SL || p.x > g.SR || p.y < g.ST - 6 || p.y > g.SB) return;
+  const x = (p.x - g.SL) / (g.SR - g.SL), d = ((p.y - g.ST) / (g.SB - g.ST)) * DMAX;
+  if (step === 1) {
+    const holes = new Set([...dug].filter((c) => c === "P" || c === "B"));
+    const c = hitAt(x, d, holes);
+    tryDig(c);
+  } else {
+    const c = missed ? layerAt(x, Play.clamp(d, 0, DMAX)) : hitAt(x, d, new Set());
+    select(c);
+  }
+});
+fig.addEventListener("keydown", (ev) => {
+  if (step !== 1 && step !== 2) return;
+  const list0 = step === 1 ? ORDER.filter((c) => !dug.has(c)) : ctxs(missed);
+  if (!list0.length) return;
+  let i = list0.indexOf(sel);
+  if (ev.key === "ArrowDown" || ev.key === "ArrowRight") i = (i + 1) % list0.length;
+  else if (ev.key === "ArrowUp" || ev.key === "ArrowLeft") i = (i - 1 + list0.length) % list0.length;
+  else if ((ev.key === "Enter" || ev.key === " ") && step === 1) { ev.preventDefault(); if (i >= 0) tryDig(list0[i]); return; }
+  else return;
+  ev.preventDefault();
+  if (i < 0) i = 0;
+  if (step === 1) { sel = list0[i]; msg = ""; update(); Play.live($("live"), cname(sel)); } else select(list0[i]);
+});
+$("missed").addEventListener("change", (e) => { missed = e.target.checked; if (!ctxs(missed).includes(sel)) sel = "L3"; update(); });
+
+/* ---------- predict + steps ---------- */
+const pv = { dc: KEYCOIN.d, dp: KEYPOT.d, yc: KEYCOIN.y, yp: KEYPOT.y, gap: KEYCOIN.y - KEYPOT.y };
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right", pv), wrong: P.t("wrong", pv),
+}, () => { guessed = true; showResult(); if (step === 0) draw(); });
+function showResult() { document.querySelector(".result").hidden = step === 0 && !guessed; }
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k, pv);
+  $("predict").hidden = i !== 0;
+  $("info").hidden = i === 0 || i === 3;
+  $("ctlDig").hidden = i !== 1;
+  $("ctlDate").hidden = i !== 2;
+  if (i === 2) sel = "L3";
+  if (i === 1) sel = ORDER.find((x) => canDig(x, dug)) || null;
+  Play.live($("live"), "");
+  showResult();
+  resize();
+});
+
+function resize() {
+  const r = fig.getBoundingClientRect();
+  if (r.width < 10 || r.height < 10) { info(); return; }
+  W = Math.round(r.width); H = Math.round(r.height);
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  update();
+}
+if (window.ResizeObserver) new ResizeObserver(resize).observe(fig); else window.addEventListener("resize", resize);
+
+$("reset").addEventListener("click", () => {
+  guessed = false; dug = new Set(); lastDug = null; msg = ""; sel = "L3"; missed = false;
+  $("missed").checked = false;
+  pr.reset(); st.go(0);
+});
+resize();
+</script>
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Is Greenland as big as Africa?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  #map { width: 100%; height: auto; display: block; touch-action: manipulation; overflow: hidden; --k: 1; }
+  #map.drag { touch-action: none; }
+  #map text { font-size: calc(13px * var(--k)); }
+  .lb { fill: var(--muted); }
+  .lbf { fill: var(--fg); font-weight: 650; }
+  .halo { paint-order: stroke; stroke: var(--surface); stroke-width: calc(3px * var(--k)); stroke-linejoin: round; }
+  .ghost { cursor: grab; }
+  .ghost:active { cursor: grabbing; }
+  .cap { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 6px 14px 2px; font-size: 12px; color: var(--muted); }
+  .cap b { color: var(--fg); font-weight: 650; }
+  .controls label.lab { min-width: 4.5em; }
+  .controls .val { min-width: 4.5em; font-family: var(--font); font-size: 14px; }
+  .seg { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .read { display: grid; grid-template-columns: auto auto; gap: 3px 12px; margin: 6px 0 10px; font-size: 14px; }
+  .read dt { color: var(--muted); }
+  .read dd { margin: 0; font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 650; }
+  .read dt.hd, .read dd.hd { color: var(--muted); font-weight: 400; font-size: 12px; border-bottom: 1px solid var(--line); }
+  .line { display: inline-block; width: 16px; height: 3px; margin-right: 5px; vertical-align: 3px; border-radius: 2px; }
+  .result .math { white-space: normal; font-family: var(--font); font-size: 18px; font-weight: 650; }
+  @media (max-width: 560px) { .result .math { font-size: 16px; } .read { grid-template-columns: 1fr auto; } }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg id="map" viewBox="0 0 628 487" role="application" tabindex="0" data-t-aria="mapAria"></svg>
+      <div class="cap"><span id="mapCap"></span><b id="projTag"></b></div>
+      <div class="legend" style="padding: 0 14px 4px" id="legend"></div>
+      <div class="controls" id="rowPick">
+        <span data-t="pickLabel"></span>
+        <span class="seg" id="pick"></span>
+        <button type="button" class="small" id="slide"></button>
+      </div>
+      <div class="controls" id="rowLat">
+        <label class="lab" for="lat" data-t="latLabel"></label>
+        <input type="range" id="lat" min="-60" max="80" step="1" value="72">
+        <span class="val" id="latVal"></span>
+      </div>
+      <div class="controls" id="rowProj">
+        <span data-t="projLabel"></span>
+        <span class="seg"><button type="button" class="small" id="pMerc" data-t="pMerc"></button><button type="button" class="small" id="pEqa" data-t="pEqa"></button></span>
+      </div>
+      <div class="controls" id="rowProbe">
+        <label class="lab" for="probe" data-t="probeLabel"></label>
+        <input type="range" id="probe" min="-60" max="80" step="1" value="60">
+        <span class="val" id="probeVal"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <dl class="read" id="read"></dl>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Is Greenland as big as Africa?", eyebrow: "Geography · Stage 3", h1: "A flat map of a round Earth must stretch something",
+    intro: "On the usual world map Greenland looks as big as Africa. Drag Greenland to the equator and watch its true size appear.",
+    reset: "Reset", slideGo: "Slide to the equator", slideStop: "Stop",
+    mapAria: "Schematic world map. In step 2 drag a shape, or use the arrow keys to move the chosen shape (Shift for bigger steps). In step 3 the up and down keys move the test circle.",
+    capMerc: "Schematic outlines · Mercator projection, 66°S–84.5°N", capEqa: "Schematic outlines · equal-area projection (Gall–Peters), 66°S–84.5°N",
+    tagMerc: "Mercator", tagEqa: "equal-area",
+    pickLabel: "Move:", latLabel: "Centre at", projLabel: "Map:", pMerc: "Mercator", pEqa: "Equal-area", probeLabel: "Test circle at",
+    nG: "Greenland", nAf: "Africa", nAu: "Australia",
+    N: "{v}°N", S: "{v}°S", EQ: "0° (equator)",
+    s1: "Guess", s2: "Drag it", s3: "Why", s4: "Rule",
+    k1: "Predict first", t1: "How many Greenlands fit into Africa?",
+    b1: "On this map, Greenland (top) and Africa (middle) look about the same size. Pick an answer, then go to step 2 and check it.",
+    k2: "Hands on", t2: "Move Greenland south",
+    b2: "Drag Greenland (or use the slider, or the arrow keys) down to the equator next to Africa. The shape is moved over the globe, keeping its true size, then drawn again on the map. Try Africa and Australia too: drag Africa north and watch it swell.",
+    k3: "Why it happens", t3: "Circles that are all the same size",
+    b3: "Every circle here is the same size on the globe: 600 km from centre to edge. Mercator keeps them round but blows them up toward the poles. Switch to the equal-area map: now every circle keeps its area, but near the poles they are squashed flat.",
+    k4: "The rule", t4: "On a Mercator map, area is multiplied by 1 ÷ cos²(latitude)",
+    b4: "At latitude φ, Mercator stretches the map 1/cos φ times east–west and the same north–south. Angles stay true, so a compass course is a straight line — that is why sailors used it since 1569 — but areas grow 1/cos²φ times: ×1 at the equator, ×{a60} at 60°, ×{a80} at 80°. No flat map keeps both shapes and areas true.",
+    q: "On a Mercator world map, Greenland and Africa look about the same size. How many Greenlands would fit into Africa?",
+    o1: "About 1 — the map shows them at their true sizes", o2: "About 3", o3: "About 14", o4: "About 50",
+    right: "Yes. In step 2, drag Greenland to the equator and see.",
+    wrong: "A common guess. In step 2, drag Greenland to the equator and check.",
+    rWho: "Shape", rLat: "Centre latitude", rLen: "Lengths stretched (at centre)", rArea: "Area on map ÷ true area", rTrue: "True area", rLooks: "Looks like, on this map",
+    rVs: "Africa ÷ Greenland, as drawn now", rVsTrue: "Africa ÷ Greenland, true",
+    rProj: "Map", rProbe: "Test circle at", rEW: "East–west stretch", rNS: "North–south stretch", rAF: "Area stretch", rVsHome: "Africa ÷ Greenland on this map",
+    hLat: "Latitude", hFac: "lengths ×  ·  areas ×", facRow: "×{l}  ·  ×{a}", latG: "{v} (Greenland’s centre)",
+    times: "×{v}", mkm: "{v} million km²",
+    liveMove: "{name} centred at {lat}: on this map it looks {m} times its true size.",
+    liveMerc: "Every circle stays a circle: angles and directions are true. But the circles swell toward the poles.",
+    liveEqa: "Every circle keeps its true area, but near the poles they are squashed: shapes are distorted.",
+    liveRule: "Greenland moved onto Africa at its true size. Africa is about {r} times bigger.",
+    lHome: "where it really is", lGhost: "moved, true size", lCircle: "600 km circles", lProbe: "test circle",
+    resultTitle: "What we found",
+    resultMain: "Africa ÷ Greenland = {af} ÷ {g} million km² ≈ {r}. Yet Mercator draws Greenland, which reaches from {lo} to {hi}, about {m} times too big.",
+    resultNote: "Every flat world map distorts something. Choose the projection for the job: Mercator for directions, an equal-area map for comparing sizes.",
+    explainK: "Explain it", explainQ: "A friend says Greenland is about as big as Africa, because that is how it looks on the classroom map. Explain why the map makes it look so big, and how many Greenlands really fit into Africa.",
+    homeK: "Try at home", homeQ: "Draw a few same-size circles on an orange: one near the “equator”, one near the top. Peel it and press the peel flat. Which circle tears or stretches more?",
+    foot: "Outlines: hand-drawn schematic, not survey data; areas measured on these outlines are within 3% of the accepted ones. Accepted areas: Africa 30.37 million km² (with islands), Greenland 2.166 million km², Australia 7.69 million km² (with Tasmania). Mercator: x = λ, y = ln tan(45° + φ/2), scale 1/cos φ in every direction. Equal-area: Gall–Peters (standard parallels 45°), x = λ·cos 45°, y = sin φ / cos 45°. Shapes are moved over the globe by a rotation, so their true area does not change. Circles: geodesic, radius 600 km; Earth radius 6371 km. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "格陵兰岛有非洲那么大吗？", eyebrow: "地理 · 阶段 3", h1: "把圆的地球摊成平的地图，总得拉伸些什么",
+    intro: "常见的世界地图上，格陵兰岛看起来和非洲一样大。把格陵兰拖到赤道，看看它真正有多大。",
+    reset: "重置", slideGo: "滑到赤道", slideStop: "停",
+    mapAria: "示意世界地图。第 2 步拖动一个形状，或用方向键移动选中的形状（按住 Shift 走得更远）。第 3 步用上下方向键移动测试圆。",
+    capMerc: "示意轮廓 · 墨卡托投影，南纬 66° 至北纬 84.5°", capEqa: "示意轮廓 · 等积投影（高尔–彼得斯），南纬 66° 至北纬 84.5°",
+    tagMerc: "墨卡托", tagEqa: "等积",
+    pickLabel: "移动：", latLabel: "中心在", projLabel: "地图：", pMerc: "墨卡托", pEqa: "等积", probeLabel: "测试圆在",
+    nG: "格陵兰岛", nAf: "非洲", nAu: "澳大利亚",
+    N: "北纬 {v}°", S: "南纬 {v}°", EQ: "0°（赤道）",
+    s1: "先猜", s2: "拖一拖", s3: "为什么", s4: "规律",
+    k1: "先猜一猜", t1: "非洲里能放下几个格陵兰岛？",
+    b1: "这张图上，格陵兰岛（上方）和非洲（中间）看起来差不多大。先选一个答案，再到第 2 步验证。",
+    k2: "动手", t2: "把格陵兰往南挪",
+    b2: "拖动格陵兰岛（或用滑块、方向键），一直挪到赤道、非洲旁边。形状是在地球仪上挪动的，真实大小不变，再重新画到地图上。也试试非洲和澳大利亚：把非洲往北拖，看它怎么膨胀。",
+    k3: "为什么", t3: "一样大的圆",
+    b3: "这里每个圆在地球上真实大小都一样：从圆心到边 600 千米。墨卡托地图让它们保持圆形，却越靠近两极放得越大。换成等积地图：每个圆都保住了面积，但靠近两极时被压扁了。",
+    k4: "规律", t4: "墨卡托地图上，面积被放大 1 ÷ cos²（纬度）倍",
+    b4: "在纬度 φ 处，墨卡托地图东西方向拉长 1/cos φ 倍，南北方向也拉长同样倍数。所以角度不变，罗盘方位是一条直线——这就是 1569 年以来航海家爱用它的原因；但面积被放大 1/cos²φ 倍：赤道 ×1，60° 处 ×{a60}，80° 处 ×{a80}。任何平面地图都无法同时保住形状和面积。",
+    q: "墨卡托世界地图上，格陵兰岛和非洲看起来差不多大。非洲里能放下几个格陵兰岛？",
+    o1: "大约 1 个——地图上就是真实大小", o2: "大约 3 个", o3: "大约 14 个", o4: "大约 50 个",
+    right: "对。到第 2 步把格陵兰拖到赤道看看。",
+    wrong: "很多人这样猜。到第 2 步把格陵兰拖到赤道验证一下。",
+    rWho: "形状", rLat: "中心纬度", rLen: "长度放大（中心处）", rArea: "地图面积 ÷ 真实面积", rTrue: "真实面积", rLooks: "在这张地图上看起来像",
+    rVs: "非洲 ÷ 格陵兰（当前画法）", rVsTrue: "非洲 ÷ 格陵兰（真实）",
+    rProj: "地图", rProbe: "测试圆在", rEW: "东西方向拉伸", rNS: "南北方向拉伸", rAF: "面积拉伸", rVsHome: "这张图上 非洲 ÷ 格陵兰",
+    hLat: "纬度", hFac: "长度 ×  ·  面积 ×", facRow: "×{l}  ·  ×{a}", latG: "{v}（格陵兰中心）",
+    times: "×{v}", mkm: "{v} 百万平方千米",
+    liveMove: "{name}中心在{lat}：在这张地图上看起来是真实大小的 {m} 倍。",
+    liveMerc: "每个圆都还是圆：角度和方向是对的。但越靠近两极，圆越大。",
+    liveEqa: "每个圆都保住了真实面积，但靠近两极时被压扁：形状变了。",
+    liveRule: "把格陵兰按真实大小挪到非洲上。非洲约是它的 {r} 倍。",
+    lHome: "真实位置", lGhost: "挪动后（真实大小）", lCircle: "600 千米的圆", lProbe: "测试圆",
+    resultTitle: "我们发现",
+    resultMain: "非洲 ÷ 格陵兰 = {af} ÷ {g} 百万平方千米 ≈ {r}。可是从{lo}一直伸到{hi}的格陵兰，在墨卡托地图上被画大了约 {m} 倍。",
+    resultNote: "任何平面世界地图都会歪曲一些东西。按用途选投影：看方向用墨卡托，比大小用等积地图。",
+    explainK: "说一说", explainQ: "朋友说格陵兰岛和非洲差不多大，因为教室墙上的地图就是这样画的。向他解释：为什么地图把格陵兰画得这么大？非洲里其实能放下几个格陵兰？",
+    homeK: "家里做一做", homeQ: "在橘子上画几个一样大的小圆：一个在“赤道”附近，一个在顶部附近。剥下橘子皮压平。哪个圆被撕开或拉得更厉害？",
+    foot: "轮廓：手绘示意，不是测绘数据；在这些轮廓上量出的面积与公认值相差不到 3%。公认面积：非洲 3037 万平方千米（含岛屿），格陵兰岛 216.6 万平方千米，澳大利亚 769 万平方千米（含塔斯马尼亚）。墨卡托投影：x = λ，y = ln tan(45° + φ/2)，各方向比例都是 1/cos φ。等积投影：高尔–彼得斯（标准纬线 45°），x = λ·cos 45°，y = sin φ / cos 45°。形状通过在球面上旋转来移动，真实面积不变。圆：球面上半径 600 千米；地球半径 6371 千米。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ===== MODEL START (pure; tested in node) ===== */
+const R = 6371, D2R = Math.PI / 180, LATT = 84.5, LATB = -66, CIRC_KM = 600;
+const AREA_KM = { G: 2.166, Af: 30.37, Au: 7.688 }; // accepted areas, million km²
+const vec = (lon, lat) => { const a = lat * D2R, b = lon * D2R, c = Math.cos(a); return [c * Math.cos(b), c * Math.sin(b), Math.sin(a)]; };
+const toLL = (v) => [Math.atan2(v[1], v[0]) / D2R, Math.asin(Math.max(-1, Math.min(1, v[2]))) / D2R];
+const wrapLon = (l) => ((l + 180) % 360 + 360) % 360 - 180;
+const unwrapLon = (l, ref) => { while (l - ref > 180) l -= 360; while (ref - l > 180) l += 360; return l; };
+const C45 = Math.cos(45 * D2R);
+const MERC = { id: "merc", x: (lon) => lon * D2R, y: (lat) => Math.log(Math.tan(Math.PI / 4 + Math.max(-89.9, Math.min(89.9, lat)) * D2R / 2)), lat: (y) => (2 * Math.atan(Math.exp(y)) - Math.PI / 2) / D2R,
+  k: (lat) => 1 / Math.cos(lat * D2R), h: (lat) => 1 / Math.cos(lat * D2R) };
+const EQA = { id: "eqa", x: (lon) => lon * D2R * C45, y: (lat) => Math.sin(lat * D2R) / C45, lat: (y) => Math.asin(Math.max(-1, Math.min(1, y * C45))) / D2R,
+  k: (lat) => C45 / Math.cos(lat * D2R), h: (lat) => Math.cos(lat * D2R) / C45 };
+const lenF = (lat) => 1 / Math.cos(Math.min(89.9, Math.abs(lat)) * D2R); // Mercator scale factor
+const areaF = (lat) => lenF(lat) * lenF(lat);
+function densify(ring, step) { // closed ring, straight in lon/lat → points at most `step`° apart
+  const out = [];
+  for (let i = 0; i < ring.length; i++) {
+    const A = ring[i], B0 = ring[(i + 1) % ring.length], B = [unwrapLon(B0[0], A[0]), B0[1]];
+    const n = Math.max(1, Math.ceil(Math.max(Math.abs(B[0] - A[0]), Math.abs(B[1] - A[1])) / step));
+    for (let k = 0; k < n; k++) out.push([A[0] + (B[0] - A[0]) * k / n, A[1] + (B[1] - A[1]) * k / n]);
+  }
+  return out;
+}
+function unwrapRing(ring) { let p; return ring.map(([lo, la]) => { const l = p === undefined ? lo : unwrapLon(lo, p); p = l; return [l, la]; }); }
+function ringArea(ring, pr) { // shoelace in projection units; on EQA this is the area on the sphere / R²
+  const u = unwrapRing(ring); let s = 0;
+  for (let i = 0; i < u.length; i++) { const a = u[i], b = u[(i + 1) % u.length]; s += pr.x(a[0]) * pr.y(b[1]) - pr.x(b[0]) * pr.y(a[1]); }
+  return Math.abs(s) / 2;
+}
+const shapeArea = (rings, pr) => rings.reduce((s, r) => s + ringArea(r, pr), 0);
+const magnify = (rings, pr) => shapeArea(rings, pr) / shapeArea(rings, EQA); // map area ÷ true area (EQA = sphere / R²)
+function areaCentre(rings) { // area-weighted centre (computed in the equal-area plane)
+  let A = 0, cx = 0, cy = 0;
+  rings.forEach((r) => { const u = unwrapRing(r); for (let i = 0; i < u.length; i++) { const a = u[i], b = u[(i + 1) % u.length];
+    const x0 = a[0], y0 = Math.sin(a[1] * D2R), x1 = b[0], y1 = Math.sin(b[1] * D2R), cr = x0 * y1 - x1 * y0; A += cr; cx += (x0 + x1) * cr; cy += (y0 + y1) * cr; } });
+  return A ? [wrapLon(cx / (3 * A)), Math.asin(Math.max(-1, Math.min(1, cy / (3 * A)))) / D2R] : [0, 0];
+}
+function rotator(c0, c1) { // Rodrigues: the rotation that carries unit vector c0 onto c1 along a great circle
+  const k = [c0[1] * c1[2] - c0[2] * c1[1], c0[2] * c1[0] - c0[0] * c1[2], c0[0] * c1[1] - c0[1] * c1[0]];
+  const s = Math.hypot(k[0], k[1], k[2]), c = Math.max(-1, Math.min(1, c0[0] * c1[0] + c0[1] * c1[1] + c0[2] * c1[2]));
+  if (s < 1e-12) return (v) => v.slice();
+  const u = k.map((x) => x / s);
+  return (v) => { const d = u[0] * v[0] + u[1] * v[1] + u[2] * v[2], x = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+    return [0, 1, 2].map((i) => v[i] * c + x[i] * s + u[i] * d * (1 - c)); };
+}
+function moveShape(rings, home, lon, lat) { const f = rotator(vec(home[0], home[1]), vec(lon, lat)); return rings.map((r) => r.map(([lo, la]) => toLL(f(vec(lo, la))))); }
+function wraps(ring) { const u = unwrapRing(ring); return Math.abs(unwrapLon(u[0][0], u[u.length - 1][0]) - u[0][0]) > 1e-6; } // true when the ring goes round a pole
+function fits(rings) { return rings.every((r) => !wraps(r) && r.every((p) => p[1] <= LATT - 0.5 && p[1] >= LATB + 0.5)); }
+function place(rings, home, from, to) { // move toward `to`; if the shape would leave the map, stop at the last position that fits
+  const at = (t) => [from[0] + (unwrapLon(to[0], from[0]) - from[0]) * t, from[1] + (to[1] - from[1]) * t];
+  let m = moveShape(rings, home, to[0], to[1]);
+  if (fits(m)) return { c: [wrapLon(to[0]), to[1]], rings: m };
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; if (fits(moveShape(rings, home, ...at(mid)))) lo = mid; else hi = mid; }
+  const c = at(lo); m = moveShape(rings, home, c[0], c[1]);
+  return { c: [wrapLon(c[0]), c[1]], rings: m };
+}
+function circle(lon, lat, km, n) { // geodesic circle of radius km → lon/lat ring
+  const d = km / R, p = lat * D2R, out = [];
+  for (let i = 0; i < n; i++) {
+    const b = 2 * Math.PI * i / n, p2 = Math.asin(Math.sin(p) * Math.cos(d) + Math.cos(p) * Math.sin(d) * Math.cos(b));
+    const l2 = lon * D2R + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(p), Math.cos(d) - Math.sin(p) * Math.sin(p2));
+    out.push([l2 / D2R, p2 / D2R]);
+  }
+  return out;
+}
+/* ===== MODEL END ===== */
+
+/* ===== SHAPES START ===== hand-drawn schematic outlines [lon, lat] */
+const SHAPES = {
+  G: [[[-73, 78], [-66, 80.5], [-58, 82], [-48, 82.7], [-40, 83.5], [-30, 83.6], [-22, 82.8], [-14, 81.8], [-17, 80], [-19, 77.5], [-19.5, 75], [-21.5, 72.5], [-22, 70.5], [-25, 69], [-30, 68.3], [-33, 67.8], [-37, 65.7], [-40, 64.5], [-41.5, 62.5], [-43.5, 60], [-46, 60.8], [-48.5, 61.5], [-50.5, 63.8], [-52.5, 66], [-54, 68.5], [-51.5, 70.3], [-55, 72.5], [-57, 74.5], [-60, 76], [-66, 76.3], [-71, 77]]],
+  Af: [[[-17.5, 14.7], [-16.3, 19], [-17, 21], [-15, 25], [-13, 27.5], [-9.8, 30], [-9.5, 32.5], [-6, 35.8], [-2, 35.1], [3, 36.8], [10, 37.3], [11, 35], [10, 33.6], [11.5, 33], [15, 32.3], [20, 30.8], [20, 32.2], [25, 32], [29.5, 31], [32.5, 31.3], [32.5, 29.9], [34, 27], [37, 21], [38.5, 18], [39.7, 15.5], [43.3, 12.5], [44, 10.5], [51.2, 11.8], [50.8, 9.5], [48, 4.5], [44, 1], [41.5, -1.8], [40, -4], [39.3, -7], [40.5, -10.5], [40.5, -15], [36.8, -18], [35.3, -22], [32.9, -26], [32.5, -28.8], [30, -31.3], [27, -33.5], [25, -34], [20, -34.8], [18.4, -34.2], [17.9, -31], [15.2, -26.7], [14.5, -22.5], [11.8, -17.2], [12.3, -13.5], [13.5, -11], [12.3, -6], [9.1, -1.3], [9.5, 2.5], [9.7, 4], [8.5, 4.5], [5, 5.8], [1, 6], [-2, 4.8], [-4.5, 5.2], [-7.5, 4.4], [-11, 6.8], [-13.3, 9], [-15.5, 11.5], [-16.7, 12.5]],
+    [[49.3, -12], [50.5, -15.5], [49.5, -17], [48, -22], [47, -25], [45, -25.5], [43.6, -23.5], [43.3, -21.5], [44.3, -18.5], [44, -16.5], [46.5, -15.8], [48, -13.5]]],
+  Au: [[[113.5, -22], [114, -26], [115, -34], [118, -35], [123, -34], [129, -31.6], [134, -32.5], [137.5, -35.5], [138.5, -34.5], [140, -37.8], [144, -38.3], [146.4, -39.1], [150, -37.5], [151.3, -33.9], [153.3, -28], [153, -25], [150.5, -22.4], [146.3, -19], [145.4, -15], [143.5, -14], [142.5, -10.7], [141.5, -13.5], [141.5, -17], [140, -17.6], [136.5, -15.5], [136.5, -12], [132, -11.3], [130, -13], [129, -15], [126, -14], [122, -17.5], [121, -19.5], [117, -20.6], [114, -21.8]],
+    [[144.7, -40.7], [148.3, -40.9], [148, -43.2], [146.5, -43.6], [145.2, -42.2]]],
+};
+const LAND = [ // context only
+  [[-165, 68], [-140, 70], [-110, 72], [-85, 72], [-80, 63], [-95, 58], [-78, 52], [-65, 60], [-55, 52], [-66, 44], [-76, 35], [-81, 30], [-80, 25], [-90, 29], [-97, 26], [-97, 20], [-87, 21], [-84, 15], [-78, 8], [-82, 8], [-92, 15], [-105, 20], [-112, 30], [-117, 32], [-124, 40], [-124, 48], [-135, 58], [-150, 60], [-165, 60]],
+  [[-80, 73], [-68, 70], [-62, 66], [-66, 62], [-75, 64], [-80, 68]],
+  [[-80, 9], [-72, 12], [-60, 10], [-50, 0], [-35, -5], [-39, -15], [-48, -26], [-58, -38], [-65, -42], [-68, -52], [-74, -52], [-73, -40], [-71, -30], [-70, -18], [-76, -14], [-81, -5], [-80, 1], [-77, 8]],
+  [[-9, 37], [-9, 44], [0, 46], [-4, 48], [2, 51], [8, 54], [10, 58], [5, 62], [15, 69], [28, 71], [40, 67], [60, 70], [80, 73], [100, 77], [115, 74], [140, 72], [160, 70], [180, 66], [190, 66], [180, 62], [163, 60], [155, 52], [143, 59], [137, 54], [140, 48], [132, 43], [127, 39], [126, 35], [121, 31], [122, 25], [110, 21], [108, 16], [109, 12], [105, 9], [100, 13], [100, 7], [104, 1], [98, 8], [97, 17], [92, 22], [86, 20], [80, 15], [77, 8], [73, 18], [67, 24], [57, 26], [56, 23], [59, 22], [52, 16], [43, 12], [39, 20], [35, 28], [34, 31], [36, 36], [30, 36], [27, 37], [26, 40], [23, 36], [20, 40], [19, 42], [13, 45], [17, 40], [16, 38], [12, 42], [8, 44], [3, 43], [0, 38], [-6, 36]],
+  [[130, 31], [135, 34], [140, 36], [142, 40], [141, 45], [145, 44], [141, 38], [140, 35], [131, 33]],
+  [[95, 5], [104, -6], [106, -6], [98, 2]], [[109, 1], [117, 7], [119, 1], [116, -4], [110, -3]], [[131, -1], [141, -3], [150, -10], [141, -9]],
+  [[106, -6], [114, -8], [114, -8.8], [106, -7]], [[120, 18], [122, 18], [126, 7], [122, 7]],
+  [[172, -34], [178, -38], [174, -41], [167, -46], [171, -44]], [[-5, 50], [2, 51], [-2, 57], [-6, 58], [-5, 54]],
+  [[-24, 65], [-14, 66], [-14, 64], [-22, 63]],
+];
+/* ===== SHAPES END ===== */
+
+const IDS = ["G", "Af", "Au"];
+const DENSE = {}, HOME = {};
+IDS.forEach((id) => { DENSE[id] = SHAPES[id].map((r) => densify(r, 1)); HOME[id] = areaCentre(DENSE[id]); });
+const LANDD = LAND.map((r) => densify(r, 2));
+const TRUE_RATIO = AREA_KM.Af / AREA_KM.G;
+const G_LAT = (() => { const l = DENSE.G[0].map((p) => p[1]); return [Math.min(...l), Math.max(...l)]; })();
+const RULE_SPOT = [20, 5]; // where step 4 drops Greenland: on top of Africa
+
+/* ---------- state ---------- */
+const $ = (id) => document.getElementById(id);
+const map = $("map"), latEl = $("lat"), probeEl = $("probe");
+const S = { step: 0, sel: "G", proj: "merc", probe: 60, pos: {}, rings: {} };
+function resetPos() { IDS.forEach((id) => { S.pos[id] = HOME[id].slice(); S.rings[id] = DENSE[id]; }); }
+resetPos();
+function moveTo(id, lon, lat) { const r = place(DENSE[id], HOME[id], S.pos[id], [lon, lat]); S.pos[id] = r.c; S.rings[id] = r.rings; }
+
+/* ---------- projection to the SVG ---------- */
+let PR = MERC, VW = 628, VH = 487, SC = 100, X0 = 0, Y0 = 0, K = 1;
+function setProj(pr) {
+  PR = pr;
+  SC = 628.32 / (pr.x(180) - pr.x(-180)); X0 = pr.x(-180); Y0 = pr.y(LATT);
+  VW = 628; VH = Math.round((Y0 - pr.y(LATB)) * SC);
+  map.setAttribute("viewBox", `0 0 ${VW} ${VH}`);
+}
+const sx = (lon) => (PR.x(lon) - X0) * SC, sy = (lat) => (Y0 - PR.y(lat)) * SC;
+function ringPath(ring) {
+  const u = unwrapRing(ring);
+  return { d: u.map(([lo, la], i) => (i ? "L" : "M") + sx(lo).toFixed(1) + " " + sy(la).toFixed(1)).join("") + "Z", lo: Math.min(...u.map((p) => sx(p[0]))), hi: Math.max(...u.map((p) => sx(p[0]))) };
+}
+function drawRings(parent, rings, attrs) {
+  const g = Play.svg("g", attrs, parent);
+  rings.forEach((r) => { const p = ringPath(r); [-VW, 0, VW].forEach((o) => { if (p.hi + o >= -2 && p.lo + o <= VW + 2) Play.svg("path", { d: p.d, transform: o ? `translate(${o} 0)` : "" }, g); }); });
+  return g;
+}
+function txt(parent, x, y, s, cls) {
+  const t = Play.svg("text", { x, y, class: cls || "lb halo", "text-anchor": "middle" }, parent);
+  t.textContent = s;
+  let w = 0; try { w = t.getComputedTextLength(); } catch (e) { w = 0; }
+  if (w > 0) t.setAttribute("x", Play.clamp(x, w / 2 + 3 * K, VW - w / 2 - 3 * K).toFixed(1));
+  return t;
+}
+function measure() { const w = map.getBoundingClientRect().width; K = w > 0 ? VW / w : 1; map.style.setProperty("--k", Play.fmt(K, 3)); }
+const latName = (lat) => { const v = Math.round(lat); return v === 0 ? P.t("EQ") : P.t(v > 0 ? "N" : "S", { v: Math.abs(v) }); };
+const x1 = (v) => P.t("times", { v: Play.fmt(v, v < 10 ? 1 : 0) });
+
+function drawMap() {
+  map.innerHTML = "";
+  Play.svg("rect", { x: 0, y: 0, width: VW, height: VH, fill: "var(--c)", opacity: 0.12 }, map);
+  for (let lon = -150; lon < 180; lon += 30) Play.svg("line", { x1: sx(lon), x2: sx(lon), y1: 0, y2: VH, stroke: "var(--line)", "stroke-width": 0.6 * K }, map);
+  const GRID = [-60, -30, 0, 30, 60, 80];
+  GRID.forEach((lat) => Play.svg("line", { x1: 0, x2: VW, y1: sy(lat), y2: sy(lat), stroke: "var(--line)", "stroke-width": (lat ? 0.6 : 1.3) * K }, map));
+  const gridLabels = () => { let last = 1e9; GRID.forEach((lat) => { // skip a label that would collide with the one below it or the top edge
+    const y = sy(lat) - 3 * K; if (last - y < 15 * K || y < 13 * K) return;
+    const t = Play.svg("text", { x: 3 * K, y, class: "lb halo", "text-anchor": "start" }, map);
+    t.textContent = lat === 0 ? "0°" : Math.abs(lat) + "°" + (lat > 0 ? "N" : "S"); last = y; }); };
+  drawRings(map, LANDD, { fill: "var(--soft)", stroke: "var(--muted)", "stroke-width": 0.7 * K, "stroke-linejoin": "round" });
+  const homeStyle = (col) => ({ fill: col, "fill-opacity": 0.28, stroke: col, "stroke-width": 1.1 * K, "stroke-linejoin": "round" });
+  const COL = { G: "var(--b)", Af: "var(--c)", Au: "var(--h)" };
+  if (S.step === 0) {
+    IDS.forEach((id) => drawRings(map, DENSE[id], homeStyle(COL[id])));
+    IDS.forEach((id) => txt(map, sx(HOME[id][0]), sy(HOME[id][1]) + 4 * K, P.t("n" + id), "lbf halo"));
+    gridLabels();
+    return;
+  }
+  if (S.step === 2) {
+    ["G", "Af"].forEach((id) => drawRings(map, DENSE[id], homeStyle(COL[id])));
+    const cg = Play.svg("g", {}, map);
+    [-60, -40, -20, 0, 20, 40, 60, 75].forEach((lat) => { for (let lon = -150; lon <= 150; lon += 60) drawRings(cg, [circle(lon, lat, CIRC_KM, 48)], { fill: "var(--fg)", "fill-opacity": 0.08, stroke: "var(--fg)", "stroke-width": 1 * K, "stroke-opacity": 0.7 }); });
+    drawRings(map, [circle(-30, S.probe, CIRC_KM, 64)], { fill: "var(--a)", "fill-opacity": 0.35, stroke: "var(--a)", "stroke-width": 2.2 * K });
+    gridLabels();
+    return;
+  }
+  // step 2 (drag) and step 4 (rule): homes dashed, moved shapes filled
+  const show = S.step === 3 ? ["G", "Af"] : IDS;
+  show.forEach((id) => {
+    const moved = Math.abs(S.pos[id][0] - HOME[id][0]) + Math.abs(S.pos[id][1] - HOME[id][1]) > 0.01;
+    drawRings(map, DENSE[id], { fill: "none", stroke: COL[id], "stroke-width": 1.2 * K, "stroke-dasharray": `${4 * K} ${3 * K}`, opacity: moved ? 0.9 : 0 });
+  });
+  const order = S.step === 3 ? ["Af", "G"] : IDS.filter((id) => id !== S.sel).concat(S.sel);
+  order.forEach((id) => {
+    const on = S.step === 1 && id === S.sel;
+    const g = drawRings(map, S.rings[id], { class: S.step === 1 ? "ghost" : "", "data-id": id, fill: COL[id], "fill-opacity": on ? 0.6 : 0.4, stroke: on ? "var(--fg)" : COL[id], "stroke-width": (on ? 1.8 : 1.1) * K, "stroke-linejoin": "round" });
+    g.dataset.id = id;
+  });
+  order.forEach((id) => { // label just above the shape's top, so overlapping shapes keep readable names
+    const top = Math.max(...S.rings[id].flat().map((p) => p[1]));
+    txt(map, sx(S.pos[id][0]), Math.max(14 * K, sy(top) - 4 * K), P.t("n" + id), id === S.sel && S.step === 1 ? "lbf halo" : "lb halo");
+  });
+  gridLabels();
+}
+
+function legendHTML() {
+  const L = [];
+  const sw = (col, op, s) => `<span><span class="line" style="background:${col};opacity:${op}"></span>${s}</span>`;
+  if (S.step === 1 || S.step === 3) { L.push(`<span><span class="line" style="height:0;border-top:2px dashed var(--muted)"></span>${P.t("lHome")}</span>`); L.push(sw("var(--b)", 1, P.t("lGhost"))); }
+  if (S.step === 2) { L.push(sw("var(--fg)", 0.6, P.t("lCircle"))); L.push(sw("var(--a)", 1, P.t("lProbe"))); }
+  $("legend").innerHTML = L.join("");
+}
+
+function row(dt, dd, cls) { return `<dt${cls ? ` class="${cls}"` : ""}>${dt}</dt><dd${cls ? ` class="${cls}"` : ""}>${dd}</dd>`; }
+const mags = (pr) => { const m = {}; IDS.forEach((id) => (m[id] = magnify(S.rings[id], pr))); return m; };
+function render() {
+  setProj(S.step === 2 && S.proj === "eqa" ? EQA : MERC);
+  measure();
+  $("rowPick").hidden = S.step !== 1; $("rowLat").hidden = S.step !== 1;
+  $("rowProj").hidden = S.step !== 2; $("rowProbe").hidden = S.step !== 2;
+  map.classList.toggle("drag", S.step === 1);
+  $("mapCap").textContent = P.t(PR === EQA ? "capEqa" : "capMerc");
+  $("projTag").textContent = "";
+  $("pick").querySelectorAll("button").forEach((b) => { const on = b.dataset.id === S.sel; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+  $("pMerc").classList.toggle("on", S.proj === "merc"); $("pEqa").classList.toggle("on", S.proj === "eqa");
+  $("pMerc").setAttribute("aria-pressed", S.proj === "merc"); $("pEqa").setAttribute("aria-pressed", S.proj === "eqa");
+  latEl.value = Math.round(S.pos[S.sel][1]); $("latVal").textContent = latName(S.pos[S.sel][1]);
+  probeEl.value = S.probe; $("probeVal").textContent = latName(S.probe);
+  drawMap(); legendHTML();
+
+  let html = "", live = "";
+  if (S.step === 1) {
+    const id = S.sel, lat = S.pos[id][1], M = mags(MERC);
+    const vs = (AREA_KM.Af * M.Af) / (AREA_KM.G * M.G);
+    html = row(P.t("rWho"), P.t("n" + id)) + row(P.t("rLat"), latName(lat)) + row(P.t("rLen"), x1(lenF(lat))) + row(P.t("rArea"), x1(M[id]))
+      + row(P.t("rTrue"), P.t("mkm", { v: Play.fmt(AREA_KM[id], 2) })) + row(P.t("rLooks"), P.t("mkm", { v: Play.fmt(AREA_KM[id] * M[id], 1) }))
+      + row(P.t("rVs"), x1(vs)) + row(P.t("rVsTrue"), x1(TRUE_RATIO));
+    live = P.t("liveMove", { name: P.t("n" + id), lat: latName(lat), m: Play.fmt(M[id], 1) });
+  } else if (S.step === 2) {
+    const pr = S.proj === "eqa" ? EQA : MERC, k = pr.k(S.probe), h = pr.h(S.probe);
+    const mG = magnify(DENSE.G, pr), mA = magnify(DENSE.Af, pr);
+    html = row(P.t("rProj"), P.t(pr === EQA ? "pEqa" : "pMerc")) + row(P.t("rProbe"), latName(S.probe)) + row(P.t("rEW"), x1(k)) + row(P.t("rNS"), x1(h)) + row(P.t("rAF"), x1(k * h))
+      + row(P.t("rVsHome"), x1((AREA_KM.Af * mA) / (AREA_KM.G * mG))) + row(P.t("rVsTrue"), x1(TRUE_RATIO));
+    live = P.t(pr === EQA ? "liveEqa" : "liveMerc");
+  } else if (S.step === 3) {
+    html = row(P.t("hLat"), P.t("hFac"), "hd");
+    const lg = HOME.G[1];
+    [[0], [20], [40], [60], [lg, true], [80]].forEach(([lat, g]) => { html += row(g ? P.t("latG", { v: latName(lat) }) : latName(lat), P.t("facRow", { l: Play.fmt(lenF(lat), 2), a: Play.fmt(areaF(lat), 1) })); });
+    live = P.t("liveRule", { r: Play.fmt(TRUE_RATIO, 1) });
+  }
+  $("read").innerHTML = html; $("read").hidden = !html;
+  if (S.step === 3) $("stepBody").textContent = P.t("b4", { a60: Play.fmt(areaF(60), 0), a80: Play.fmt(areaF(80), 0) });
+  Play.live($("live"), live);
+  const mG = magnify(DENSE.G, MERC);
+  $("resultMain").textContent = P.t("resultMain", { af: Play.fmt(AREA_KM.Af, 2), g: Play.fmt(AREA_KM.G, 3), r: Play.fmt(TRUE_RATIO, 1), lo: latName(G_LAT[0]), hi: latName(G_LAT[1]), m: Play.fmt(mG, 0) });
+}
+
+/* ---------- interaction ---------- */
+IDS.forEach((id) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.dataset.id = id; b.textContent = P.t("n" + id);
+  b.addEventListener("click", () => { stopAnim(); S.sel = id; render(); });
+  $("pick").appendChild(b);
+});
+let anim = 0;
+const slideBtn = $("slide");
+function stopAnim() { if (anim) cancelAnimationFrame(anim); anim = 0; slideBtn.textContent = P.t("slideGo"); }
+slideBtn.addEventListener("click", () => {
+  if (anim) { stopAnim(); return; }
+  const id = S.sel, from = S.pos[id].slice(), to = [from[0], 0];
+  if (Play.reduced) { moveTo(id, to[0], to[1]); render(); return; }
+  const t0 = performance.now(), dur = 1800;
+  slideBtn.textContent = P.t("slideStop");
+  const f = (now) => {
+    const t = Math.min(1, (now - t0) / dur), e = t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
+    moveTo(id, from[0], from[1] + (to[1] - from[1]) * e); render();
+    if (t < 1) anim = requestAnimationFrame(f); else stopAnim();
+  };
+  anim = requestAnimationFrame(f);
+});
+latEl.addEventListener("input", () => { stopAnim(); moveTo(S.sel, S.pos[S.sel][0], Play.clamp(+latEl.value, -60, 80)); render(); });
+probeEl.addEventListener("input", () => { S.probe = Play.clamp(Math.round(+probeEl.value), -60, 80); render(); });
+$("pMerc").addEventListener("click", () => { S.proj = "merc"; render(); });
+$("pEqa").addEventListener("click", () => { S.proj = "eqa"; render(); });
+
+const toLonLat = (p) => [(p.x / SC + X0) / D2R / (PR === EQA ? C45 : 1), PR.lat(Y0 - p.y / SC)];
+let drag = null;
+map.addEventListener("pointerdown", (e) => {
+  if (S.step !== 1) return;
+  const g = e.target.closest && e.target.closest("g[data-id]");
+  if (!g) return;
+  stopAnim();
+  S.sel = g.dataset.id;
+  const p = Play.pointer(map, e);
+  drag = { id: S.sel, off: [p.x - sx(S.pos[S.sel][0]), p.y - sy(S.pos[S.sel][1])] };
+  try { map.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  e.preventDefault();
+  render();
+});
+map.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = Play.pointer(map, e);
+  const c = toLonLat({ x: Play.clamp(p.x - drag.off[0], 0, VW), y: Play.clamp(p.y - drag.off[1], 0, VH) });
+  // keep longitude continuous with the current position so the shape does not jump across the date line
+  moveTo(drag.id, unwrapLon(c[0], S.pos[drag.id][0]), Play.clamp(c[1], -60, 80));
+  render();
+});
+const endDrag = () => { drag = null; };
+map.addEventListener("pointerup", endDrag);
+map.addEventListener("pointercancel", endDrag);
+map.addEventListener("keydown", (e) => {
+  const big = e.shiftKey ? 10 : 2;
+  const dir = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+  if (!dir) return;
+  if (S.step === 1) { stopAnim(); const c = S.pos[S.sel]; moveTo(S.sel, c[0] + dir[0] * big, Play.clamp(c[1] + dir[1] * big, -60, 80)); render(); e.preventDefault(); }
+  else if (S.step === 2 && dir[1]) { S.probe = Play.clamp(S.probe + dir[1] * (e.shiftKey ? 10 : 5), -60, 80); render(); e.preventDefault(); }
+});
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }, { label: P.t("o4") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  stopAnim(); drag = null;
+  S.step = i;
+  if (i === 3) moveTo("G", RULE_SPOT[0], RULE_SPOT[1]);
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  stopAnim(); drag = null;
+  Object.assign(S, { sel: "G", proj: "merc", probe: 60 }); resetPos();
+  pr.reset(); st.go(0);
+});
+if ("ResizeObserver" in window) new ResizeObserver(() => { const old = K; measure(); if (Math.abs(old - K) > 0.01) render(); }).observe(map);
+stopAnim();
+render();
+</script>
+</body>
+</html>

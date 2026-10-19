@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One artificial neuron learns to sort</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .pane { padding: 14px; display: grid; gap: 10px; min-width: 0; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 12px; color: var(--muted); font-weight: 650; margin-right: 2px; }
+  button.primary { background: var(--a); color: var(--surface); border-color: var(--a); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .preset.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+  .msg.ok { font-weight: 650; }
+  .msg.ok::before { content: "✓ "; color: var(--a); font-weight: 800; }
+  svg.fig { width: 100%; display: block; touch-action: none; }
+  svg.fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  #plot { height: 340px; }
+  #passes { height: 96px; }
+  @media (max-width: 560px) { #plot { height: 290px; } }
+  .ax { stroke: var(--line); stroke-width: 1; }
+  .axs { stroke: var(--muted); stroke-width: 1.5; }
+  .axt { fill: var(--muted); font: 13px var(--font); }
+  .axl { fill: var(--fg); font: 650 13px var(--font); }
+  .yes { fill: var(--a); opacity: .13; }
+  .bline { stroke: var(--fg); stroke-width: 2.5; }
+  .pt1 { fill: var(--a); stroke: var(--surface); stroke-width: 1.5; }
+  .pt0 { fill: var(--c); stroke: var(--surface); stroke-width: 1.5; }
+  .wrongring { fill: none; stroke: var(--no); stroke-width: 2.5; }
+  .selring { fill: none; stroke: var(--hl); stroke-width: 3; }
+  .hit { fill: transparent; cursor: grab; }
+  .bar { fill: var(--no); }
+  .bar.zero { fill: var(--a); }
+  .zlab { fill: var(--a); font: 700 13px var(--font); }
+  .sl { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) 4.2em; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+  .sl label { font-family: var(--math); font-size: 16px; color: var(--fg); }
+  .sl .val { font-family: var(--math); color: var(--fg); font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; }
+  .stat { font-size: 14px; color: var(--muted); }
+  .stat b { color: var(--fg); font-size: 18px; font-variant-numeric: tabular-nums; }
+  #calc { width: 100%; max-width: 360px; height: auto; display: block; margin: 2px 0 8px; }
+  .nd { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5; }
+  .nd.on { fill: var(--a); stroke: var(--a); }
+  .ed { stroke: var(--muted); stroke-width: 1.5; }
+  .ct { fill: var(--fg); font: 13px var(--font); font-variant-numeric: tabular-nums; }
+  .ctb { fill: var(--fg); font: 700 14px var(--font); font-variant-numeric: tabular-nums; }
+  .cto { fill: var(--surface); font: 700 13px var(--font); }
+  .upd { font-size: 13px; color: var(--muted); margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+  .upd b { color: var(--fg); }
+  .big { font-family: var(--math); font-size: 18px; margin: 2px 0 10px; color: var(--fg); overflow-wrap: anywhere; }
+  .shape { display: inline-block; width: 9px; height: 9px; margin-right: 5px; vertical-align: 0; }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="pane">
+        <div class="row" id="dataRow"><span class="lbl" data-t="dataLbl"></span><span id="dataBtns"></span><button type="button" class="small" id="newData" data-t="newData"></button></div>
+        <div class="row" id="storyRow" hidden><span class="lbl" data-t="storyLbl"></span><span id="storyBtns"></span></div>
+        <svg class="fig" id="plot" tabindex="0" role="img" data-t-aria="plotAria"></svg>
+        <div class="legend"><span><span class="shape" style="background:var(--a);border-radius:50%"></span><span id="leg1"></span></span><span><span class="shape" style="background:var(--c)"></span><span id="leg0"></span></span><span><span class="shape" style="background:var(--a);opacity:.3"></span><span data-t="legYes"></span></span><span><span class="shape" style="border:2px solid var(--no);border-radius:50%"></span><span data-t="legWrong"></span></span></div>
+        <div id="sliders" style="display:grid;gap:4px">
+          <div class="sl"><label for="w1">w₁</label><input type="range" id="w1"><span class="val" id="w1v"></span></div>
+          <div class="sl"><label for="w2">w₂</label><input type="range" id="w2"><span class="val" id="w2v"></span></div>
+          <div class="sl"><label for="b">b</label><input type="range" id="b"><span class="val" id="bv"></span></div>
+        </div>
+        <p class="msg" id="wrongMsg"></p>
+        <div id="learnBox" hidden style="display:grid;gap:8px;min-width:0">
+          <div class="row">
+            <button type="button" id="one" data-t="one"></button>
+            <button type="button" id="pass" data-t="pass"></button>
+            <button type="button" class="primary" id="auto"></button>
+            <button type="button" id="zero" data-t="zero"></button>
+          </div>
+          <div class="row"><span class="stat"><span data-t="passLbl"></span> <b id="nPass">0</b></span><span class="stat"><span data-t="nudgeLbl"></span> <b id="nNudge">0</b></span></div>
+          <svg class="fig" id="passes" role="img" data-t-aria="passAria"></svg>
+          <p class="msg" id="learnMsg"></p>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <svg id="calc" viewBox="0 0 360 132" role="img" data-t-aria="calcAria"></svg>
+      <p class="upd" id="upd"></p>
+      <div class="big" id="big"></div>
+      <p id="extra"></p>
+      <p class="note" id="keys" data-t="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure neuron logic (no DOM), checked in node.
+   Inputs: x = sweetness, y = size, both on a 0–10 scale. Target t = 1 (like) or 0 (don't like).
+   Neuron: s = w1·x + w2·y + b; output o = 1 when s > 0, else 0 (a step at threshold 0; b = −threshold).
+   Perceptron rule (Rosenblatt 1958), one point at a time: w1 += η(t − o)x, w2 += η(t − o)y, b += η(t − o).
+   On data that one line can separate it stops making mistakes after finitely many updates (Novikoff 1962);
+   on XOR it never does (Minsky & Papert 1969). */
+function mulberry32(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const ETA = 0.1, LO = 0, HI = 10;
+const r1 = (v) => Math.round(v * 10) / 10;           // inputs live on a 0.1 grid
+const rw = (v) => Math.round(v * 1e6) / 1e6;          // weights: kill float dust (η·x is on a 0.01 grid)
+const sum = (w, p) => w.w1 * p.x + w.w2 * p.y + w.b;
+const out = (w, p) => (sum(w, p) > 1e-9 ? 1 : 0);
+function shuffle(a, rnd) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+/* n points one straight line can separate, with a gap of ≥ gap around a hidden "taste" line. */
+function makeFruit(seed, n = 16, gap = 0.8) {
+  const rnd = mulberry32(seed);
+  const ang = (0.08 + 0.27 * rnd()) * Math.PI;         // normal direction: sweeter → like, bigger → less so
+  const nx = Math.cos(ang), ny = -Math.sin(ang);
+  const cx = 4.2 + 1.6 * rnd(), cy = 4.2 + 1.6 * rnd();
+  const pts = [];
+  let guard = 0;
+  while (pts.length < n && guard++ < 5000) {
+    const x = r1(0.6 + 8.8 * rnd()), y = r1(0.6 + 8.8 * rnd());
+    const d = (x - cx) * nx + (y - cy) * ny;
+    if (Math.abs(d) < gap) continue;
+    const t = d > 0 ? 1 : 0;
+    const k = pts.filter((p) => p.t === t).length;
+    if (k >= Math.ceil(n * 0.6)) continue;               // keep the two kinds roughly balanced
+    if (pts.some((p) => Math.hypot(p.x - x, p.y - y) < 0.9)) continue;
+    pts.push({ x, y, t });
+  }
+  return pts;
+}
+/* XOR: like = sweet-and-small or sour-and-big; dislike = both high or both low. */
+function makeXor(seed, n = 16) {
+  const rnd = mulberry32(seed);
+  const C = [[2.5, 2.5, 0], [7.5, 7.5, 0], [2.5, 7.5, 1], [7.5, 2.5, 1]];
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const [cx, cy, t] = C[i % 4];
+    pts.push({ x: r1(cx + (rnd() * 2 - 1) * 1.6), y: r1(cy + (rnd() * 2 - 1) * 1.6), t });
+  }
+  return shuffle(pts, rnd);
+}
+/* One learning step on point p. Mutates w; returns what happened. */
+function learnOne(w, p, eta = ETA) {
+  const s = sum(w, p), o = out(w, p), d = p.t - o, before = { w1: w.w1, w2: w.w2, b: w.b };
+  if (d !== 0) { w.w1 = rw(w.w1 + eta * d * p.x); w.w2 = rw(w.w2 + eta * d * p.y); w.b = rw(w.b + eta * d); }
+  return { s, o, d, before, after: { w1: w.w1, w2: w.w2, b: w.b } };
+}
+/* One pass over all points in order; returns the number of mistakes made during the pass. */
+function onePass(w, pts, eta = ETA) { let m = 0; for (const p of pts) if (learnOne(w, p, eta).d !== 0) m++; return m; }
+/* Train until a pass has no mistakes or maxPasses is reached. */
+function train(w, pts, eta = ETA, maxPasses = 100) {
+  const per = [];
+  let updates = 0;
+  while (per.length < maxPasses) {
+    const m = onePass(w, pts, eta);
+    per.push(m); updates += m;
+    if (m === 0) break;
+  }
+  return { per, updates, converged: per.length > 0 && per[per.length - 1] === 0 };
+}
+const wrongCount = (w, pts) => pts.filter((p) => out(w, p) !== p.t).length;
+/* Part of the box [LO,HI]² where s > 0, as a polygon (Sutherland–Hodgman with one half-plane). */
+function yesRegion(w) {
+  const box = [[LO, LO], [HI, LO], [HI, HI], [LO, HI]], f = (q) => w.w1 * q[0] + w.w2 * q[1] + w.b, res = [];
+  for (let i = 0; i < 4; i++) {
+    const a = box[i], c = box[(i + 1) % 4], fa = f(a), fc = f(c);
+    if (fa > 0) res.push(a);
+    if ((fa > 0) !== (fc > 0) && fa !== fc) { const k = fa / (fa - fc); res.push([a[0] + k * (c[0] - a[0]), a[1] + k * (c[1] - a[1])]); }
+  }
+  return res;
+}
+/* The line s = 0 inside the box, as [[x,y],[x,y]], or null if it misses the box or w1 = w2 = 0. */
+function lineInBox(w) {
+  if (Math.abs(w.w1) < 1e-12 && Math.abs(w.w2) < 1e-12) return null;
+  const P = [];
+  const add = (x, y) => { if (x >= LO - 1e-9 && x <= HI + 1e-9 && y >= LO - 1e-9 && y <= HI + 1e-9 && !P.some((q) => Math.hypot(q[0] - x, q[1] - y) < 1e-7)) P.push([x, y]); };
+  if (Math.abs(w.w2) > 1e-12) { add(LO, -(w.w1 * LO + w.b) / w.w2); add(HI, -(w.w1 * HI + w.b) / w.w2); }
+  if (Math.abs(w.w1) > 1e-12) { add(-(w.w2 * LO + w.b) / w.w1, LO); add(-(w.w2 * HI + w.b) / w.w1, HI); }
+  return P.length >= 2 ? [P[0], P[1]] : null;
+}
+/* Fewest mistakes of any straight line, by search: 180 directions (1° apart), and for each every cut
+   between the points' positions along it, both ways round. A search, not a proof. */
+function bestLine(pts) {
+  let best = pts.length;
+  for (let a = 0; a < 180 && best > 0; a++) {
+    const c = Math.cos(a * Math.PI / 180), s = Math.sin(a * Math.PI / 180);
+    const proj = pts.map((p) => ({ v: c * p.x + s * p.y, t: p.t })).sort((u, v) => u.v - v.v);
+    for (let k = 0; k <= proj.length; k++) {              // cut between sorted projections, both orientations
+      let m1 = 0;
+      for (let i = 0; i < proj.length; i++) m1 += (i < k ? proj[i].t : 1 - proj[i].t);
+      best = Math.min(best, m1, proj.length - m1);
+    }
+  }
+  return best;
+}
+if (typeof module !== "undefined") module.exports = { mulberry32, ETA, r1, rw, sum, out, makeFruit, makeXor, learnOne, onePass, train, wrongCount, yesRegion, lineInBox, bestLine };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "One artificial neuron learns to sort", eyebrow: "Computing · Stage 4",
+    h1: "One artificial neuron draws one straight line, and learns by fixing its mistakes",
+    intro: "Each dot is a fruit with two numbers. Set the neuron’s three numbers by hand, then let it learn from its own mistakes.",
+    reset: "Reset", s1: "Guess", s2: "By hand", s3: "Learn", s4: "Rule",
+    dataLbl: "Data", fruitBtn: "Fruit", xorBtn: "XOR fruit", newData: "New data", storyLbl: "Story",
+    storyFruit: "Fruit", storyPlant: "Plants",
+    plotAria: "Scatter plot of points in two colours with the neuron’s straight dividing line. Drag a point to move it; with the plot focused, N and P pick a point and the arrow keys move it.",
+    passAria: "Bar chart: mistakes in each pass through the data",
+    calcAria: "The neuron for the chosen point: two inputs times their weights, plus b, compared with 0",
+    legYes: "neuron says yes", legWrong: "on the wrong side",
+    ax1Fruit: "sweetness", ax2Fruit: "size", c1Fruit: "liked", c0Fruit: "not liked", yesFruit: "like", noFruit: "don’t like",
+    ax1Plant: "sunlight", ax2Plant: "water", c1Plant: "thrived", c0Plant: "wilted", yesPlant: "thrive", noPlant: "wilt",
+    one: "Learn 1 point", pass: "Learn 1 pass", zero: "Start from 0", play: "Auto ▶", pause: "Pause ❚❚",
+    passLbl: "Passes", nudgeLbl: "Nudges",
+    k1: "Predict first", t1: "Does it need to know what a fruit is?",
+    q: "A program learns to split these 16 fruits into “liked” and “not liked” and gets every one right. Does it have to understand what a fruit is?",
+    o1: "Yes: it must know what fruit is and why people like it", o2: "No: two numbers per fruit and a way to fix mistakes are enough", o3: "It needs a photo of each fruit",
+    right: "Right. The neuron on this page only ever sees two numbers per fruit: no name, no picture, no taste. Go to step 2.",
+    wrong: "Most people expect that. Keep going: the neuron here only ever gets two numbers per fruit, and it still gets all 16 right.",
+    b1: "Each dot is one fruit someone tasted: → how sweet it is (0–10), ↑ how big it is (0–10). Round = liked, square = not liked. The shaded side is where the neuron says “like”; red rings are fruits it gets wrong.",
+    k2: "Hands on", t2: "Turn the three knobs until no dot is on the wrong side",
+    b2: "The neuron multiplies sweetness by w₁ and size by w₂, adds b, and says yes when the total is above 0. Whatever you set, the border between yes and no is a straight line. Tap a dot to see its sum; drag a dot to move it.",
+    k3: "Hands on", t3: "Let it learn from its mistakes",
+    b3: "It goes through the fruits one at a time. Right answer: nothing changes. It said no to a liked fruit: add 0.1 × each input to that input’s weight, and 0.1 to b. It said yes to a disliked one: subtract instead. One pass = one trip through all 16.",
+    k4: "The rule", t4: "One neuron = one straight line",
+    b4: "A neuron multiplies each input by a weight, adds them up and says yes when the total passes 0, so it splits the plane with a straight line. Learning is nudging the weights after every mistake. If some straight line can split the data, the nudging always stops with zero mistakes. Switch to XOR fruit: no straight line can, so it never stops.",
+    keys: "Keys: Tab to the plot, N / P choose a dot, arrows move it (Shift = bigger steps). The sliders move with the arrow keys too.",
+    wrongN: "Wrong right now: {n} of {m}", allRight: "All {m} on the right side.", noLine: "All weights are 0, so there is no line: the sum is just b for every dot.",
+    said: "said {o}, should be {t}", ok: "Right ({s}): nothing changes.",
+    upd: "Wrong ({s}), so {act}:", addX: "add 0.1 × input", subX: "subtract 0.1 × input",
+    convMsg: "Pass {k}: no mistakes. Every dot is on the right side, so learning stops.",
+    capSep: "{k} passes; mistakes in the last one: {m}. Some straight line does fit, so it will stop; keep going.",
+    capXor: "{k} passes; mistakes in the last one: {m}. It never reaches 0: no straight line splits these points.",
+    running: "Pass {k} in progress; mistakes so far: {m}.", afterK: "After {k} passes; mistakes in the last one: {m}.", pressLearn: "Press a Learn button. Mistakes per pass appear below.",
+    sumIs: "sum", shouldBe: "should be: {c}",
+    sepRun: "This data, starting from all weights 0: the rule makes {u} nudges and reaches a pass with no mistakes after {p} passes.",
+    xorRun: "XOR fruit, starting from all weights 0: after {p} passes, mistakes in the last pass: {m}. The best any single straight line can do here is {best} wrong. Two layers of neurons can do it: that is a neural network.",
+    storyNote: "Switch the story to Plants: the same dots now mean sunlight and water, and the weights do not change at all. The neuron never knew it was sorting fruit.",
+    resultTitle: "What we found", resultMain: "yes when w₁x₁ + w₂x₂ + b > 0",
+    resultNote: "On a mistake: w ← w + 0.1·(t − o)·x. If a straight line can split the data the mistakes stop (Novikoff 1962); on XOR they never do (Minsky & Papert 1969).",
+    explainK: "Explain it", explainQ: "Explain to someone how this neuron gets all 16 fruits right without knowing what a fruit is. Then say why it can never get the XOR fruit all right, using the straight line.",
+    homeK: "Try at home", homeQ: "Score 10 snacks from 0 to 10 for sweetness and for crunch, and plot them on squared paper: a circle if a family member likes it, a square if not. Can one ruler line split circles from squares? Try to find four snacks that no line can split.",
+    foot: "Neuron: s = w₁·x₁ + w₂·x₂ + b; output yes (1) only when s > 0, so s = 0 counts as no. Perceptron learning rule (Rosenblatt 1958, Psychological Review): after each point, w₁ += η(t − o)·x₁, w₂ += η(t − o)·x₂, b += η(t − o), with t, o ∈ {0, 1} and learning rate η = 0.1. Convergence on linearly separable data: Novikoff 1962. XOR limit: Minsky & Papert, Perceptrons, 1969; multi-layer networks trained by back-propagation (Rumelhart, Hinton & Williams 1986) can learn it. The fruit and plant data are invented by a seeded random generator (fruit seed {fs}, XOR seed {xs}); “New data” only offers fruit sets the rule learns from 0 in 4–30 passes. Auto stops after {cap} passes. “Best any line” is a search over 180 directions and every cut along each. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "一个人工神经元学分类", eyebrow: "信息科技 · 阶段 4",
+    h1: "一个人工神经元只会画一条直线，它靠改正错误来学",
+    intro: "每个点是一个水果，带两个数。先亲手调神经元的三个数，再让它从自己的错误里学。",
+    reset: "重置", s1: "先猜", s2: "手调", s3: "学习", s4: "规律",
+    dataLbl: "数据", fruitBtn: "水果", xorBtn: "异或水果", newData: "换一组", storyLbl: "故事",
+    storyFruit: "水果", storyPlant: "植物",
+    plotAria: "两种颜色的点和神经元分界直线的散点图。拖动一个点可以移动它；聚焦图后，N 和 P 选点，方向键移动。",
+    passAria: "柱状图：每一轮里犯错的次数",
+    calcAria: "所选点在神经元里的计算：两个输入乘各自的权重，加上 b，和 0 比较",
+    legYes: "神经元答「是」", legWrong: "分错了",
+    ax1Fruit: "甜度", ax2Fruit: "大小", c1Fruit: "喜欢", c0Fruit: "不喜欢", yesFruit: "喜欢", noFruit: "不喜欢",
+    ax1Plant: "日照", ax2Plant: "浇水", c1Plant: "长得好", c0Plant: "蔫了", yesPlant: "长得好", noPlant: "会蔫",
+    one: "学 1 个点", pass: "学 1 轮", zero: "从 0 开始", play: "自动 ▶", pause: "暂停 ❚❚",
+    passLbl: "轮数", nudgeLbl: "调整次数",
+    k1: "先猜一猜", t1: "它需要知道水果是什么吗？",
+    q: "一个程序学会把这 16 个水果分成「喜欢」和「不喜欢」，而且全部分对。它一定懂得水果是什么吗？",
+    o1: "一定懂：它得知道水果是什么、人为什么喜欢", o2: "不用：每个水果两个数，加上改错的办法就够了", o3: "它得看到每个水果的照片",
+    right: "对。这页的神经元自始至终只看到每个水果的两个数：没有名字、没有图片、没有味道。去第 2 步。",
+    wrong: "很多人都这么想。接着往下做：这里的神经元只拿到每个水果的两个数，照样能全部分对。",
+    b1: "每个点是有人尝过的一个水果：→ 有多甜（0–10），↑ 有多大（0–10）。圆点 = 喜欢，方块 = 不喜欢。涂色的一边是神经元答「喜欢」的地方；红圈是它分错的水果。",
+    k2: "动手", t2: "转三个旋钮，直到没有点站错边",
+    b2: "神经元把甜度乘 w₁、大小乘 w₂，再加 b，总数大于 0 就答「是」。不管你怎么调，「是」和「否」的分界都是一条直线。点一下某个点，看它的总数；拖动它可以移动。",
+    k3: "动手", t3: "让它从错误里学",
+    b3: "它一次看一个水果。答对了：什么也不改。把喜欢的答成「否」：每个权重加上 0.1 × 对应的输入，b 加 0.1。把不喜欢的答成「是」：改成减。一轮 = 把 16 个水果都看一遍。",
+    k4: "规律", t4: "一个神经元 = 一条直线",
+    b4: "神经元把每个输入乘上权重再相加，超过 0 就答「是」，所以它用一条直线把平面分成两边。学习就是每错一次把权重挪一点。只要有一条直线能分开这些点，挪来挪去一定会停在零错误。换成「异或水果」：没有任何一条直线能分开，它就永远停不下来。",
+    keys: "键盘：Tab 到图上，N / P 选点，方向键移动（按住 Shift 走得多）。滑块也能用方向键调。",
+    wrongN: "现在分错：{n} / {m}", allRight: "{m} 个全部站对了边。", noLine: "权重全是 0，没有直线：每个点的总数都只是 b。",
+    said: "答了「{o}」，应该是「{t}」", ok: "答对了（{s}）：什么也不改。",
+    upd: "答错了（{s}），所以{act}：", addX: "加上 0.1 × 输入", subX: "减去 0.1 × 输入",
+    convMsg: "第 {k} 轮：一次也没错。每个点都站对了边，学习停止。",
+    capSep: "已经 {k} 轮，最后一轮还错 {m} 次。确实有直线能分开，所以它会停下，接着学。",
+    capXor: "已经 {k} 轮，最后一轮还错 {m} 次。它永远到不了 0：没有一条直线能分开这些点。",
+    running: "第 {k} 轮进行中：已经错 {m} 次。", afterK: "已学 {k} 轮，最后一轮错 {m} 次。", pressLearn: "按一个「学」按钮。每轮犯错的次数画在下面。",
+    sumIs: "总数", shouldBe: "应该：{c}",
+    sepRun: "这组数据，从权重全为 0 开始：规则一共调整 {u} 次，第 {p} 轮一次也没错。",
+    xorRun: "异或水果，从权重全为 0 开始：学了 {p} 轮，最后一轮还错 {m} 次。任何一条直线在这里最少也要错 {best} 个。用两层神经元就能分开：那就是神经网络。",
+    storyNote: "把故事换成「植物」：同样的点现在表示日照和浇水，权重一个数都不变。神经元从来不知道自己在分水果。",
+    resultTitle: "我们发现", resultMain: "w₁x₁ + w₂x₂ + b > 0 时答「是」",
+    resultNote: "错一次：w ← w + 0.1·(t − o)·x。只要有直线能分开，错误一定会停（Novikoff 1962）；异或永远停不下（Minsky 与 Papert 1969）。",
+    explainK: "说一说", explainQ: "跟别人讲讲：这个神经元不知道水果是什么，为什么还能把 16 个水果全部分对？再用「直线」说明它为什么永远分不对异或水果。",
+    homeK: "家里做一做", homeQ: "给 10 种零食的甜度和脆度各打 0 到 10 分，画在方格纸上：家人喜欢的画圆、不喜欢的画方块。能用尺子画一条直线把圆和方块分开吗？试着找出四种零食，让任何直线都分不开。",
+    foot: "神经元：s = w₁·x₁ + w₂·x₂ + b；只有 s > 0 才输出「是」（1），s = 0 算「否」。感知机学习规则（Rosenblatt 1958，《心理学评论》）：每看一个点，w₁ += η(t − o)·x₁，w₂ += η(t − o)·x₂，b += η(t − o)，t、o ∈ {0, 1}，学习率 η = 0.1。线性可分数据上必定收敛：Novikoff 1962。异或的局限：Minsky 与 Papert《感知机》1969；用反向传播训练的多层网络（Rumelhart、Hinton、Williams 1986）能学会异或。水果和植物数据是用带种子的随机数编的（水果种子 {fs}，异或种子 {xs}）；「换一组」只给出规则从 0 开始 4–30 轮能学会的水果数据。自动学习最多 {cap} 轮。「任何直线最少错几个」是在 180 个方向、每个方向所有切法里搜出来的。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const f2 = (v) => Play.fmt(v, 2).replace("-", "−"), f1 = (v) => Play.fmt(v, 1);
+const CAP = 100, W0 = { w1: 0.5, w2: 0.5, b: -5 }, SEED_F = 10, SEED_X = 1;
+let kind = "fruit", seedF = SEED_F, seedX = SEED_X, story = "Fruit", step = 0;
+let pts = [], w = { ...W0 }, sel = 0, drag = false;
+let idx = 0, curMis = 0, per = [], nudges = 0, last = null, timer = null;
+const S = (k) => P.t(k + story);
+
+/* ---------- data ---------- */
+function goodSeed(s) {
+  for (let k = 1; k < 400; k++) {
+    const r = train({ w1: 0, w2: 0, b: 0 }, makeFruit(s + k), ETA, 40);
+    if (r.converged && r.per.length >= 4 && r.per.length <= 30) return s + k;
+  }
+  return s + 1;
+}
+function setData(k, seedChange) {
+  kind = k;
+  if (seedChange) { if (k === "fruit") seedF = goodSeed(seedF); else seedX++; }
+  pts = k === "fruit" ? makeFruit(seedF) : makeXor(seedX);
+  sel = 0;
+  resetLearn();
+  renderAll();
+}
+function resetLearn() { stopAuto(); idx = 0; curMis = 0; per = []; nudges = 0; last = null; }
+
+/* ---------- sliders ---------- */
+const SL = { w1: [-2, 2, 0.01], w2: [-2, 2, 0.01], b: [-15, 15, 0.1] };
+for (const k in SL) { const e = $(k); [e.min, e.max, e.step] = SL[k]; e.addEventListener("input", () => { w[k] = +e.value; resetLearn(); renderAll(); }); }
+function syncSliders() {
+  for (const k in SL) {
+    const e = $(k), v = w[k], lim = Math.max(SL[k][1], Math.ceil(Math.abs(v)));   // widen if learning goes past the end
+    e.min = -lim; e.max = lim; e.value = v;
+    $(k + "v").textContent = f2(v);
+  }
+}
+
+/* ---------- plot ---------- */
+const plot = $("plot");
+let geo = null;
+function renderPlot() {
+  const W = Math.max(280, Math.round(plot.getBoundingClientRect().width) || 600), H = Math.max(200, Math.round(plot.getBoundingClientRect().height) || 340);
+  const L = 46, R = 12, T = 10, B = 40, sx = (x) => L + (x / 10) * (W - L - R), sy = (y) => H - B - (y / 10) * (H - T - B);
+  geo = { sx, sy, ix: (px) => ((px - L) / (W - L - R)) * 10, iy: (py) => ((H - B - py) / (H - T - B)) * 10 };
+  plot.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  plot.innerHTML = "";
+  const reg = yesRegion(w);
+  if (reg.length >= 3) Play.svg("polygon", { class: "yes", points: reg.map((q) => sx(q[0]) + "," + sy(q[1])).join(" ") }, plot);
+  for (let v = 0; v <= 10; v += 2) {
+    Play.svg("line", { class: v ? "ax" : "axs", x1: sx(v), x2: sx(v), y1: sy(0), y2: sy(10) }, plot);
+    Play.svg("line", { class: v ? "ax" : "axs", x1: sx(0), x2: sx(10), y1: sy(v), y2: sy(v) }, plot);
+    Play.svg("text", { class: "axt", x: sx(v), y: sy(0) + 16, "text-anchor": "middle" }, plot).textContent = v;
+    Play.svg("text", { class: "axt", x: sx(0) - 6, y: sy(v) + 4, "text-anchor": "end" }, plot).textContent = v;
+  }
+  Play.svg("text", { class: "axl", x: (sx(0) + sx(10)) / 2, y: H - 6, "text-anchor": "middle" }, plot).textContent = "x₁ = " + S("ax1") + " →";
+  const yl = Play.svg("text", { class: "axl", x: 0, y: 0, "text-anchor": "middle", transform: `translate(14 ${(sy(0) + sy(10)) / 2}) rotate(-90)` }, plot);
+  yl.textContent = "x₂ = " + S("ax2") + " →";
+  const seg = lineInBox(w);
+  if (seg) Play.svg("line", { class: "bline", x1: sx(seg[0][0]), y1: sy(seg[0][1]), x2: sx(seg[1][0]), y2: sy(seg[1][1]) }, plot);
+  pts.forEach((p, i) => {
+    const x = sx(p.x), y = sy(p.y);
+    if (p.t) Play.svg("circle", { class: "pt1", cx: x, cy: y, r: 7.5 }, plot);
+    else Play.svg("rect", { class: "pt0", x: x - 6.5, y: y - 6.5, width: 13, height: 13, rx: 1.5 }, plot);
+    if (out(w, p) !== p.t) Play.svg("circle", { class: "wrongring", cx: x, cy: y, r: 11.5 }, plot);
+    if (i === sel && step > 0) Play.svg("circle", { class: "selring", cx: x, cy: y, r: 15.5 }, plot);
+  });
+}
+function nearest(px, py) {
+  let bi = -1, bd = 22;
+  pts.forEach((p, i) => { const d = Math.hypot(geo.sx(p.x) - px, geo.sy(p.y) - py); if (d < bd) { bd = d; bi = i; } });
+  return bi;
+}
+function movePoint(i, x, y) {
+  const p = pts[i];
+  p.x = r1(Play.clamp(x, 0.2, 9.8)); p.y = r1(Play.clamp(y, 0.2, 9.8));
+  resetLearn();
+}
+plot.addEventListener("pointerdown", (e) => {
+  if (!geo || step === 0) return;
+  const q = Play.pointer(plot, e), i = nearest(q.x, q.y);
+  if (i < 0) return;
+  sel = i; drag = true; last = null;
+  try { plot.setPointerCapture(e.pointerId); } catch (err) { /* capture is optional */ }
+  e.preventDefault();
+  renderAll();
+});
+plot.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const q = Play.pointer(plot, e);
+  movePoint(sel, geo.ix(q.x), geo.iy(q.y));
+  renderAll();
+});
+const endDrag = () => { drag = false; };
+plot.addEventListener("pointerup", endDrag);
+plot.addEventListener("pointercancel", endDrag);
+plot.addEventListener("keydown", (e) => {
+  if (step === 0 || !pts.length) return;
+  const n = pts.length, k = e.key.toLowerCase(), d = e.shiftKey ? 1 : 0.1;
+  const mv = { arrowleft: [-d, 0], arrowright: [d, 0], arrowup: [0, d], arrowdown: [0, -d] }[k];
+  if (k === "n" || k === "]") sel = (sel + 1) % n;
+  else if (k === "p" || k === "[") sel = (sel + n - 1) % n;
+  else if (mv) movePoint(sel, pts[sel].x + mv[0], pts[sel].y + mv[1]);
+  else return;
+  last = null;
+  e.preventDefault();
+  renderAll();
+});
+
+/* ---------- neuron diagram for the chosen point ---------- */
+function renderCalc() {
+  const c = $("calc");
+  c.innerHTML = "";
+  const p = pts[sel];
+  if (!p) return;
+  const s = sum(w, p), o = out(w, p);
+  const T = (cls, x, y, txt, anchor) => { Play.svg("text", { class: cls, x, y, "text-anchor": anchor || "middle" }, c).textContent = txt; };
+  [[p.x, 30, "ax1", "w1"], [p.y, 102, "ax2", "w2"]].forEach(([v, y, ax, wk]) => {
+    Play.svg("line", { class: "ed", x1: 54, y1: y, x2: 180, y2: 66 }, c);
+    Play.svg("circle", { class: "nd", cx: 32, cy: y, r: 22 }, c);
+    T("ctb", 32, y + 5, f1(v));
+    T("ct", 62, y < 66 ? y - 12 : y + 22, S(ax), "start");
+    T("ct", 118, y < 66 ? 56 : 92, "× " + f2(w[wk]));
+  });
+  Play.svg("circle", { class: "nd", cx: 202, cy: 66, r: 24 }, c);
+  T("ctb", 202, 71, "Σ");
+  T("ct", 202, 28, "+ b (" + f2(w.b) + ")");
+  T("ct", 202, 110, P.t("sumIs") + " = " + f2(s));
+  Play.svg("line", { class: "ed", x1: 226, y1: 66, x2: 262, y2: 66 }, c);
+  Play.svg("path", { d: "M262 60 L272 66 L262 72 Z", fill: "currentColor", class: "ed" }, c);
+  Play.svg("rect", { class: "nd" + (o ? " on" : ""), x: 274, y: 50, width: 82, height: 32, rx: 8 }, c);
+  T(o ? "cto" : "ctb", 315, 71, (s > 0 ? "> 0 " : "≤ 0 ") + (o ? "✓" : "✗"));
+  T("ct", 315, 104, S(o ? "yes" : "no"));
+  T(o === p.t ? "ct" : "ctb", 315, 124, P.t("shouldBe", { c: S(p.t ? "yes" : "no") }));
+}
+
+/* ---------- learning ---------- */
+function learnPoint() {
+  if (!pts.length) return;
+  const p = pts[idx];
+  last = learnOne(w, p);
+  sel = idx;
+  if (last.d) { curMis++; nudges++; }
+  idx++;
+  if (idx >= pts.length) { per.push(curMis); curMis = 0; idx = 0; }
+}
+const converged = () => per.length > 0 && per[per.length - 1] === 0;
+function learnPass() { do learnPoint(); while (idx !== 0); }
+function tick() {
+  if (Play.reduced || per.length >= 2) learnPass(); else learnPoint();
+  if (converged() || per.length >= CAP) stopAuto();
+  else timer = setTimeout(tick, Play.reduced ? 500 : per.length >= 2 ? 160 : 70);
+  renderAll();
+}
+function stopAuto() { if (timer) clearTimeout(timer); timer = null; $("auto").textContent = P.t("play"); }
+$("auto").addEventListener("click", () => {
+  if (timer) { stopAuto(); return; }
+  if (converged() || per.length >= CAP) resetLearn();
+  $("auto").textContent = P.t("pause");
+  timer = setTimeout(tick, 0);
+});
+$("one").addEventListener("click", () => { stopAuto(); learnPoint(); renderAll(); });
+$("pass").addEventListener("click", () => { stopAuto(); learnPass(); renderAll(); });
+$("zero").addEventListener("click", () => { w = { w1: 0, w2: 0, b: 0 }; resetLearn(); renderAll(); });
+
+function renderPasses() {
+  const svg = $("passes"), W = Math.max(260, Math.round(svg.getBoundingClientRect().width) || 500), H = 96;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = "";
+  const n = Math.max(1, pts.length), show = Math.max(12, per.length + 1), x0 = 26, bw = (W - x0 - 4) / show, base = H - 6, top = 18;
+  Play.svg("line", { class: "axs", x1: x0, x2: W - 2, y1: base, y2: base }, svg);
+  Play.svg("text", { class: "axt", x: x0 - 4, y: top + 4, "text-anchor": "end" }, svg).textContent = n;
+  Play.svg("text", { class: "axt", x: x0 - 4, y: base, "text-anchor": "end" }, svg).textContent = 0;
+  const bars = per.concat(idx > 0 ? [curMis] : []);
+  bars.forEach((m, i) => {
+    const h = (m / n) * (base - top), x = x0 + i * bw + bw * 0.12;
+    if (m === 0 && i < per.length) Play.svg("text", { class: "zlab", x: x + bw * 0.38, y: base - 4, "text-anchor": "middle" }, svg).textContent = "0";
+    else Play.svg("rect", { class: "bar", x, y: base - h, width: Math.max(1, bw * 0.76), height: Math.max(0, h), opacity: i < per.length ? 1 : 0.45 }, svg);
+  });
+}
+
+/* ---------- text ---------- */
+function setMsg(el, t, cls) { el.className = "msg" + (cls ? " " + cls : ""); Play.live(el, t); }
+function renderText() {
+  const nW = wrongCount(w, pts), noLine = !lineInBox(w) && w.w1 === 0 && w.w2 === 0;
+  setMsg($("wrongMsg"), noLine ? P.t("noLine") : nW ? P.t("wrongN", { n: nW, m: pts.length }) : P.t("allRight", { m: pts.length }), nW || noLine ? "" : "ok");
+  $("leg1").textContent = S("c1"); $("leg0").textContent = S("c0");
+  const sgn = (v) => (v < 0 ? " − " + f2(-v) : " + " + f2(v));
+  $("big").textContent = "s = " + f2(w.w1) + "·x₁" + sgn(w.w2) + "·x₂" + sgn(w.b);
+  // update line for the last learned point
+  const u = $("upd");
+  u.innerHTML = "";
+  if (last && step >= 2) {
+    const p = pts[sel], said = P.t("said", { o: S(last.o ? "yes" : "no"), t: S(p.t ? "yes" : "no") });
+    if (!last.d) u.textContent = P.t("ok", { s: said });
+    else {
+      u.append(P.t("upd", { s: said, act: P.t(last.d > 0 ? "addX" : "subX") }));
+      [["w₁", "w1", p.x], ["w₂", "w2", p.y], ["b", "b", 1]].forEach(([nm, k, x]) => {
+        const br = document.createElement("br"), b = document.createElement("b");
+        b.textContent = nm + ": " + f2(last.before[k]) + (last.d > 0 ? " + " : " − ") + "0.1 × " + f1(x) + " = " + f2(last.after[k]);
+        u.append(br, b);
+      });
+    }
+  }
+  // learn status
+  let lm = "", lc = "";
+  if (converged()) { lm = P.t("convMsg", { k: per.length }); lc = "ok"; }
+  else if (per.length >= CAP) lm = P.t(bestLine(pts) > 0 ? "capXor" : "capSep", { k: per.length, m: per[per.length - 1] });
+  else if (idx > 0) lm = P.t("running", { k: per.length + 1, m: curMis });
+  else if (per.length) lm = P.t("afterK", { k: per.length, m: per[per.length - 1] });
+  else lm = P.t("pressLearn");
+  setMsg($("learnMsg"), lm, lc);
+  $("nPass").textContent = per.length; $("nNudge").textContent = nudges;
+  // step 4 summary, computed from a fresh run starting at 0
+  if (step === 3) {
+    const r = train({ w1: 0, w2: 0, b: 0 }, pts, ETA, CAP), best = bestLine(pts);
+    const txt = r.converged ? P.t("sepRun", { u: r.updates, p: r.per.length })
+      : P.t("xorRun", { p: r.per.length, m: r.per[r.per.length - 1], best });
+    $("extra").textContent = txt + " " + P.t("storyNote");
+  }
+}
+function renderButtons() {
+  dataBtns.forEach(([b, k]) => { b.classList.toggle("on", k === kind); b.setAttribute("aria-pressed", String(k === kind)); });
+  storyBtns.forEach(([b, k]) => { b.classList.toggle("on", k === story); b.setAttribute("aria-pressed", String(k === story)); });
+}
+function renderAll() {
+  syncSliders(); renderButtons(); renderPlot(); renderCalc(); renderText();
+  if (step >= 2) renderPasses();
+}
+function mkBtns(box, list, onPick) {
+  return list.map(([k, key]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small preset"; b.textContent = P.t(key);
+    b.addEventListener("click", () => onPick(k));
+    $(box).append(b, " ");
+    return [b, k];
+  });
+}
+const dataBtns = mkBtns("dataBtns", [["fruit", "fruitBtn"], ["xor", "xorBtn"]], (k) => setData(k, false));
+const storyBtns = mkBtns("storyBtns", [["Fruit", "storyFruit"], ["Plant", "storyPlant"]], (k) => { story = k; renderAll(); });
+$("newData").addEventListener("click", () => setData(kind, true));
+$("foot").textContent = P.t("foot", { fs: SEED_F, xs: SEED_X, cap: CAP });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("dataRow").hidden = i === 0;
+  $("storyRow").hidden = i !== 3;
+  $("sliders").hidden = i === 0;
+  $("learnBox").hidden = i < 2;
+  $("calc").style.display = i === 0 ? "none" : "";
+  $("upd").hidden = i < 2;
+  $("big").hidden = i === 0;
+  $("extra").hidden = i !== 3;
+  $("keys").hidden = i === 0;
+  if (i === 0) { stopAuto(); if (kind !== "fruit") setData("fruit", false); story = "Fruit"; }
+  if (i < 2) stopAuto();
+  renderAll();
+});
+$("resultNote").textContent = P.t("resultNote");
+$("reset").addEventListener("click", () => {
+  stopAuto(); seedF = SEED_F; seedX = SEED_X; w = { ...W0 }; story = "Fruit";
+  setData("fruit", false); pr.reset(); st.go(0);
+});
+let rz = 0;
+addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(renderAll); });
+setData("fruit", false);
+</script>
+</body>
+</html>

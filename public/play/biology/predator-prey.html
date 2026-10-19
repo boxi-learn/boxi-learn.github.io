@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hares and lynx: why do the numbers cycle?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .lbl { fill: var(--fg); font-size: 14px; }
+  .lbl.m { fill: var(--muted); font-size: 13px; }
+  .lbl.b { font-weight: 650; }
+  .lbl.hare { fill: var(--b); font-weight: 650; }
+  .lbl.lynx { fill: var(--c); font-weight: 650; }
+  .lbl.q { fill: var(--muted); font-size: 34px; font-weight: 750; }
+  .tagbg { fill: var(--surface); opacity: .9; }
+  .axis { stroke: var(--muted); stroke-width: 1; }
+  .grid { stroke: var(--line); stroke-width: 1; }
+  .hareL { stroke: var(--b); stroke-width: 2.5; fill: none; }
+  .lynxL { stroke: var(--c); stroke-width: 2.5; fill: none; }
+  .loopL { stroke: var(--a); stroke-width: 2.5; fill: none; }
+  .peakV { stroke: var(--b); stroke-width: 1.2; stroke-dasharray: 3 3; opacity: .8; }
+  .nullL { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 6 4; }
+  .cursor { stroke: var(--hl); stroke-width: 2; }
+  .lagA { stroke: var(--fg); stroke-width: 1.5; fill: none; }
+  .ah { fill: var(--a); }
+  .ahF { fill: var(--fg); }
+  .hareD { fill: var(--b); } .lynxD { fill: var(--c); }
+  .cur { fill: var(--hl); stroke: var(--surface); stroke-width: 2; }
+  .handle { fill: var(--surface); stroke: var(--a); stroke-width: 3; cursor: grab; }
+  .hide { fill: var(--soft); stroke: var(--line); stroke-dasharray: 4 3; }
+  .sketchBg { fill: var(--soft); }
+  #fig, #phase { width: 100%; display: block; }
+  #fig { height: 320px; }
+  #phase { height: 300px; touch-action: none; cursor: crosshair; -webkit-user-select: none; user-select: none; }
+  svg text { -webkit-user-select: none; user-select: none; }
+  #phase.static { cursor: default; touch-action: auto; }
+  @media (max-width: 560px) { #fig { height: 330px; } #phase { height: 300px; } }
+  .ctl3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(110px, 1.1fr) 3.4em; gap: 4px 10px; align-items: center; padding: 4px 14px 12px; font-size: 13px; color: var(--muted); }
+  .ctl3 .val { font-family: var(--math); color: var(--fg); font-size: 15px; }
+  .ctl3 input { width: 100%; }
+  #extra { font-size: 14px; }
+  .eqs { font-family: var(--math); font-size: 17px; color: var(--fg); line-height: 1.7; margin: 0 0 8px; }
+  .key { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: 4px; margin-right: 4px; }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 320" role="img" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlTime">
+        <button type="button" class="small" id="play" aria-pressed="false"></button>
+        <label for="yr" data-t="yrLabel"></label>
+        <input type="range" id="yr" min="0" max="50" step="0.1" value="0">
+        <span class="val" id="yrVal"></span>
+      </div>
+      <svg id="phase" viewBox="0 0 600 300" role="img" tabindex="0" data-t-aria="phaseAria"></svg>
+      <div class="controls" id="ctlStart">
+        <button type="button" class="small" id="atBal" data-t="atBal"></button>
+        <button type="button" class="small" id="nudge" data-t="nudge"></button>
+        <span id="startVal"></span>
+      </div>
+      <div class="ctl3" id="ctlRates">
+        <label for="pa" data-t="paL"></label><input type="range" id="pa" min="0.5" max="1.2" step="0.05" value="0.8"><span class="val" id="paV"></span>
+        <label for="pb" data-t="pbL"></label><input type="range" id="pb" min="2" max="6" step="0.1" value="4"><span class="val" id="pbV"></span>
+        <label for="pc" data-t="pcL"></label><input type="range" id="pc" min="1.5" max="4" step="0.1" value="2.5"><span class="val" id="pcV"></span>
+        <label for="pd" data-t="pdL"></label><input type="range" id="pd" min="0.3" max="0.9" step="0.05" value="0.5"><span class="val" id="pdV"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="eqs" id="eqs" hidden>dH/dt = aH − bHL<br>dL/dt = c·bHL − dL</div>
+      <p id="extra"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Hares and lynx: why do the numbers cycle?", eyebrow: "Biology · Stage 4", h1: "Hares and lynx: why do the numbers cycle?",
+    intro: "Lynx eat snowshoe hares. Guess what the lynx do after the hares boom, then run the predator–prey model yourself.",
+    reset: "Reset", figAria: "Hare and lynx numbers over time", phaseAria: "Phase plane: hares across, lynx up. Drag or use arrow keys to set the starting numbers.",
+    yrLabel: "Year", play: "Play", pause: "Pause", atBal: "Start at the balance", nudge: "Nudge: +10% hares",
+    paL: "a · hare births per year", pbL: "b · % of hares one lynx catches per year", pcL: "c · lynx raised per 1000 hares eaten", pdL: "d · lynx deaths per year",
+    s1: "Guess", s2: "Run it", s3: "Rule",
+    k1: "Predict first", t1: "The hares have just had a boom year. What do the lynx do?",
+    b1: "The chart shows hares in our model forest over 25 years. The lynx line is hidden. Pick an answer.",
+    q: "After the hares peak, the lynx…",
+    o1: "peak at the same time", o2: "peak a little later, then crash; then the hares recover", o3: "keep growing until every hare is eaten", o4: "settle at a fixed number and stay there",
+    right: "Right. Now take it apart in step 2.", wrong: "Not quite. See the hidden line, then test it in step 2.",
+    fb1: "Lynx can't multiply the moment hares are plentiful: kittens are born and raised over the following seasons. Their numbers keep climbing as long as there is plenty to eat, so they top out later, here {lag} years after the hares.",
+    fb2: "Yes. More hares means better-fed lynx and more kittens, so lynx keep rising even after the hares start to fall. Too many lynx then eat the hares down, the lynx starve, and with few lynx left the hares bounce back. In this model the lynx peak {lag} years after the hares, and the whole cycle takes {per} years.",
+    fb3: "As hares get scarce, lynx go hungry and raise few kittens, so the lynx fall first. The surviving hares then rebound. In the model the hares never drop below {hmin} here. (In a real, small population a dip that deep could wipe them out by bad luck.)",
+    fb4: "There is a balance point where both stay level, but only if you start exactly on it. Any nudge sends the numbers round and round, and nothing in this model pulls them back. You can test the balance in step 2.",
+    fHares: "Hares", fLynx: "Lynx", fYears: "years", fHidden: "Pick an answer to see the lynx",
+    fLag: "{lag} yr later", fPeak: "peak", fStart: "start",
+    fAxH: "hares →", fAxL: "lynx ↑", fHs: "H* = {n}", fLs: "L* = {n}",
+    k2: "Hands on · the Lotka–Volterra model", t2: "Drag the starting point, then play the years",
+    b2: "Drag the ring on the lower chart to choose how many hares and lynx there are in year 0 (or focus it and use the arrow keys). The loop shows every combination the forest passes through. Press Play, or slide the year, and watch the dot go round while the top chart traces the two numbers.",
+    x2: "Hares are born at a = {a} per year, and each lynx catches b = {b}% of them a year. Lynx raise c = {c} young per 1000 hares eaten and die at d = {d} per year. Balance (dashed lines): H* = d/(c·b) = {Hs} hares, L* = a/b = {Ls} lynx. Lynx grow only while hares are above H*; hares shrink only while lynx are above L*.",
+    liveRun: "Start {H0} hares, {L0} lynx. Hares peak every {per} years; lynx peak {lag} years after them. Range: {hmin}–{hmax} hares, {lmin}–{lmax} lynx.",
+    liveFlat: "Started exactly at the balance ({H0} hares, {L0} lynx): nothing changes. Press Nudge.",
+    liveLow: "The lynx sink to {lmin}, less than one animal: real lynx would be gone. The smooth model doesn't know animals come whole.",
+    liveLowH: "The hares sink to {hmin}: in a real forest so few could easily die out.",
+    liveYear: "Year {t}: {h} hares, {l} lynx.",
+    perLong: "longer than 50",
+    startV: "Start: {H0} hares, {L0} lynx",
+    k3: "The rule · and the real record", t3: "Predators follow their prey, a quarter-turn behind",
+    b3: "The predator can only grow while its food is above a threshold, and the prey can only grow while predators are below one. So the predator keeps rising after the prey has peaked, and keeps falling after the prey has bottomed out: the predator peak always comes after the prey peak, and the numbers go round in a loop instead of settling.",
+    x3: "In the default model the cycle takes {per} years and the lynx peak {lag} years after the hares. The top chart is a stylised sketch, not data. The real record behind this lesson is the fur trade: lynx pelts traded to the Hudson's Bay Company in Canada rose and fell about every 10 years for over a century, usually a year or two after hare numbers (Elton & Nicholson 1942). Those are trapping counts, which also depend on how hard trappers worked. And the model is simplified: field experiments show the hare cycle also depends on the hares' winter food, not just on lynx.",
+    fSketch: "Sketch of the fur-record pattern · not data", fTen: "≈ 10 years", fRel: "relative numbers",
+    q1: "hares ↑ lynx ↑", q2: "hares ↓ lynx ↑", q3: "hares ↓ lynx ↓", q4: "hares ↑ lynx ↓",
+    fHPk: "hare peak", fLPk: "lynx peak", fModel: "Model loop (default)",
+    resultTitle: "What we found", resultMain: "hares > H* → lynx rise · lynx > L* → hares fall",
+    rnDef: "Default model: one cycle every {per} years; lynx peak {lag} years after the hares. Neither population settles or runs out.",
+    rnRun: "Your run: one cycle every {per} years; lynx peak {lag} years after the hares; hares between {hmin} and {hmax}.",
+    rnFlat: "Your run starts on the balance, so nothing moves. Nudge it and the cycle starts.",
+    explainK: "Explain it", explainQ: "A friend says lynx should just eat hares until there are none left. Using the loop, explain why the lynx crash before the hares run out, and why their peak comes after the hares' peak.",
+    homeK: "Try at home", homeQ: "Play “hares and lynx” with dried beans (hares) and coins (lynx) on a table: each round every hare has a baby, each lynx eats one hare if it can, a lynx that ate 3 hares has a kitten and one that ate none dies. Count both after each round and plot them. Do you see the lynx peak late?",
+    foot: "Model (not field data): Lotka–Volterra equations dH/dt = aH − bHL, dL/dt = c·bHL − dL. Defaults a = 0.8/yr, b = 4%/yr per lynx (at the balance each lynx eats about 200 hares a year), c = 2.5 lynx per 1000 hares eaten, d = 0.5/yr; start 8000 hares and 12 lynx; the balance is 5000 hares and 20 lynx. Solved with 4th-order Runge–Kutta on ln H and ln L, step 0.01 yr (smaller when numbers change fast); the quantity c·bH − d ln H + bL − a ln L that the exact loops keep constant drifts by less than one part in a billion, so loops close. Small loops take 2π/√(a·d) years; bigger loops take longer. Sources: A. J. Lotka, Elements of Physical Biology (1925); V. Volterra, Nature 118 (1926); C. Elton & M. Nicholson, “The ten-year cycle in numbers of the lynx in Canada”, Journal of Animal Ecology 11 (1942); C. J. Krebs et al., “Impact of food and predation on the snowshoe hare cycle”, Science 269 (1995). The sketch in step 3 shows the shape only. · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "野兔和猞猁：数量为什么一起一落？", eyebrow: "生物 · 阶段 4", h1: "野兔和猞猁：数量为什么一起一落？",
+    intro: "猞猁吃雪鞋兔。先猜野兔大丰收以后猞猁会怎样，再亲手运行捕食者–猎物模型。",
+    reset: "重置", figAria: "野兔和猞猁数量随时间的变化", phaseAria: "相图：横轴野兔，纵轴猞猁。拖动或用方向键设定起始数量。",
+    yrLabel: "年份", play: "播放", pause: "暂停", atBal: "从平衡点出发", nudge: "推一下：野兔 +10%",
+    paL: "a · 野兔每年出生率", pbL: "b · 一只猞猁每年抓走野兔的 %", pcL: "c · 每吃 1000 只兔养活的猞猁", pdL: "d · 猞猁每年死亡率",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "野兔刚过了一个丰收年。猞猁会怎样？",
+    b1: "图上是模型森林里 25 年的野兔数量，猞猁的线先藏起来。选一个答案。",
+    q: "野兔数量到顶以后，猞猁……",
+    o1: "同时到顶", o2: "晚一点到顶，然后大跌；接着野兔又多起来", o3: "一直增加，直到把野兔吃光", o4: "停在一个固定数量不再变",
+    right: "对。到第 2 步拆开看看。", wrong: "不太对。看看藏起来的线，再到第 2 步试试。",
+    fb1: "野兔一多，猞猁并不能马上变多：幼崽要在之后几个季节里生下来、养大。只要食物还多，它们就一直增加，所以顶峰来得晚，这里比野兔晚 {lag} 年。",
+    fb2: "对。野兔多了，猞猁吃得饱、幼崽多，所以野兔开始减少以后猞猁还在增加。猞猁太多又把野兔吃少了，猞猁挨饿减少；猞猁少了，野兔又多起来。模型里猞猁比野兔晚 {lag} 年到顶，一整圈要 {per} 年。",
+    fb3: "野兔变少时，猞猁先挨饿、养不活幼崽，所以先减少的是猞猁。剩下的野兔接着反弹。这个模型里野兔最少也有 {hmin} 只。（真实的小种群跌得这么低，可能因为运气不好就灭绝了。）",
+    fb4: "确实有一个两者都不变的平衡点，但必须正好从那里出发。稍微推一下，数量就会一圈圈转起来，模型里没有什么能把它拉回去。第 2 步可以试试这个平衡点。",
+    fHares: "野兔", fLynx: "猞猁", fYears: "年", fHidden: "先选答案，再看猞猁",
+    fLag: "晚 {lag} 年", fPeak: "顶峰", fStart: "起点",
+    fAxH: "野兔 →", fAxL: "猞猁 ↑", fHs: "H* = {n}", fLs: "L* = {n}",
+    k2: "动手 · Lotka–Volterra 模型", t2: "拖动起点，再播放年份",
+    b2: "拖动下图的圆环，决定第 0 年有多少野兔和猞猁（也可以先选中它，用方向键）。那个圈是森林会经过的所有「野兔–猞猁」组合。按播放或拖年份，看小点绕圈走，上图同时画出两个数量。",
+    x2: "野兔每年出生率 a = {a}，每只猞猁每年抓走 b = {b}% 的野兔。猞猁每吃 1000 只兔养活 c = {c} 只后代，每年死亡率 d = {d}。平衡点（虚线）：H* = d/(c·b) = {Hs} 只野兔，L* = a/b = {Ls} 只猞猁。野兔多于 H* 时猞猁才增加；猞猁多于 L* 时野兔才减少。",
+    liveRun: "起点 {H0} 只野兔、{L0} 只猞猁。野兔每 {per} 年到一次顶；猞猁比它晚 {lag} 年。范围：野兔 {hmin}–{hmax}，猞猁 {lmin}–{lmax}。",
+    liveFlat: "正好从平衡点出发（{H0} 只野兔、{L0} 只猞猁）：什么都不变。按「推一下」。",
+    liveLow: "猞猁跌到 {lmin} 只，不到一只：真实的猞猁已经没了。平滑的模型不知道动物是一只一只的。",
+    liveLowH: "野兔跌到 {hmin} 只：真实森林里这么少很容易灭绝。",
+    liveYear: "第 {t} 年：{h} 只野兔，{l} 只猞猁。",
+    perLong: "超过 50",
+    startV: "起点：{H0} 只野兔、{L0} 只猞猁",
+    k3: "规律 · 再看真实记录", t3: "捕食者跟着猎物走，慢四分之一圈",
+    b3: "猎物多过某个门槛，捕食者才能增加；捕食者少过某个门槛，猎物才能增加。所以猎物到顶以后捕食者还在涨，猎物到底以后捕食者还在跌：捕食者的高峰总在猎物之后，数量绕着圈走，而不是停下来。",
+    x3: "默认模型里一圈 {per} 年，猞猁比野兔晚 {lag} 年到顶。上图是示意图，不是数据。这一课背后的真实记录来自毛皮贸易：一百多年里，加拿大卖给哈德逊湾公司的猞猁皮大约每 10 年起落一次，通常比野兔晚一两年（Elton 和 Nicholson，1942）。这些是捕获数，也受猎人下了多少功夫影响。模型也是简化的：野外实验表明，野兔的周期还取决于它们冬天的食物，不只是猞猁。",
+    fSketch: "毛皮记录规律的示意图 · 不是数据", fTen: "≈ 10 年", fRel: "相对数量",
+    q1: "兔 ↑ 猞猁 ↑", q2: "兔 ↓ 猞猁 ↑", q3: "兔 ↓ 猞猁 ↓", q4: "兔 ↑ 猞猁 ↓",
+    fHPk: "野兔顶峰", fLPk: "猞猁顶峰", fModel: "模型的圈（默认）",
+    resultTitle: "我们发现", resultMain: "野兔 > H* → 猞猁增加 · 猞猁 > L* → 野兔减少",
+    rnDef: "默认模型：每 {per} 年一圈；猞猁比野兔晚 {lag} 年到顶。两个种群都不会停下，也不会被吃光。",
+    rnRun: "你的这一轮：每 {per} 年一圈；猞猁比野兔晚 {lag} 年到顶；野兔在 {hmin} 到 {hmax} 之间。",
+    rnFlat: "你这一轮从平衡点出发，所以不动。推一下，周期就开始了。",
+    explainK: "说一说", explainQ: "朋友说猞猁应该一直吃到野兔一只不剩。用那个圈给他讲讲：为什么野兔还没吃光猞猁就先大跌，为什么猞猁的顶峰在野兔之后。",
+    homeK: "家里做一做", homeQ: "在桌上用豆子当野兔、硬币当猞猁玩「兔和猞猁」：每轮每只兔生一只，每只猞猁能吃就吃一只兔，吃满 3 只的猞猁生一只幼崽，一只没吃到的饿死。每轮数一数两种各有多少，画成图。猞猁是不是晚到顶？",
+    foot: "模型（不是野外数据）：Lotka–Volterra 方程 dH/dt = aH − bHL，dL/dt = c·bHL − dL。默认 a = 0.8/年，b = 每只猞猁每年 4%（在平衡点每只猞猁一年约吃 200 只兔），c = 每吃 1000 只兔养活 2.5 只猞猁，d = 0.5/年；起点 8000 只野兔、12 只猞猁，平衡点 5000 只野兔、20 只猞猁。对 ln H、ln L 用四阶龙格–库塔法求解，步长 0.01 年（数量变化快时自动更小）；精确的圈上保持不变的量 c·bH − d ln H + bL − a ln L 漂移不到十亿分之一，所以圈能闭合。小圈一圈要 2π/√(a·d) 年，大圈更久。来源：A. J. Lotka《Elements of Physical Biology》（1925）；V. Volterra，Nature 118（1926）；C. Elton 和 M. Nicholson，〈The ten-year cycle in numbers of the lynx in Canada〉，Journal of Animal Ecology 11（1942）；C. J. Krebs 等，〈Impact of food and predation on the snowshoe hare cycle〉，Science 269（1995）。第 3 步的示意图只表示形状。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- pure logic ----------
+const DEF = { a: 0.8, b: 4, c: 2.5, d: 0.5 }, START = { H: 8000, L: 12 }, T = 50, DT = 0.01;
+// b is a percentage per year; c is lynx per 1000 hares eaten
+const rate = (p) => ({ a: p.a, b: p.b / 100, cb: (p.c / 1000) * (p.b / 100), d: p.d });
+function balance(p) { const r = rate(p); return { H: r.d / r.cb, L: r.a / r.b }; }
+// RK4 on x = ln H, y = ln L (numbers stay positive; substeps when they change fast)
+function simulate(p, H0, L0) {
+  const r = rate(p), n = Math.round(T / DT);
+  const H = new Float64Array(n + 1), L = new Float64Array(n + 1);
+  const f = (x, y) => [r.a - r.b * Math.exp(y), r.cb * Math.exp(x) - r.d];
+  let x = Math.log(H0), y = Math.log(L0);
+  H[0] = H0; L[0] = L0;
+  for (let i = 1; i <= n; i++) {
+    const g = f(x, y), k = Math.max(1, Math.min(200, Math.ceil(Math.max(Math.abs(g[0]), Math.abs(g[1])) * DT / 0.02))), h = DT / k;
+    for (let j = 0; j < k; j++) {
+      const k1 = f(x, y), k2 = f(x + h / 2 * k1[0], y + h / 2 * k1[1]), k3 = f(x + h / 2 * k2[0], y + h / 2 * k2[1]), k4 = f(x + h * k3[0], y + h * k3[1]);
+      x += h / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]);
+      y += h / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]);
+    }
+    H[i] = Math.exp(x); L[i] = Math.exp(y);
+  }
+  return { n, H, L, H0, L0 };
+}
+function invariant(p, H, L) { const r = rate(p); return r.cb * H - r.d * Math.log(H) + r.b * L - r.a * Math.log(L); }
+// times of local maxima (parabolic refinement); none if the line is flat
+function peaks(arr) {
+  let lo = Infinity, hi = -Infinity;
+  for (const v of arr) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  const out = [];
+  if (!(hi > lo * 1.002)) return out;
+  for (let i = 1; i < arr.length - 1; i++) if (arr[i] > arr[i - 1] && arr[i] >= arr[i + 1]) {
+    const den = arr[i - 1] - 2 * arr[i] + arr[i + 1];
+    const off = den < 0 ? Play.clamp(0.5 * (arr[i - 1] - arr[i + 1]) / den, -0.5, 0.5) : 0;
+    out.push((i + off) * DT);
+  }
+  return out;
+}
+function analyse(s) {
+  const hp = peaks(s.H), lp = peaks(s.L);
+  const per = hp.length > 1 ? (hp[hp.length - 1] - hp[0]) / (hp.length - 1) : NaN;
+  const lags = [];
+  for (const t of lp) { const prev = hp.filter((u) => u < t); if (prev.length) lags.push(t - prev[prev.length - 1]); }
+  const lag = lags.length ? lags.reduce((a, b) => a + b, 0) / lags.length : NaN;
+  let hmin = Infinity, hmax = 0, lmin = Infinity, lmax = 0;
+  for (let i = 0; i <= s.n; i++) {
+    hmin = Math.min(hmin, s.H[i]); hmax = Math.max(hmax, s.H[i]);
+    lmin = Math.min(lmin, s.L[i]); lmax = Math.max(lmax, s.L[i]);
+  }
+  return { hp, lp, per, lag, hmin, hmax, lmin, lmax, flat: !hp.length && !lp.length };
+}
+function nice(x) {
+  if (!(x > 0)) return 1;
+  const e = Math.pow(10, Math.floor(Math.log10(x)));
+  for (const m of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (m * e >= x) return m * e;
+  return 10 * e;
+}
+function clampStart(p, H0, L0) {
+  const e = balance(p);
+  return { H: Play.clamp(Number.isFinite(H0) ? H0 : e.H, 0.05 * e.H, 3 * e.H), L: Play.clamp(Number.isFinite(L0) ? L0 : e.L, 0.05 * e.L, 3 * e.L) };
+}
+const at = (arr, t) => { const i = Play.clamp(t / DT, 0, arr.length - 1), i0 = Math.floor(i), i1 = Math.min(arr.length - 1, i0 + 1); return arr[i0] + (arr[i1] - arr[i0]) * (i - i0); };
+// ---------- end pure logic ----------
+
+const f = Play.fmt;
+function cnt(x) {
+  if (!Number.isFinite(x)) return "—";
+  if (x >= 100) return Math.round(x).toLocaleString("en-US");
+  if (x >= 10) return f(x, 0);
+  return f(x, x >= 1 ? 1 : 2);
+}
+const yrs = (x) => (Number.isFinite(x) ? f(x, 1) : P.t("perLong"));
+const DRUN = simulate(DEF, START.H, START.L), DA = analyse(DRUN), DE = balance(DEF);
+const DV = { per: f(DA.per, 1), lag: f(DA.lag, 1), hmin: cnt(DA.hmin) };
+
+// ---------- state ----------
+const ids = ["pa", "pb", "pc", "pd"], keys = ["a", "b", "c", "d"];
+const inp = ids.map((id) => document.getElementById(id));
+let step = 0, answered = -1, start = { ...START }, tNow = 0, playing = false, raf = 0, lastTs = 0, frozen = null, drag = false;
+const params = () => ({ a: +inp[0].value, b: +inp[1].value, c: +inp[2].value, d: +inp[3].value });
+let run = DRUN, A = DA;
+function recompute() { const p = params(); start = clampStart(p, start.H, start.L); run = simulate(p, start.H, start.L); A = analyse(run); }
+
+// ---------- drawing ----------
+const fig = document.getElementById("fig"), ph = document.getElementById("phase");
+const extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+function size(el, dh) {
+  const r = el.getBoundingClientRect();
+  const W = Math.max(280, Math.round(r.width || 600)), H = Math.max(200, Math.round(r.height || dh));
+  el.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  return { W, H };
+}
+function text(par, x, y, s, cls, anchor) {
+  const t = Play.svg("text", { x, y, class: "lbl " + (cls || ""), "text-anchor": anchor || "start" }, par);
+  t.textContent = s;
+  return t;
+}
+function label(par, x, y, s, cls, anchor) {
+  const t = text(par, x, y, s, cls, anchor);
+  try { const bb = t.getBBox(); par.insertBefore(Play.svg("rect", { x: bb.x - 3, y: bb.y - 1, width: bb.width + 6, height: bb.height + 2, rx: 4, class: "tagbg" }), t); } catch (e) { /* no layout */ }
+  return t;
+}
+function path(par, pts, cls) {
+  let d = "";
+  pts.forEach(([x, y], i) => { if (Number.isFinite(x) && Number.isFinite(y)) d += (d ? " L" : "M") + x.toFixed(1) + " " + y.toFixed(1); });
+  return Play.svg("path", { d, class: cls }, par);
+}
+function arrowHead(par, x, y, ang, cls, s) {
+  s = s || 7;
+  const p = (a, r) => (x + Math.cos(a) * r).toFixed(1) + " " + (y + Math.sin(a) * r).toFixed(1);
+  Play.svg("path", { d: `M${p(ang, s)} L${p(ang + 2.5, s)} L${p(ang - 2.5, s)} Z`, class: cls }, par);
+}
+
+// two stacked panels over time: hares above, lynx below
+function drawSeries(svg, W, H, r, a, opt) {
+  const Tw = opt.T, left = 50, right = 12, top = 22, gap = 30, bottom = 30;
+  const pw = W - left - right, phh = (H - top - gap - bottom) / 2;
+  const X = (t) => left + (t / Tw) * pw;
+  const n = Math.round(Tw / DT), every = Math.max(1, Math.round(n / pw));
+  const panels = [
+    { arr: r.H, y: top, name: P.t("fHares"), cls: "hareL", lc: "hare" },
+    { arr: r.L, y: top + phh + gap, name: P.t("fLynx"), cls: "lynxL", lc: "lynx" },
+  ];
+  const hpk = a.hp.filter((t) => t <= Tw), lpk = a.lp.filter((t) => t <= Tw);
+  panels.forEach((pn, k) => {
+    let mx = 0;
+    for (let i = 0; i <= n; i++) mx = Math.max(mx, pn.arr[i]);
+    const ymax = nice(mx * 1.08), Y = (v) => pn.y + phh - (Play.clamp(v, 0, ymax) / ymax) * phh;
+    pn.Y = Y;
+    Play.svg("line", { x1: left, y1: pn.y + phh, x2: left + pw, y2: pn.y + phh, class: "axis" }, svg);
+    Play.svg("line", { x1: left, y1: pn.y, x2: left + pw, y2: pn.y, class: "grid" }, svg);
+    text(svg, left - 5, pn.y + 5, cnt(ymax), "m", "end");
+    text(svg, left - 5, pn.y + phh + 4, "0", "m", "end");
+    text(svg, left + 4, pn.y - 6, pn.name, pn.lc);
+    if (k === 1 && opt.hideLynx) {
+      Play.svg("rect", { x: left + 1, y: pn.y, width: pw - 1, height: phh, rx: 6, class: "hide" }, svg);
+      text(svg, left + pw / 2, pn.y + phh / 2 + 6, "?", "q", "middle");
+      label(svg, left + pw / 2, pn.y + phh - 8, P.t("fHidden"), "m", "middle");
+      return;
+    }
+    const pts = [];
+    for (let i = 0; i <= n; i += every) pts.push([X(i * DT), Y(pn.arr[i])]);
+    pts.push([X(Tw), Y(pn.arr[n])]);
+    path(svg, pts, pn.cls);
+    (k === 0 ? hpk : lpk).forEach((t) => Play.svg("circle", { cx: X(t), cy: Y(at(pn.arr, t)), r: 3.5, class: k === 0 ? "hareD" : "lynxD" }, svg));
+  });
+  // hare peaks as dashed lines through both panels
+  hpk.forEach((t) => Play.svg("line", { x1: X(t), y1: top, x2: X(t), y2: top + 2 * phh + gap, class: "peakV" }, svg));
+  // lag bracket on the first lynx peak that follows a hare peak
+  if (!opt.hideLynx) {
+    const lt = lpk.find((t) => hpk.some((u) => u < t));
+    if (lt !== undefined) {
+      const ht = hpk.filter((u) => u < lt).pop(), yB = panels[1].y + 12;
+      Play.svg("line", { x1: X(ht), y1: yB, x2: X(lt), y2: yB, class: "lagA" }, svg);
+      arrowHead(svg, X(lt), yB, 0, "ahF", 6);
+      label(svg, X(lt) + 6, yB + 5, P.t("fLag", { lag: f(lt - ht, 1) }), "m");
+    }
+  }
+  // time axis
+  const tick = Tw > 30 ? 10 : 5;
+  for (let t = 0; t <= Tw + 1e-9; t += tick) text(svg, X(t), H - 10, String(t), "m", "middle");
+  text(svg, left - 8, H - 10, P.t("fYears"), "m", "end");
+  if (opt.cursor !== undefined) {
+    const cx = X(Play.clamp(opt.cursor, 0, Tw));
+    Play.svg("line", { x1: cx, y1: top, x2: cx, y2: top + 2 * phh + gap, class: "cursor" }, svg);
+    panels.forEach((pn) => Play.svg("circle", { cx, cy: pn.Y(at(pn.arr, opt.cursor)), r: 5, class: "cur" }, svg));
+  }
+}
+
+// phase plane: hares across, lynx up
+let PH = null; // mapping for pointer input
+function phaseScale(r, e) {
+  let hm = 2.2 * e.H, lm = 2.2 * e.L;
+  for (let i = 0; i <= r.n; i++) { hm = Math.max(hm, r.H[i]); lm = Math.max(lm, r.L[i]); }
+  return { hmax: nice(hm * 1.05), lmax: nice(lm * 1.05) };
+}
+function drawPhase(svg, W, H, r, a, p, opt) {
+  const e = balance(p), sc = opt.scale || phaseScale(r, e);
+  const left = 50, right = 14, top = 16, bottom = 34, pw = W - left - right, phh = H - top - bottom;
+  const X = (v) => left + (Play.clamp(v, 0, sc.hmax) / sc.hmax) * pw, Y = (v) => top + phh - (Play.clamp(v, 0, sc.lmax) / sc.lmax) * phh;
+  PH = { left, top, pw, phh, sc };
+  Play.svg("line", { x1: left, y1: top + phh, x2: left + pw, y2: top + phh, class: "axis" }, svg);
+  Play.svg("line", { x1: left, y1: top, x2: left, y2: top + phh, class: "axis" }, svg);
+  text(svg, left - 5, top + 10, cnt(sc.lmax), "m", "end");
+  text(svg, left - 5, top + phh + 4, "0", "m", "end");
+  text(svg, left + pw, top + phh + 18, cnt(sc.hmax), "m", "end");
+  text(svg, left + pw / 2, top + phh + 28, P.t("fAxH"), "hare", "middle");
+  text(svg, left + 6, top + 12, P.t("fAxL"), "lynx");
+  // balance lines
+  Play.svg("line", { x1: X(e.H), y1: top, x2: X(e.H), y2: top + phh, class: "nullL" }, svg);
+  Play.svg("line", { x1: left, y1: Y(e.L), x2: left + pw, y2: Y(e.L), class: "nullL" }, svg);
+  if (opt.quads) {
+    const qx = [X(e.H) + (left + pw - X(e.H)) / 2, X(e.H) + (left + pw - X(e.H)) / 2, left + (X(e.H) - left) / 2, left + (X(e.H) - left) / 2];
+    const qy = [top + phh - 24, top + 30, top + 30, top + phh - 24];
+    [0, 1, 2, 3].forEach((i) => label(svg, qx[i], qy[i], P.t("q" + (i + 1)), "m", "middle"));
+  }
+  // one full loop (or the whole run)
+  const end = Number.isFinite(a.per) && !opt.whole ? Math.min(r.n, Math.round((a.per * 1.02) / DT)) : r.n;
+  const every = Math.max(1, Math.round(end / 600)), pts = [];
+  for (let i = 0; i <= end; i += every) pts.push([X(r.H[i]), Y(r.L[i])]);
+  if (!a.flat) {
+    path(svg, pts, "loopL");
+    // direction arrows, evenly spaced in time
+    const per = Number.isFinite(a.per) ? a.per : T;
+    for (let k = 1; k <= 4; k++) {
+      const t = (k / 4.5) * per, t2 = t + 0.05;
+      const x1 = X(at(r.H, t)), y1 = Y(at(r.L, t)), x2 = X(at(r.H, t2)), y2 = Y(at(r.L, t2));
+      if (Math.hypot(x2 - x1, y2 - y1) > 0.01) arrowHead(svg, x1, y1, Math.atan2(y2 - y1, x2 - x1), "ah", 7);
+    }
+  }
+  text(svg, Math.min(X(e.H) + 4, left + pw - 4), top + phh - 6, P.t("fHs", { n: cnt(e.H) }), "m", X(e.H) + 4 > left + pw - 90 ? "end" : "start");
+  label(svg, left + 6, Y(e.L) - 6, P.t("fLs", { n: cnt(e.L) }), "m");
+  if (opt.peaks) {
+    const th = a.hp[0], tl = a.lp.find((t) => t > th);
+    if (th !== undefined) { const x = X(at(r.H, th)), y = Y(at(r.L, th)); Play.svg("circle", { cx: x, cy: y, r: 5, class: "hareD" }, svg); label(svg, x - 8, y + 20, P.t("fHPk"), "hare", "end"); }
+    if (tl !== undefined) { const x = X(at(r.H, tl)), y = Y(at(r.L, tl)); Play.svg("circle", { cx: x, cy: y, r: 5, class: "lynxD" }, svg); label(svg, x + 9, y - 8, P.t("fLPk"), "lynx"); }
+    label(svg, left + pw - 4, top + 12, P.t("fModel"), "m", "end");
+  }
+  if (opt.cursor !== undefined) Play.svg("circle", { cx: X(at(r.H, opt.cursor)), cy: Y(at(r.L, opt.cursor)), r: 6, class: "cur" }, svg);
+  if (opt.handle) {
+    Play.svg("circle", { cx: X(r.H0), cy: Y(r.L0), r: 9, class: "handle" }, svg);
+    const flip = X(r.H0) > left + pw - 60;
+    label(svg, X(r.H0) + (flip ? -13 : 13), Y(r.L0) + 4, P.t("fStart"), "m", flip ? "end" : "start");
+  }
+}
+
+// step 3: stylised sketch of the fur-record pattern (shape only, not data)
+function drawSketch(svg, W, H) {
+  const left = 14, right = 12, top = 44, bottom = 34, pw = W - left - right, phh = H - top - bottom;
+  Play.svg("rect", { x: left, y: top, width: pw, height: phh, rx: 8, class: "sketchBg" }, svg);
+  label(svg, left + 4, 16, P.t("fSketch"), "m b");
+  const Tw = 50, amp = [1, 0.7, 0.9, 0.6, 0.85, 0.75];
+  const bump = (t, sh, pw_) => { const u = t - sh, k = Math.floor(u / 10); return amp[((k % 6) + 6) % 6] * Math.pow(0.5 - 0.5 * Math.cos((2 * Math.PI * u) / 10), pw_); };
+  const X = (t) => left + (t / Tw) * pw, Y = (v) => top + phh - 6 - v * (phh - 16);
+  const hp = [], lp = [];
+  for (let i = 0; i <= 500; i++) { const t = (i / 500) * Tw; hp.push([X(t), Y(0.06 + 0.9 * bump(t, -3, 3))]); lp.push([X(t), Y(0.04 + 0.62 * bump(t, -1.5, 2.5))]); }
+  path(svg, hp, "hareL");
+  path(svg, lp, "lynxL");
+  Play.svg("line", { x1: left + 2, y1: 33, x2: left + 20, y2: 33, class: "hareL" }, svg);
+  const tl = text(svg, left + 24, 37, P.t("fHares"), "hare");
+  let lx = left + 24 + 50;
+  try { lx = left + 24 + tl.getComputedTextLength() + 14; } catch (e) { /* estimate */ }
+  Play.svg("line", { x1: lx, y1: 33, x2: lx + 18, y2: 33, class: "lynxL" }, svg);
+  text(svg, lx + 22, 37, P.t("fLynx"), "lynx");
+  text(svg, left + pw, 37, P.t("fRel"), "m", "end");
+  const y = H - 14, x0 = left + pw - 6 - (10 / Tw) * pw;
+  Play.svg("line", { x1: x0, y1: y - 4, x2: left + pw - 6, y2: y - 4, class: "lagA" }, svg);
+  text(svg, x0 - 6, y, P.t("fTen"), "m", "end");
+}
+
+function draw() {
+  const p = params();
+  ids.forEach((id, i) => { document.getElementById(id + "V").textContent = f(p[keys[i]], keys[i] === "a" || keys[i] === "d" ? 2 : 1); });
+  document.getElementById("yrVal").textContent = f(tNow, 1);
+  document.getElementById("play").textContent = P.t(playing ? "pause" : "play");
+  document.getElementById("play").setAttribute("aria-pressed", String(playing));
+  document.getElementById("startVal").textContent = P.t("startV", { H0: cnt(start.H), L0: cnt(start.L) });
+  fig.innerHTML = ""; ph.innerHTML = "";
+  ph.classList.toggle("static", step !== 1);
+  if (step === 0) {
+    const { W, H } = size(fig, 320);
+    drawSeries(fig, W, H, DRUN, DA, { T: 25, hideLynx: answered < 0 });
+    extra.textContent = answered >= 0 ? P.t("fb" + (answered + 1), DV) : "";
+  } else if (step === 1) {
+    let s = size(fig, 320);
+    drawSeries(fig, s.W, s.H, run, A, { T, cursor: tNow });
+    s = size(ph, 300);
+    drawPhase(ph, s.W, s.H, run, A, p, { handle: true, cursor: tNow, scale: frozen, whole: !Number.isFinite(A.per) });
+    const e = balance(p);
+    extra.textContent = P.t("x2", { a: f(p.a, 2), b: f(p.b, 1), c: f(p.c, 1), d: f(p.d, 2), Hs: cnt(e.H), Ls: cnt(e.L) });
+  } else {
+    let s = size(fig, 320);
+    drawSketch(fig, s.W, s.H);
+    s = size(ph, 300);
+    drawPhase(ph, s.W, s.H, DRUN, DA, DEF, { quads: true, peaks: true });
+    extra.textContent = P.t("x3", DV);
+  }
+  resultNote();
+}
+function runText() {
+  if (A.flat) return P.t("liveFlat", { H0: cnt(start.H), L0: cnt(start.L) });
+  let s = P.t("liveRun", { H0: cnt(start.H), L0: cnt(start.L), per: yrs(A.per), lag: f(A.lag, 1), hmin: cnt(A.hmin), hmax: cnt(A.hmax), lmin: cnt(A.lmin), lmax: cnt(A.lmax) });
+  if (A.lmin < 1) s += " " + P.t("liveLow", { lmin: cnt(A.lmin) });
+  else if (A.hmin < 50) s += " " + P.t("liveLowH", { hmin: cnt(A.hmin) });
+  return s;
+}
+function resultNote() {
+  const el = document.getElementById("resultNote");
+  const changed = start.H !== START.H || start.L !== START.L || ids.some((id, i) => +inp[i].value !== DEF[keys[i]]);
+  if (step === 1 && changed) el.textContent = A.flat ? P.t("rnFlat") : P.t("rnRun", { per: yrs(A.per), lag: f(A.lag, 1), hmin: cnt(A.hmin), hmax: cnt(A.hmax) });
+  else el.textContent = P.t("rnDef", DV);
+}
+
+// ---------- actions ----------
+function setStart(H0, L0) {
+  start = clampStart(params(), H0, L0);
+  run = simulate(params(), start.H, start.L);
+  A = analyse(run);
+  draw();
+}
+function announce() { Play.live(liveEl, runText()); }
+function stopPlay() { playing = false; cancelAnimationFrame(raf); raf = 0; }
+function frame(ts) {
+  if (!playing) return;
+  const dt = lastTs ? Math.min(0.1, (ts - lastTs) / 1000) : 0;
+  lastTs = ts;
+  tNow += dt * 4; // 4 model years per second
+  if (tNow >= T) { tNow = T; stopPlay(); }
+  document.getElementById("yr").value = tNow;
+  draw();
+  if (playing) raf = requestAnimationFrame(frame);
+  else Play.live(liveEl, P.t("liveYear", { t: f(tNow, 0), h: cnt(at(run.H, tNow)), l: cnt(at(run.L, tNow)) }));
+}
+document.getElementById("play").addEventListener("click", () => {
+  if (playing) { stopPlay(); draw(); Play.live(liveEl, P.t("liveYear", { t: f(tNow, 1), h: cnt(at(run.H, tNow)), l: cnt(at(run.L, tNow)) })); return; }
+  if (tNow >= T - 0.01) tNow = 0;
+  playing = true; lastTs = 0; draw();
+  raf = requestAnimationFrame(frame);
+});
+const yrIn = document.getElementById("yr");
+yrIn.addEventListener("input", () => {
+  stopPlay();
+  tNow = Play.clamp(+yrIn.value, 0, T);
+  draw();
+  Play.live(liveEl, P.t("liveYear", { t: f(tNow, 1), h: cnt(at(run.H, tNow)), l: cnt(at(run.L, tNow)) }));
+});
+inp.forEach((el) => el.addEventListener("input", () => { frozen = null; recompute(); draw(); announce(); }));
+document.getElementById("atBal").addEventListener("click", () => { const e = balance(params()); frozen = null; setStart(e.H, e.L); announce(); });
+document.getElementById("nudge").addEventListener("click", () => { frozen = null; setStart(start.H * 1.1, start.L); announce(); });
+
+function fromPointer(e) {
+  if (!PH) return null;
+  const pt = Play.pointer(ph, e);
+  return { H: ((pt.x - PH.left) / PH.pw) * PH.sc.hmax, L: ((PH.top + PH.phh - pt.y) / PH.phh) * PH.sc.lmax };
+}
+ph.addEventListener("pointerdown", (e) => {
+  if (step !== 1 || !PH) return;
+  e.preventDefault();
+  drag = true;
+  frozen = PH.sc;
+  try { ph.setPointerCapture(e.pointerId); } catch (err) { /* old browsers */ }
+  const v = fromPointer(e);
+  if (v) setStart(v.H, v.L);
+});
+ph.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const v = fromPointer(e);
+  if (v) setStart(v.H, v.L);
+});
+function endDrag() { if (!drag) return; drag = false; frozen = null; draw(); announce(); }
+ph.addEventListener("pointerup", endDrag);
+ph.addEventListener("pointercancel", endDrag);
+ph.addEventListener("keydown", (e) => {
+  if (step !== 1 || !PH) return;
+  const k = e.shiftKey ? 5 : 1, dH = 0.02 * PH.sc.hmax * k, dL = 0.02 * PH.sc.lmax * k;
+  const mv = { ArrowLeft: [-dH, 0], ArrowRight: [dH, 0], ArrowUp: [0, dL], ArrowDown: [0, -dL] }[e.key];
+  if (!mv) return;
+  e.preventDefault();
+  frozen = PH.sc;
+  setStart(start.H + mv[0], start.L + mv[1]);
+  frozen = null;
+  announce();
+});
+
+// ---------- steps & controls ----------
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }, { label: P.t("o4") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { answered = i; if (step === 0) draw(); });
+
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  stopPlay();
+  step = i;
+  const k = i + 1;
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  document.getElementById("predict").hidden = i !== 0;
+  document.getElementById("eqs").hidden = i !== 1;
+  ["ctlTime", "ctlStart", "ctlRates"].forEach((id) => { document.getElementById(id).hidden = i !== 1; });
+  ph.hidden = i === 0;
+  ph.tabIndex = i === 1 ? 0 : -1;
+  Play.live(liveEl, i === 1 ? runText() : "");
+  draw();
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  stopPlay();
+  inp.forEach((el, i) => { el.value = DEF[keys[i]]; });
+  start = { ...START }; tNow = 0; yrIn.value = 0; frozen = null; answered = -1;
+  recompute(); pr.reset(); st.go(0);
+});
+if ("ResizeObserver" in window) { const ro = new ResizeObserver(() => draw()); ro.observe(fig); ro.observe(ph); }
+else window.addEventListener("resize", draw);
+</script>
+</body>
+</html>

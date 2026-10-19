@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can a coat keep ice cold?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main#fig { height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #fig text { font-family: var(--font); fill: var(--muted); }
+  #fig text.strong { fill: var(--fg); font-weight: 650; }
+  #fig .probe { cursor: ew-resize; }
+  #fig .probe:focus { outline: none; }
+  #fig .probe:focus-visible circle.ph { stroke: var(--hl); stroke-width: 4; }
+  #fig .disp { font-family: var(--math); fill: var(--on-panel); font-weight: 650; }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 4.5em; }
+  .controls button[aria-pressed="true"] { border-color: var(--a); background: var(--soft); font-weight: 650; }
+  .controls .lbl { width: 100%; font-weight: 650; color: var(--fg); margin-top: 4px; }
+  .sw { touch-action: none; display: inline-flex; align-items: center; gap: 6px; }
+  .sw i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--fg); flex: none; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin: 2px 0 10px; }
+  .tbl th, .tbl td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .tbl td.n { font-family: var(--math); color: var(--fg); text-align: right; white-space: nowrap; }
+  .tbl th { color: var(--muted); font-weight: 600; }
+  .rule { font-size: 14px; color: var(--fg) !important; }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+  .result .math { font-family: var(--serif); white-space: normal; font-size: 20px; line-height: 1.4; }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="pause" aria-pressed="false"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" role="group" data-t-aria="figAria"></svg>
+      <div id="cMat" class="controls" hidden>
+        <span class="lbl" id="matLbl"></span>
+        <span id="swatches" style="display:contents"></span>
+        <label for="layers" data-t="layersLabel"></label>
+        <input type="range" id="layers" min="1" max="3" step="1" value="1">
+        <output id="layersVal" for="layers"></output>
+      </div>
+      <div id="c2" class="controls" hidden>
+        <label for="time" data-t="timeLabel"></label>
+        <input type="range" id="time" min="0" max="960" step="1" value="0">
+        <output id="timeVal" for="time"></output>
+      </div>
+      <div id="c3" class="controls" hidden>
+        <span class="lbl" data-t="insideLbl"></span>
+        <button type="button" class="small" data-sc="0"></button>
+        <button type="button" class="small" data-sc="1"></button>
+        <button type="button" class="small" data-sc="2"></button>
+        <label class="check"><input type="checkbox" id="coatOn" checked> <span data-t="coatOn"></span></label>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="extra"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" id="data"></p>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Can a coat keep ice cold?", eyebrow: "Science · Stage 2",
+    h1: "A coat makes no heat: it only slows heat down, so it keeps warm things warm and cold things cold",
+    intro: "Guess first. Then race two ice cubes, wrap one in different materials, and push a thermometer probe through a coat.",
+    reset: "Reset", pause: "Pause", play: "Play",
+    figAria: "Two ice cubes in a warm room, one bare and one wrapped, with arrows showing heat flowing in; or a slice through a coat with a temperature graph and a movable thermometer probe",
+    s1: "Guess", s2: "Ice race", s3: "Both ways",
+    k1: "Predict first", t1: "Two ice cubes in a warm room",
+    b1: "Two identical ice cubes ({m} g each) sit in a room at {room} °C. One is wrapped in a wool coat, the other is left bare.",
+    b1done: "Now test it: in step 2, press Play and watch both cubes.",
+    q: "Which ice cube melts first?",
+    o1: "The wrapped one: the coat is warm", o2: "The bare one", o3: "Both at the same time",
+    right: "Yes. Check it in step 2 and see how much longer the wrapped one lasts.",
+    wrong: "Many people think so, because a coat feels warm. Check it in step 2: press Play and watch.",
+    k2: "Hands on", t2: "Wrap it and race",
+    b2: "Drag a material onto the right-hand ice cube (or press it), choose how many layers, then press Play or drag the time slider. Heat flows in from the warm room; the red arrows show how fast.",
+    b2foil: "Foil is a metal, and metals let heat through very easily. A thin layer of foil hardly slows the heat at all, so the wrapped cube melts almost as fast as the bare one. (Shiny foil also reflects some heat rays; this model leaves that out.)",
+    b2same: "Nothing on the right cube yet, so both cubes melt at the same rate.",
+    b2slow: "The {mat} lets heat in {r} times more slowly, so that ice lasts {r} times longer. The wrapping is not cold either: it just slows the heat.",
+    matLbl: "Wrap the right-hand cube in:", layersLabel: "Layers", layersVal: "{n} × {d} mm",
+    timeLabel: "Time",
+    hm: "{h} h {m} min", mOnly: "{m} min",
+    room: "Room air {t} °C", bare: "Bare", wrapped: "{mat} × {n}",
+    iceLeft: "Ice left: {g} g", meltsAt: "Gone after {t}", melted: "Melted!",
+    dropHere: "Drop to wrap",
+    matNone: "Nothing (bare)", matFoil: "Kitchen foil", matPaper: "Newspaper", matCotton: "Cotton cloth", matWool: "Wool coat",
+    matNoneS: "nothing", matFoilS: "foil", matPaperS: "newspaper", matCottonS: "cotton cloth", matWoolS: "wool coat",
+    live2: "After {t}: bare cube {a} g left, wrapped cube {b} g left. Heat coming in: bare {qa} W, wrapped {qb} W.",
+    k3: "The rule", t3: "The same coat, both ways",
+    insideLbl: "Inside the coat:", sc0: "Ice, room {room} °C", sc1: "Warm body {body} °C, air {cold} °C", sc2: "Nothing, room {room} °C", matLbl3: "Coat material:",
+    coatOn: "Coat on",
+    b3: "This is a slice through the coat. Drag the thermometer probe (or focus it and use ← →) from inside to outside, and read the temperature.",
+    b3ice: "Heat flows from the warm air in towards the ice. The temperature drops across the coat, from {ts} °C outside to 0 °C next to the ice. No part of the coat is warmer than the room.",
+    b3body: "Now heat flows the other way: out of the warm body into the cold air. The coat slows it just as much. The body makes its own heat from food; the coat keeps it in.",
+    b3empty: "With nothing inside, the probe reads {t} °C everywhere, the same as the room. A coat has no heat of its own. (It feels warm when you touch it because it doesn’t pull heat out of your hand quickly, the way metal does.)",
+    b3off: "Coat off: only the thin layer of still air at the surface slows the heat.",
+    probe: "Probe {t} °C", probeAria: "Thermometer probe at {x}, reading {t} degrees Celsius. Use left and right arrow keys to move it.",
+    zIn: "inside", zCoat: "in the coat", zAir: "in the air",
+    lgObj0: "Ice", lgObj1: "Body", lgObj2: "Empty", lgCoat: "Coat", lgAir: "Air", lgHeat: "heat flow",
+    thWhat: "", thFlow: "Heat flow (per m²)",
+    rowBare: "Bare", rowCoat: "{mat} × {n}",
+    wm2: "{q} W/m²", noFlow: "No heat flows: everything is at the same temperature.",
+    rule3: "Rule: heat always flows from warmer to colder. A coat makes no heat; it slows the heat crossing it. Thicker layers and materials that pass heat badly (wool, trapped air) slow it more, whichever way the heat is going.",
+    ratio: "With this coat, heat crosses {r} times more slowly.",
+    live3: "{sc}. Probe {z}: {t} °C. Heat flow {q} W per square metre {dir}.",
+    dirIn: "inwards", dirOut: "outwards", dirNone: "",
+    resultTitle: "What we found", resultWait: "Make your guess first, then test it in step 2.", resultMain: "{mat} × {n}: heat crosses {r}× more slowly, so ice lasts {r}× longer and a warm body loses heat {r}× more slowly",
+    resultNote: "Heat flow = area × temperature difference ÷ (d/k + 1/h). The coat adds d/k: thickness d divided by how well the material passes heat, k. It adds no heat.",
+    explainK: "Explain it", explainQ: "Your friend says: “Don’t put the ice in a coat, the coat will warm it up!” Use the words “heat flows” and “slows down” to explain why the ice in the coat lasts longer, and why the same coat keeps you warm in winter.",
+    homeK: "Try at home", homeQ: "Take two ice cubes the same size. Put one on a plate; wrap the other in a wool scarf or sock on another plate. Check every 15 minutes which is smaller. If you have a thermometer, push it into a folded coat that has been in the room for an hour: it reads room temperature.",
+    dataNote: "Model (simplified; material values are illustrative, typical for each material): ice cube {s} cm on a side, density {rho} g/cm³, so {m} g; it takes {Lf} J to melt each gram (latent heat of fusion of ice, 334 J/g). Room {room} °C; the ice stays at 0 °C while it melts. Heat flow per square metre q = ΔT ÷ (d/k + 1/h), through the cube’s starting surface area {A} cm² (kept constant; thick wrappings really have a bit more outside area). Still air at the surface: h = {h} W/(m²·K) (illustrative; convection and heat rays lumped together). Thermal conductivity k in W/(m·K) and thickness per layer: kitchen foil {kF} (aluminium), {dF} mm; newspaper {kP}, {dP} mm; cotton cloth {kC}, {dC} mm; wool coat {kW}, {dW} mm. Real fabrics vary a lot with how much air they trap. The model ignores dripping meltwater and the foil reflecting heat rays. Warm body taken as 37 °C at the skin (real skin is a little cooler). The idea that clothes are warm by themselves is well documented in science-education research (e.g. Driver et al. 1994, Making Sense of Secondary Science).",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "棉衣能让冰块不化吗？", eyebrow: "科学 · 阶段 2",
+    h1: "棉衣自己不产生热，只是让热走得更慢：所以它让暖的保暖，也让冷的保冷",
+    intro: "先猜，再让两块冰比赛，给一块包上不同的材料，最后把温度计探头穿过棉衣看一看。",
+    reset: "重置", pause: "暂停", play: "播放",
+    figAria: "暖房间里两块冰，一块光着、一块包着，箭头表示热流进来；或者棉衣的一个切面，带温度曲线和可以移动的温度计探头",
+    s1: "先猜", s2: "冰块比赛", s3: "两个方向",
+    k1: "先猜一猜", t1: "暖房间里的两块冰",
+    b1: "两块一样的冰（每块 {m} 克）放在 {room} °C 的房间里。一块用羊毛大衣包起来，另一块光着。",
+    b1done: "现在来验证：到第 2 步，按「播放」，看两块冰。",
+    q: "哪块冰先化完？",
+    o1: "包着的那块：大衣是暖的", o2: "光着的那块", o3: "一样快",
+    right: "对。到第 2 步验证，看看包着的那块能多撑多久。",
+    wrong: "很多人都这么想，因为大衣摸起来暖。到第 2 步验证：按「播放」看一看。",
+    k2: "动手", t2: "包起来，比一比",
+    b2: "把一种材料拖到右边的冰块上（或直接点它），选几层，再按「播放」或拖时间滑块。热从暖房间流进冰里，红箭头表示流得多快。",
+    b2foil: "锡纸是金属，金属特别容易让热通过。薄薄一层锡纸几乎挡不住热，所以包着的冰和光着的化得差不多快。（亮面锡纸还能反射一部分热辐射，这个模型没算。）",
+    b2same: "右边的冰还没包东西，两块冰化得一样快。",
+    b2slow: "{mat}让热流进来的速度慢了 {r} 倍，所以那块冰多撑了 {r} 倍的时间。包的东西本身也不冷：它只是让热走得慢。",
+    matLbl: "给右边的冰包上：", layersLabel: "层数", layersVal: "{n} × {d} 毫米",
+    timeLabel: "时间",
+    hm: "{h} 小时 {m} 分", mOnly: "{m} 分",
+    room: "室温 {t} °C", bare: "光着", wrapped: "{mat} × {n}",
+    iceLeft: "还剩冰 {g} 克", meltsAt: "{t} 化完", melted: "化完了！",
+    dropHere: "放下就包上",
+    matNone: "不包（光着）", matFoil: "锡纸", matPaper: "报纸", matCotton: "棉布", matWool: "羊毛大衣",
+    matNoneS: "不包", matFoilS: "锡纸", matPaperS: "报纸", matCottonS: "棉布", matWoolS: "羊毛大衣",
+    live2: "过了 {t}：光着的冰还剩 {a} 克，包着的还剩 {b} 克。流进来的热：光着 {qa} 瓦，包着 {qb} 瓦。",
+    k3: "规律", t3: "同一件大衣，两个方向",
+    insideLbl: "大衣里面是：", sc0: "冰，室温 {room} °C", sc1: "温暖的身体 {body} °C，外面 {cold} °C", sc2: "什么都没有，室温 {room} °C", matLbl3: "大衣的材料：",
+    coatOn: "穿上大衣",
+    b3: "这是大衣的一个切面。拖动温度计探头（或选中后按 ← →），从里到外，读一读温度。",
+    b3ice: "热从暖空气流向冰。温度穿过大衣一路下降，从外面的 {ts} °C 降到贴着冰的 0 °C。大衣没有哪一处比房间更暖。",
+    b3body: "现在热往反方向流：从温暖的身体流向冷空气。大衣把它减慢的程度一模一样。身体靠食物自己产生热，大衣把热留住。",
+    b3empty: "里面什么都没有时，探头到哪里都是 {t} °C，和房间一样。大衣自己没有热。（摸起来暖，是因为它不像金属那样很快把手上的热带走。）",
+    b3off: "脱掉大衣：只剩表面一薄层不动的空气在减慢热。",
+    probe: "探头 {t} °C", probeAria: "温度计探头在{x}，读数 {t} 摄氏度。用左右方向键移动。",
+    zIn: "里面", zCoat: "大衣中", zAir: "空气中",
+    lgObj0: "冰", lgObj1: "身体", lgObj2: "空的", lgCoat: "大衣", lgAir: "空气", lgHeat: "热流",
+    thWhat: "", thFlow: "热流（每平方米）",
+    rowBare: "光着", rowCoat: "{mat} × {n}",
+    wm2: "{q} 瓦/平方米", noFlow: "没有热流动：处处温度一样。",
+    rule3: "规律：热总是从暖的地方流向冷的地方。大衣不产生热，它让穿过它的热走得更慢。越厚、越不容易导热的材料（羊毛、里面困住的空气）减慢得越多，不管热往哪个方向走。",
+    ratio: "穿上这件，热穿过的速度慢了 {r} 倍。",
+    live3: "{sc}。探头在{z}：{t} °C。热流每平方米 {q} 瓦{dir}。",
+    dirIn: "，向里", dirOut: "，向外", dirNone: "",
+    resultTitle: "我们发现", resultWait: "先猜一猜，再到第 2 步验证。", resultMain: "{mat} × {n}：热穿过的速度慢了 {r} 倍，所以冰多撑 {r} 倍的时间，暖的身体散热也慢 {r} 倍",
+    resultNote: "热流 = 面积 × 温差 ÷（d/k + 1/h）。大衣加上的是 d/k：厚度 d 除以材料导热的本领 k。它没有加进一点热。",
+    explainK: "说一说", explainQ: "朋友说：「别把冰放进大衣里，大衣会把它捂化的！」用「热流动」和「变慢」这两个词，讲讲为什么包在大衣里的冰反而撑得更久，又为什么同一件大衣冬天能让你暖和。",
+    homeK: "家里做一做", homeQ: "拿两块一样大的冰。一块放在盘子上；另一块用羊毛围巾或袜子包起来，放在另一个盘子上。每 15 分钟看一次哪块更小。有温度计的话，把它插进在房间里放了一小时、叠好的大衣里：读数就是室温。",
+    dataNote: "模型（简化；材料数值只作示意，取各材料的典型值）：冰块棱长 {s} 厘米，密度 {rho} 克/立方厘米，所以 {m} 克；每化 1 克冰要吸收 {Lf} 焦（冰的熔化热 334 焦/克）。室温 {room} °C；冰在化的时候一直是 0 °C。每平方米的热流 q = ΔT ÷（d/k + 1/h），面积按冰块开始时的表面积 {A} 平方厘米算（保持不变；厚的包裹物外表面其实更大一些）。表面不动的空气层：h = {h} 瓦/(平方米·开)（示意值，对流和热辐射合在一起算）。导热系数 k，单位 瓦/(米·开)，和每层厚度：锡纸 {kF}（铝），{dF} 毫米；报纸 {kP}，{dP} 毫米；棉布 {kC}，{dC} 毫米；羊毛大衣 {kW}，{dW} 毫米。真实织物差别很大，要看里面困住多少空气。模型不计滴下的融水，也不计锡纸反射热辐射。身体按皮肤 37 °C 算（真实皮肤稍低一些）。「衣服本身是热的」这一迷思在科学教育研究中有大量记录（如 Driver 等 1994，Making Sense of Secondary Science）。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+const $ = (id) => document.getElementById(id);
+
+// ---------- physics (all numbers computed from these) ----------
+const D = { room: 25, side: 3, rho: 0.917, Lf: 334, h: 10, body: 37, cold: 0, tMax: 960 }; // side cm; tMax minutes
+const MASS = D.rho * D.side ** 3; // g
+const AREA = 6 * (D.side / 100) ** 2; // m²
+const MATS = [ // k W/(m·K), d mm per layer (illustrative)
+  { id: "None", k: 0, d: 0, fill: "none" },
+  { id: "Foil", k: 205, d: 0.02, fill: "var(--muted)" },
+  { id: "Paper", k: 0.05, d: 1, fill: "var(--soft)" },
+  { id: "Cotton", k: 0.06, d: 1, fill: "var(--hl)" },
+  { id: "Wool", k: 0.04, d: 10, fill: "var(--b)" },
+];
+const thick = (mi, n) => (mi > 0 ? MATS[mi].d * n : 0); // mm
+const Rcoat = (mi, n) => (mi > 0 ? thick(mi, n) / 1000 / MATS[mi].k : 0); // m²K/W
+const Rair = 1 / D.h;
+const flux = (dT, mi, n) => dT / (Rair + Rcoat(mi, n)); // W/m²
+const slow = (mi, n) => (Rair + Rcoat(mi, n)) / Rair; // how many times slower than bare
+const meltSec = (mi, n) => (MASS * D.Lf) / (flux(D.room, mi, n) * AREA);
+const iceLeft = (tSec, mi, n) => MASS * Play.clamp(1 - tSec / meltSec(mi, n), 0, 1);
+// temperature at x mm (x<0 inside the object, 0..d coat, d..d+FILM still-air film, beyond: air)
+const FILM = 8;
+function tempAt(x, Tin, Tout, d, Rc) {
+  if (Tin === null) return Tout;
+  const Ts = Tin + (Tout - Tin) * (Rc / (Rc + Rair)); // coat outer surface
+  if (x <= 0) return Tin;
+  if (x <= d) return Tin + (Ts - Tin) * (x / d);
+  if (x <= d + FILM) return Ts + (Tout - Ts) * ((x - d) / FILM);
+  return Tout;
+}
+
+// ---------- formatting ----------
+const r1 = (x) => Play.fmt(x, 1);
+const fmtR = (x) => (x < 10 ? Play.fmt(x, 1) : Play.fmt(x, 0));
+function fmtT(sec) {
+  const tm = Math.round(Math.max(0, sec) / 60), h = Math.floor(tm / 60), m = tm % 60;
+  return h ? P.t("hm", { h, m: String(m).padStart(2, "0") }) : P.t("mOnly", { m });
+}
+const matName = (mi, short) => P.t("mat" + MATS[mi].id + (short ? "S" : ""));
+
+// ---------- state ----------
+let cur = 0, mat = 4, layers = 1, tMin = 0, scen = 0, coatOn = true, probeX = 0, answered = false, playing = false;
+let drag = null; // {mi, x, y, over} while dragging a swatch
+
+// ---------- svg layout ----------
+const fig = $("fig");
+let L = null, E = {};
+const S = (t, a, p) => Play.svg(t, a, p || fig);
+const txt = (p, x, y, s, a) => { const e = S("text", Object.assign({ x, y, "font-size": 14 }, a || {}), p); e.textContent = s; return e; };
+function arrow(p, x1, y1, x2, y2, w, color) {
+  const dx = x2 - x1, dy = y2 - y1, l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l, hl = 5 + w * 1.6, hw = 3 + w * 1.4;
+  const bx = x2 - ux * hl, by = y2 - uy * hl;
+  S("line", { x1, y1, x2: bx, y2: by, stroke: color, "stroke-width": w, "stroke-linecap": "round" }, p);
+  S("polygon", { points: `${x2},${y2} ${bx - uy * hw},${by + ux * hw} ${bx + uy * hw},${by - ux * hw}`, fill: color }, p);
+}
+function build() {
+  const W = fig.getBoundingClientRect().width || 600;
+  const vw = Play.clamp(Math.round(W), 300, 760), vh = cur === 2 ? 340 : 330;
+  L = { vw, vh };
+  fig.setAttribute("viewBox", `0 0 ${vw} ${vh}`);
+  fig.style.height = Math.round((W * vh) / vw) + "px";
+  fig.innerHTML = "";
+  E = { g: S("g", {}) };
+  draw();
+}
+function draw() {
+  if (!L) return;
+  E.g.innerHTML = "";
+  if (cur < 2) drawRace(); else drawSlice();
+}
+
+// ---- steps 1–2: two ice cubes ----
+function drawRace() {
+  const { vw } = L, g = E.g, cy = 152, s0 = Play.clamp(vw * 0.12, 44, 72), ppm = Play.clamp(vw / 600, 0.6, 1) * 1.6;
+  txt(g, 14, 24, P.t("room", { t: D.room }), { class: "strong" });
+  if (cur === 1) txt(g, vw - 14, 24, fmtT(tMin * 60), { "text-anchor": "end", class: "strong" });
+  const qBare = flux(D.room, 0, 1);
+  const panels = [{ cx: vw * 0.27, mi: 0, n: 1 }, { cx: vw * 0.73, mi: mat, n: layers }];
+  L.drop = { cx: panels[1].cx, cy, r: vw * 0.22 };
+  panels.forEach((pn, k) => {
+    const left = iceLeft(tMin * 60, pn.mi, pn.n), frac = left / MASS;
+    const wpx = pn.mi === 0 ? 0 : pn.mi === 1 ? 3 : Math.max(5, thick(pn.mi, pn.n) * ppm);
+    const outer = s0 / 2 + wpx;
+    // puddle of melt water
+    if (frac < 1) S("ellipse", { cx: pn.cx, cy: cy + outer + 8, rx: (s0 / 2 + 6) + (1 - frac) * 26, ry: 4 + (1 - frac) * 4, fill: "var(--c)", opacity: 0.25 }, g);
+    // wrapping (fixed size; the ice shrinks inside)
+    if (pn.mi > 0) {
+      const m = MATS[pn.mi];
+      S("rect", { x: pn.cx - outer, y: cy - outer, width: 2 * outer, height: 2 * outer, rx: 6 + wpx * 0.3, fill: m.fill, opacity: pn.mi === 3 ? 0.6 : pn.mi === 4 ? 0.55 : 0.8, stroke: "var(--fg)", "stroke-width": 1.2 }, g);
+      if (pn.mi === 2) for (let y = cy - outer + 4; y < cy + outer - 2; y += 4) S("line", { x1: pn.cx - outer + 3, x2: pn.cx + outer - 3, y1: y, y2: y, stroke: "var(--muted)", "stroke-width": 0.6, opacity: 0.6 }, g);
+      S("rect", { x: pn.cx - s0 / 2, y: cy - s0 / 2, width: s0, height: s0, fill: "var(--surface)", stroke: "var(--line)" }, g);
+    }
+    // ice
+    if (frac > 0) {
+      const s = s0 * Math.cbrt(frac);
+      S("rect", { x: pn.cx - s / 2, y: cy + s0 / 2 - s, width: s, height: s, rx: 3, fill: "var(--c)", opacity: 0.35, stroke: "var(--c)", "stroke-width": 2 }, g);
+      S("path", { d: `M${pn.cx - s / 2 + 4} ${cy + s0 / 2 - s + 6} l${s * 0.3} 0`, stroke: "var(--surface)", "stroke-width": 2, "stroke-linecap": "round" }, g);
+    }
+    // heat arrows (width ∝ heat flow)
+    if (frac > 0) {
+      const q = flux(D.room, pn.mi, pn.n), w = 1 + 6 * (q / qBare);
+      [[0, -1], [0, 1], [-1, 0], [1, 0]].forEach(([dx, dy]) => {
+        const a = outer + 30, b = outer + 6;
+        arrow(g, pn.cx + dx * a, cy + dy * a, pn.cx + dx * b, cy + dy * b, w, "var(--no)");
+      });
+    }
+    const ly = cy + 112;
+    txt(g, pn.cx, ly, pn.mi ? P.t("wrapped", { mat: matName(pn.mi), n: pn.n }) : P.t("bare"), { "text-anchor": "middle", class: "strong" });
+    txt(g, pn.cx, ly + 21, frac > 0 ? P.t("iceLeft", { g: r1(left) }) : P.t("melted"), { "text-anchor": "middle" });
+    if (cur === 1 || answered) txt(g, pn.cx, ly + 42, P.t("meltsAt", { t: fmtT(meltSec(pn.mi, pn.n)) }), { "text-anchor": "middle", "font-size": 13 });
+    if (k === 1 && drag && drag.over) S("circle", { cx: pn.cx, cy, r: L.drop.r * 0.8, fill: "none", stroke: "var(--hl)", "stroke-width": 3, "stroke-dasharray": "6 5" }, g);
+  });
+  if (drag && drag.inFig) {
+    const m = MATS[drag.mi];
+    S("rect", { x: drag.x - 18, y: drag.y - 18, width: 36, height: 36, rx: 6, fill: m.fill === "none" ? "var(--surface)" : m.fill, opacity: 0.8, stroke: "var(--fg)" }, g);
+    if (drag.over) txt(g, drag.x, drag.y - 26, P.t("dropHere"), { "text-anchor": "middle", class: "strong", "font-size": 13 });
+  }
+}
+
+// ---- step 3: slice through the coat ----
+const SCEN = [{ Tin: 0, Tout: D.room }, { Tin: D.body, Tout: D.cold }, { Tin: null, Tout: D.room }];
+function sliceGeom() {
+  const d = coatOn ? Math.max(thick(mat, layers), mat === 1 ? 0.5 : 0) : 0; // foil drawn at 0.5 mm so it is visible
+  const dReal = coatOn ? thick(mat, layers) : 0;
+  const OBJ = 12, AIR = 12, x0 = 16, x1 = L.vw - 16;
+  const span = OBJ + d + FILM + AIR;
+  const X = (mm) => x0 + ((mm + OBJ) / span) * (x1 - x0);
+  return { d, dReal, OBJ, AIR, span, X, x0, x1, xmin: -OBJ, xmax: d + FILM + AIR };
+}
+function probeTemp() { // in physical mm, mapping the drawn coat to the real one
+  const G = sliceGeom(), sc = SCEN[scen], Rc = coatOn ? Rcoat(mat, layers) : 0;
+  let x = probeX;
+  if (x > 0 && x <= G.d) x = G.d ? (x / G.d) * G.dReal : 0;
+  else if (x > G.d) x = G.dReal + (x - G.d);
+  return tempAt(x, sc.Tin, sc.Tout, G.dReal, Rc);
+}
+function drawSlice() {
+  const g = E.g, G = sliceGeom(), sc = SCEN[scen], Rc = coatOn ? Rcoat(mat, layers) : 0, X = G.X;
+  const bandY = 46, bandH = 70, gy0 = 150, gy1 = L.vh - 34, T0 = -5, T1 = 40;
+  const Y = (t) => gy1 - ((t - T0) / (T1 - T0)) * (gy1 - gy0);
+  // band: object / coat / air
+  const objFill = scen === 0 ? "var(--c)" : scen === 1 ? "var(--h)" : "var(--soft)";
+  S("rect", { x: G.x0, y: bandY, width: X(0) - G.x0, height: bandH, fill: objFill, opacity: scen === 2 ? 1 : 0.35 }, g);
+  S("rect", { x: X(G.d), y: bandY, width: G.x1 - X(G.d), height: bandH, fill: "var(--soft)", opacity: 0.5 }, g);
+  if (G.d > 0) S("rect", { x: X(0), y: bandY, width: Math.max(2, X(G.d) - X(0)), height: bandH, fill: MATS[mat].fill, opacity: 0.7, stroke: "var(--fg)", "stroke-width": 1 }, g);
+  S("rect", { x: G.x0, y: bandY, width: G.x1 - G.x0, height: bandH, fill: "none", stroke: "var(--line)" }, g);
+  txt(g, (G.x0 + X(0)) / 2, bandY - 8, P.t("lgObj" + scen), { "text-anchor": "middle", class: "strong" });
+  if (G.d > 0) txt(g, (X(0) + X(G.d)) / 2, bandY - 8, P.t("lgCoat"), { "text-anchor": "middle", class: "strong" });
+  txt(g, (X(G.d) + G.x1) / 2 + 10, bandY - 8, P.t("lgAir") + " " + sc.Tout + " °C", { "text-anchor": "middle", class: "strong" });
+  // heat flow arrow across the coat
+  const q = sc.Tin === null ? 0 : flux(sc.Tout - sc.Tin, coatOn ? mat : 0, layers);
+  const qMax = flux(D.body, 0, 1);
+  if (Math.abs(q) > 0.01) {
+    const w = 1.5 + 8 * Math.abs(q) / qMax, ya = bandY + bandH / 2, xa = X(-G.OBJ * 0.4), xb = X(G.d + FILM + G.AIR * 0.5);
+    if (q > 0) arrow(g, xb, ya, xa, ya, w, "var(--no)"); else arrow(g, xa, ya, xb, ya, w, "var(--no)");
+    txt(g, X(G.d + FILM + G.AIR * 0.5), ya + bandH / 2 - 6, P.t("lgHeat"), { "text-anchor": "end", "font-size": 13 });
+  }
+  // graph axes
+  [0, 10, 20, 30, 40].forEach((t) => {
+    S("line", { x1: G.x0, x2: G.x1, y1: Y(t), y2: Y(t), stroke: "var(--line)" }, g);
+    txt(g, G.x0 + 2, Y(t) - 3, t + " °C", { "font-size": 13 });
+  });
+  [0, G.d].forEach((mm) => S("line", { x1: X(mm), x2: X(mm), y1: bandY, y2: gy1, stroke: "var(--muted)", "stroke-dasharray": "3 4", opacity: 0.6 }, g));
+  // temperature curve
+  const pts = [];
+  for (let i = 0; i <= 120; i++) {
+    const mm = G.xmin + (i / 120) * (G.xmax - G.xmin);
+    const xr = mm <= 0 ? mm : mm <= G.d ? (G.d ? (mm / G.d) * G.dReal : 0) : G.dReal + (mm - G.d);
+    pts.push(X(mm).toFixed(1) + "," + Y(tempAt(xr, sc.Tin, sc.Tout, G.dReal, Rc)).toFixed(1));
+  }
+  S("polyline", { points: pts.join(" "), fill: "none", stroke: "var(--a)", "stroke-width": 3, "stroke-linejoin": "round" }, g);
+  // probe
+  probeX = Play.clamp(probeX, G.xmin, G.xmax);
+  const T = probeTemp(), px = X(probeX);
+  const pg = S("g", { class: "probe", tabindex: 0, role: "slider", "aria-valuemin": Math.round(G.xmin), "aria-valuemax": Math.round(G.xmax), "aria-valuenow": Math.round(probeX),
+    "aria-label": P.t("probeAria", { x: P.t(zone()), t: r1(T) }) }, g);
+  S("line", { x1: px, x2: px, y1: bandY - 2, y2: gy1, stroke: "var(--fg)", "stroke-width": 2 }, pg);
+  S("rect", { x: px - 18, y: bandY - 2, width: 36, height: bandH + 4, fill: "transparent" }, pg);
+  S("circle", { class: "ph", cx: px, cy: Y(T), r: 9, fill: "var(--surface)", stroke: "var(--fg)", "stroke-width": 2.5 }, pg);
+  S("circle", { cx: px, cy: Y(T), r: 4, fill: "var(--no)" }, pg);
+  const label = P.t("probe", { t: r1(T) }), bw = label.length * 8.2 + 16;
+  const bx = Play.clamp(px - bw / 2, G.x0, G.x1 - bw);
+  S("rect", { x: bx, y: L.vh - 27, width: bw, height: 24, rx: 5, fill: "var(--ink-panel)" }, pg);
+  const tt = txt(pg, bx + bw / 2, L.vh - 10, label, { "text-anchor": "middle", class: "disp" }); tt.style.fill = "var(--on-panel)";
+  pg.addEventListener("keydown", (e) => {
+    const step = (G.xmax - G.xmin) / 40;
+    if (e.key === "ArrowLeft" || e.key === "ArrowDown") { probeX -= step; e.preventDefault(); refresh(true); }
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") { probeX += step; e.preventDefault(); refresh(true); }
+    if (e.key === "Home") { probeX = G.xmin; e.preventDefault(); refresh(true); }
+    if (e.key === "End") { probeX = G.xmax; e.preventDefault(); refresh(true); }
+  });
+  E.probe = pg;
+}
+function zone() { const G = sliceGeom(); return probeX <= 0 ? "zIn" : probeX <= G.d ? "zCoat" : "zAir"; }
+
+// ---------- pointer: probe drag (step 3) ----------
+let probeDrag = false;
+fig.addEventListener("pointerdown", (e) => {
+  if (cur !== 2) return;
+  const G = sliceGeom(), p = Play.pointer(fig, e);
+  probeDrag = true;
+  fig.setPointerCapture(e.pointerId);
+  probeX = G.xmin + ((p.x - G.x0) / (G.x1 - G.x0)) * (G.xmax - G.xmin);
+  refresh(true);
+  e.preventDefault();
+});
+fig.addEventListener("pointermove", (e) => {
+  if (!probeDrag) return;
+  const G = sliceGeom(), p = Play.pointer(fig, e);
+  probeX = G.xmin + ((p.x - G.x0) / (G.x1 - G.x0)) * (G.xmax - G.xmin);
+  refresh(true);
+});
+const endProbe = () => { probeDrag = false; };
+fig.addEventListener("pointerup", endProbe);
+fig.addEventListener("pointercancel", endProbe);
+
+// ---------- swatches (click, or drag onto the right-hand cube) ----------
+const swBox = $("swatches");
+const swBtns = MATS.map((m, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small sw";
+  const ic = document.createElement("i");
+  ic.style.background = m.fill === "none" ? "transparent" : m.fill;
+  b.append(ic, document.createTextNode(matName(i)));
+  b.addEventListener("pointerdown", (e) => {
+    drag = { mi: i, x0: e.clientX, y0: e.clientY, moved: false, over: false, inFig: false, x: 0, y: 0 };
+    try { b.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  });
+  b.addEventListener("pointermove", (e) => {
+    if (!drag || drag.mi !== i) return;
+    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 6) drag.moved = true;
+    if (!drag.moved || cur === 2) return;
+    const r = fig.getBoundingClientRect(), p = Play.pointer(fig, e);
+    drag.inFig = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    drag.x = p.x; drag.y = p.y;
+    drag.over = drag.inFig && L.drop && Math.hypot(p.x - L.drop.cx, p.y - L.drop.cy) < L.drop.r;
+    draw();
+  });
+  b.addEventListener("pointerup", () => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (!d.moved || d.over || cur === 2) setMat(i); else draw();
+  });
+  b.addEventListener("pointercancel", () => { drag = null; draw(); });
+  b.addEventListener("click", (e) => { if (e.detail === 0) setMat(i); }); // keyboard Enter / Space
+  swBox.appendChild(b);
+  return b;
+});
+function setMat(i) { mat = i; refresh(); }
+
+// ---------- controls ----------
+$("layers").addEventListener("input", () => { layers = +$("layers").value; refresh(); });
+$("time").addEventListener("input", () => { tMin = +$("time").value; setPlaying(false); refresh(true); });
+document.querySelectorAll("[data-sc]").forEach((b) => b.addEventListener("click", () => { scen = +b.dataset.sc; refresh(); }));
+$("coatOn").addEventListener("change", () => { coatOn = $("coatOn").checked; refresh(); });
+
+// ---------- time animation (never autoplays) ----------
+const pauseBtn = $("pause");
+let raf = 0, last = 0;
+function endMin() { return Math.min(D.tMax, Math.ceil(Math.max(meltSec(0, 1), meltSec(mat, layers)) / 60) + 10); }
+function setPlaying(p) {
+  playing = p;
+  pauseBtn.textContent = P.t(p ? "pause" : "play"); pauseBtn.setAttribute("aria-pressed", p ? "true" : "false");
+  if (p) { if (tMin >= endMin()) tMin = 0; last = 0; if (!raf) raf = requestAnimationFrame(tick); }
+}
+function tick(now) {
+  raf = 0;
+  if (!playing) return;
+  const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+  tMin = Math.min(endMin(), tMin + dt * 60); // 1 hour of model time per second
+  if (tMin >= endMin()) setPlaying(false);
+  $("time").value = Math.round(tMin);
+  refresh(true);
+  if (playing) raf = requestAnimationFrame(tick);
+}
+pauseBtn.addEventListener("click", () => { if (cur !== 1) steps.go(1); setPlaying(!playing); });
+
+// ---------- text ----------
+const extra = $("extra"), live = $("live");
+const el = (tag, t, cls) => { const e = document.createElement(tag); if (t != null) e.textContent = t; if (cls) e.className = cls; return e; };
+let pendLive = 0;
+function text(quiet) {
+  const V = { m: r1(MASS), room: D.room };
+  $("kicker").textContent = P.t("k" + (cur + 1));
+  $("stepTitle").textContent = P.t("t" + (cur + 1));
+  $("matLbl").textContent = P.t(cur === 2 ? "matLbl3" : "matLbl");
+  const SV = { room: D.room, body: D.body, cold: D.cold };
+  document.querySelectorAll("[data-sc]").forEach((b) => (b.textContent = P.t("sc" + b.dataset.sc, SV)));
+  $("layersVal").textContent = mat ? P.t("layersVal", { n: layers, d: Play.fmt(MATS[mat].d, MATS[mat].d < 1 ? 2 : 0) }) : "—";
+  $("layers").disabled = mat === 0;
+  $("timeVal").textContent = fmtT(tMin * 60);
+  swBtns.forEach((b, i) => { b.setAttribute("aria-pressed", i === mat ? "true" : "false"); b.hidden = cur === 2 && i === 0; });
+  document.querySelectorAll("[data-sc]").forEach((b) => b.setAttribute("aria-pressed", +b.dataset.sc === scen ? "true" : "false"));
+  const r = slow(mat, layers);
+  $("resultMain").textContent = cur === 0 && !answered ? P.t("resultWait") : mat ? P.t("resultMain", { mat: matName(mat), n: layers, r: fmtR(r) }) : P.t("b2same");
+  if (quiet && cur !== 2) { setLive(); return; }
+  extra.innerHTML = "";
+  if (cur === 0) {
+    $("stepBody").textContent = P.t("b1", V) + (answered ? " " + P.t("b1done") : "");
+  } else if (cur === 1) {
+    $("stepBody").textContent = P.t("b2");
+    extra.append(el("p", mat === 0 ? P.t("b2same") : mat === 1 ? P.t("b2foil") : P.t("b2slow", { mat: matName(mat, true), r: fmtR(r) }), "rule"));
+  } else {
+    const sc = SCEN[scen], Rc = coatOn ? Rcoat(mat, layers) : 0;
+    const Ts = sc.Tin === null ? sc.Tout : sc.Tin + (sc.Tout - sc.Tin) * (Rc / (Rc + Rair));
+    if (!quiet) {
+      $("stepBody").textContent = P.t("b3");
+      const msg = scen === 0 ? P.t("b3ice", { ts: r1(Ts) }) : scen === 1 ? P.t("b3body") : P.t("b3empty", { t: sc.Tout });
+      extra.append(el("p", msg, "rule"));
+      if (!coatOn && scen !== 2) extra.append(el("p", P.t("b3off")));
+      if (sc.Tin !== null) {
+        const tb = el("table", null, "tbl"), tr = (a, b, head) => { const row = el("tr"); row.append(el(head ? "th" : "td", a), el(head ? "th" : "td", b, head ? "" : "n")); tb.append(row); };
+        tr(P.t("thWhat"), P.t("thFlow"), true);
+        tr(P.t("rowBare"), P.t("wm2", { q: Play.fmt(Math.abs(flux(sc.Tout - sc.Tin, 0, 1)), 0) }));
+        tr(P.t("rowCoat", { mat: matName(mat), n: layers }), P.t("wm2", { q: Play.fmt(Math.abs(flux(sc.Tout - sc.Tin, mat, layers)), 0) }));
+        extra.append(tb, el("p", P.t("ratio", { r: fmtR(r) })));
+      } else extra.append(el("p", P.t("noFlow")));
+      extra.append(el("p", P.t("rule3"), "rule"));
+    }
+  }
+  setLive();
+}
+function setLive() { // throttle the aria-live text while dragging / playing
+  clearTimeout(pendLive);
+  pendLive = setTimeout(() => {
+    if (cur === 0 && !answered) { Play.live(live, ""); return; }
+    if (cur < 2) {
+      const ts = tMin * 60;
+      Play.live(live, P.t("live2", { t: fmtT(ts), a: r1(iceLeft(ts, 0, 1)), b: r1(iceLeft(ts, mat, layers)),
+        qa: Play.fmt(iceLeft(ts, 0, 1) > 0 ? flux(D.room, 0, 1) * AREA : 0, 2), qb: Play.fmt(iceLeft(ts, mat, layers) > 0 ? flux(D.room, mat, layers) * AREA : 0, 2) }));
+    } else {
+      const sc = SCEN[scen], q = sc.Tin === null ? 0 : flux(sc.Tout - sc.Tin, coatOn ? mat : 0, layers);
+      Play.live(live, P.t("live3", { sc: P.t("sc" + scen, { room: D.room, body: D.body, cold: D.cold }), z: P.t(zone()), t: r1(probeTemp()), q: Play.fmt(Math.abs(q), 0), dir: P.t(q > 0.01 ? "dirIn" : q < -0.01 ? "dirOut" : "dirNone") }));
+    }
+  }, cur === 1 && playing ? 400 : 120);
+}
+function refresh(quiet) {
+  const hadFocus = cur === 2 && document.activeElement === E.probe;
+  draw();
+  if (hadFocus && E.probe) E.probe.focus();
+  text(quiet);
+}
+
+// ---------- steps, reset ----------
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { answered = true; draw(); text(); });
+
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const was = cur;
+  cur = i;
+  if (i !== 1) setPlaying(false);
+  if (i === 0) { mat = 4; layers = 1; $("layers").value = 1; tMin = 0; $("time").value = 0; }
+  if (i === 2 && mat === 0) mat = 4;
+  $("predict").hidden = i !== 0;
+  $("cMat").hidden = i === 0; $("c2").hidden = i !== 1; $("c3").hidden = i !== 2; pauseBtn.hidden = i === 2;
+  if (L && (was === 2) !== (i === 2)) build(); else if (L) draw();
+  text();
+});
+function start() {
+  mat = 4; layers = 1; tMin = 0; scen = 0; coatOn = true; probeX = 0; answered = false; drag = null;
+  $("layers").value = 1; $("time").value = 0; $("coatOn").checked = true;
+}
+$("reset").addEventListener("click", () => { pr.reset(); setPlaying(false); start(); steps.go(0); build(); text(); });
+let lastW = 0;
+window.addEventListener("resize", () => {
+  const w = Math.round(fig.getBoundingClientRect().width);
+  if (w && w !== lastW) { lastW = w; build(); }
+});
+
+$("time").max = D.tMax;
+$("resultNote").textContent = P.t("resultNote");
+$("data").textContent = P.t("dataNote", { s: D.side, rho: D.rho, m: r1(MASS), Lf: D.Lf, room: D.room, A: Play.fmt(AREA * 1e4, 0), h: D.h,
+  kF: MATS[1].k, dF: MATS[1].d, kP: MATS[2].k, dP: MATS[2].d, kC: MATS[3].k, dC: MATS[3].d, kW: MATS[4].k, dW: MATS[4].d });
+start(); setPlaying(false); build(); lastW = Math.round(fig.getBoundingClientRect().width); text();
+</script>
+</body>
+</html>

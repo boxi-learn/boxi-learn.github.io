@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The body's thermostat</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .lbl { fill: var(--fg); font-size: 14px; }
+  .lbl.m { fill: var(--muted); font-size: 13px; }
+  .lbl.b { font-weight: 650; }
+  .lbl.a { fill: var(--a); }
+  .lbl.big { font-size: 18px; font-weight: 700; }
+  .lbl.q { fill: var(--a); font-size: 40px; font-weight: 750; }
+  .tagbg { fill: var(--surface); opacity: .9; }
+  .box { fill: var(--soft); stroke: var(--line); stroke-width: 1; }
+  .box.on { stroke: var(--a); stroke-width: 2; }
+  .box.off { stroke-dasharray: 4 3; opacity: .6; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow.on { stroke: var(--a); stroke-width: 2.5; }
+  .ah { fill: var(--muted); }
+  .ah.on { fill: var(--a); }
+  .axis { stroke: var(--muted); stroke-width: 1; }
+  .grid { stroke: var(--line); stroke-width: 1; }
+  .band { fill: var(--a); opacity: .12; }
+  .setL { stroke: var(--hl); stroke-width: 2; stroke-dasharray: 6 4; fill: none; }
+  .valL { stroke: var(--a); stroke-width: 2.5; fill: none; }
+  .offL { stroke: var(--no); stroke-width: 2; fill: none; stroke-dasharray: 5 4; }
+  .evL { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 3; }
+  .skin { fill: var(--soft); stroke: var(--muted); stroke-width: 1.5; }
+  .warm { fill: var(--h); }
+  .cool { fill: var(--c); }
+  .drop { fill: var(--c); }
+  .shiv { stroke: var(--b); stroke-width: 2; fill: none; }
+  .blood { fill: var(--no); opacity: .12; stroke: var(--no); stroke-width: 1.2; }
+  .glu { fill: var(--b); }
+  .flow { fill: none; stroke-linecap: round; }
+  .flow.in { stroke: var(--b); }
+  .flow.out { stroke: var(--a); }
+  .hbar.ins { fill: var(--a); }
+  .hbar.gcg { fill: var(--b); }
+  .frame { fill: none; stroke: var(--line); stroke-width: 1; }
+  #extra { font-size: 14px; }
+  .stage svg.main { height: 440px; }
+  @media (max-width: 560px) { .stage svg.main { height: 500px; } }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 440" role="img" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlAir">
+        <label for="air" data-t="airLabel"></label>
+        <input type="range" id="air" min="-10" max="45" step="1" value="22">
+        <span class="val" id="airVal"></span>
+      </div>
+      <div class="controls" id="ctlTemp">
+        <button type="button" class="small" id="cold" data-t="goCold"></button>
+        <button type="button" class="small" id="hot" data-t="goHot"></button>
+        <button type="button" class="small" id="run" data-t="run"></button>
+      </div>
+      <div class="controls" id="ctlGlu">
+        <button type="button" class="small" id="meal" data-t="meal"></button>
+        <button type="button" class="small" id="walk" data-t="walk"></button>
+      </div>
+      <div class="controls" id="ctlSim">
+        <button type="button" class="small" id="play" aria-pressed="false"></button>
+        <button type="button" class="small" id="skip" data-t="skip"></button>
+        <label class="check"><input type="checkbox" id="fb" checked> <span data-t="fbLabel"></span></label>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="extra"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "The body's thermostat", eyebrow: "Biology · Stage 4", h1: "The body's thermostat",
+    intro: "Guess what happens to your core temperature in the cold, then change the weather and the meals yourself and watch the body push back.",
+    reset: "Reset", figAria: "A feedback loop diagram, a body or a blood vessel showing the response, and a chart of the value over time",
+    airLabel: "Air temperature", goCold: "Step out into 0 °C", goHot: "Into a 40 °C heatwave", run: "Run for 20 min",
+    meal: "Eat a meal", walk: "Brisk walk 30 min", skip: "+30 min", play: "Play", pause: "Pause", fbLabel: "Feedback on",
+    s1: "Guess", s2: "Temperature", s3: "Blood sugar", s4: "Rule",
+    k1: "Predict first", t1: "Out into the cold",
+    b1: "You leave a warm room in a T-shirt and stand in 0 °C air for an hour. Pick an answer.",
+    q: "Your core (inner) body temperature…",
+    o1: "stays at exactly 37.0 °C: a healthy body never changes", o2: "dips a little, then the body pulls it back near 37 °C", o3: "keeps falling until you go back inside",
+    right: "Right. See the chart, then try it yourself.", wrong: "Not quite. See the chart and the note below.",
+    fb1: "It does move. In our model it dips about {d} °C, and real core temperature drifts all day anyway (roughly 0.5 °C from early morning to evening). What stays steady is the target, not the reading.",
+    fb2: "Yes. The dip is sensed, and the body answers: skin blood vessels narrow to keep heat in, then you shiver to make heat. The bigger the dip, the stronger the answer, so the model settles at {t} °C instead of sliding away.",
+    fb3: "That is what a cup of tea does: it slides toward the air temperature. The dashed line shows the same body with its responses switched off: {o} °C after an hour, and still falling. With them on it holds at {t} °C.",
+    f1Hint: "Pick an answer to see the model", fRoom: "warm room", fOut: "0 °C air", fOn: "feedback on", fOff: "feedback off",
+    fCore: "Core temperature (°C)", fSet: "set point", fMin: "{m} min", fH: "{h} h",
+    k2: "Hands on · temperature", t2: "Change the weather",
+    b2: "Drag the air temperature, or use the buttons. A sensor reads the core temperature, the control centre compares it with the set point (about 37 °C), and the effectors push the other way. Then switch the feedback off and try again.",
+    x2: "Like a home thermostat: the thermometer is the sensor, the thermostat is the control centre, the heater and the air-conditioner are the effectors. The difference: your body has both a heater (shivering) and a cooler (sweating), and it never switches off.",
+    lSensor: "Sensor", lControl: "Control centre", lEffect: "Effectors",
+    dSensT: "skin and brain", dCtrlT: "hypothalamus", dEffT: "skin & muscles",
+    hSensT: "≈ thermometer", hCtrlT: "≈ thermostat", hEffT: "≈ heater / AC",
+    lBack: "the response pushes the value back", lOffBox: "switched off",
+    rNone: "at rest", rKeep: "narrow vessels", rShiver: "narrow vessels + shiver", rDilate: "widen vessels", rSweat: "widen vessels + sweat",
+    fAir: "air {a} °C", fRun: "running", fCoreV: "core {c} °C", warnCold: "below 35 °C: hypothermia", warnHot: "above 40 °C: heat stroke danger", warnLow: "below 3.9: too low", warnHigh: "above 10: kidneys spill sugar",
+    liveT: "{m} min: air {a} °C, core {c} °C. Response: {r}.",
+    k3: "Hands on · blood sugar", t3: "Eat, walk, watch the hormones",
+    b3: "Blood glucose is held near a set point in the same way. The pancreas senses it. When it is high (after a meal) it releases insulin, and liver, muscle and fat cells take glucose in. When it is low (after exercise) it releases glucagon, and the liver lets glucose out.",
+    x3: "Fasting blood glucose in healthy adults is about 4–6 mmol/L (70–100 mg/dL): the shaded band. Eat a meal with feedback on and off and compare.",
+    lSensG: "pancreas", dSensG: "senses glucose", lHorm: "Hormones", lEffG: "liver, muscle",
+    dHorm: "insulin lowers", dHorm2: "glucagon raises", dEffG: "take in / let out",
+    fGlu: "Blood glucose (mmol/L)", fBand: "typical fasting", fGut: "from food", fLiver: "from liver", fCells: "into cells",
+    fIns: "insulin", fGcg: "glucagon", fMeal: "meal", fWalk: "walk", fGV: "{g} mmol/L = {mg} mg/dL",
+    liveG: "{m} min: glucose {g} mmol/L ({mg} mg/dL). Insulin {i}, glucagon {n} (model units).",
+    k4: "The rule", t4: "A change switches on its own correction",
+    b4: "Any change away from the set point switches on a response that pushes it back. That is negative feedback. \"Negative\" means the response goes the opposite way to the change, not that it is bad: it is what keeps you alive.",
+    x4: "In the model: after an hour in 0 °C air the core is {a} °C with feedback and {b} °C without. After a meal, glucose peaks at {c} mmol/L and is back to {d} two hours later; without feedback it is still {e}. The values never stop moving; they wiggle around the set point. The opposite kind, positive feedback, makes a change grow, as in childbirth contractions or blood clotting, and it is used only to finish a job quickly.",
+    fTwoT: "1 h in 0 °C air", fTwoG: "a meal at 0 min",
+    resultTitle: "What we found", resultMain: "change → sensor → response the other way → back near the set point",
+    rnStory: "Model: core {a} °C after an hour in the cold (feedback off: {b} °C); glucose back to {d} mmol/L two hours after a meal (off: {e}).",
+    rnTemp: "Your run: air {a} °C, core {c} °C, set point 37.0 °C, feedback {f}.",
+    rnGlu: "Your run: blood glucose {g} mmol/L ({mg} mg/dL), feedback {f}.",
+    on: "on", off: "off",
+    explainK: "Explain it", explainQ: "A friend says \"negative feedback\" must be something bad, and that a healthy person's temperature never changes. Using what happened when you stepped into the cold, explain what negative feedback really is and why the number still moves.",
+    homeK: "Try at home", homeQ: "Measure your temperature under the tongue when you wake up, after lunch and in the evening, three days in a row, and plot it. Does it stay at exactly 37.0? (Use the same thermometer; wait 15 min after eating or drinking.)",
+    foot: "Model with illustrative constants, not medical data; not for diagnosis or treatment. Temperature: dT/dt = (air + 15 + exercise + noise − T + response) / 600 per minute, so with no response the core drifts toward air + 15 °C. Response = 60 × (37 − T), capped at +40 (warming) and −60 (cooling); running adds 40. Glucose (mmol/L per min): change = food − exercise + glucagon − insulin − kidney loss; a meal adds 6 mmol/L in total, absorbed with a peak at 30 min; insulin follows 0.03 × (G − 5) and glucagon 0.08 × (5 − G), each with an 8 min lag; a brisk walk uses 0.04 per min; above 10 mmol/L the kidneys spill glucose (0.01 × (G − 10)). \"Feedback off\" holds the responses or hormones at their resting level. The model stops at 28–43 °C and 1.5–25 mmol/L. Small random wiggles come from a seeded random generator. Reference values: core body temperature about 37 °C (usually 36.5–37.5 °C), lower in the early morning and higher in the evening; fasting blood glucose about 4–6 mmol/L (3.9–5.6 mmol/L = 70–100 mg/dL; 1 mmol/L ≈ 18 mg/dL); below 3.9 mmol/L (70 mg/dL) counts as low blood sugar; the kidney threshold for glucose is about 10 mmol/L (180 mg/dL); hypothermia is a core temperature below 35 °C, and heat stroke is usually defined from 40 °C. Sources: standard physiology textbooks (e.g. Guyton and Hall, Textbook of Medical Physiology) and diabetes reference ranges (American Diabetes Association; WHO). · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "身体里的恒温器", eyebrow: "生物 · 阶段 4", h1: "身体里的恒温器",
+    intro: "先猜一猜走进寒风里体温会怎样，再亲手改变天气、吃饭散步，看身体怎么把数值拉回来。",
+    reset: "重置", figAria: "反馈环路示意图、显示身体反应的人体或血管，以及数值随时间变化的折线图",
+    airLabel: "气温", goCold: "走到 0 °C 室外", goHot: "进入 40 °C 热浪", run: "跑步 20 分钟",
+    meal: "吃一顿饭", walk: "快走 30 分钟", skip: "+30 分钟", play: "播放", pause: "暂停", fbLabel: "反馈开启",
+    s1: "先猜", s2: "体温", s3: "血糖", s4: "规律",
+    k1: "先猜一猜", t1: "走进寒冷",
+    b1: "你穿着 T 恤离开温暖的房间，在 0 °C 的空气里站一个小时。选一个答案。",
+    q: "你的核心（体内）体温会……",
+    o1: "一直正好 37.0 °C：健康的身体一点都不变", o2: "稍微降一点，然后身体把它拉回 37 °C 附近", o3: "一直往下降，直到你回到屋里",
+    right: "对。看看图，再自己试试。", wrong: "不太对。看看图和下面的说明。",
+    fb1: "它会变。在我们的模型里它降了大约 {d} °C；而且真实的核心体温一整天本来就在变（从清晨到傍晚大约差 0.5 °C）。稳定的是目标，不是读数。",
+    fb2: "对。下降被感受到，身体就做出反应：皮肤血管收缩、少散热，再冷就打寒战、多产热。降得越多，反应越强，所以模型停在 {t} °C，而不是一路滑下去。",
+    fb3: "那是一杯茶的做法：一直滑向气温。虚线是同一个身体、把反应关掉的样子：一小时后 {o} °C，还在往下掉。反应开着时，它稳在 {t} °C。",
+    f1Hint: "先选一个答案，再看模型", fRoom: "温暖的房间", fOut: "0 °C 室外", fOn: "反馈开启", fOff: "反馈关闭",
+    fCore: "核心体温（°C）", fSet: "设定值", fMin: "{m} 分钟", fH: "{h} 小时",
+    k2: "动手 · 体温", t2: "改变天气",
+    b2: "拖动气温，或者按按钮。感受器读出核心体温，控制中心把它和设定值（约 37 °C）比较，效应器朝相反方向用力。然后关掉反馈再试一次。",
+    x2: "就像家里的恒温器：温度计是感受器，恒温器是控制中心，暖气和空调是效应器。不同的是：身体既有暖气（打寒战），又有空调（出汗），而且从不关机。",
+    lSensor: "感受器", lControl: "控制中心", lEffect: "效应器",
+    dSensT: "皮肤和大脑", dCtrlT: "下丘脑", dEffT: "皮肤和肌肉",
+    hSensT: "≈ 温度计", hCtrlT: "≈ 恒温器", hEffT: "≈ 暖气 / 空调",
+    lBack: "反应把数值推回去", lOffBox: "已关闭",
+    rNone: "静息", rKeep: "血管收缩", rShiver: "血管收缩 + 打寒战", rDilate: "血管舒张", rSweat: "血管舒张 + 出汗",
+    fAir: "气温 {a} °C", fRun: "跑步中", fCoreV: "核心 {c} °C", warnCold: "低于 35 °C：失温", warnHot: "高于 40 °C：有中暑危险", warnLow: "低于 3.9：太低", warnHigh: "高于 10：肾脏开始排糖",
+    liveT: "{m} 分钟：气温 {a} °C，核心体温 {c} °C。反应：{r}。",
+    k3: "动手 · 血糖", t3: "吃饭、走路，看激素",
+    b3: "血糖也是这样稳在一个设定值附近。胰腺感受血糖：偏高时（饭后）分泌胰岛素，肝脏、肌肉和脂肪细胞把葡萄糖收进去；偏低时（运动后）分泌胰高血糖素，肝脏把葡萄糖放出来。",
+    x3: "健康成年人的空腹血糖约 4–6 mmol/L（70–100 mg/dL），就是阴影那一条。分别在反馈开和关的时候吃一顿饭，比一比。",
+    lSensG: "胰腺", dSensG: "感受血糖", lHorm: "激素", lEffG: "肝脏和肌肉",
+    dHorm: "胰岛素：降", dHorm2: "胰高血糖素：升", dEffG: "收进 / 放出",
+    fGlu: "血糖（mmol/L）", fBand: "空腹常见范围", fGut: "来自食物", fLiver: "来自肝脏", fCells: "进入细胞",
+    fIns: "胰岛素", fGcg: "胰高血糖素", fMeal: "吃饭", fWalk: "走路", fGV: "{g} mmol/L = {mg} mg/dL",
+    liveG: "{m} 分钟：血糖 {g} mmol/L（{mg} mg/dL）。胰岛素 {i}，胰高血糖素 {n}（模型单位）。",
+    k4: "规律", t4: "一个变化，会启动它自己的纠正",
+    b4: "任何偏离设定值的变化，都会启动一个把它推回去的反应。这就是负反馈。「负」是说反应的方向和变化相反，不是说它不好：正是它让你活着。",
+    x4: "模型里：在 0 °C 空气中一小时后，有反馈时核心体温 {a} °C，没有反馈时 {b} °C。吃饭后血糖最高 {c} mmol/L，两小时后回到 {d}；没有反馈时两小时后还是 {e}。数值从来不是一动不动的，它们围着设定值上下晃。相反的一种叫正反馈，会让变化越来越大，比如分娩时的宫缩和血液凝固，只用在需要迅速完成一件事的时候。",
+    fTwoT: "在 0 °C 空气中 1 小时", fTwoG: "第 0 分钟吃饭",
+    resultTitle: "我们发现", resultMain: "变化 → 感受器 → 反方向的反应 → 回到设定值附近",
+    rnStory: "模型：在寒冷中一小时后核心体温 {a} °C（关掉反馈：{b} °C）；饭后两小时血糖回到 {d} mmol/L（关掉反馈：{e}）。",
+    rnTemp: "你的这一轮：气温 {a} °C，核心体温 {c} °C，设定值 37.0 °C，反馈{f}。",
+    rnGlu: "你的这一轮：血糖 {g} mmol/L（{mg} mg/dL），反馈{f}。",
+    on: "开启", off: "关闭",
+    explainK: "说一说", explainQ: "朋友说「负反馈」肯定是坏事，而且健康人的体温一点都不会变。用你走进寒冷时看到的结果，给他讲讲负反馈到底是什么，为什么数值还是会动。",
+    homeK: "家里做一做", homeQ: "连续三天，在起床后、午饭后和晚上各量一次舌下体温，画成折线。它是不是一直正好 37.0？（用同一支体温计；吃喝后等 15 分钟再量。）",
+    foot: "模型用的是示意性的常数，不是医学数据，不能用于诊断或治疗。体温：每分钟 dT/dt = (气温 + 15 + 运动 + 随机扰动 − T + 反应) / 600，所以没有反应时核心体温会滑向「气温 + 15 °C」。反应 = 60 × (37 − T)，上限 +40（产热）和 −60（散热）；跑步加 40。血糖（每分钟 mmol/L）：变化 = 食物 − 运动 + 胰高血糖素 − 胰岛素 − 肾脏排出；一顿饭共加 6 mmol/L，吸收高峰在第 30 分钟；胰岛素跟随 0.03 × (G − 5)，胰高血糖素跟随 0.08 × (5 − G)，各有 8 分钟延迟；快走每分钟消耗 0.04；超过 10 mmol/L 时肾脏排出葡萄糖（0.01 × (G − 10)）。「反馈关闭」把反应或激素固定在静息水平。模型在 28–43 °C 和 1.5–25 mmol/L 处截止。小的随机晃动来自带种子的随机数生成器。参考值：核心体温约 37 °C（通常 36.5–37.5 °C），清晨低、傍晚高；空腹血糖约 4–6 mmol/L（3.9–5.6 mmol/L = 70–100 mg/dL；1 mmol/L ≈ 18 mg/dL）；低于 3.9 mmol/L（70 mg/dL）算低血糖；肾脏排糖阈约 10 mmol/L（180 mg/dL）；核心体温低于 35 °C 为失温（低体温症），中暑（热射病）通常以 40 °C 以上为界。来源：通行的生理学教材（如 Guyton 和 Hall《医学生理学》）以及糖尿病参考范围（美国糖尿病协会、世界卫生组织）。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- pure logic ----------
+const clamp = Play.clamp, f = Play.fmt;
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gauss(rnd) {
+  const u = Math.max(rnd(), 1e-12);
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd());
+}
+// slowly varying random wiggle (Ornstein–Uhlenbeck, 20 min memory)
+const NTH = 0.05;
+const ou = (x, rnd, sd) => x - NTH * x + sd * Math.sqrt(2 * NTH) * gauss(rnd);
+const HMAX = 241; // chart window: 4 h of 1-min samples
+
+// Temperature (°C, 1 step = 1 min)
+const TLO = 28, THI = 43; // the model stops here: a real body would not survive beyond
+const TS = 37, TAU = 600, TOFF = 15, TGAIN = 60, UWARM = 40, UCOOL = 60, TEX = 40, TNOISE = 6;
+function tempNew(seed) { return { rnd: mulberry32(seed), t: 0, T: TS, n: 0, ex: 0, U: 0, hist: [{ t: 0, v: TS }] }; }
+const tempResp = (T, fb) => (fb ? clamp(TGAIN * (TS - T), -UCOOL, UWARM) : 0);
+function tempStep(s, Ta, fb, noisy) {
+  if (noisy) s.n = ou(s.n, s.rnd, TNOISE);
+  const ex = s.ex > 0 ? TEX : 0;
+  if (s.ex > 0) s.ex--;
+  s.U = tempResp(s.T, fb);
+  s.T = clamp(s.T + (Ta + TOFF + ex + (noisy ? s.n : 0) + s.U - s.T) / TAU, TLO, THI);
+  s.t++;
+  s.hist.push({ t: s.t, v: s.T, ev: ex ? "run" : "" });
+  if (s.hist.length > HMAX) s.hist.shift();
+}
+// response split: first the skin vessels (up to 12), then shivering / sweating
+function tempParts(U) {
+  const a = Math.abs(U), vaso = Math.min(a, 12) / 12, extra = Math.max(0, a - 12) / (U > 0 ? UWARM - 12 : UCOOL - 12);
+  return { warm: U > 0.5, cool: U < -0.5, vaso, extra: clamp(extra, 0, 1) };
+}
+
+// Blood glucose (mmol/L, 1 step = 1 min)
+const GS = 5, GA = 6, GTM = 30, AI = 0.03, AN = 0.08, TI = 8, TN = 8, GEX = 0.04, GEXD = 30, KR = 0.01, GR = 10, GNOISE = 0.004;
+const mealRate = (d) => (d < 0 ? 0 : (GA * d) / (GTM * GTM) * Math.exp(-d / GTM));
+function gluNew(seed) { return { rnd: mulberry32(seed), t: 0, G: GS, I: 0, N: 0, n: 0, ex: 0, meals: [], fl: { gut: 0, liver: 0, cells: 0 }, hist: [{ t: 0, v: GS }] }; }
+function gluStep(s, fb, noisy) {
+  if (noisy) s.n = ou(s.n, s.rnd, GNOISE);
+  const meal = s.meals.reduce((a, m) => a + mealRate(s.t - m), 0);
+  s.meals = s.meals.filter((m) => s.t - m < 480);
+  const ex = s.ex > 0 ? GEX : 0;
+  if (s.ex > 0) s.ex--;
+  if (fb) {
+    s.I += (AI * Math.max(0, s.G - GS) - s.I) / TI;
+    s.N += (AN * Math.max(0, GS - s.G) - s.N) / TN;
+  } else { s.I = 0; s.N = 0; }
+  const renal = KR * Math.max(0, s.G - GR);
+  s.fl = { gut: meal, liver: s.N, cells: s.I + ex + renal };
+  s.G = clamp(s.G + meal - ex + s.N - s.I - renal + (noisy ? s.n : 0), 1.5, 25);
+  s.t++;
+  const ev = s.meals.includes(s.t - 1) ? "meal" : ex && s.ex === GEXD - 1 ? "walk" : "";
+  s.hist.push({ t: s.t, v: s.G, ev });
+  if (s.hist.length > HMAX) s.hist.shift();
+}
+const mgdl = (g) => g * 18.016; // glucose 180.16 g/mol
+
+// Fixed scenarios (no noise) for the guess and the rule
+function coldRun(fb) {
+  const s = tempNew(1), out = [];
+  for (let i = 0; i < 30; i++) { tempStep(s, 22, fb, false); out.push(s.T); }
+  for (let i = 0; i < 90; i++) { tempStep(s, 0, fb, false); out.push(s.T); }
+  return [TS].concat(out); // index = minute, 0…120; cold from minute 30
+}
+function mealRun(fb) {
+  const s = gluNew(1), out = [GS];
+  s.meals.push(0);
+  for (let i = 0; i < 180; i++) { gluStep(s, fb, false); out.push(s.G); }
+  return out;
+}
+const COLD_ON = coldRun(true), COLD_OFF = coldRun(false), MEAL_ON = mealRun(true), MEAL_OFF = mealRun(false);
+const SN = {
+  a: f(COLD_ON[90], 1), b: f(COLD_OFF[90], 1), c: f(Math.max(...MEAL_ON), 1), d: f(MEAL_ON[120], 1), e: f(MEAL_OFF[120], 1),
+};
+const DIP = f(TS - COLD_ON[90], 1);
+// ---------- end pure logic ----------
+
+// ---------- state ----------
+let step = 0, answered = -1, playing = false, timer = 0, seed = 1;
+const airIn = document.getElementById("air"), fbIn = document.getElementById("fb");
+let ts = tempNew(seed), gs = gluNew(seed + 100);
+const air = () => clamp(+airIn.value, -10, 45);
+
+// ---------- drawing ----------
+const fig = document.getElementById("fig"), extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+const S = (tag, a, p) => Play.svg(tag, a, p || fig);
+function text(x, y, s, cls, anchor) {
+  const t = S("text", { x, y, class: "lbl " + (cls || ""), "text-anchor": anchor || "start" });
+  t.textContent = s;
+  return t;
+}
+function label(x, y, s, anchor, cls) {
+  const t = text(x, y, s, cls || "m b", anchor);
+  try {
+    const bb = t.getBBox();
+    fig.insertBefore(S("rect", { x: bb.x - 4, y: bb.y - 1, width: bb.width + 8, height: bb.height + 2, rx: 4, class: "tagbg" }), t);
+  } catch (e) { /* no layout: label still shows */ }
+  return t;
+}
+function size() {
+  const r = fig.getBoundingClientRect();
+  const W = Math.max(280, Math.round(r.width || 600)), H = Math.max(300, Math.round(r.height || 440));
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  return { W, H };
+}
+function arrow(x1, y1, x2, y2, on) {
+  S("line", { x1, y1, x2, y2, class: "arrow" + (on ? " on" : "") });
+  const a = Math.atan2(y2 - y1, x2 - x1), k = 7;
+  S("path", { d: `M${x2} ${y2} L${x2 - k * Math.cos(a - 0.45)} ${y2 - k * Math.sin(a - 0.45)} L${x2 - k * Math.cos(a + 0.45)} ${y2 - k * Math.sin(a + 0.45)} Z`, class: "ah" + (on ? " on" : "") });
+}
+// three boxes in a row with arrows, plus a return arrow underneath
+function loop(R, boxes, active, offIdx) {
+  const g = Math.max(14, R.w * 0.05), bw = (R.w - 2 * g) / 3, bh = R.h - 24;
+  boxes.forEach((b, i) => {
+    const x = R.x + i * (bw + g);
+    S("rect", { x, y: R.y, width: bw, height: bh, rx: 8, class: "box" + (active ? " on" : "") + (offIdx === i ? " off" : "") });
+    text(x + bw / 2, R.y + 17, b[0], "b", "middle");
+    text(x + bw / 2, R.y + 35, offIdx === i ? P.t("lOffBox") : b[1], "m", "middle");
+    if (b[2]) text(x + bw / 2, R.y + 53, b[2], "m a", "middle");
+    if (i < 2) arrow(x + bw + 2, R.y + bh / 2, x + bw + g - 2, R.y + bh / 2, active);
+  });
+  const y = R.y + bh + 12, x1 = R.x + 2.5 * bw + 2 * g, x0 = R.x + bw / 2;
+  S("path", { d: `M${x1} ${R.y + bh} L${x1} ${y} L${x0} ${y}`, class: "arrow" + (active ? " on" : "") });
+  arrow(x0, y, x0, R.y + bh + 2, active);
+  label((x0 + x1) / 2, y + 4, P.t("lBack"), "middle", "m");
+}
+// time chart: series [{pts:[{t,v}], cls}], window [t0, t1]
+function chart(R, o) {
+  const px = R.x + 34, py = R.y + 22, pw = R.w - 42, ph = Math.max(40, R.h - 22 - 20);
+  let lo = o.lo, hi = o.hi;
+  o.series.forEach((s) => s.pts.forEach((p) => { if (Number.isFinite(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); } }));
+  const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+  const X = (t) => px + ((t - o.t0) / (o.t1 - o.t0)) * pw, Y = (v) => py + ph - ((v - lo) / (hi - lo)) * ph;
+  text(R.x + 2, R.y + 13, o.title, "m b");
+  if (o.band) {
+    const y1 = Y(clamp(o.band[1], lo, hi)), y0 = Y(clamp(o.band[0], lo, hi));
+    S("rect", { x: px, y: y1, width: pw, height: Math.max(0, y0 - y1), class: "band" });
+    text(px + 4, y0 - 5, P.t("fBand"), "m");
+  }
+  const step = hi - lo > 12 ? 5 : hi - lo > 5 ? 2 : hi - lo > 2.4 ? 1 : 0.5;
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+    S("line", { x1: px, y1: Y(v), x2: px + pw, y2: Y(v), class: "grid" });
+    text(px - 4, Y(v) + 4, f(v, step < 1 ? 1 : 0), "m", "end");
+  }
+  for (let t = Math.ceil(o.t0 / 60) * 60; t <= o.t1; t += 60) {
+    S("line", { x1: X(t), y1: py + ph, x2: X(t), y2: py + ph + 4, class: "axis" });
+    text(X(t), py + ph + 16, t === 0 ? "0" : P.t("fH", { h: t / 60 }), "m", "middle");
+  }
+  S("line", { x1: px, y1: py + ph, x2: px + pw, y2: py + ph, class: "axis" });
+  (o.events || []).forEach((e) => {
+    if (e.t < o.t0 || e.t > o.t1) return;
+    S("line", { x1: X(e.t), y1: py, x2: X(e.t), y2: py + ph, class: "evL" });
+    if (e.s) label(X(e.t) + 4, py + 12, e.s, "start", "m");
+  });
+  S("line", { x1: px, y1: Y(o.set), x2: px + pw, y2: Y(o.set), class: "setL" });
+  label(px + pw - 2, Y(o.set) + (o.band ? 15 : -5), P.t("fSet") + " " + f(o.set, 1), "end", "m");
+  o.series.forEach((s) => {
+    let d = "";
+    s.pts.forEach((p) => { if (Number.isFinite(p.v) && p.t >= o.t0) d += (d ? " L" : "M") + X(p.t).toFixed(1) + " " + Y(p.v).toFixed(1); });
+    if (d) S("path", { d, class: s.cls });
+  });
+  return { X, Y, px, py, pw, ph };
+}
+const toPts = (arr) => arr.map((v, i) => ({ t: i, v }));
+
+function drawGuess(W, H) {
+  const R = { x: 8, y: 8, w: W - 16, h: H - 16 };
+  const series = answered < 0 ? [{ pts: toPts(COLD_ON.slice(0, 31)), cls: "valL" }]
+    : [{ pts: toPts(COLD_OFF), cls: "offL" }, { pts: toPts(COLD_ON), cls: "valL" }];
+  const c = chart(R, { t0: 0, t1: 120, lo: 34.5, hi: 37.5, set: TS, series, title: P.t("fCore"),
+    events: [{ t: 30, s: P.t("fOut") }] });
+  label(c.px + 6, c.py + c.ph - 8, P.t("fRoom"), "start", "m");
+  if (answered < 0) {
+    const t = text(c.X(75), c.Y(36), "?", "q", "middle");
+    t.setAttribute("aria-hidden", "true");
+    label(c.X(75), c.Y(36) + 34, P.t("f1Hint"), "middle", "m");
+  } else {
+    label(c.X(118), c.Y(COLD_ON[120]) + 18, P.t("fOn") + " " + f(COLD_ON[120], 1), "end", "m a");
+    label(c.X(118), c.Y(COLD_OFF[120]) - 8, P.t("fOff") + " " + f(COLD_OFF[120], 1), "end", "m");
+  }
+}
+
+function layout(W, H) {
+  const lh = W < 420 ? 100 : 96, top = { x: 6, y: 6, w: W - 12, h: lh };
+  const rest = H - lh - 18;
+  if (W >= 520) {
+    const fw = clamp(Math.round(W * 0.32), 150, 240);
+    return { loop: top, fig: { x: 6, y: lh + 14, w: fw, h: rest }, chart: { x: fw + 14, y: lh + 14, w: W - fw - 20, h: rest } };
+  }
+  const fh = Math.round(rest * 0.42);
+  return { loop: top, fig: { x: 6, y: lh + 14, w: W - 12, h: fh }, chart: { x: 6, y: lh + 20 + fh, w: W - 12, h: rest - fh - 6 } };
+}
+function respName(U) {
+  const p = tempParts(U);
+  if (!p.warm && !p.cool) return P.t("rNone");
+  if (p.warm) return P.t(p.extra > 0 ? "rShiver" : "rKeep");
+  return P.t(p.extra > 0 ? "rSweat" : "rDilate");
+}
+function body(R, s) {
+  const p = tempParts(s.U), wide = R.w > R.h * 0.9;
+  const h = Math.min(R.h - 40, wide ? R.h - 40 : R.w * 1.9), cx = R.x + R.w / 2, top = R.y + 26;
+  const u = h / 10; // body unit
+  text(R.x + 4, R.y + 14, P.t("fAir", { a: f(air(), 0) }), "m b");
+  text(R.x + R.w - 4, R.y + 14, P.t("fCoreV", { c: f(s.T, 1) }), "b a", "end");
+  // flush (red) when vessels widen, pale (blue) when they narrow
+  const tint = p.cool ? "warm" : p.warm ? "cool" : "";
+  const parts = [["circle", { cx, cy: top + u, r: u * 0.9 }],
+    ["rect", { x: cx - u * 1.3, y: top + u * 2.1, width: u * 2.6, height: u * 3.8, rx: u * 0.6 }],
+    ["rect", { x: cx - u * 2.1, y: top + u * 2.3, width: u * 0.7, height: u * 3.4, rx: u * 0.35 }],
+    ["rect", { x: cx + u * 1.4, y: top + u * 2.3, width: u * 0.7, height: u * 3.4, rx: u * 0.35 }],
+    ["rect", { x: cx - u * 1.15, y: top + u * 6, width: u * 1, height: u * 3.9, rx: u * 0.45 }],
+    ["rect", { x: cx + u * 0.15, y: top + u * 6, width: u * 1, height: u * 3.9, rx: u * 0.45 }]];
+  parts.forEach(([tg, a]) => {
+    S(tg, Object.assign({ class: "skin" }, a));
+    if (tint) S(tg, Object.assign({ class: tint, opacity: (0.12 + 0.4 * p.vaso).toFixed(2) }, a));
+  });
+  // sweat drops
+  if (p.cool && p.extra > 0) {
+    const n = Math.round(2 + p.extra * 8), rr = mulberry32(5);
+    for (let i = 0; i < n; i++) {
+      const x = cx + (rr() - 0.5) * u * 4.6, y = top + u * (0.6 + rr() * 5.6), r = u * 0.18;
+      S("path", { d: `M${x} ${y - r * 2} Q${x + r * 1.2} ${y} ${x} ${y + r} Q${x - r * 1.2} ${y} ${x} ${y - r * 2} Z`, class: "drop" });
+    }
+  }
+  // shiver marks
+  if (p.warm && p.extra > 0) {
+    const n = Math.round(1 + p.extra * 3);
+    for (let i = 0; i < n; i++) for (const side of [-1, 1]) {
+      const x = cx + side * u * (2.5 + i * 0.45), y0 = top + u * 2.6, k = u * 0.25;
+      let d = `M${x} ${y0}`;
+      for (let j = 1; j <= 6; j++) d += ` L${x + (j % 2 ? k : -k)} ${y0 + j * u * 0.5}`;
+      S("path", { d, class: "shiv" });
+    }
+  }
+  text(R.x + R.w / 2, R.y + R.h - 4, respName(s.U) + (s.ex > 0 ? " · " + P.t("fRun") : ""), "m b", "middle");
+  if (s.T < 35 || s.T > 40) label(cx, top + u * 5.4, P.t(s.T < 35 ? "warnCold" : "warnHot"), "middle", "m b").style.fill = "var(--no)";
+}
+function drawTemp(W, H) {
+  const L = layout(W, H), fb = fbIn.checked, active = fb && (Math.abs(ts.U) > 0.5);
+  loop(L.loop, [[P.t("lSensor"), P.t("dSensT"), P.t("hSensT")], [P.t("lControl"), P.t("dCtrlT"), P.t("hCtrlT")], [P.t("lEffect"), P.t("dEffT"), P.t("hEffT")]], active, fb ? -1 : 1);
+  body(L.fig, ts);
+  const t1 = Math.max(240, ts.t), events = ts.hist.filter((h) => h.ev === "run" && !ts.hist.find((q) => q.t === h.t - 1 && q.ev)).map((h) => ({ t: h.t, s: P.t("fRun") }));
+  chart(L.chart, { t0: t1 - 240, t1, lo: 36, hi: 38, set: TS, series: [{ pts: ts.hist, cls: "valL" }], title: P.t("fCore"), events });
+}
+function tank(R, s) {
+  const fb = fbIn.checked;
+  text(R.x + 4, R.y + 14, P.t("fGV", { g: f(s.G, 1), mg: f(mgdl(s.G), 0) }), "m b");
+  const tw = Math.min(R.w * 0.42, 150), th = Math.min(R.h - 100, 150), tx = R.x + (R.w - tw) / 2, ty = R.y + 44;
+  S("rect", { x: tx, y: ty, width: tw, height: th, rx: 14, class: "blood" });
+  const n = Math.round(clamp(s.G, 0, 20) * 6), rr = mulberry32(11);
+  for (let i = 0; i < n; i++) S("circle", { cx: tx + 8 + rr() * (tw - 16), cy: ty + 8 + rr() * (th - 16), r: 3, class: "glu" });
+  const wdt = (v) => clamp(1 + v * 120, 1, 14);
+  // inflows on the left (food at top, liver below), outflow on the right
+  const fl = s.fl;
+  [[fl.gut, ty + th * 0.3, "fGut"], [fl.liver, ty + th * 0.75, "fLiver"]].forEach(([v, y, k]) => {
+    S("line", { x1: R.x + 4, y1: y, x2: tx - 4, y2: y, class: "flow in", "stroke-width": wdt(v), opacity: v > 0.002 ? 1 : 0.25 });
+    text(R.x + 4, y - 9, P.t(k), "m");
+  });
+  S("line", { x1: tx + tw + 4, y1: ty + th / 2, x2: R.x + R.w - 4, y2: ty + th / 2, class: "flow out", "stroke-width": wdt(fl.cells), opacity: fl.cells > 0.002 ? 1 : 0.25 });
+  text(R.x + R.w - 4, ty + th / 2 - 9, P.t("fCells"), "m", "end");
+  // hormone bars
+  const by = ty + th + 18, bw = (R.w - 30) / 2, bh = 12;
+  [[s.I, "ins", "fIns", R.x + 6], [s.N, "gcg", "fGcg", R.x + 18 + bw]].forEach(([v, cls, k, x]) => {
+    S("rect", { x, y: by, width: bw, height: bh, rx: 4, class: "box" + (fb ? "" : " off") });
+    S("rect", { x, y: by, width: bw * clamp(v / 0.08, 0, 1), height: bh, rx: 4, class: "hbar " + cls });
+    text(x, by + bh + 16, P.t(k), "m");
+  });
+  if (s.G < 3.9 || s.G > 10) label(tx + tw / 2, ty + th / 2, P.t(s.G < 3.9 ? "warnLow" : "warnHigh"), "middle", "m b").style.fill = "var(--no)";
+}
+function drawGlu(W, H) {
+  const L = layout(W, H), fb = fbIn.checked, active = fb && (gs.I > 0.002 || gs.N > 0.002);
+  loop(L.loop, [[P.t("lSensor"), P.t("lSensG"), P.t("dSensG")], [P.t("lHorm"), P.t("dHorm"), P.t("dHorm2")], [P.t("lEffect"), P.t("lEffG"), P.t("dEffG")]], active, fb ? -1 : 1);
+  tank(L.fig, gs);
+  const t1 = Math.max(240, gs.t), events = gs.hist.filter((h) => h.ev).map((h) => ({ t: h.t, s: P.t(h.ev === "meal" ? "fMeal" : "fWalk") }));
+  chart(L.chart, { t0: t1 - 240, t1, lo: 3.5, hi: 8, set: GS, band: [4, 6], series: [{ pts: gs.hist, cls: "valL" }], title: P.t("fGlu"), events });
+}
+function drawRule(W, H) {
+  const wide = W >= 560, g = 12;
+  const A = wide ? { x: 6, y: 6, w: (W - 12 - g) / 2, h: H - 12 } : { x: 6, y: 6, w: W - 12, h: (H - 12 - g) / 2 };
+  const B = wide ? { x: A.x + A.w + g, y: 6, w: A.w, h: A.h } : { x: 6, y: A.y + A.h + g, w: A.w, h: A.h };
+  const c1 = chart(A, { t0: 0, t1: 120, lo: 34.5, hi: 37.5, set: TS, title: P.t("fCore") + " · " + P.t("fTwoT"), events: [{ t: 30, s: "" }],
+    series: [{ pts: toPts(COLD_OFF), cls: "offL" }, { pts: toPts(COLD_ON), cls: "valL" }] });
+  label(c1.X(118), c1.Y(COLD_ON[120]) + 18, P.t("fOn"), "end", "m a");
+  label(c1.X(118), c1.Y(COLD_OFF[120]) - 8, P.t("fOff"), "end", "m");
+  const c2 = chart(B, { t0: 0, t1: 180, lo: 3.5, hi: 8, set: GS, band: [4, 6], title: P.t("fGlu") + " · " + P.t("fTwoG"),
+    series: [{ pts: toPts(MEAL_OFF), cls: "offL" }, { pts: toPts(MEAL_ON), cls: "valL" }] });
+  label(c2.X(178), c2.Y(MEAL_ON[180]) - 8, P.t("fOn"), "end", "m a");
+  label(c2.X(178), c2.Y(MEAL_OFF[180]) + 18, P.t("fOff"), "end", "m");
+}
+
+function draw() {
+  const { W, H } = size();
+  fig.innerHTML = "";
+  document.getElementById("airVal").textContent = f(air(), 0) + " °C";
+  if (step === 0) { drawGuess(W, H); extra.textContent = answered >= 0 ? P.t("fb" + (answered + 1), { d: DIP, t: SN.a, o: SN.b }) : ""; }
+  if (step === 1) { drawTemp(W, H); extra.textContent = P.t("x2"); }
+  if (step === 2) { drawGlu(W, H); extra.textContent = P.t("x3"); }
+  if (step === 3) { drawRule(W, H); extra.textContent = P.t("x4", SN); }
+  const pb = document.getElementById("play");
+  pb.textContent = P.t(playing ? "pause" : "play");
+  pb.setAttribute("aria-pressed", String(playing));
+  resultNote();
+}
+function resultNote() {
+  const el = document.getElementById("resultNote"), fv = P.t(fbIn.checked ? "on" : "off");
+  if (step === 1 && ts.t > 0) el.textContent = P.t("rnTemp", { a: f(air(), 0), c: f(ts.T, 1), f: fv });
+  else if (step === 2 && gs.t > 0) el.textContent = P.t("rnGlu", { g: f(gs.G, 1), mg: f(mgdl(gs.G), 0), f: fv });
+  else el.textContent = P.t("rnStory", SN);
+}
+function announce() {
+  if (step === 1) Play.live(liveEl, P.t("liveT", { m: ts.t, a: f(air(), 0), c: f(ts.T, 2), r: respName(ts.U) }));
+  if (step === 2) Play.live(liveEl, P.t("liveG", { m: gs.t, g: f(gs.G, 1), mg: f(mgdl(gs.G), 0), i: f(gs.I * 100, 1), n: f(gs.N * 100, 1) }));
+}
+
+// ---------- actions ----------
+function advance(min) {
+  for (let i = 0; i < min; i++) {
+    if (step === 1) tempStep(ts, air(), fbIn.checked, true);
+    if (step === 2) gluStep(gs, fbIn.checked, true);
+  }
+}
+function tick() {
+  timer = 0;
+  if (!playing || (step !== 1 && step !== 2)) return;
+  advance(2);
+  draw();
+  if ((step === 1 ? ts.t : gs.t) % 10 === 0) announce();
+  timer = setTimeout(tick, 100);
+}
+function stopPlay() { playing = false; clearTimeout(timer); timer = 0; }
+function startPlay() { playing = true; clearTimeout(timer); timer = setTimeout(tick, 100); }
+// after a user action: keep playing, or (reduced motion / paused) jump ahead so the effect shows
+function kick() {
+  if (!playing) { if (Play.reduced) advance(30); else startPlay(); }
+  draw();
+  announce();
+}
+
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { answered = i; if (step === 0) draw(); });
+
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  stopPlay();
+  step = i;
+  fbIn.checked = true;
+  const k = i + 1;
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  document.getElementById("predict").hidden = i !== 0;
+  document.getElementById("ctlAir").hidden = i !== 1;
+  document.getElementById("ctlTemp").hidden = i !== 1;
+  document.getElementById("ctlGlu").hidden = i !== 2;
+  document.getElementById("ctlSim").hidden = i !== 1 && i !== 2;
+  Play.live(liveEl, "");
+  if ((i === 1 || i === 2) && !Play.reduced) startPlay();
+  draw();
+});
+
+airIn.addEventListener("input", () => { draw(); if (!playing) announce(); });
+airIn.addEventListener("change", () => { if (!playing && Play.reduced) { advance(30); draw(); announce(); } });
+document.getElementById("cold").addEventListener("click", () => { airIn.value = 0; kick(); });
+document.getElementById("hot").addEventListener("click", () => { airIn.value = 40; kick(); });
+document.getElementById("run").addEventListener("click", () => { ts.ex = 20; kick(); });
+document.getElementById("meal").addEventListener("click", () => { gs.meals.push(gs.t); kick(); });
+document.getElementById("walk").addEventListener("click", () => { gs.ex = GEXD; kick(); });
+document.getElementById("skip").addEventListener("click", () => { advance(30); draw(); announce(); });
+document.getElementById("play").addEventListener("click", () => { if (playing) stopPlay(); else startPlay(); draw(); });
+fbIn.addEventListener("change", () => { draw(); announce(); });
+document.getElementById("reset").addEventListener("click", () => {
+  stopPlay();
+  airIn.value = 22; fbIn.checked = true; answered = -1; seed++;
+  ts = tempNew(seed); gs = gluNew(seed + 100);
+  pr.reset(); st.go(0);
+});
+document.addEventListener("visibilitychange", () => { if (document.hidden) stopPlay(); });
+if ("ResizeObserver" in window) new ResizeObserver(() => draw()).observe(fig);
+else window.addEventListener("resize", draw);
+</script>
+</body>
+</html>

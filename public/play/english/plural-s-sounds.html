@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three sounds of -s</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .visual { padding: 14px 12px 12px; }
+  .hearrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; font-size: 14px; }
+  .score { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .insp { display: flex; align-items: center; gap: 10px; background: var(--soft); border-radius: 12px; padding: 6px 10px; margin-bottom: 8px; min-height: 76px; }
+  .insp svg { width: 92px; height: 64px; flex: none; }
+  .insp .txt { font-size: 14px; color: var(--muted); min-width: 0; }
+  .insp .txt b { color: var(--fg); font-family: var(--serif); font-size: 17px; }
+  .insp .ph { font-family: var(--math); color: var(--a); font-weight: 700; }
+  .neck { fill: none; stroke: var(--muted); stroke-width: 2; }
+  .buzz { fill: none; stroke: var(--a); stroke-width: 2.4; stroke-linecap: round; }
+  .hiss { fill: none; stroke: var(--b); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 3 4; }
+  .shake .buzz { animation: buzz .12s linear infinite alternate; }
+  @keyframes buzz { to { transform: translateX(1.5px); } }
+  .lbl { font-size: 13px; fill: var(--muted); }
+  .bins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .bin { border: 2px dashed var(--line); border-radius: 12px; background: var(--soft); min-height: 140px; display: flex; flex-direction: column; transition: border-color .15s, background .15s; }
+  .bin.ready { border-color: var(--a); }
+  .bin.over { border-style: solid; border-color: var(--a); background: var(--surface); }
+  .bin.bad { border-color: var(--no); border-style: solid; }
+  .binhead { border: 0; border-bottom: 1px solid var(--line); border-radius: 10px 10px 0 0; background: transparent; padding: 6px 4px 4px; width: 100%; text-align: center; }
+  .binhead .pat { display: block; font-family: var(--math); font-size: 24px; line-height: 1.15; color: var(--a); }
+  .binhead .cnt { display: block; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .got { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; align-content: flex-start; }
+  .got button { font-family: var(--serif); font-size: 15px; padding: 1px 7px; border-radius: 999px; }
+  .m { color: var(--a); font-weight: 750; }
+  .fb { font-size: 14px; min-height: 2.6em; margin: 8px 2px 6px; color: var(--muted); }
+  .fb.ok { color: var(--a); }
+  .fb.no { color: var(--no); }
+  .deck { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 8px 0 2px; border-top: 1px solid var(--line); min-height: 56px; }
+  .card { font-family: var(--serif); font-size: 20px; padding: 5px 13px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.08); touch-action: none; user-select: none; -webkit-user-select: none; position: relative; line-height: 1.25; }
+  .card .tg { display: block; font-family: var(--font); font-size: 13px; color: var(--muted); }
+  .card .tg.buzz-t { color: var(--a); }
+  .card .tg.hiss-t { color: var(--b); }
+  .card.sel { border-color: var(--a); box-shadow: 0 0 0 3px var(--a); }
+  .card.drag { z-index: 10; cursor: grabbing; box-shadow: 0 6px 18px rgba(0,0,0,.2); transition: none; }
+  .card.shk { animation: shk .35s; }
+  @keyframes shk { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  @media (prefers-reduced-motion: reduce) { .card.shk, .shake .buzz { animation: none; } }
+  .done { text-align: center; font-size: 14px; color: var(--muted); padding: 6px; }
+  .ex1 { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+  .ex1 button, .more button { font-family: var(--serif); font-size: 16px; }
+  table.counts { width: 100%; border-collapse: collapse; font-size: 14px; margin: 2px 0 10px; }
+  table.counts th, table.counts td { border-bottom: 1px solid var(--line); padding: 4px 4px; text-align: left; vertical-align: top; }
+  table.counts th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  table.counts td.p { font-family: var(--math); font-size: 18px; color: var(--a); white-space: nowrap; }
+  table.counts td.n { color: var(--fg); }
+  table.counts .w { display: block; white-space: normal; overflow-wrap: anywhere; font-family: var(--serif); color: var(--muted); font-size: 13px; }
+  table.counts .snd { font-family: var(--math); }
+  .rule { color: var(--fg) !important; font-weight: 600; }
+  .more { display: grid; gap: 6px; margin: 4px 0 10px; }
+  .more .row { display: flex; gap: 10px; align-items: baseline; font-size: 14px; color: var(--muted); }
+  .more button { min-width: 92px; flex: none; }
+  .play .note { font-size: 14px !important; }
+  .result .math { font-family: var(--math); white-space: normal; overflow-wrap: anywhere; }
+  .foot { font-size: 13px; }
+  @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 560px) {
+    .binhead .pat { font-size: 20px; }
+    .card { font-size: 18px; padding: 4px 10px; }
+    .got button { font-size: 14px; }
+    .insp svg { width: 72px; height: 50px; }
+  }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="hearrow">
+        <label class="check"><input type="checkbox" id="throat"> <span data-t="throat"></span></label>
+        <span class="score" id="score"></span>
+      </div>
+      <div class="insp" id="insp">
+        <svg id="neck" viewBox="0 0 92 64" role="img" data-t-aria="neckAria"></svg>
+        <div class="txt" id="inspTxt"></div>
+      </div>
+      <div class="bins" id="bins"></div>
+      <p class="fb" id="fb" aria-live="polite"></p>
+      <div class="deck" id="deck" lang="en" role="group" data-t-aria="deckAria"></div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <div class="ex1" id="ex1" lang="en"></div>
+      <p id="stepBody"></p>
+      <div id="ruleBox" hidden>
+        <p class="rule" id="rule"></p>
+        <table class="counts" id="counts"></table>
+        <p><strong data-t="moreT"></strong></p>
+        <div class="more" id="more"></div>
+      </div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Three sounds of -s", eyebrow: "English · Stage 1", h1: "Three sounds of -s: listen to the last sound, not the last letter",
+    intro: "cats, dogs, buses: the same letter s, three different sounds. Sort the plurals by how the ending sounds, and feel your throat as you go.",
+    reset: "Reset", deckAria: "Plural word cards to sort", neckAria: "A throat: buzz lines when the last sound is voiced",
+    throat: "Touch your throat: show buzz on the cards",
+    s1: "Guess", s2: "Sort", s3: "Rule",
+    k1: "Predict first", t1: "cats · dogs",
+    b1: "Tap each word to hear it. Listen only to the very end.",
+    q: "Is the -s at the end of dogs the same sound as the -s in cats?",
+    o1: "Yes — an -s is always said /s/", o2: "No — in dogs it buzzes: /z/", o3: "No — the s in dogs is silent",
+    right: "Yes! cats ends in a hiss /s/, dogs ends in a buzz /z/. Put your fingers on your throat and say them: you feel the buzz on dogs.",
+    wrong: "Listen again with a hand on your throat: cats ends in a quiet hiss /s/, dogs ends in a buzzing /z/. Same letter, different sound.",
+    k2: "Hands on", t2: "Sort the plurals by their ending sound",
+    b2: "Drag a card into a bin — or tap a card (you hear it), then tap a bin. Keyboard: Tab to a card, Enter to hear it, then 1, 2 or 3 to drop it; ← → move between cards. Careful: cake, phone and rose end in the letter e, but e is silent. Listen for the last sound.",
+    k3: "The rule", t3: "The last sound picks the ending",
+    b3: "Say the word without -s and listen to its last sound. Quiet (no buzz) → /s/. Buzzing (voiced, every vowel too) → /z/. A hissing sound already there → add a syllable, /ɪz/. The table is computed from the cards.",
+    binAria: "Bin {p}: {n} of {m} sorted", binPut: "Put {w} in bin {p}",
+    cardAria: "{w}. Enter to hear and pick; 1, 2 or 3 to drop in a bin.",
+    score: "Sorted {n} / {m} · right first time {f}",
+    pick: "{w} picked — now tap a bin.", pickFirst: "Pick a card first, then tap a bin.",
+    okMsg: "Yes: {w} ends in {e}, a {k} sound, so {pl} ends in {p}.",
+    noMsg: "Not {b}: {w} ends in the sound {e}, a {k} sound, so {pl} ends in {p}. The card went back.",
+    done: "All {m} sorted, {f} right first time. Now go to step 3 for the rule.",
+    doneDeck: "Every card sorted.",
+    liveS: "Sorted {n} of {m}.",
+    kq: "quiet", kb: "buzzing", kh: "hissing",
+    tq: "quiet", tb: "buzz", th: "hiss",
+    inspNone: "Pick a card to see its last letter and its last sound.",
+    insp: "{w}: last letter {l}, last sound {e} — {k}.",
+    neckQ: "no buzz", neckB: "buzz!", neckH: "hiss",
+    thK: "last sound", vowels: "vowels", thS: "sounds", thE: "ending", thW: "cards",
+    rule: "Counted: {q} cards end in a quiet sound and all take /s/; {b} end in a buzzing sound and take /z/; {h} end in a hissing sound and take /ɪz/. Only {q} of {m} use /s/.",
+    moreT: "The same rule, not just for plurals — tap to hear",
+    verb: "he {f}", poss: "{f} bag",
+    moreRow: "{w} ends in {e} ({k}) → {p}",
+    resultTitle: "How the -s sounded on the {m} cards",
+    resMain: "/s/ {q} · /z/ {b} · /ɪz/ {h}",
+    resNote: "“Always /s/” was right for only {q} of {m}. The same rule chooses the sound of he runs and Tom's.",
+    explainK: "Explain it", explainQ: "A friend says “bed-s” with a hissing /s/. Using your throat test, explain why beds ends in /z/ — and why cakes still ends in /s/ even though cake ends in a buzzing-looking letter e.",
+    homeK: "Try at home", homeQ: "Hand on throat, say ten plural things in your room (socks, pens, boxes…). Sort them into three piles of paper slips: quiet /s/, buzz /z/, extra syllable /ɪz/. Which pile is biggest?",
+    foot: "Sound marks are IPA: /s/ and /z/ as in bus and zoo, /ɪz/ as in buses (many American speakers say /əz/). Voiceless (quiet) endings: p t k f θ; voiced: b d g v ð m n ŋ l and all vowels; hissing (sibilants): s z ʃ ʒ tʃ dʒ. The words on the cards were chosen so that their last sound is the same in standard American and British English (no final r). This rule covers regular plurals, the third-person -s and the possessive 's; irregular plurals (mice) and words like houses /zɪz/ are left out. Counts are of the cards on this page. Speech uses your browser's built-in voice. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "-s 的三种读法", eyebrow: "英语 · 阶段 1", h1: "-s 有三种读法：听最后一个音，不看最后一个字母",
+    intro: "cats、dogs、buses：同一个字母 s，三种读法。按词尾的读音给复数词分类，边分边摸摸喉咙。",
+    reset: "重置", deckAria: "待分类的复数单词卡", neckAria: "喉咙：最后一个音是浊音时会出现振动线",
+    throat: "摸喉咙：在卡片上显示振不振",
+    s1: "先猜", s2: "分类", s3: "规律",
+    k1: "先猜一猜", t1: "cats · dogs",
+    b1: "点每个词听一听。只听最末尾。",
+    q: "dogs 末尾的 -s，和 cats 末尾的 -s 读音一样吗？",
+    o1: "一样——-s 一律读 /s/", o2: "不一样——dogs 里是振动的 /z/", o3: "不一样——dogs 里的 s 不发音",
+    right: "对！cats 结尾是不振的 /s/，dogs 结尾是振动的 /z/。手指放在喉咙上念一念：念 dogs 时能摸到振动。",
+    wrong: "手放在喉咙上再听一遍：cats 结尾是轻轻的嘶声 /s/，dogs 结尾是振动的 /z/。字母一样，音不一样。",
+    k2: "动手", t2: "按词尾读音给复数词分类",
+    b2: "把卡片拖进桶里；也可以先点卡片（会读出来），再点桶。键盘：Tab 到卡片，Enter 听读，再按 1、2、3 放进桶；← → 在卡片间移动。小心：cake、phone、rose 最后一个字母是 e，但 e 不发音。要听最后一个音。",
+    k3: "规律", t3: "最后一个音决定 -s 怎么读",
+    b3: "把词去掉 -s 念一遍，听最后一个音。不振（清音）→ /s/；振动（浊音，所有元音也算）→ /z/；本身就是嘶嘶音 → 多加一个音节 /ɪz/。下表由卡片算出。",
+    binAria: "{p} 桶：已放 {n}/{m}", binPut: "把 {w} 放进 {p} 桶",
+    cardAria: "{w}。Enter 听读并选中；按 1、2、3 放进桶。",
+    score: "已分 {n}/{m} · 一次放对 {f}",
+    pick: "选中了 {w}——再点一个桶。", pickFirst: "先选一张卡片，再点桶。",
+    okMsg: "对：{w} 最后一个音是 {e}，{k}，所以 {pl} 结尾读 {p}。",
+    noMsg: "不是 {b}：{w} 最后一个音是 {e}，{k}，所以 {pl} 结尾读 {p}。卡片退回去了。",
+    done: "{m} 张全部分好，一次放对 {f} 张。去第 3 步看规律。",
+    doneDeck: "卡片都分完了。",
+    liveS: "已分 {n}/{m}。",
+    kq: "不振的清音", kb: "振动的浊音", kh: "嘶嘶音",
+    tq: "不振", tb: "振", th: "嘶",
+    inspNone: "选一张卡片，看它最后一个字母和最后一个音。",
+    insp: "{w}：最后一个字母 {l}，最后一个音 {e}——{k}。",
+    neckQ: "不振", neckB: "振！", neckH: "嘶",
+    thK: "最后一个音", vowels: "元音", thS: "包括", thE: "读成", thW: "卡片",
+    rule: "数一数：{q} 张以不振的音结尾，全读 /s/；{b} 张以振动的音结尾，读 /z/；{h} 张以嘶嘶音结尾，读 /ɪz/。{m} 张里只有 {q} 张读 /s/。",
+    moreT: "不只是复数，同一条规则——点一下听",
+    verb: "he {f}", poss: "{f} bag",
+    moreRow: "{w} 以 {e} 结尾（{k}）→ {p}",
+    resultTitle: "{m} 张卡片上的 -s 怎么读",
+    resMain: "/s/ {q} · /z/ {b} · /ɪz/ {h}",
+    resNote: "「一律读 /s/」只对了 {m} 张里的 {q} 张。he runs、Tom's 的读法也由同一条规则决定。",
+    explainK: "说一说", explainQ: "朋友把 beds 读成带嘶声的 /s/。用摸喉咙的办法跟他讲讲为什么 beds 结尾读 /z/——再讲讲 cake 最后一个字母是 e，为什么 cakes 还是读 /s/。",
+    homeK: "家里做一做", homeQ: "手放在喉咙上，说出房间里十样东西的复数（socks、pens、boxes……）。写在纸条上分三堆：不振 /s/、振 /z/、多一个音节 /ɪz/。哪一堆最多？",
+    foot: "音标是国际音标：/s/、/z/ 如 bus、zoo 里的，/ɪz/ 如 buses 结尾（很多美国人读 /əz/）。清音（不振）结尾：p t k f θ；浊音：b d g v ð m n ŋ l 和所有元音；嘶嘶音：s z ʃ ʒ tʃ dʒ。卡片上的词都选了美式和英式标准发音里最后一个音相同的（不以 r 结尾）。这条规则管规则复数、第三人称单数 -s 和所有格 's；不规则复数（mice）和 houses /zɪz/ 这类词没放进来。表里只数本页卡片。发音用浏览器自带的语音。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---- data: the bin comes from each word's final SOUND (looked up in ENDS), never from its spelling ----
+// ENDS: final sound → [voiced, sibilant]
+const ENDS = {
+  p: [0, 0], t: [0, 0], k: [0, 0], f: [0, 0], "θ": [0, 0],
+  b: [1, 0], d: [1, 0], g: [1, 0], v: [1, 0], "ð": [1, 0], m: [1, 0], n: [1, 0], "ŋ": [1, 0], l: [1, 0],
+  "iː": [1, 0], "uː": [1, 0], "eɪ": [1, 0], "aɪ": [1, 0], "ɔɪ": [1, 0], "aʊ": [1, 0],
+  s: [0, 1], z: [1, 1], "ʃ": [0, 1], "ʒ": [1, 1], "tʃ": [0, 1], "dʒ": [1, 1],
+};
+const VOWELS = ["iː", "uː", "eɪ", "aɪ", "ɔɪ", "aʊ"];
+const KINDS = ["q", "b", "h"]; // quiet, buzzing, hissing
+const ENDING = { q: "/s/", b: "/z/", h: "/ɪz/" };
+function kindOf(e) {
+  const x = ENDS[e];
+  if (!x) return null;
+  return x[1] ? "h" : x[0] ? "b" : "q";
+}
+// Regular plural spelling (no -y or -f words on this page).
+function plural(w) { return /(s|x|z|sh|ch)$/.test(w) ? w + "es" : w + "s"; }
+// e = final sound of the base word, same in General American and Standard Southern British.
+const WORDS = [
+  { w: "cat", e: "t" }, { w: "cup", e: "p" }, { w: "book", e: "k" }, { w: "cake", e: "k" }, { w: "kite", e: "t" }, { w: "giraffe", e: "f" },
+  { w: "dog", e: "g" }, { w: "bed", e: "d" }, { w: "bee", e: "iː" }, { w: "ball", e: "l" }, { w: "phone", e: "n" }, { w: "cave", e: "v" },
+  { w: "bus", e: "s" }, { w: "box", e: "s" }, { w: "dish", e: "ʃ" }, { w: "watch", e: "tʃ" }, { w: "judge", e: "dʒ" }, { w: "rose", e: "z" },
+];
+const MORE = [
+  { w: "eat", f: "eats", e: "t", t: "verb" }, { w: "run", f: "runs", e: "n", t: "verb" }, { w: "watch", f: "watches", e: "tʃ", t: "verb" },
+  { w: "Mark", f: "Mark's", e: "k", t: "poss" }, { w: "Tom", f: "Tom's", e: "m", t: "poss" }, { w: "Liz", f: "Liz's", e: "z", t: "poss" },
+];
+const binOf = (x) => KINDS.indexOf(kindOf(x.e));
+function tally(list) {
+  const c = { q: 0, b: 0, h: 0, m: list.length };
+  list.forEach((x) => { const k = kindOf(x.e); if (k) c[k]++; });
+  return c;
+}
+// Where the added ending starts in the plural spelling (for highlighting).
+const endStart = (w) => w.length;
+if (typeof module !== "undefined") module.exports = { VOWELS, ENDS, WORDS, MORE, kindOf, plural, binOf, tally, ENDING };
+
+// ---- state ----
+const $ = (id) => document.getElementById(id);
+let state, sel = null;
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function fresh() { state = { deck: shuffle(WORDS.map((x) => x.w)), placed: {}, first: 0, missed: new Set() }; sel = null; }
+const byW = (w) => WORDS.find((x) => x.w === w);
+const sayPair = (w) => Play.speak(w + ". " + plural(w) + ".", "en-US");
+const kName = (k) => P.t("k" + k);
+
+function marked(w) {
+  const pl = plural(w), frag = document.createDocumentFragment();
+  frag.appendChild(document.createTextNode(pl.slice(0, endStart(w))));
+  const s = document.createElement("span"); s.className = "m"; s.textContent = pl.slice(endStart(w)); frag.appendChild(s);
+  return frag;
+}
+
+// ---- throat inspector ----
+function drawNeck(k) {
+  const g = $("neck");
+  g.innerHTML = "";
+  g.classList.toggle("shake", k === "b" && !Play.reduced);
+  Play.svg("path", { class: "neck", d: "M30 4 Q20 4 20 16 L20 60 M62 4 Q72 4 72 16 L72 60" }, g);
+  Play.svg("circle", { cx: 46, cy: 34, r: 5, fill: "none", stroke: "var(--muted)", "stroke-width": 1.5 }, g);
+  if (k === "b") {
+    [10, 82].forEach((x) => Play.svg("path", { class: "buzz", d: "M" + x + " 20 l-4 5 l4 5 l-4 5 l4 5 l-4 5" }, g));
+    Play.svg("path", { class: "buzz", d: "M38 34 l3 -4 l3 8 l3 -8 l3 8 l3 -4" }, g);
+  } else if (k === "h") {
+    Play.svg("path", { class: "hiss", d: "M46 4 Q56 10 46 16 Q36 22 46 28" }, g);
+  }
+  const lab = Play.svg("text", { class: "lbl", x: 46, y: 62, "text-anchor": "middle" }, g);
+  lab.textContent = k ? P.t(k === "b" ? "neckB" : k === "h" ? "neckH" : "neckQ") : "";
+}
+function inspect(w) {
+  const box = $("inspTxt");
+  box.innerHTML = "";
+  if (!w) { box.textContent = P.t("inspNone"); drawNeck(null); return; }
+  const x = byW(w), k = kindOf(x.e);
+  const parts = P.t("insp", { w: "\u0001", l: "\u0002", e: "\u0003", k: kName(k) }).split(/([\u0001-\u0003])/);
+  parts.forEach((p) => {
+    if (p === "\u0001") { const b = document.createElement("b"); b.lang = "en"; b.textContent = w; box.appendChild(b); }
+    else if (p === "\u0002") { const b = document.createElement("b"); b.lang = "en"; b.textContent = w.slice(-1); box.appendChild(b); }
+    else if (p === "\u0003") { const s = document.createElement("span"); s.className = "ph"; s.textContent = "/" + x.e + "/"; box.appendChild(s); }
+    else box.appendChild(document.createTextNode(p));
+  });
+  drawNeck(k);
+}
+
+// ---- bins ----
+const binEls = KINDS.map((k, i) => {
+  const bin = document.createElement("div");
+  bin.className = "bin"; bin.dataset.k = i;
+  const head = document.createElement("button");
+  head.type = "button"; head.className = "binhead";
+  head.innerHTML = '<span class="pat"></span><span class="cnt"></span>';
+  head.querySelector(".pat").textContent = (i + 1) + " · " + ENDING[k];
+  head.addEventListener("click", () => {
+    if (!sel) { setFb(P.t("pickFirst"), ""); return; }
+    place(sel, i, false);
+  });
+  const got = document.createElement("div"); got.className = "got"; got.lang = "en";
+  bin.append(head, got);
+  $("bins").appendChild(bin);
+  return { bin, head, got };
+});
+
+// ---- cards (tap, drag, keyboard) ----
+let drag = null, suppressClick = false;
+function cardEl(w) {
+  const c = document.createElement("button");
+  c.type = "button"; c.className = "card"; c.dataset.w = w;
+  c.textContent = plural(w);
+  if ($("throat").checked) {
+    const k = kindOf(byW(w).e), tg = document.createElement("span");
+    tg.className = "tg" + (k === "b" ? " buzz-t" : k === "h" ? " hiss-t" : "");
+    tg.lang = P.lang === "zh" ? "zh-CN" : "en";
+    tg.textContent = (k === "b" ? "≋ " : k === "h" ? "~ " : "· ") + P.t("t" + k);
+    c.appendChild(tg);
+  }
+  c.setAttribute("aria-pressed", "false");
+  c.setAttribute("aria-label", P.t("cardAria", { w: plural(w) }));
+  c.addEventListener("click", () => { if (suppressClick) { suppressClick = false; return; } pick(w); });
+  c.addEventListener("keydown", (e) => {
+    const k = ["1", "2", "3"].indexOf(e.key);
+    if (k >= 0) { place(w, k, true); e.preventDefault(); return; }
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      const cs = [...$("deck").querySelectorAll(".card")], i = cs.indexOf(c);
+      cs[Play.clamp(i + (e.key === "ArrowRight" ? 1 : -1), 0, cs.length - 1)].focus(); e.preventDefault();
+    }
+    if (e.key === "Escape") { sel = null; markSel(); inspect(null); }
+  });
+  c.addEventListener("pointerdown", (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    drag = { c, w, x: e.clientX, y: e.clientY, on: false };
+    try { c.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  });
+  c.addEventListener("pointermove", (e) => {
+    if (!drag || drag.c !== c) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.on && Math.hypot(dx, dy) > 8) { drag.on = true; c.classList.add("drag"); inspect(w); }
+    if (!drag.on) return;
+    c.style.transform = "translate(" + dx + "px," + dy + "px)";
+    const k = binAt(e.clientX, e.clientY);
+    binEls.forEach((b, i) => b.bin.classList.toggle("over", i === k));
+  });
+  const end = (e, cancel) => {
+    if (!drag || drag.c !== c) return;
+    const d = drag; drag = null;
+    if (!d.on) return;
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+    c.classList.remove("drag"); c.style.transform = "";
+    binEls.forEach((b) => b.bin.classList.remove("over"));
+    const k = cancel ? -1 : binAt(e.clientX, e.clientY);
+    if (k >= 0) place(d.w, k, false);
+  };
+  c.addEventListener("pointerup", (e) => end(e, false));
+  c.addEventListener("pointercancel", (e) => end(e, true));
+  return c;
+}
+function binAt(x, y) {
+  const els = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [];
+  for (const el of els) { const b = el.closest && el.closest(".bin"); if (b) return +b.dataset.k; }
+  return -1;
+}
+function pick(w) { sel = w; sayPair(w); markSel(); inspect(w); setFb(P.t("pick", { w: plural(w) }), ""); }
+const countIn = (k) => Object.values(state.placed).filter((x) => x === k).length;
+const inBin = (k) => WORDS.filter((x) => binOf(x) === k).length;
+function markSel() {
+  $("deck").querySelectorAll(".card").forEach((c) => {
+    const on = c.dataset.w === sel;
+    c.classList.toggle("sel", on); c.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  binEls.forEach((b, k) => {
+    b.bin.classList.toggle("ready", !!sel);
+    const p = ENDING[KINDS[k]];
+    b.head.setAttribute("aria-label", sel ? P.t("binPut", { w: plural(sel), p }) : P.t("binAria", { p, n: countIn(k), m: inBin(k) }));
+  });
+}
+function place(w, k, fromKey) {
+  const x = byW(w);
+  if (!x || !state.deck.includes(w) || k < 0 || k >= KINDS.length) return;
+  const rk = kindOf(x.e), right = binOf(x);
+  const vars = { w, pl: plural(w), e: "/" + x.e + "/", k: kName(rk), p: ENDING[rk], b: ENDING[KINDS[k]] };
+  inspect(w);
+  if (right === k) {
+    const i = state.deck.indexOf(w);
+    state.deck.splice(i, 1);
+    state.placed[w] = k;
+    if (!state.missed.has(w)) state.first++;
+    sel = null;
+    Play.speak(plural(w), "en-US");
+    setFb(P.t("okMsg", vars), "ok");
+    draw();
+    if (fromKey) {
+      const cs = $("deck").querySelectorAll(".card");
+      if (cs.length) cs[Math.min(i, cs.length - 1)].focus(); else binEls[k].head.focus();
+    }
+  } else {
+    state.missed.add(w);
+    sel = null;
+    setFb(P.t("noMsg", vars), "no");
+    const b = binEls[k].bin;
+    b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 600);
+    const c = $("deck").querySelector('.card[data-w="' + w + '"]');
+    if (c && !Play.reduced) { c.classList.remove("shk"); void c.offsetWidth; c.classList.add("shk"); }
+    sayPair(w);
+    markSel(); score();
+  }
+}
+function setFb(text, cls) { const f = $("fb"); f.textContent = text; f.className = "fb" + (cls ? " " + cls : ""); }
+function score() {
+  const n = Object.keys(state.placed).length, m = WORDS.length;
+  $("score").textContent = P.t("score", { n, m, f: state.first });
+  Play.live($("live"), P.t("liveS", { n, m }));
+}
+
+// ---- step 3: table + more examples (all computed from ENDS) ----
+function drawRule() {
+  const c = tally(WORDS), tb = $("counts");
+  tb.innerHTML = "";
+  const hr = tb.insertRow();
+  [P.t("thK"), P.t("thS"), P.t("thE"), P.t("thW")].forEach((h) => { const th = document.createElement("th"); th.textContent = h; hr.appendChild(th); });
+  KINDS.forEach((k) => {
+    const r = tb.insertRow();
+    r.insertCell().textContent = kName(k);
+    const s = r.insertCell(); s.className = "snd"; s.textContent = Object.keys(ENDS).filter((e) => kindOf(e) === k && !VOWELS.includes(e)).join(" ") + (k === "b" ? " + " + P.t("vowels") : "");
+    const p = r.insertCell(); p.className = "p"; p.textContent = ENDING[k];
+    const n = r.insertCell(); n.className = "n"; n.textContent = c[k] + " / " + c.m;
+    const sp = document.createElement("span"); sp.className = "w"; sp.lang = "en";
+    sp.textContent = WORDS.filter((x) => kindOf(x.e) === k).map((x) => plural(x.w)).join(" · ");
+    n.appendChild(sp);
+  });
+  $("rule").textContent = P.t("rule", c);
+  $("resultMain").textContent = P.t("resMain", c);
+  $("resultNote").textContent = P.t("resNote", c);
+}
+MORE.forEach((x) => {
+  const k = kindOf(x.e), txt = P.t(x.t === "verb" ? "verb" : "poss", { f: x.f });
+  const row = document.createElement("div"); row.className = "row";
+  const b = document.createElement("button"); b.type = "button"; b.textContent = txt; b.lang = "en";
+  b.addEventListener("click", () => Play.speak(txt + ".", "en-US"));
+  const sp = document.createElement("span"); sp.textContent = P.t("moreRow", { w: x.w, e: "/" + x.e + "/", k: kName(k), p: ENDING[k] });
+  row.append(b, sp); $("more").appendChild(row);
+});
+
+// ---- draw ----
+function draw() {
+  binEls.forEach((b, k) => {
+    b.got.innerHTML = "";
+    WORDS.filter((x) => state.placed[x.w] === k).forEach((x) => {
+      const c = document.createElement("button"); c.type = "button";
+      c.appendChild(marked(x.w));
+      c.setAttribute("aria-label", plural(x.w));
+      c.addEventListener("click", () => { sayPair(x.w); inspect(x.w); });
+      b.got.appendChild(c);
+    });
+    b.head.querySelector(".cnt").textContent = countIn(k) + " / " + inBin(k);
+  });
+  const deck = $("deck");
+  deck.innerHTML = "";
+  state.deck.forEach((w) => deck.appendChild(cardEl(w)));
+  if (!state.deck.length) {
+    const d = document.createElement("div"); d.className = "done"; d.textContent = P.t("doneDeck"); deck.appendChild(d);
+    if (!$("fb").textContent || $("fb").classList.contains("ok")) setFb(P.t("done", { m: WORDS.length, f: state.first }), "ok");
+  }
+  markSel(); score();
+}
+$("throat").addEventListener("change", () => { draw(); if (sel) markSel(); });
+
+// ---- steps ----
+["cats", "dogs"].forEach((w) => {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = "▶ " + w;
+  b.addEventListener("click", () => { Play.speak(w, "en-US"); inspect(w.slice(0, -1)); });
+  $("ex1").appendChild(b);
+});
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => Play.speak("cats. dogs.", "en-US"));
+const stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("ex1").hidden = i !== 0;
+  $("ruleBox").hidden = i !== 2;
+});
+$("reset").addEventListener("click", () => {
+  if ("speechSynthesis" in window) { try { speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+  $("throat").checked = false;
+  fresh(); setFb("", ""); pr.reset(); stp.go(0); inspect(null); draw();
+});
+fresh();
+inspect(null);
+drawRule();
+draw();
+</script>
+</body>
+</html>

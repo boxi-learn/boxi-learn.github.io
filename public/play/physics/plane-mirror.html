@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where is the person in the mirror?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .behind { fill: var(--soft); }
+  .plane { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 3 6; }
+  .wall { stroke: var(--muted); stroke-width: 2; }
+  .floor { stroke: var(--muted); stroke-width: 2; }
+  .mirror { stroke: var(--c); stroke-width: 7; stroke-linecap: round; }
+  .hatch { stroke: var(--c); stroke-width: 1.5; opacity: .6; }
+  .normal { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 4; }
+  .fan { stroke: var(--hl); stroke-width: 1.6; opacity: .7; fill: none; }
+  .fanx { stroke: var(--hl); stroke-width: 1.4; stroke-dasharray: 5 5; opacity: .6; fill: none; }
+  .r1 { stroke: var(--a); } .r2 { stroke: var(--b); }
+  .pr { stroke-width: 3; fill: none; stroke-linecap: round; }
+  .ext { stroke-width: 2.2; stroke-dasharray: 7 6; fill: none; }
+  .miss { stroke: var(--no); stroke-width: 2; stroke-dasharray: 3 5; fill: none; }
+  .arc { fill: none; stroke-width: 2.4; }
+  .dim { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 2 4; }
+  .candle { fill: var(--hl); stroke: var(--b); stroke-width: 2; }
+  .wick { fill: var(--b); }
+  .imgC { fill: color-mix(in srgb, var(--no) 30%, transparent); stroke: var(--no); stroke-width: 2; stroke-dasharray: 4 3; }
+  .eyeW { fill: var(--surface); stroke: var(--fg); stroke-width: 2.2; }
+  .eyeP { fill: var(--fg); }
+  .body { stroke: var(--fg); stroke-width: 4; stroke-linecap: round; fill: none; }
+  .head { fill: var(--surface); stroke: var(--fg); stroke-width: 3; }
+  .ibody { stroke: var(--no); stroke-width: 3; stroke-linecap: round; fill: none; stroke-dasharray: 6 5; opacity: .85; }
+  .ihead { fill: none; stroke: var(--no); stroke-width: 2.5; stroke-dasharray: 6 5; opacity: .85; }
+  .band { stroke: var(--hl); stroke-width: 9; stroke-linecap: round; opacity: .85; }
+  .guide { stroke: var(--a); stroke-width: 1.5; stroke-dasharray: 2 4; }
+  .knob { fill: var(--surface); stroke: var(--c); stroke-width: 3; }
+  .lbl { fill: var(--muted); font-size: 24px; font-family: var(--font); }
+  .lblI { fill: var(--no); font-size: 24px; font-weight: 700; font-family: var(--font); }
+  .lblA { font-size: 24px; font-weight: 700; font-family: var(--math); }
+  .lblA.r1 { fill: var(--a); stroke: none; } .lblA.r2 { fill: var(--b); stroke: none; }
+  .hit { cursor: grab; outline: none; }
+  .hit:active { cursor: grabbing; }
+  .hit .ring { fill: transparent; stroke: none; }
+  .hit:focus-visible .ring { stroke: var(--hl); stroke-width: 3; }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .pair { display: flex; align-items: center; gap: 8px; flex: 1 1 160px; min-width: 0; }
+  .pair input[type=range] { flex: 1 1 70px; min-width: 0; }
+  .controls .val { min-width: 4.2em; font-size: 14px; }
+  .btns { display: inline-flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .cap { font-size: 14px; color: var(--fg); padding: 2px 14px 6px; min-height: 2.6em; }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout th, .readout td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+  .readout th:first-child, .readout td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  .readout tr.cur td { background: color-mix(in srgb, var(--a) 14%, transparent); color: var(--fg); font-weight: 650; }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+  #rule .big { font-family: var(--serif); font-size: 17px; color: var(--fg); line-height: 1.5; }
+  @media (max-width: 860px) { .stage svg.main { height: auto; aspect-ratio: 640 / 300; } }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 640 300" role="group" data-t-aria="figAria"></svg>
+      <div class="cap" id="cap"></div>
+      <div class="controls">
+        <div class="grp">
+          <span class="btns" role="group" data-t-aria="viewLbl"><span data-t="viewLbl"></span>
+            <button type="button" class="small" id="vTop" data-t="vTop"></button>
+            <button type="button" class="small" id="vSide" data-t="vSide"></button></span>
+        </div>
+        <div class="grp" id="ctlTop">
+          <span class="pair"><label for="d" data-t="dLabel"></label>
+          <input type="range" id="d" min="2" max="45" step="0.5" value="20">
+          <span class="val" id="dVal"></span></span>
+          <label class="check"><input type="checkbox" id="fan" checked> <span data-t="fanLabel"></span></label>
+        </div>
+        <div id="ctlSide">
+          <div class="grp">
+            <span class="pair"><label for="D" data-t="DLabel"></label>
+            <input type="range" id="D" min="40" max="220" step="1" value="80">
+            <span class="val" id="DVal"></span></span>
+            <span class="pair"><label for="H" data-t="HLabel"></label>
+            <input type="range" id="H" min="100" max="200" step="1" value="160">
+            <span class="val" id="HVal"></span></span>
+          </div>
+          <div class="grp">
+            <span class="pair"><label for="mt" data-t="tLabel"></label>
+            <input type="range" id="mt" min="5" max="200" step="1" value="155">
+            <span class="val" id="mtVal"></span></span>
+            <span class="pair"><label for="mb" data-t="bLabel"></label>
+            <input type="range" id="mb" min="0" max="195" step="1" value="115">
+            <span class="val" id="mbVal"></span></span>
+          </div>
+          <div class="grp"><button type="button" class="small" id="walk"></button></div>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="pr1"></div>
+      <div id="pr2"></div>
+      <p id="stepBody"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Where is the person in the mirror?", eyebrow: "Physics · Stage 3", h1: "Where is the person in the mirror?",
+    intro: "A flat mirror seen from above with a candle and an eye, then you in front of a wall mirror seen from the side. Drag things around and follow the light.",
+    reset: "Reset", figAria: "Ray diagram of a plane mirror",
+    viewLbl: "View:", vTop: "From above", vSide: "From the side",
+    s1: "Guess", s2: "Image", s3: "Mirror", s4: "Rule",
+    k1: "Predict first", t1: "Two quick guesses",
+    b1: "Answer both. The picture shows a candle in front of a flat mirror, seen from above, and an eye looking into the mirror.",
+    q1: "Where is the candle's image that the eye sees?", o1a: "On the surface of the glass", o1b: "Behind the glass, as far behind as the candle is in front", o1c: "Behind the glass, twice as far back",
+    r1: "Yes. Trace the reflected rays backwards (dashed): they all meet at one point behind the glass, as far behind as the candle is in front. That point is the image.",
+    w1: "Look at the picture now: the reflected rays, traced backwards (dashed), all meet behind the glass, exactly as far behind as the candle is in front. That meeting point is the image.",
+    q2: "In a small wall mirror you see yourself from the top of your head down to your hips. You take a few big steps back. Now you see…", o2a: "more of yourself", o2b: "the same part of yourself", o2c: "less of yourself",
+    r2: "Right. In step 3 you can walk back and check: the part of you in the mirror does not change.",
+    w2: "That is the most common guess. In step 3, walk back and watch the yellow band on your image: it stays exactly the same.",
+    k2: "Hands on", t2: "Find the image",
+    b2: "Drag the candle and the eye (or focus one and use the arrow keys). The solid line is the light that reaches the eye; the dashed line is where the eye thinks it came from. Compare the two distances and the two angles.",
+    dLabel: "Candle distance", fanLabel: "More rays",
+    lCandle: "candle", lEye: "eye", lImg: "image", lBehind: "behind the glass", lYou: "you", lImage: "image", lI: "i", lR: "r",
+    capHidden: "Make your first guess: the light paths appear after you answer.",
+    capSeen: "Candle {d} cm in front of the glass, image {v} cm behind it. The light meets the mirror at i = {i}° and leaves at r = {r}°: the eye sees the image.",
+    capMiss: "Candle {d} cm in front of the glass, image {v} cm behind it. The eye's line of sight to the image misses the mirror, so from here the eye cannot see the candle in it.",
+    rD: "Candle → glass", rV: "Glass → image", rI: "Angle in, i", rR: "Angle out, r", rSeen: "Eye sees the image", yes: "yes", no: "no (mirror too short)",
+    k3: "Hands on", t3: "How much of you does the mirror show?",
+    b3: "Drag yourself left and right (or press Walk back), and drag the top and bottom edges of the mirror. The yellow band on your image is the part of you that you can see.",
+    DLabel: "Distance", HLabel: "Your height", tLabel: "Mirror top", bLabel: "Mirror bottom",
+    walk: "▶ Walk back", walkStep: "Step back 40 cm", pause: "❚❚ Pause",
+    capSide: "You stand {D} cm from the mirror and see {v} cm of your {H} cm ({p}%), from {lo} cm to {hi} cm above the floor.",
+    capFull: "You stand {D} cm from the mirror and see all {H} cm of yourself, head to toe.",
+    capNone: "You stand {D} cm from the mirror and see none of yourself: the mirror hangs too high or too low.",
+    rH: "Your height", rE: "Eye height", rDD: "Distance to mirror", rL: "Mirror length", rVis: "You see", rNeed: "Mirror needed for all of you",
+    aCandle: "Candle", aEye: "Eye", aYou: "You", aTop: "Top edge of the mirror", aBot: "Bottom edge of the mirror",
+    vtPos: "{d} cm in front of the mirror, {y} cm sideways", vtYou: "{D} cm from the mirror", vtEdge: "{h} cm above the floor",
+    k4: "The rule", t4: "Your image stands behind the glass",
+    b4: "Read the rule below, then hang a mirror exactly half your height and walk back and forth.",
+    ruleBig: "A plane mirror's image is behind the glass, as far behind as you are in front. A sight line from your eye to your image crosses the glass halfway, so a mirror half your height shows all of you, from any distance.",
+    ruleNow: "Now, from above: candle {d} cm in front → image {v} cm behind.",
+    ruleTab: "Your mirror ({b}–{t} cm above the floor), walking back:", thD: "Distance", thVis: "You see",
+    ruleHalf: "Why half: the sight line to your feet crosses the glass at half your eye height ({nb} cm); the one to the top of your head crosses halfway between your eyes and the top of your head ({nt} cm). Mirror needed: {nt} − {nb} = {n} cm = ½ × {H} cm.",
+    btnHalf: "Hang a mirror half my height",
+    resultTitle: "What we found", resultMain: "image distance = object distance · full-length mirror = ½ × your height",
+    resultNote: "When you step back, your image steps back too, so you and your image shrink in view together: the mirror keeps showing the same part of you.",
+    explainK: "Explain it", explainQ: "Your little brother walks backwards away from the bathroom mirror to see his shoes in it. Using the words “image”, “behind the mirror” and “halfway”, explain why that does not work and what would.",
+    homeK: "Try at home", homeQ: "Stand in front of a bathroom mirror. With a sticky note or a bit of soap, mark where you see the top of your head and the bottom of your chin. Measure the gap and compare it with your real face. Then step back and look again: does your face still fit between the marks?",
+    foot: "Model: ideal plane mirror and straight light rays; the law of reflection says angle in = angle out, both measured from the normal (the dotted line square to the glass). The reflecting layer is drawn as a thin line (in a real mirror it is the silver coat behind a few mm of glass). From above: 1 cm = 5 px, mirror 30 cm long; the image is where the reflected rays meet when traced backwards. From the side: you are modelled by the front of your body, your eyes 11 cm below the top of your head (a typical adult value; it changes where the mirror must hang, not how long it must be); 1 cm = 1.25 px. The part you see is found by tracing a sight line from your eye to every point of your image, every 0.1 cm. The misconceptions “the image is on the mirror surface” and “stepping back shows more of you” are documented by Goldberg & McDermott, The Physics Teacher 24, 472 (1986). · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "镜子里的人站在哪里？", eyebrow: "物理 · 阶段 3", h1: "镜子里的人站在哪里？",
+    intro: "先从上往下看一面平面镜、一支蜡烛和一只眼睛；再从侧面看你站在一面墙镜前。拖动它们，跟着光走。",
+    reset: "重置", figAria: "平面镜光路图",
+    viewLbl: "视角：", vTop: "俯视", vSide: "侧视",
+    s1: "先猜", s2: "像在哪", s3: "镜子多高", s4: "规律",
+    k1: "先猜一猜", t1: "两个小问题",
+    b1: "两题都选一选。图上是从上往下看：一面平面镜前放着一支蜡烛，一只眼睛在看镜子。",
+    q1: "眼睛看到的蜡烛的像在哪里？", o1a: "就在镜面上", o1b: "在镜子后面，离镜子和蜡烛离镜子一样远", o1c: "在镜子后面，远一倍",
+    r1: "对。把反射光线往回延长（虚线）：它们都交在镜子后面同一点，离镜子和蜡烛离镜子一样远。这一点就是像。",
+    w1: "现在看图：反射光线往回延长（虚线），都交在镜子后面，离镜子正好和蜡烛离镜子一样远。这个交点就是像。",
+    q2: "在一面小墙镜里，你能看到自己从头顶到屁股。你往后退几大步，现在看到……", o2a: "更多的自己", o2b: "还是同样那一段", o2c: "更少的自己",
+    r2: "对。到第 3 步往后退试试：镜子里的那一段一点不变。",
+    w2: "大多数人都这么猜。到第 3 步往后退，盯着像上那条黄带：它一点都不变。",
+    k2: "动手", t2: "找到像",
+    b2: "拖动蜡烛和眼睛（或选中后用方向键）。实线是真正射进眼睛的光；虚线是眼睛以为光来的方向。比一比两段距离、两个角。",
+    dLabel: "蜡烛到镜距离", fanLabel: "更多光线",
+    lCandle: "蜡烛", lEye: "眼睛", lImg: "像", lBehind: "镜子后面", lYou: "你", lImage: "像", lI: "i", lR: "r",
+    capHidden: "先回答第一题：答完光路才会出现。",
+    capSeen: "蜡烛在镜前 {d} cm，像在镜后 {v} cm。光以入射角 i = {i}° 照到镜面，以反射角 r = {r}° 离开：眼睛看到了像。",
+    capMiss: "蜡烛在镜前 {d} cm，像在镜后 {v} cm。眼睛望向像的视线没有落在镜子上，所以从这里看不到镜中的蜡烛。",
+    rD: "蜡烛 → 镜面", rV: "镜面 → 像", rI: "入射角 i", rR: "反射角 r", rSeen: "眼睛看得到像", yes: "看得到", no: "看不到（镜子太短）",
+    k3: "动手", t3: "镜子能照出多少个你？",
+    b3: "左右拖动你自己（或按「往后退」），再拖动镜子的上沿和下沿。像上那条黄带，就是你能看到的那一段。",
+    DLabel: "离镜距离", HLabel: "你的身高", tLabel: "镜子上沿", bLabel: "镜子下沿",
+    walk: "▶ 往后退", walkStep: "后退 40 cm", pause: "❚❚ 暂停",
+    capSide: "你站在离镜子 {D} cm 处，看到自己 {H} cm 中的 {v} cm（{p}%），从离地 {lo} cm 到 {hi} cm。",
+    capFull: "你站在离镜子 {D} cm 处，从头到脚 {H} cm 全看到了。",
+    capNone: "你站在离镜子 {D} cm 处，一点也看不到自己：镜子挂得太高或太低。",
+    rH: "你的身高", rE: "眼睛高度", rDD: "离镜距离", rL: "镜子长度", rVis: "看到", rNeed: "看全身需要的镜长",
+    aCandle: "蜡烛", aEye: "眼睛", aYou: "你", aTop: "镜子上沿", aBot: "镜子下沿",
+    vtPos: "镜前 {d} cm，横向 {y} cm", vtYou: "离镜子 {D} cm", vtEdge: "离地 {h} cm",
+    k4: "规律", t4: "你的像站在镜子后面",
+    b4: "读一读下面的规律，再挂一面正好是你身高一半的镜子，前后走走看。",
+    ruleBig: "平面镜的像在镜子后面，离镜子和你离镜子一样远。从眼睛望向自己像的视线，正好在一半处穿过镜面；所以一面你身高一半的镜子就能照出全身，站多远都一样。",
+    ruleNow: "现在（俯视）：蜡烛在镜前 {d} cm → 像在镜后 {v} cm。",
+    ruleTab: "你的镜子（离地 {b}–{t} cm），一边往后退：", thD: "离镜距离", thVis: "看到",
+    ruleHalf: "为什么是一半：望向脚的视线，穿过镜面的高度是眼睛高度的一半（{nb} cm）；望向头顶的视线，穿过眼睛和头顶的正中间（{nt} cm）。需要的镜长：{nt} − {nb} = {n} cm = ½ × {H} cm。",
+    btnHalf: "挂一面身高一半的镜子",
+    resultTitle: "我们发现", resultMain: "像距 = 物距 · 照全身的镜子 = ½ × 身高",
+    resultNote: "你往后退，像也往后退，你和像在眼里一起变小：镜子照出的始终是同一段。",
+    explainK: "说一说", explainQ: "弟弟想在浴室镜子里看到自己的鞋，就一直往后退。用上「像」「镜子后面」「一半」三个词，讲讲为什么这样没用，怎样才行。",
+    homeK: "家里做一做", homeQ: "站在浴室镜子前，用便利贴或一点肥皂，在镜面上标出你看到的头顶和下巴的位置。量一量两个记号的距离，和你真实的脸比一比。再往后退几步看看：你的脸还卡在两个记号之间吗？",
+    foot: "模型：理想平面镜，光沿直线传播；反射定律：入射角 = 反射角，都从法线（与镜面垂直的点线）量起。反射层画成一条细线（真实镜子的反射层是几毫米玻璃后面的银层）。俯视图：1 cm = 5 像素，镜长 30 cm；像是反射光线往回延长后的交点。侧视图：人用身体正面这条线代表，眼睛在头顶下方 11 cm（成年人常见值；它只影响镜子挂多高，不影响镜子要多长）；1 cm = 1.25 像素。能看到的部分，是从眼睛向像上每隔 0.1 cm 的一点各画一条视线算出的。「像在镜面上」「往后退能看到更多」两条迷思见 Goldberg & McDermott, The Physics Teacher 24, 472 (1986)。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure plane-mirror model, no DOM (tests extract this block). Units: cm.
+   From above: mirror on the line x = 0, |y| ≤ MH; the room is x < 0.
+   From the side: wall at x = 0, mirror from height b to t; you stand at x = −D, eyes at H − EYE_DROP. */
+const MH = 15, EYE_DROP = 11, DEG = 180 / Math.PI;
+const OBJ = { xMin: -45, xMax: -2, yMin: -27, yMax: 27 }, EYE = { xMin: -76, xMax: -2, yMin: -27, yMax: 27 };
+const D_MIN = 40, D_MAX = 220, H_MIN = 100, H_MAX = 200, Z_MAX = 200, GAP = 5;
+const num = (x, dflt) => (Number.isFinite(x) ? x : dflt);
+const cl = (x, a, b) => Math.min(b, Math.max(a, x));
+/* Image of a point: reflect across the mirror line. */
+const mirrorPt = (p) => ({ x: -p.x, y: p.y });
+/* The ray that reaches the eye: aim from the eye at the image; where that line crosses x = 0 is the hit point. */
+function topView(o, e) {
+  const I = mirrorPt(o), d = -o.x, de = -e.x;
+  const yP = e.y + ((I.y - e.y) * de) / (de + I.x);
+  const inc = Math.atan2(Math.abs(yP - o.y), d) * DEG;   // angle from the normal, candle side
+  const ref = Math.atan2(Math.abs(e.y - yP), de) * DEG;  // angle from the normal, eye side
+  return { d, v: I.x, img: I, yP, inc, ref, seen: Math.abs(yP) <= MH + 1e-9 };
+}
+/* A ray from the candle hitting the mirror at height ym is reflected: its x-direction flips. */
+function reflectRay(o, ym, xEnd) { // returns the end point of the reflected ray at x = xEnd (< 0)
+  const dx = -o.x, dy = ym - o.y, s = -xEnd / dx;
+  return { x: xEnd, y: ym + dy * s };
+}
+/* Side view: the sight line from the eye (−D, he) to the image point (D, z) crosses the wall at this height. */
+const hitY = (D, he, z) => he + ((z - he) * D) / (D + D);
+function sideView(H, D, b, t) {
+  const he = H - EYE_DROP;
+  const zLo = Math.max(0, 2 * b - he), zHi = Math.min(H, 2 * t - he);
+  const vis = Math.max(0, zHi - zLo);
+  return { he, zLo, zHi, vis, empty: !(zHi > zLo), full: zLo <= 0 && zHi >= H,
+    needTop: (H + he) / 2, needBot: he / 2, need: H / 2 };
+}
+/* Same answer by brute force: trace a sight line to every 0.1 cm of the image and keep those that hit the glass. */
+function scanVisible(H, D, b, t) {
+  const he = H - EYE_DROP, n = Math.round(H * 10);
+  let lo = null, hi = null;
+  for (let k = 0; k <= n; k++) {
+    const z = k / 10, y = hitY(D, he, z);
+    if (y >= b - 1e-9 && y <= t + 1e-9) { if (lo === null) lo = z; hi = z; }
+  }
+  return lo === null ? { vis: 0, lo: null, hi: null } : { vis: hi - lo, lo, hi };
+}
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), sv = Play.svg;
+/* top view: 5 px per cm, mirror at x = 400 */
+const TX = 400, TY = 150, TK = 5;
+const tx = (x) => TX + x * TK, ty = (y) => TY - y * TK;
+/* side view: 1.25 px per cm, wall at x = 320, floor at y = 270 */
+const SX = 320, SF = 270, SK = 1.25;
+const sx = (x) => SX + x * SK, sy = (z) => SF - z * SK;
+const DEF = { view: "top", o: { x: -20, y: 6 }, e: { x: -50, y: -14 }, fan: true, H: 160, D: 80, t: 155, b: 115, a1: false, a2: false, walking: false };
+const S = JSON.parse(JSON.stringify(DEF));
+let stp = null, raf = 0, last = 0, lastLive = "", drag = null;
+const nf = (x, d = 1) => Play.fmt(x, d).replace("-", "−");
+const n0 = (x) => nf(x, 0);
+const nn = (x) => (Math.abs(x - Math.round(x)) < 1e-9 ? n0(x) : nf(x));
+
+function line(parent, cls, x1, y1, x2, y2) { return sv("line", { class: cls, x1: x1.toFixed(1), y1: y1.toFixed(1), x2: x2.toFixed(1), y2: y2.toFixed(1) }, parent); }
+function text(parent, cls, x, y, s, anchor) { const n = sv("text", { class: cls, x: x.toFixed(1), y: y.toFixed(1), "text-anchor": anchor || "middle" }, parent); n.textContent = s; return n; }
+function handle(fid, aria, txt) {
+  return sv("g", { class: "hit", tabindex: 0, role: "slider", "data-fid": fid, "aria-label": aria, "aria-valuetext": txt }, fig);
+}
+function arcPath(cx, cy, r, a1, a2) { // angles in radians, SVG coordinates
+  const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1), x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+  const sweep = ((a2 - a1 + 3 * Math.PI) % (2 * Math.PI)) - Math.PI > 0 ? 1 : 0;
+  return `M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 0 ${sweep} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+}
+
+function drawTop(g) {
+  const R = topView(S.o, S.e), o = S.o, e = S.e, show = S.a1 || stp.i !== 0;
+  sv("rect", { class: "behind", x: TX, y: 0, width: 240, height: 300 }, g);
+  text(g, "lbl", 630, 28, P.t("lBehind"), "end");
+  line(g, "plane", TX, 0, TX, 300);
+  if (show) {
+    if (S.fan) {
+      for (let k = -3; k <= 3; k++) {
+        const ym = (k * MH) / 3, end = reflectRay(o, ym, -90);
+        line(g, "fan", tx(o.x), ty(o.y), tx(0), ty(ym));
+        line(g, "fan", tx(0), ty(ym), tx(end.x), ty(end.y));
+        line(g, "fanx", tx(0), ty(ym), tx(R.img.x), ty(R.img.y));
+      }
+    }
+    // distance guide along the normal through the candle
+    line(g, "dim", tx(o.x), ty(o.y), tx(R.img.x), ty(R.img.y));
+    if (R.d >= 15) {
+      const yl = o.y > 18 ? ty(o.y) - 14 : ty(o.y) + 34; // names go on the other side
+      text(g, "lbl", tx(-R.d / 2), yl, nn(R.d) + " cm");
+      text(g, "lblI", tx(R.v / 2), yl, nn(R.v) + " cm");
+    }
+    if (R.seen) {
+      const P0 = { x: tx(0), y: ty(R.yP) };
+      line(g, "normal", P0.x, P0.y, tx(-16), P0.y);
+      line(g, "pr r1", tx(o.x), ty(o.y), P0.x, P0.y);
+      line(g, "pr r2", P0.x, P0.y, tx(e.x), ty(e.y));
+      line(g, "ext r2", P0.x, P0.y, tx(R.img.x), ty(R.img.y));
+      const aO = Math.atan2(ty(o.y) - P0.y, tx(o.x) - P0.x), aE = Math.atan2(ty(e.y) - P0.y, tx(e.x) - P0.x);
+      if (R.inc > 2) sv("path", { class: "arc r1", d: arcPath(P0.x, P0.y, 46, Math.PI, aO) }, g);
+      if (R.ref > 2) sv("path", { class: "arc r2", d: arcPath(P0.x, P0.y, 38, Math.PI, aE) }, g);
+      const mid = (a, r) => { const m = (Math.PI + (a < 0 ? a + 2 * Math.PI : a)) / 2; return { x: P0.x + r * Math.cos(m), y: P0.y + r * Math.sin(m) + 8 }; };
+      if (R.inc > 8) { const q = mid(aO, 66); text(g, "lblA r1", q.x, q.y, P.t("lI")); }
+      if (R.ref > 8) { const q = mid(aE, 60); text(g, "lblA r2", q.x, q.y, P.t("lR")); }
+    } else {
+      line(g, "miss", tx(e.x), ty(e.y), tx(R.img.x), ty(R.img.y));
+    }
+    // the image of the candle
+    sv("circle", { class: "imgC", cx: tx(R.img.x), cy: ty(R.img.y), r: 11 }, g);
+    text(g, "lblI", tx(R.img.x), ty(R.img.y) + (R.img.y > 18 ? 40 : -20), P.t("lImg"));
+  }
+  // the mirror itself, silvered side hatched
+  line(g, "mirror", TX, ty(MH), TX, ty(-MH));
+  for (let y = -MH + 1.5; y <= MH; y += 3) line(g, "hatch", TX + 4, ty(y), TX + 12, ty(y - 2));
+  // draggables: candle and eye
+  const gc = handle("o", P.t("aCandle"), P.t("vtPos", { d: nf(-o.x), y: nf(o.y) }));
+  sv("rect", { class: "ring", x: tx(o.x) - 22, y: ty(o.y) - 22, width: 44, height: 44, rx: 10 }, gc);
+  sv("circle", { class: "candle", cx: tx(o.x), cy: ty(o.y), r: 11 }, gc);
+  sv("circle", { class: "wick", cx: tx(o.x), cy: ty(o.y), r: 3 }, gc);
+  text(g, "lbl", tx(o.x), ty(o.y) + (o.y > 18 ? 40 : -20), P.t("lCandle"));
+  const ge = handle("e", P.t("aEye"), P.t("vtPos", { d: nf(-e.x), y: nf(e.y) }));
+  const ex = tx(e.x), ey = ty(e.y);
+  sv("rect", { class: "ring", x: ex - 24, y: ey - 22, width: 48, height: 44, rx: 10 }, ge);
+  sv("path", { class: "eyeW", d: `M${ex - 18},${ey} Q${ex},${ey - 16} ${ex + 18},${ey} Q${ex},${ey + 16} ${ex - 18},${ey}Z` }, ge);
+  sv("circle", { class: "eyeP", cx: ex + 5, cy: ey, r: 5 }, ge);
+  text(g, "lbl", ex, ey + (e.y < -18 ? -22 : 38), P.t("lEye"));
+  return R;
+}
+
+function person(g, xf, H, dir, img) { // xf = front surface x (cm), dir = +1 faces right
+  const sp = xf - dir * 7, he = H - EYE_DROP, bc = img ? "ibody" : "body";
+  const p = (x, z) => [sx(x), sy(z)];
+  const L = (a, b) => line(g, bc, a[0], a[1], b[0], b[1]);
+  L(p(sp, H - 22), p(sp, 0.5 * H));                       // trunk
+  L(p(sp, 0.5 * H), p(sp - dir * 3, 0)); L(p(sp, 0.5 * H), p(sp + dir * 3, 0)); // legs
+  L(p(sp + dir * 3, 0), p(xf, 0));                        // foot reaches the front line
+  L(p(sp, H - 28), p(sp + dir * 6, 0.5 * H + 4));         // arm
+  sv("circle", { class: img ? "ihead" : "head", cx: sx(sp).toFixed(1), cy: sy(H - 11).toFixed(1), r: (11 * SK).toFixed(1) }, g);
+  if (!img) sv("circle", { class: "eyeP", cx: sx(xf).toFixed(1), cy: sy(he).toFixed(1), r: 2.6 }, g);
+}
+
+function drawSide(g) {
+  const R = sideView(S.H, S.D, S.b, S.t), D = S.D, H = S.H;
+  sv("rect", { class: "behind", x: SX, y: 0, width: 320, height: SF }, g);
+  line(g, "floor", 0, SF, 640, SF);
+  line(g, "wall", SX, 0, SX, SF);
+  person(g, D, H, -1, true);
+  if (!R.empty) line(g, "band", sx(D), sy(R.zHi), sx(D), sy(R.zLo));
+  if (stp.i === 3) {
+    [R.needTop, R.needBot].forEach((z) => line(g, "guide", sx(-30), sy(z), sx(30), sy(z)));
+  }
+  if (!R.empty) {
+    [[R.zHi, "r1"], [R.zLo, "r2"]].forEach(([z, c]) => {
+      const m = hitY(D, R.he, z);
+      line(g, "pr " + c, sx(-D), sy(z), sx(0), sy(m));
+      line(g, "pr " + c, sx(0), sy(m), sx(-D), sy(R.he));
+      line(g, "ext " + c, sx(0), sy(m), sx(D), sy(z));
+    });
+  }
+  line(g, "mirror", SX, sy(S.t), SX, sy(S.b));
+  for (let z = S.b + 3; z <= S.t; z += 6) line(g, "hatch", SX + 4, sy(z), SX + 12, sy(z - 4));
+  text(g, "lbl", sx(-D - 7), 294, P.t("lYou"));
+  text(g, "lblI", sx(D + 7), 294, P.t("lImage"));
+  // draggables: you, mirror top, mirror bottom
+  const gp = handle("p", P.t("aYou"), P.t("vtYou", { D: n0(D) }));
+  sv("rect", { class: "ring", x: sx(-D - 7) - 26, y: sy(H) - 6, width: 52, height: H * SK + 12, rx: 10 }, gp);
+  person(gp, -D, H, 1, false);
+  [["mt", S.t, "aTop"], ["mb", S.b, "aBot"]].forEach(([fid, z, a]) => {
+    const gh = handle(fid, P.t(a), P.t("vtEdge", { h: nn(z) }));
+    sv("rect", { class: "ring", x: SX - 20, y: sy(z) - 16, width: 40, height: 32, rx: 8 }, gh);
+    sv("circle", { class: "knob", cx: SX, cy: sy(z).toFixed(1), r: 8 }, gh);
+  });
+  return R;
+}
+
+function draw() {
+  const fid = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fid : null;
+  fig.innerHTML = "";
+  const defs = sv("defs", {}, fig), cp = sv("clipPath", { id: "clipV" }, defs);
+  sv("rect", { x: 0, y: 0, width: 640, height: 300 }, cp);
+  const g = sv("g", { "clip-path": "url(#clipV)" }, fig);
+  const R = S.view === "top" ? drawTop(g) : drawSide(g);
+  if (fid) { const el = fig.querySelector(`[data-fid="${fid}"]`); if (el) el.focus(); }
+  return R;
+}
+
+function rows(list) { return list.map((r) => `<tr><td>${P.t(r[0])}</td><td>${r[1]}</td></tr>`).join(""); }
+
+function panel() {
+  const T = topView(S.o, S.e), V = sideView(S.H, S.D, S.b, S.t), i = stp.i;
+  $("vTop").classList.toggle("on", S.view === "top"); $("vTop").setAttribute("aria-pressed", S.view === "top");
+  $("vSide").classList.toggle("on", S.view === "side"); $("vSide").setAttribute("aria-pressed", S.view === "side");
+  $("ctlTop").hidden = S.view !== "top"; $("ctlSide").hidden = S.view !== "side";
+  $("d").value = -S.o.x; $("dVal").textContent = nf(-S.o.x) + " cm"; $("fan").checked = S.fan;
+  $("D").value = S.D; $("DVal").textContent = n0(S.D) + " cm";
+  $("H").value = S.H; $("HVal").textContent = n0(S.H) + " cm";
+  $("mt").value = S.t; $("mtVal").textContent = nn(S.t) + " cm";
+  $("mb").value = S.b; $("mbVal").textContent = nn(S.b) + " cm";
+  $("walk").textContent = P.t(S.walking ? "pause" : Play.reduced ? "walkStep" : "walk");
+  $("walk").setAttribute("aria-pressed", S.walking ? "true" : "false");
+  // caption
+  let cap;
+  if (S.view === "top") {
+    if (!S.a1 && i === 0) cap = P.t("capHidden");
+    else cap = P.t(T.seen ? "capSeen" : "capMiss", { d: nf(T.d), v: nf(T.v), i: n0(T.inc), r: n0(T.ref) });
+  } else if (V.empty) cap = P.t("capNone", { D: n0(S.D) });
+  else if (V.full) cap = P.t("capFull", { D: n0(S.D), H: n0(S.H) });
+  else cap = P.t("capSide", { D: n0(S.D), H: n0(S.H), v: n0(V.vis), p: n0((100 * V.vis) / S.H), lo: n0(V.zLo), hi: n0(V.zHi) });
+  $("cap").textContent = cap;
+  // readout
+  let ro = "";
+  if (i === 1) ro = rows([["rD", nf(T.d) + " cm"], ["rV", nf(T.v) + " cm"], ["rI", T.seen ? n0(T.inc) + "°" : "—"], ["rR", T.seen ? n0(T.ref) + "°" : "—"], ["rSeen", P.t(T.seen ? "yes" : "no")]]);
+  if (i === 2) ro = rows([["rH", n0(S.H) + " cm"], ["rE", n0(V.he) + " cm"], ["rDD", n0(S.D) + " cm"], ["rL", nn(S.t - S.b) + " cm"], ["rVis", n0(V.vis) + " cm"], ["rNeed", nf(V.need) + " cm"]]);
+  $("readout").innerHTML = ro;
+  // rule
+  const box = $("rule");
+  if (i !== 3) box.innerHTML = "";
+  else {
+    let t = `<p class="big">${P.t("ruleBig")}</p><p>${P.t("ruleNow", { d: nf(T.d), v: nf(T.v) })}</p>`;
+    t += `<p>${P.t("ruleTab", { b: nn(S.b), t: nn(S.t) })}</p><table class="readout"><tr><th>${P.t("thD")}</th><th>${P.t("thVis")}</th></tr>`;
+    [50, 100, 150, 200].forEach((Dk) => { const s = scanVisible(S.H, Dk, S.b, S.t); t += `<tr><td>${Dk} cm</td><td>${n0(s.vis)} cm</td></tr>`; });
+    t += "</table>";
+    t += `<p>${P.t("ruleHalf", { nb: nf(V.needBot), nt: nf(V.needTop), n: nf(V.needTop - V.needBot), H: n0(S.H) })}</p>`;
+    t += `<p><button type="button" class="small" id="half">${P.t("btnHalf")}</button></p>`;
+    box.innerHTML = t;
+    $("half").addEventListener("click", () => { S.view = "side"; S.t = Math.min(Z_MAX, V.needTop); S.b = Math.max(0, V.needBot); update(); });
+  }
+  if (!drag && !S.walking && cap !== lastLive) { lastLive = cap; Play.live($("live"), cap); }
+}
+function update() { draw(); panel(); }
+
+/* ---------- direct manipulation ---------- */
+const r10 = (x) => Math.round(x * 10) / 10;
+function setPt(which, x, y) {
+  const B = which === "o" ? OBJ : EYE, p = S[which];
+  p.x = cl(r10(num(x, p.x)), B.xMin, B.xMax); p.y = cl(r10(num(y, p.y)), B.yMin, B.yMax);
+}
+const setD = (v) => { S.D = cl(Math.round(num(v, S.D)), D_MIN, D_MAX); };
+const setT = (v) => { S.t = cl(Math.round(num(v, S.t)), S.b + GAP, Z_MAX); };
+const setB = (v) => { S.b = cl(Math.round(num(v, S.b)), 0, S.t - GAP); };
+const setH = (v) => { S.H = cl(Math.round(num(v, S.H)), H_MIN, H_MAX); };
+fig.addEventListener("pointerdown", (e) => {
+  const t = e.target.closest && e.target.closest("[data-fid]");
+  if (!t) return;
+  drag = { fid: t.dataset.fid }; t.focus(); setWalking(false); e.preventDefault();
+  const p = Play.pointer(fig, e);
+  if (drag.fid === "o" || drag.fid === "e") { const q = S[drag.fid]; drag.dx = q.x - (p.x - TX) / TK; drag.dy = q.y - (TY - p.y) / TK; }
+  if (drag.fid === "p") drag.dx = S.D + (p.x - SX) / SK;
+});
+addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = Play.pointer(fig, e), f = drag.fid;
+  if (f === "o" || f === "e") setPt(f, (p.x - TX) / TK + drag.dx, (TY - p.y) / TK + drag.dy);
+  else if (f === "p") setD(drag.dx - (p.x - SX) / SK);
+  else if (f === "mt") setT((SF - p.y) / SK);
+  else if (f === "mb") setB((SF - p.y) / SK);
+  update();
+});
+addEventListener("pointerup", () => { if (drag) { drag = null; update(); } });
+addEventListener("pointercancel", () => { drag = null; });
+fig.addEventListener("keydown", (e) => {
+  const f = e.target.dataset && e.target.dataset.fid;
+  if (!f) return;
+  const k = e.key, big = e.shiftKey;
+  const dx = k === "ArrowRight" ? 1 : k === "ArrowLeft" ? -1 : 0, dy = k === "ArrowUp" ? 1 : k === "ArrowDown" ? -1 : 0;
+  if (!dx && !dy) return;
+  e.preventDefault(); setWalking(false);
+  if (f === "o" || f === "e") { const s = big ? 5 : 1; setPt(f, S[f].x + dx * s, S[f].y + dy * s); }
+  else if (f === "p") setD(S.D - (dx || -dy) * (big ? 20 : 5)); // ← moves you away from the wall
+  else if (f === "mt") setT(S.t + (dy || dx) * (big ? 10 : 1));
+  else if (f === "mb") setB(S.b + (dy || dx) * (big ? 10 : 1));
+  update();
+});
+$("d").addEventListener("input", () => { setPt("o", -(+$("d").value), S.o.y); update(); });
+$("fan").addEventListener("change", () => { S.fan = $("fan").checked; update(); });
+$("D").addEventListener("input", () => { setWalking(false); setD(+$("D").value); update(); });
+$("H").addEventListener("input", () => { setH(+$("H").value); update(); });
+$("mt").addEventListener("input", () => { setT(+$("mt").value); update(); });
+$("mb").addEventListener("input", () => { setB(+$("mb").value); update(); });
+$("vTop").addEventListener("click", () => { S.view = "top"; update(); });
+$("vSide").addEventListener("click", () => { S.view = "side"; update(); });
+
+/* ---------- walk-back animation (only on request; one step per click when motion is reduced) ---------- */
+function tick(ts) {
+  if (!S.walking) return;
+  const dt = last ? Math.min(0.1, (ts - last) / 1000) : 0;
+  last = ts;
+  S.D = Math.min(D_MAX, S.D + 40 * dt);
+  if (S.D >= D_MAX) { S.D = D_MAX; S.walking = false; }
+  update();
+  if (S.walking) raf = requestAnimationFrame(tick);
+}
+function setWalking(on) {
+  if (on === S.walking) return;
+  S.walking = on; cancelAnimationFrame(raf); last = 0;
+  if (on) { if (S.D >= D_MAX - 0.5) S.D = D_MIN; raf = requestAnimationFrame(tick); }
+  else S.D = Math.round(S.D);
+  update();
+}
+$("walk").addEventListener("click", () => {
+  if (Play.reduced) { setD(S.D >= D_MAX ? D_MIN : S.D + 40); update(); return; }
+  setWalking(!S.walking);
+});
+
+/* ---------- steps ---------- */
+const pr1 = Play.predict($("pr1"), {
+  q: P.t("q1"), options: [{ label: P.t("o1a") }, { label: P.t("o1b"), right: true }, { label: P.t("o1c") }], right: P.t("r1"), wrong: P.t("w1"),
+}, () => { S.a1 = true; S.view = "top"; update(); });
+const pr2 = Play.predict($("pr2"), {
+  q: P.t("q2"), options: [{ label: P.t("o2a") }, { label: P.t("o2b"), right: true }, { label: P.t("o2c") }], right: P.t("r2"), wrong: P.t("w2"),
+}, () => { S.a2 = true; S.view = "side"; update(); });
+let ready = false;
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("stepBody").hidden = !P.t("b" + k);
+  $("pr1").hidden = $("pr2").hidden = i !== 0;
+  if (i === 0) S.view = S.a2 ? "side" : "top";
+  if (i === 1) S.view = "top";
+  if (i === 2 || i === 3) S.view = "side";
+  if (i !== 2) setWalking(false);
+  if (ready) update();
+});
+function resetAll() {
+  cancelAnimationFrame(raf);
+  const d = JSON.parse(JSON.stringify(DEF));
+  Object.keys(d).forEach((k) => { S[k] = d[k]; });
+  pr1.reset(); pr2.reset(); stp.go(0); update();
+}
+$("reset").addEventListener("click", resetAll);
+ready = true;
+resetAll();
+</script>
+</body>
+</html>

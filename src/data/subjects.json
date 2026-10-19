@@ -519,7 +519,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Radical families: what the left side means",
       "zh": "偏旁家族分一分"
@@ -532,7 +532,15 @@
       "en": "A radical means exactly what it looks like: 月 always means the moon.",
       "zh": "偏旁长什么样就是什么意思：带「月」的字都跟月亮有关。"
      },
-     "play": null
+     "play": "radical-families.html",
+     "explain": {
+      "en": "A friend says 胖 (fat) must have something to do with the moon. Explain why not — and give a character whose 月 really is the moon.",
+      "zh": "有人说「胖」一定跟月亮有关。跟他讲讲为什么不是——再举一个「月」真的是月亮的字。"
+     },
+     "home": {
+      "en": "Find characters with 月, 王 or 衤/礻 on the side in a picture book or on packets. Sort them into body / moon, jade, clothing / gods, then check with an adult or a dictionary.",
+      "zh": "在绘本或包装上找带「月」「王」「衤/礻」偏旁的字，分成身体/月亮、玉、衣服/神几类，再问大人或查字典核对。"
+     }
     },
     {
      "slug": "polyphone-context",
@@ -547,7 +555,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "One character, two sounds: let the sentence decide",
       "zh": "多音字，看句子"
@@ -560,7 +568,15 @@
       "en": "Each character has only one sound; once you know it, you can read it everywhere.",
       "zh": "一个字只有一个读音，认识了就到处都这么读。"
      },
-     "play": null
+     "play": "polyphone-context.html",
+     "explain": {
+      "en": "A friend reads 还 as hái everywhere. Use 还在 and 还给 to show them why that's wrong, and say which word told you each time.",
+      "zh": "同学把「还」一律读成 hái。用「还在」和「还给」跟他讲讲为什么不对，再说说每次你是看哪个词判断的。"
+     },
+     "home": {
+      "en": "Play 'two-sound tag' with someone: one person says a character from this page, the other makes one word for each reading (长: 长短, 长大). One point per correct reading, then swap.",
+      "zh": "和家人玩「一字两音」：一人说本页的一个字，另一人用它的两个读音各说一个词（长：长短、长大）。说对一个读音得一分，再交换。"
+     }
     },
     {
      "slug": "punctuation-meaning",
@@ -575,7 +591,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Move a comma, change the meaning",
       "zh": "标点一挪，意思就变"
@@ -588,7 +604,15 @@
       "en": "Punctuation is just for pausing to breathe; the words carry all the meaning.",
       "zh": "标点只是换气用的，意思全在字里。"
      },
-     "play": null
+     "play": "punctuation-meaning.html",
+     "explain": {
+      "en": "Write 「小林说我画得最好」 for someone, once with 说：“ ” and once without. Ask them who 我 is each time, and explain why it changes.",
+      "zh": "把「小林说我画得最好」写给家人看，一次加 说：“ ”，一次不加。问问他们两次的「我」各是谁，再讲讲为什么会变。"
+     },
+     "home": {
+      "en": "Write a short sentence on paper without punctuation, cut out marks from sticky notes, and take turns placing them. Read each version aloud — who can make it say the opposite?",
+      "zh": "在纸上写一句不带标点的短句，用便利贴剪出标点，和家人轮流摆。每摆一次读出来——谁能让它说出相反的意思？"
+     }
     },
     {
      "slug": "metaphor-choice",
@@ -602,7 +626,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Pick the comparison: what does the reader see?",
       "zh": "比喻怎么选"
@@ -615,7 +639,15 @@
       "en": "Figures of speech are just decoration: the plain sentence says the same thing.",
       "zh": "修辞只是「装饰」，换成大白话意思一样。"
      },
-     "play": null
+     "play": "metaphor-choice.html",
+     "explain": {
+      "en": "A friend says “月亮像小船 just means 月亮是弯的 — 比喻 is decoration.” Use what you found to tell them what the boat adds, and what a reader would see if you wrote 白玉盘 instead.",
+      "zh": "同学说：「『月亮像小船』就是『月亮是弯的』，比喻只是装饰。」用这页的发现跟他讲讲：小船多给了读者什么？换成「白玉盘」，读者又会看见什么？"
+     },
+     "home": {
+      "en": "Pick something at home (a lamp, a slipper, a pillow). Think of three things to compare it to and ask someone what each one makes them picture. Which one points at the feature you want noticed?",
+      "zh": "在家里挑一样东西（台灯、拖鞋、枕头……），给它想三个比喻，问家里人每个比喻让他们想到了什么。哪一个最能让人注意到你想让人注意的那一点？"
+     }
     },
     {
      "slug": "expository-methods",
@@ -630,7 +662,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Explain a thing: numbers, comparison or analogy",
       "zh": "说明方法工具箱"
@@ -643,7 +675,15 @@
       "en": "作比较 (comparing) and 打比方 (analogy) are the same thing: both say one thing is like another.",
       "zh": "「作比较」和「打比方」是一回事，都是拿一个东西说另一个。"
      },
-     "play": null
+     "play": "expository-methods.html",
+     "explain": {
+      "en": "Explain to a friend why “the Moon is like a mirror” and “Earth is 3.7 times as wide as the Moon” are different methods. Use the word “how much”.",
+      "zh": "跟同学讲讲：「月球像一面镜子」和「地球的直径约是月球的 3.7 倍」为什么是两种不同的方法？用上「差多少」这个词。"
+     },
+     "home": {
+      "en": "Describe your fridge three ways: measure it (numbers), compare it with something else in the kitchen (comparison), and say what it is like (analogy). Read all three to someone and ask which one helped them most.",
+      "zh": "用三种方法介绍家里的冰箱：量一量（列数字），跟厨房里别的东西比一比（作比较），再说说它像什么（打比方）。读给家人听，问问哪一句最帮得上忙。"
+     }
     }
    ]
   },
@@ -1021,7 +1061,7 @@
       "us": "1",
       "uk": "2"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Three sounds of -s",
       "zh": "-s 的三种读法"
@@ -1034,7 +1074,15 @@
       "en": "The ending -s is always pronounced /s/.",
       "zh": "词尾的 -s 一律读 /s/。"
      },
-     "play": null
+     "play": "plural-s-sounds.html",
+     "explain": {
+      "en": "A friend says “bed-s” with a hissing /s/. Using your throat test, explain why beds ends in /z/ — and why cakes still ends in /s/ even though cake ends in a buzzing-looking letter e.",
+      "zh": "朋友把 beds 读成带嘶声的 /s/。用摸喉咙的办法跟他讲讲为什么 beds 结尾读 /z/——再讲讲 cake 最后一个字母是 e，为什么 cakes 还是读 /s/。"
+     },
+     "home": {
+      "en": "Hand on throat, say ten plural things in your room (socks, pens, boxes…). Sort them into three piles of paper slips: quiet /s/, buzz /z/, extra syllable /ɪz/. Which pile is biggest?",
+      "zh": "手放在喉咙上，说出房间里十样东西的复数（socks、pens、boxes……）。写在纸条上分三堆：不振 /s/、振 /z/、多一个音节 /ɪz/。哪一堆最多？"
+     }
     },
     {
      "slug": "one-word-many-words",
@@ -1048,7 +1096,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "开 is not always open",
       "zh": "「开」不总是 open"
@@ -1061,7 +1109,15 @@
       "en": "Every English word matches exactly one Chinese word.",
       "zh": "一个英文词对一个中文词。"
      },
-     "play": null
+     "play": "one-word-many-words.html",
+     "explain": {
+      "en": "A friend says \"Please open the TV.\" Explain why that sounds wrong in English and what to say instead. Then think of another Chinese word with more than one English match.",
+      "zh": "朋友说 \"Please open the TV.\"。跟他讲讲为什么英语里听着不对，应该怎么说。再想一个中文词，它在英语里不止一个对应。"
+     },
+     "home": {
+      "en": "Walk around your home and point at things you 开: the door, the fridge, the tap, the lamp, the computer. Say the English for each. Which ones are open and which are turn on?",
+      "zh": "在家里走一圈，指着能「开」的东西：门、冰箱、水龙头、台灯、电脑。每样说出英语。哪些是 open，哪些是 turn on？"
+     }
     },
     {
      "slug": "count-or-not",
@@ -1075,7 +1131,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Can you count it in English?",
       "zh": "英语里这个能数吗？"
@@ -1088,7 +1144,15 @@
       "en": "If you can count the things in real life, the English noun is countable, so “furnitures” and “advices” are fine.",
       "zh": "现实中能一个个数的东西，英语里就是可数名词，所以可以说 furnitures、advices。"
      },
-     "play": null
+     "play": "count-or-not.html",
+     "explain": {
+      "en": "A friend writes “I need some advices and two furnitures.” Explain why it is wrong — real advice can be counted, so what decides it? — and fix both.",
+      "zh": "朋友写了 “I need some advices and two furnitures.” 说说错在哪——建议明明能一条条数，那到底由什么决定？——再把两处都改对。"
+     },
+     "home": {
+      "en": "Pick six things at home (spoons, rice, books, water, shoes, sugar). Guess countable or not, then check a learner's dictionary for [C] or [U]. Which guesses were wrong?",
+      "zh": "在家里找六样东西（勺子、米、书、水、鞋、糖），先猜英语里可数不可数，再查学习词典里标的 [C] 还是 [U]。哪些猜错了？"
+     }
     },
     {
      "slug": "adjective-order",
@@ -1102,7 +1166,7 @@
       "us": "4",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Which adjective goes first?",
       "zh": "哪个形容词排前面？"
@@ -1115,7 +1179,15 @@
       "en": "Adjectives in front of a noun can go in any order.",
       "zh": "名词前的形容词怎么排都行。"
      },
-     "play": null
+     "play": "adjective-order.html",
+     "explain": {
+      "en": "A friend says “a wooden old lovely table”. Without just saying “it sounds wrong”, explain which words are in the wrong place and why — using the ladder.",
+      "zh": "同学说成了 “a wooden old lovely table”。不要只说「听着不对」，用这把梯子给他讲清楚：哪几个词放错了位置，为什么。"
+     },
+     "home": {
+      "en": "Pick an object at home and write three adjectives for it on separate slips of paper (e.g. small, old, metal). Shuffle the slips, then lay them out in the usual order in front of the object’s name and read it aloud. Swap objects with someone.",
+      "zh": "在家里挑一样东西，给它想三个英文形容词，分别写在小纸条上（比如 small、old、metal）。把纸条打乱，再按惯常顺序摆在这样东西的英文名字前面，读出来。和家人交换东西再试。"
+     }
     },
     {
      "slug": "word-stress-shift",
@@ -1129,7 +1201,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "REcord or reCORD?",
       "zh": "REcord 还是 reCORD？"
@@ -1142,7 +1214,15 @@
       "en": "Every syllable in an English word gets equal weight, like characters in Chinese, so stress doesn't matter if the sounds are right.",
       "zh": "英语单词的每个音节一样重，像汉字一个字一拍，只要音发对，重音无所谓。"
      },
-     "play": null
+     "play": "word-stress-shift.html",
+     "explain": {
+      "en": "A friend says the stress in an English word doesn't matter as long as each sound is right. Use \"present\" in one sentence to show them why it does.",
+      "zh": "朋友说英语单词只要每个音发对，重音无所谓。用 present 造一句话，给他演示为什么重音有关系。"
+     },
+     "home": {
+      "en": "Clap the beats of a word: one big clap for the stressed syllable, one small clap for the other. Clap \"a PREsent\" and \"to preSENT\", then try record, object and rebel.",
+      "zh": "给单词拍节拍：重读音节拍一下大的，另一个拍一下小的。拍拍 a PREsent 和 to preSENT，再试 record、object、rebel。"
+     }
     }
    ]
   },
@@ -1452,7 +1532,7 @@
       "us": "4",
       "uk": "4"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Light the bulb: why it needs a loop",
       "zh": "点亮小灯泡：为什么要接成一圈"
@@ -1465,7 +1545,15 @@
       "en": "One wire from the battery to the bulb is enough to light it.",
       "zh": "从电池拉一根线到灯泡，灯就能亮。"
      },
-     "play": null
+     "play": "simple-circuit.html",
+     "explain": {
+      "en": "A friend says one wire from the battery should light the bulb. Use your finger to trace the path and show them where it stops.",
+      "zh": "朋友说从电池拉一根线到灯泡就能亮。用手指沿着电走的路画一画，让他看看电在哪里走不下去。"
+     },
+     "home": {
+      "en": "With a grown-up, use one 1.5 V battery, a small torch bulb and two wires with bare ends. Light it, then add a gap and test a spoon, foil, a pencil lead and a rubber band. Only small batteries: never wall sockets.",
+      "zh": "请大人陪着，用一节 1.5 伏电池、一个手电筒小灯泡和两根两头露铜的电线。先点亮它，再留个缺口，试试勺子、锡纸、铅笔芯和橡皮筋。只用小电池，千万不要碰墙上的插座。"
+     }
     },
     {
      "slug": "sound-vibrations",
@@ -1480,7 +1568,7 @@
       "us": "1",
       "uk": "4"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "What makes a sound?",
       "zh": "声音是怎么来的？"
@@ -1493,7 +1581,15 @@
       "en": "Louder sounds are higher, and sound can travel through empty space.",
       "zh": "声音越响就越高；声音在真空里也能传。"
      },
-     "play": null
+     "play": "sound-vibrations.html",
+     "explain": {
+      "en": "A friend says hitting a drum harder makes the note higher. Use the drum and the ruler to show them what really makes a note higher.",
+      "zh": "朋友说用力敲鼓，音就会变高。用鼓和尺子给他看看，到底什么才让音变高。"
+     },
+     "home": {
+      "en": "Hold a ruler on a table with part of it sticking out, and twang it. Make the part shorter: what happens to the note? Twang harder: what changes? Then put your ear on the table while someone scratches the far end softly.",
+      "zh": "把尺子压在桌边，让一部分伸出去，弹一下。把伸出去的部分变短，音怎么变？用力弹，什么变了？再把耳朵贴在桌面上，请别人在桌子另一头轻轻刮。"
+     }
     },
     {
      "slug": "dissolving",
@@ -1508,7 +1604,7 @@
       "us": "5",
       "uk": "5"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Where does the sugar go?",
       "zh": "糖到哪里去了？"
@@ -1521,7 +1617,15 @@
       "en": "Sugar disappears when it dissolves.",
       "zh": "糖溶解后就没有了。"
      },
-     "play": null
+     "play": "dissolving.html",
+     "explain": {
+      "en": "A friend says the sugar disappeared because you can’t see it any more. Use the scale reading and the word “particles” to explain where the sugar went, and how you could get it back.",
+      "zh": "朋友说：糖看不见了，所以糖没有了。用秤上的读数和「颗粒」这个词，讲讲糖去了哪里，又怎样把它取回来。"
+     },
+     "home": {
+      "en": "Put a glass of water on a kitchen scale and note the reading. Add two spoons of sugar and note it again. Stir until it dissolves: the reading stays the same. Taste a sip. Then leave a little on a saucer in a warm place for a few days and look for sugar crystals.",
+      "zh": "把一杯水放在厨房秤上，记下读数；放两勺糖，再记一次。搅到糖溶解：读数不变。尝一口。再倒一点在小碟子里，放在暖和的地方几天，找一找糖的晶体。"
+     }
     },
     {
      "slug": "keep-it-cold",
@@ -1536,20 +1640,28 @@
       "us": "4",
       "uk": "5"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Can a coat keep ice cold?",
-      "zh": "棉衣能让冰块不化吗？"
+      "zh": "大衣能让冰块不化吗？"
      },
      "insight": {
       "en": "A coat does not make heat; it slows heat moving across it — so it keeps a warm body warm and a cold ice cube cold.",
-      "zh": "棉衣自己不产生热，它只是让热量穿过得更慢——所以它让暖的身体保暖，也让冰块保冷。"
+      "zh": "大衣自己不产生热，它只是让热量穿过得更慢——所以它让暖的身体保暖，也让冰块保冷。"
      },
      "misconception": {
       "en": "A coat is warm by itself, so wrapping ice in a coat will make it melt faster.",
-      "zh": "棉衣本身是热的，所以用棉衣包着冰块，冰会化得更快。"
+      "zh": "大衣本身是热的，所以用大衣包着冰块，冰会化得更快。"
      },
-     "play": null
+     "play": "keep-it-cold.html",
+     "explain": {
+      "en": "Your friend says: “Don’t put the ice in a coat, the coat will warm it up!” Use the words “heat flows” and “slows down” to explain why the ice in the coat lasts longer, and why the same coat keeps you warm in winter.",
+      "zh": "朋友说：「别把冰放进大衣里，大衣会把它捂化的！」用「热流动」和「变慢」这两个词，讲讲为什么包在大衣里的冰反而撑得更久，又为什么同一件大衣冬天能让你暖和。"
+     },
+     "home": {
+      "en": "Take two ice cubes the same size. Put one on a plate; wrap the other in a wool scarf or sock on another plate. Check every 15 minutes which is smaller. If you have a thermometer, push it into a folded coat that has been in the room for an hour: it reads room temperature.",
+      "zh": "拿两块一样大的冰。一块放在盘子上；另一块用羊毛围巾或袜子包起来，放在另一个盘子上。每 15 分钟看一次哪块更小。有温度计的话，把它插进在房间里放了一小时、叠好的大衣里：读数就是室温。"
+     }
     },
     {
      "slug": "moon-phases",
@@ -1564,7 +1676,7 @@
       "us": "5",
       "uk": "5"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why does the Moon change shape?",
       "zh": "月亮为什么会变形状？"
@@ -1577,7 +1689,15 @@
       "en": "The Moon's phases are Earth's shadow falling on the Moon.",
       "zh": "月相是地球的影子挡在月亮上造成的。"
      },
-     "play": null
+     "play": "moon-phases.html",
+     "explain": {
+      "en": "A friend says the crescent Moon is Earth's shadow. Use the first-quarter Moon (where are the Sun, Earth and Moon?) to change their mind.",
+      "zh": "朋友说月牙是地球的影子挡出来的。用上弦月（太阳、地球、月球各在哪里？）说服他。"
+     },
+     "home": {
+      "en": "In a dark room with one lamp on one side, hold a ball at arm's length and turn slowly on the spot. Watch the lit part of the ball grow and shrink — your head is Earth. Bonus: draw the Moon each evening for two weeks.",
+      "zh": "暗房间里只在一边开一盏灯，伸直手臂举一个球，原地慢慢转一圈。看球上亮的部分怎样变大又变小——你的头就是地球。加分：连续两周，每天傍晚画一次月亮。"
+     }
     }
    ]
   },
@@ -1983,7 +2103,7 @@
       "us": "8",
       "uk": "9"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why doesn't a bed of nails hurt?",
       "zh": "躺在钉床上为什么不疼？"
@@ -1996,7 +2116,15 @@
       "en": "More nails means more points pushing into you, so it hurts more.",
       "zh": "钉子越多，扎你的尖就越多，所以越疼。"
      },
-     "play": null
+     "play": "pressure-area.html",
+     "explain": {
+      "en": "A friend says “a bed of nails must hurt more, because there are more points sticking into you”. Using the words “force”, “area” and “pressure”, explain why it is the other way round.",
+      "zh": "朋友说「钉床肯定更疼，因为扎你的尖更多」。用上「力」「面积」「压强」三个词，讲讲为什么恰好反过来。"
+     },
+     "home": {
+      "en": "Hold a sharpened pencil between your two index fingers, point on one side and flat end on the other, and squeeze gently. Both fingers feel the same force — which one hurts? Then press your fingertip and then your flat palm into soft dough or wet sand with the same push and compare the dents.",
+      "zh": "用两根食指夹住一支削尖的铅笔，一边是笔尖，一边是平的笔尾，轻轻夹紧。两根手指受的力一样大——哪根疼？再用同样的劲，先用指尖、再用整个手掌按进软面团或湿沙里，比比两个坑。"
+     }
     },
     {
      "slug": "buoyancy-displaced",
@@ -2011,7 +2139,7 @@
       "us": "8",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "How hard does water push up?",
       "zh": "水往上托的力有多大？"
@@ -2024,7 +2152,15 @@
       "en": "The deeper an object sinks, the harder the water pushes it up.",
       "zh": "东西沉得越深，水往上托它的力越大。"
      },
-     "play": null
+     "play": "buoyancy-displaced.html",
+     "explain": {
+      "en": "A friend says a submarine gets pushed up harder the deeper it dives. Using the words “water pushed aside” and “volume”, explain what really happens to the push once it is fully under.",
+      "zh": "朋友说「潜水艇潜得越深，水往上托它的力越大」。用上「排开的水」和「体积」两个词，讲讲潜艇完全没入以后托力到底怎样。"
+     },
+     "home": {
+      "en": "Put a bowl of water on a kitchen scale. Hang a stone or an unopened drink can on a thread and lower it in without touching the bowl: the scale rises by as many grams as there are cm³ under water. Go deeper — does the number change?",
+      "zh": "在厨房秤上放一碗水，用细线吊着一块石头或一罐没开的饮料慢慢放进水里，不碰碗：秤上增加多少克，水下就有多少 cm³。再往深处放，数字会变吗？"
+     }
     },
     {
      "slug": "plane-mirror",
@@ -2039,7 +2175,7 @@
       "us": "?",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Where is the person in the mirror?",
       "zh": "镜子里的人站在哪里？"
@@ -2052,7 +2188,15 @@
       "en": "The image is on the surface of the mirror, and stepping back lets you see more of yourself.",
       "zh": "像就在镜面上；往后退就能在镜子里看到更多的自己。"
      },
-     "play": null
+     "play": "plane-mirror.html",
+     "explain": {
+      "en": "Your little brother walks backwards away from the bathroom mirror to see his shoes in it. Using the words “image”, “behind the mirror” and “halfway”, explain why that does not work and what would.",
+      "zh": "弟弟想在浴室镜子里看到自己的鞋，就一直往后退。用上「像」「镜子后面」「一半」三个词，讲讲为什么这样没用，怎样才行。"
+     },
+     "home": {
+      "en": "Stand in front of a bathroom mirror. With a sticky note or a bit of soap, mark where you see the top of your head and the bottom of your chin. Measure the gap and compare it with your real face. Then step back and look again: does your face still fit between the marks?",
+      "zh": "站在浴室镜子前，用便利贴或一点肥皂，在镜面上标出你看到的头顶和下巴的位置。量一量两个记号的距离，和你真实的脸比一比。再往后退几步看看：你的脸还卡在两个记号之间吗？"
+     }
     },
     {
      "slug": "waves-carry-energy",
@@ -2067,20 +2211,28 @@
       "us": "11",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Does the water travel with the wave?",
       "zh": "水会跟着波走吗？"
      },
      "insight": {
-      "en": "A wave moves a pattern and its energy along while each bit of the medium only bobs in place; its speed is frequency times wavelength, v = fλ.",
-      "zh": "波把一种样子和能量往前传，介质的每一小块只在原地上下晃；波速等于频率乘波长，v = fλ。"
+      "en": "A wave moves a pattern and its energy along while each bit of the medium only moves back and forth or round a small loop in place; its speed is frequency times wavelength, v = fλ.",
+      "zh": "波把一种样子和能量往前传，介质的每一小块只在原处来回晃或绕小圈；波速等于频率乘波长，v = fλ。"
      },
      "misconception": {
       "en": "The water in an ocean wave travels along with the wave.",
       "zh": "海浪里的水是跟着浪一起往前跑的。"
      },
-     "play": null
+     "play": "waves-carry-energy.html",
+     "explain": {
+      "en": "A surfer waiting beyond the breaking waves rises and falls as swells pass. Why isn't she carried to the beach, and what changes once she catches a breaking wave?",
+      "zh": "冲浪的人在碎浪区外等浪，涌浪经过时她一起一伏。为什么她没有被带到岸边？赶上一个正在破碎的浪后又有什么不同？"
+     },
+     "home": {
+      "en": "Float a bottle cap in a full bath or sink and make ripples at one end with a finger: does the cap travel to the other end? Then tie a ribbon to the middle of a rope or slinky and send a pulse along it.",
+      "zh": "在装满水的浴缸或水池里放一个瓶盖，用手指在一头拨出水波：瓶盖会漂到另一头吗？再在绳子或彩虹圈中间系一根丝带，沿着它甩出一个波。"
+     }
     },
     {
      "slug": "circular-motion",
@@ -2096,7 +2248,7 @@
       "us": "11",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Which way does the ball fly when the string breaks?",
       "zh": "绳子断了，球往哪边飞？"
@@ -2109,7 +2261,15 @@
       "en": "A centrifugal force flings the ball outward, or it keeps curving after the string breaks.",
       "zh": "有一股离心力把球往外甩；或者绳断以后球还会接着拐弯。"
      },
-     "play": null
+     "play": "circular-motion.html",
+     "explain": {
+      "en": "A friend says the ball flies straight outward when the string snaps, because centrifugal force throws it. Explain where it really goes and why, and why it still ends up farther from the pin.",
+      "zh": "朋友说：绳子一断，离心力会把球沿绳子方向往外甩。讲讲球实际往哪里走、为什么；再说说它为什么还是离钉子越来越远。"
+     },
+     "home": {
+      "en": "Cut a slice out of the rim of a paper plate. Lay it flat and roll a marble fast round the inside of the rim. Where does the marble go when it reaches the gap? Mark the path with flour or a ruler.",
+      "zh": "把纸盘的边剪掉一段，平放在桌上，让一颗弹珠沿盘边内侧快速滚一圈。滚到缺口时它往哪里走？撒点面粉或者用尺子比一比它的路线。"
+     }
     }
    ]
   },
@@ -2514,7 +2674,7 @@
       "us": "7",
       "uk": "7"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "New stuff, or the same stuff changed?",
       "zh": "变出新物质了吗？"
@@ -2527,7 +2687,15 @@
       "en": "Bubbles, a colour change or a substance vanishing always mean a chemical reaction, so boiling and dissolving are chemical changes.",
       "zh": "冒泡、变色或东西不见了就一定是化学变化，所以沸腾、溶解也是化学变化。"
      },
-     "play": null
+     "play": "physical-or-chemical.html",
+     "explain": {
+      "en": "A friend says: “The sugar disappeared in my tea, so dissolving is a chemical change.” What evidence would you show them?",
+      "zh": "朋友说：“糖在茶里不见了，所以溶解是化学变化。”你会拿什么证据说服他？"
+     },
+     "home": {
+      "en": "Stir a teaspoon of sugar into a little water and leave it on a saucer for a few days. What is left when the water has gone? Could you get baking soda back after pouring vinegar on it?",
+      "zh": "把一小勺糖搅进少量水里，倒在小碟子上放几天。水干了以后剩下什么？醋倒在小苏打上以后，还能把小苏打变回来吗？"
+     }
     },
     {
      "slug": "rusting-fair-test",
@@ -2542,20 +2710,28 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "What does a nail need to rust?",
       "zh": "铁钉生锈要什么条件？"
      },
      "insight": {
-      "en": "Iron rusts only when water and oxygen are both present; take away either one and the nail stays bright.",
-      "zh": "铁要同时碰到水和氧气才会生锈；去掉其中任何一个，铁钉就一直亮。"
+      "en": "Iron rusts only when water and oxygen are both present; take away either one and the nail stays almost bright.",
+      "zh": "铁要同时碰到水和氧气才会生锈；去掉其中任何一个，铁钉几乎一直亮。"
      },
      "misconception": {
       "en": "Water alone makes iron rust, so a nail fully under water always rusts.",
       "zh": "光有水铁就会生锈，所以泡在水里的铁钉一定会锈。"
      },
-     "play": null
+     "play": "rusting-fair-test.html",
+     "explain": {
+      "en": "Tube B used boiled water and an oil layer. What would go wrong with only the boiling, or only the oil?",
+      "zh": "B 管既把水煮沸，又盖了一层油。如果只煮沸、或者只盖油，各会出什么问题？"
+     },
+     "home": {
+      "en": "With an adult: put three plain steel nails (not shiny galvanised ones) in three jars. One in tap water; one in water you have just boiled and cooled, with a layer of cooking oil on top; one dry, with a silica-gel packet and a lid. Look every day for a week.",
+      "zh": "请大人陪着：把三根普通铁钉（不要亮闪闪的镀锌钉）放进三个瓶子。一个倒自来水；一个倒刚煮沸又放凉的水，水面盖一层食用油；一个不放水，放一包硅胶干燥剂再盖上盖。一周里每天看一次。"
+     }
     },
     {
      "slug": "mole-counting",
@@ -2569,7 +2745,7 @@
       "us": "10",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "A mole is a number, like a dozen",
       "zh": "摩尔是个数，就像一打"
@@ -2582,7 +2758,15 @@
       "en": "A mole is an amount of mass, so one mole of any substance weighs the same.",
       "zh": "摩尔是质量单位，所以任何物质 1 摩尔都一样重。"
      },
-     "play": null
+     "play": "mole-counting.html",
+     "explain": {
+      "en": "A friend says 1 mol of copper and 1 mol of sulfur must weigh the same because “a mole is a mole.” Explain what is the same and what is different, using the balance.",
+      "zh": "朋友说：1 mol 铜和 1 mol 硫一定一样重，因为「1 摩尔就是 1 摩尔」。用天平说明，哪些相同、哪些不同。"
+     },
+     "home": {
+      "en": "On a kitchen scale, weigh 100 grains of rice and then 100 dried beans. Same count, different mass. Use the 100-grain mass to work out how many rice grains are in a 1 kg bag, without counting them. Chemists count atoms the same way.",
+      "zh": "用厨房秤称 100 粒米，再称 100 粒干豆子：个数一样，质量不一样。再用 100 粒米的质量算出一袋 1 kg 的米大约有多少粒，不用真的数。化学家数原子也是这样数的。"
+     }
     },
     {
      "slug": "salt-splits-into-ions",
@@ -2597,7 +2781,7 @@
       "us": "10",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why salt water carries a current and sugar water doesn't",
       "zh": "为什么盐水导电、糖水不导电"
@@ -2610,7 +2794,15 @@
       "en": "Salt dissolves as NaCl molecules, and a solid salt crystal conducts because it is made of ions.",
       "zh": "盐溶解后是一个个 NaCl 分子；固体盐晶体由离子组成，所以也能导电。"
      },
-     "play": null
+     "play": "salt-splits-into-ions.html",
+     "explain": {
+      "en": "A friend says salt dissolves into tiny NaCl molecules, and that a dry salt crystal should conduct because it is made of ions. Use what the bulb did with dry salt, salt water and sugar water to explain what is wrong with both ideas.",
+      "zh": "朋友说：盐溶解后变成一个个小小的 NaCl 分子；干燥的盐晶体由离子组成，所以也应该导电。用灯泡在干盐、盐水和糖水里的表现，说说这两种想法各错在哪里。"
+     },
+     "home": {
+      "en": "Sprinkle a few grains of salt and of sugar on a dark plate and look with a magnifier: salt grains are little cubes. Stir a spoon of each into warm water in two saucers and leave them somewhere warm for a few days. What shape comes back from the salt water?",
+      "zh": "在深色盘子上撒几粒盐和几粒糖，用放大镜看：盐粒是一个个小立方体。各取一勺溶进两碟温水里，放在暖和的地方几天。盐水里重新长出来的是什么形状？"
+     }
     },
     {
      "slug": "neutralisation-jump",
@@ -2625,7 +2817,7 @@
       "us": "11",
       "uk": "12"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Adding base: the pH jump at the end",
       "zh": "加碱：最后那一下 pH 突跃"
@@ -2638,7 +2830,15 @@
       "en": "Each drop of base raises the pH by about the same amount, so the pH climbs steadily to 7.",
       "zh": "每滴碱让 pH 升高差不多一样多，pH 会匀速升到 7。"
      },
-     "play": null
+     "play": "neutralisation-jump.html",
+     "explain": {
+      "en": "A friend adds 20 mL of base, sees the pH go only from 1.0 to about 2, and decides the base is too weak. Explain what is really happening, using the H⁺ that is left.",
+      "zh": "朋友加了 20 毫升碱，pH 只从 1.0 升到 2 左右，就说这碱太弱了。用「剩下的 H⁺」跟他讲讲到底发生了什么。"
+     },
+     "home": {
+      "en": "Count out 1000 grains of rice as H⁺. Take away 900 (now 100 left: one pH step), then 90 (10 left: another step), then 9 (1 left: another). Each step removes less than the last; the next step would need you to remove a fraction of one grain. That last tiny amount is the single drop.",
+      "zh": "数出 1000 粒米当作 H⁺。先拿走 900 粒（剩 100：pH 升一级），再拿走 90 粒（剩 10：又一级），再拿走 9 粒（剩 1：又一级）。每一级要拿的越来越少；再下一级就得拿走不到一粒米。那最后一点点，就是那一滴。"
+     }
     }
    ]
   },
@@ -3006,7 +3206,7 @@
       "us": "7",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why does a potato shrink in salt water?",
       "zh": "土豆条为什么在盐水里变软变轻？"
@@ -3019,7 +3219,15 @@
       "en": "Once the concentrations are equal on both sides, the particles stop moving.",
       "zh": "两边浓度一样以后，颗粒就不动了。"
      },
-     "play": null
+     "play": "osmosis-potato.html",
+     "explain": {
+      "en": "A friend says that once both sides are equal, the water stops moving. Use the crossing counters to explain what really happens, and why a potato strip in salt water loses mass.",
+      "zh": "朋友说：两边一样以后水就不动了。用穿膜计数器给他讲讲到底发生了什么，再讲讲土豆条泡在盐水里为什么变轻。"
+     },
+     "home": {
+      "en": "Cut two equal potato sticks. Put one in plain water and one in water with 2 big spoons of salt. After an hour, bend them: which is floppy? Weigh them if you have a kitchen scale.",
+      "zh": "切两根一样的土豆条，一根泡清水，一根泡加了两大勺盐的水。一小时后弯一弯，哪根软塌塌？有厨房秤就称一称。"
+     }
     },
     {
      "slug": "heart-double-pump",
@@ -3033,7 +3241,7 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "The heart is two pumps",
       "zh": "心脏是两台泵"
@@ -3046,7 +3254,15 @@
       "en": "Blood without oxygen is blue; that is why veins look blue.",
       "zh": "缺氧的血是蓝色的，所以静脉看起来是蓝的。"
      },
-     "play": null
+     "play": "heart-double-pump.html",
+     "explain": {
+      "en": "A friend says blood in your veins is blue until it touches air. Explain why that is wrong, and why the pulmonary artery carries dark red blood even though it is an artery.",
+      "zh": "朋友说静脉里的血是蓝的，碰到空气才变红。说说这为什么不对，再说说肺动脉明明是动脉，为什么流的是暗红色的血。"
+     },
+     "home": {
+      "en": "Find the pulse on your wrist; count the beats for 15 s and multiply by 4. Do 30 jumping jacks and count again. Taking about 70 mL per beat, how many litres a minute did your heart pump each time?",
+      "zh": "在手腕上摸到脉搏，数 15 秒的跳动次数再乘 4。做 30 个开合跳后再数一次。按每跳约 70 mL 算，两次你的心脏每分钟各泵了多少升血？"
+     }
     },
     {
      "slug": "respiration-every-cell",
@@ -3061,20 +3277,28 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Breathing is not respiration",
       "zh": "呼吸运动不等于细胞呼吸"
      },
      "insight": {
-      "en": "Breathing only moves air in and out of the lungs; respiration, releasing energy from glucose with oxygen, happens inside every living cell, day and night, in plants too.",
-      "zh": "呼吸运动只是把空气吸进、呼出肺；用氧气分解葡萄糖、释放能量的细胞呼吸，在每个活细胞里日夜进行，植物也一样。"
+      "en": "Breathing only moves air in and out of the lungs; respiration, releasing energy from glucose (almost always with oxygen), happens inside every living cell, day and night, in plants too.",
+      "zh": "呼吸运动只是把空气吸进、呼出肺；分解葡萄糖、释放能量的细胞呼吸（几乎都要用氧），在每个活细胞里日夜进行，植物也一样。"
      },
      "misconception": {
       "en": "Respiration means breathing, and it happens only in the lungs.",
       "zh": "呼吸作用就是喘气，只在肺里发生。"
      },
-     "play": null
+     "play": "respiration-every-cell.html",
+     "explain": {
+      "en": "A friend says “respiration is breathing, so it happens in the lungs, and plants don't do it”. Using the oxygen trip and the leaf in the dark, explain where respiration happens and what breathing is for.",
+      "zh": "朋友说「呼吸作用就是喘气，所以发生在肺里，植物也不呼吸」。用氧分子的行程和黑暗里的叶片，给他讲讲细胞呼吸在哪里发生，呼吸运动又是干什么的。"
+     },
+     "home": {
+      "en": "Count your breaths and your pulse for one minute sitting still, then again right after 30 jumping jacks. Both rise. Which cells asked for the extra oxygen?",
+      "zh": "安静坐着数一分钟呼吸次数和脉搏，再做 30 个开合跳后马上数一次。两个数都变大了。是哪些细胞要了更多的氧？"
+     }
     },
     {
      "slug": "predator-prey",
@@ -3090,7 +3314,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Hares and lynx: why do the numbers cycle?",
       "zh": "野兔和猞猁：数量为什么一起一落？"
@@ -3103,7 +3327,15 @@
       "en": "In nature, populations stay at a fixed balance, or predators simply eat their prey until it is gone.",
       "zh": "自然界的种群数量保持固定的平衡，或者捕食者会一直吃到猎物灭绝。"
      },
-     "play": null
+     "play": "predator-prey.html",
+     "explain": {
+      "en": "A friend says lynx should just eat hares until there are none left. Using the loop, explain why the lynx crash before the hares run out, and why their peak comes after the hares' peak.",
+      "zh": "朋友说猞猁应该一直吃到野兔一只不剩。用那个圈给他讲讲：为什么野兔还没吃光猞猁就先大跌，为什么猞猁的顶峰在野兔之后。"
+     },
+     "home": {
+      "en": "Play “hares and lynx” with dried beans (hares) and coins (lynx) on a table: each round every hare has a baby, each lynx eats one hare if it can, a lynx that ate 3 hares has a kitten and one that ate none dies. Count both after each round and plot them. Do you see the lynx peak late?",
+      "zh": "在桌上用豆子当野兔、硬币当猞猁玩「兔和猞猁」：每轮每只兔生一只，每只猞猁能吃就吃一只兔，吃满 3 只的猞猁生一只幼崽，一只没吃到的饿死。每轮数一数两种各有多少，画成图。猞猁是不是晚到顶？"
+     }
     },
     {
      "slug": "homeostasis-thermostat",
@@ -3118,7 +3350,7 @@
       "us": "10",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "The body's thermostat",
       "zh": "身体里的恒温器"
@@ -3131,7 +3363,15 @@
       "en": "Negative feedback means something bad, and a healthy body's levels never move.",
       "zh": "负反馈就是坏事；健康的身体里各项指标一点都不变。"
      },
-     "play": null
+     "play": "homeostasis-thermostat.html",
+     "explain": {
+      "en": "A friend says \"negative feedback\" must be something bad, and that a healthy person's temperature never changes. Using what happened when you stepped into the cold, explain what negative feedback really is and why the number still moves.",
+      "zh": "朋友说「负反馈」肯定是坏事，而且健康人的体温一点都不会变。用你走进寒冷时看到的结果，给他讲讲负反馈到底是什么，为什么数值还是会动。"
+     },
+     "home": {
+      "en": "Measure your temperature under the tongue when you wake up, after lunch and in the evening, three days in a row, and plot it. Does it stay at exactly 37.0? (Use the same thermometer; wait 15 min after eating or drinking.)",
+      "zh": "连续三天，在起床后、午饭后和晚上各量一次舌下体温，画成折线。它是不是一直正好 37.0？（用同一支体温计；吃喝后等 15 分钟再量。）"
+     }
     }
    ]
   },
@@ -3533,7 +3773,7 @@
       "us": "3",
       "uk": "3"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Find it on the grid",
       "zh": "在方格里找到它"
@@ -3546,7 +3786,15 @@
       "en": "North always means 'up', on a map and on the ground.",
       "zh": "北就是「上面」，地图上是，地上也是。"
      },
-     "play": null
+     "play": "compass-grid.html",
+     "explain": {
+      "en": "A friend holds the park map with the N arrow pointing at their feet and says: \"North is up, so the pond is straight ahead.\" Tell them how to find which way north really is, and how \"B4\" helps them find the pond.",
+      "zh": "朋友拿着公园地图，N 箭头朝着自己的脚，却说：「北就是上面，所以池塘就在正前方。」告诉他怎样找到真正的北，以及「B4」怎样帮他找到池塘。"
+     },
+     "home": {
+      "en": "Draw your room on squared paper. Write A, B, C… across the bottom and 1, 2, 3… up the side, and add an N arrow (a phone compass can tell you north). Hide a toy and give a grown-up the square, like \"C2\". Then turn the paper round: is your N arrow still right?",
+      "zh": "在方格纸上画你的房间。底下横着写 A、B、C……，旁边往上写 1、2、3……，再画一个 N 箭头（手机指南针能告诉你哪边是北）。藏一个玩具，告诉大人它在哪一格，比如「C2」。然后把纸转个方向：你的 N 箭头还对吗？"
+     }
     },
     {
      "slug": "contour-lines",
@@ -3560,7 +3808,7 @@
       "us": "?",
       "uk": "7"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Read a hill from its contour lines",
       "zh": "从等高线看出山的样子"
@@ -3573,7 +3821,15 @@
       "en": "Contour lines that are close together show low, flat ground.",
       "zh": "等高线挤在一起的地方又低又平。"
      },
-     "play": null
+     "play": "contour-lines.html",
+     "explain": {
+      "en": "A friend says crowded contour lines must mean low, flat ground. Explain what the gap between two contour lines measures, and what on a map tells you whether ground is low or high.",
+      "zh": "朋友说等高线挤在一起的地方一定又低又平。讲清楚：两条等高线之间的距离量的是什么？要知道地面高还是低，该看地图上的什么？"
+     },
+     "home": {
+      "en": "Make a clay hill with one steep side, stand it in a clear box and add water 1 cm at a time, tracing the waterline on the hill each time. Look straight down: where are the lines closest?",
+      "zh": "用黏土捏一座一边陡、一边缓的小山，放进透明盒子，每次加 1 厘米水，沿水边在山上画一圈。从正上方往下看：哪里的线最密？"
+     }
     },
     {
      "slug": "rain-shadow",
@@ -3587,7 +3843,7 @@
       "us": "?",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why one side of the mountain is dry",
       "zh": "为什么山的一边是干的"
@@ -3600,7 +3856,15 @@
       "en": "Rain falls evenly on both sides of a mountain range.",
       "zh": "山两边下的雨一样多。"
      },
-     "play": null
+     "play": "rain-shadow.html",
+     "explain": {
+      "en": "A friend says rain falls evenly on both sides of a mountain range. Use the words “rises”, “cools”, “cloud” and “sinks” to explain why the town behind the mountains is dry, and why it is also warmer.",
+      "zh": "朋友说山脉两边下的雨一样多。用「上升」「变冷」「成云」「下沉」这几个词，解释为什么山后面的小镇很干，而且还更暖和。"
+     },
+     "home": {
+      "en": "On a rainfall map of your country (a weather service's climate map or an atlas), find a mountain range. Which side is greener on the map? Check which way the wind usually blows there: is the wet side facing the wind?",
+      "zh": "在一张全国降水分布图上（气象部门的气候图或地图册），找一道山脉。图上哪一边更绿、雨更多？查一查那里平常刮什么方向的风：湿的那一边是不是正对着风？"
+     }
     },
     {
      "slug": "river-bends",
@@ -3611,11 +3875,11 @@
       "X-2"
      ],
      "grade": {
-      "cn": "?",
+      "cn": "11",
       "us": "?",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "How a river bends itself",
       "zh": "河流怎样把自己弄弯"
@@ -3628,7 +3892,15 @@
       "en": "A river wears away both banks of a bend equally.",
       "zh": "河湾两边的岸被冲刷得一样多。"
      },
-     "play": null
+     "play": "river-bends.html",
+     "explain": {
+      "en": "A friend wants to build a house right at the edge of a river bend, on the outside, for the view. Use what you saw to explain what may happen, and where you would build instead.",
+      "zh": "朋友想把房子盖在河湾外侧的岸边，因为风景好。用你看到的现象跟他解释可能会发生什么，你会把房子盖在哪里。"
+     },
+     "home": {
+      "en": "In a sandpit or a tray of damp sand, scrape a curved channel and pour water slowly in at one end. Where on the curve is sand washed away, and where does it settle?",
+      "zh": "在沙坑里或一盘湿沙上划出一条弯弯的小河道，从一头慢慢倒水。弯道的哪一边沙子被冲走，哪一边沙子沉下来？"
+     }
     },
     {
      "slug": "map-projection",
@@ -3643,7 +3915,7 @@
       "us": "?",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Is Greenland as big as Africa?",
       "zh": "格陵兰岛有非洲那么大吗？"
@@ -3656,7 +3928,15 @@
       "en": "Countries on a world map are shown at their true relative sizes.",
       "zh": "世界地图上各国的大小就是它们真实的大小比例。"
      },
-     "play": null
+     "play": "map-projection.html",
+     "explain": {
+      "en": "A friend says Greenland is about as big as Africa, because that is how it looks on the classroom map. Explain why the map makes it look so big, and how many Greenlands really fit into Africa.",
+      "zh": "朋友说格陵兰岛和非洲差不多大，因为教室墙上的地图就是这样画的。向他解释：为什么地图把格陵兰画得这么大？非洲里其实能放下几个格陵兰？"
+     },
+     "home": {
+      "en": "Draw a few same-size circles on an orange: one near the “equator”, one near the top. Peel it and press the peel flat. Which circle tears or stretches more?",
+      "zh": "在橘子上画几个一样大的小圆：一个在“赤道”附近，一个在顶部附近。剥下橘子皮压平。哪个圆被撕开或拉得更厉害？"
+     }
     }
    ]
   },
@@ -4017,7 +4297,7 @@
       "us": "6",
       "uk": "5"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Dig down, go back in time",
       "zh": "往下挖，就是往回走"
@@ -4030,7 +4310,15 @@
       "en": "Anything found deeper in the ground is always older, and everything in one layer is the same age.",
       "zh": "埋得越深的东西一定越老，同一层里的东西年代都一样。"
      },
-     "play": null
+     "play": "dig-the-layers.html",
+     "explain": {
+      "en": "A friend says: “This coin was found deeper than that pot, so it must be older.” Use the pit or the burrow from this page to explain why that is not always true, and say how you would date the layer instead.",
+      "zh": "朋友说：「这枚硬币比那块陶片埋得深，所以一定更老。」用本页的坑或动物洞给他解释为什么不一定，再说说你会怎样给那一层定年代。"
+     },
+     "home": {
+      "en": "In a clear cup, make layers of rice, lentils, flour and coffee grounds. On each layer drop a paper “coin” with a year, older years lower down. Then dig a “pit” with a spoon from the top and drop in a coin with this year. Is the deepest coin still the oldest? Date each layer by its newest coin.",
+      "zh": "在透明杯子里铺几层：米、扁豆、面粉、咖啡渣。每铺一层放一张写着年份的纸「硬币」，越往下年份越早。然后用勺子从上往下挖一个「坑」，放进一枚写着今年的硬币。最深的硬币还是最老的吗？用每层最新的硬币给它定年代。"
+     }
     },
     {
      "slug": "counting-the-years",
@@ -4044,7 +4332,7 @@
       "us": "6",
       "uk": "6"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Whose year is it?",
       "zh": "这是哪一年？谁的年？"
@@ -4057,7 +4345,15 @@
       "en": "People everywhere always counted years the same way we do, and there was a year 0 between 1 BCE and 1 CE.",
       "zh": "古今各地的人都像我们这样数年份，而且公元前 1 年和公元 1 年之间有个「公元 0 年」。"
      },
-     "play": null
+     "play": "counting-the-years.html",
+     "explain": {
+      "en": "Someone says, “In ancient China they wrote 629 on things too.” Explain what they would really have written, and how a historian turns it into 629.",
+      "zh": "有人说：「古代中国人也在东西上写 629。」讲讲当时的人其实会怎么写，历史学家又是怎么把它换算成 629 的。"
+     },
+     "home": {
+      "en": "Ask three family members the year they were born and work out its 干支 (stem = (Y − 4) mod 10, branch = (Y − 4) mod 12). Who shares a branch, and how many years apart are they? Then make a 10-ring and a 12-ring from paper and turn them together.",
+      "zh": "问三位家人出生的年份，算出它们的干支（天干 = (Y − 4) 除以 10 的余数，地支 = (Y − 4) 除以 12 的余数）。谁的地支相同？相差几年？再用纸做一个 10 格圆环和一个 12 格圆环，一起转一转。"
+     }
     },
     {
      "slug": "crops-cross-oceans",
@@ -4072,20 +4368,28 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Where did your dinner come from?",
       "zh": "你的晚饭从哪里来？"
      },
      "insight": {
-      "en": "Many ‘traditional’ foods depend on crops that crossed the Atlantic only after 1492: chilli, potato, tomato, maize and sweet potato came from the Americas, while wheat, rice, sugar cane, cattle and horses went the other way.",
-      "zh": "许多「传统」饭菜靠的是 1492 年以后才跨过大西洋的作物：辣椒、土豆、番茄、玉米、红薯来自美洲，小麦、水稻、甘蔗、牛和马则从另一边去了美洲。"
+      "en": "Many ‘traditional’ foods depend on crops that crossed the oceans between the Americas and the rest of the world only after 1492: chilli, potato, tomato, maize and sweet potato came from the Americas, while wheat, rice, sugar cane, cattle and horses went the other way.",
+      "zh": "许多「传统」饭菜靠的是 1492 年以后才在美洲和世界其他地方之间跨洋交换的作物：辣椒、土豆、番茄、玉米、红薯来自美洲，小麦、水稻、甘蔗、牛和马则去了美洲。"
      },
      "misconception": {
       "en": "Foods that are central to a cuisine today — chilli in Sichuan or Korean cooking, tomatoes in Italian cooking — have always grown there.",
       "zh": "今天某地菜系的招牌食材——川菜和韩国菜里的辣椒、意大利菜里的番茄——从来就长在那里。"
      },
-     "play": null
+     "play": "crops-cross-oceans.html",
+     "explain": {
+      "en": "A friend says chilli is a traditional Chinese spice, so it must have grown in China forever. Explain where chilli came from, when it is first recorded in China, and why a ‘traditional’ food can still be fairly new.",
+      "zh": "朋友说辣椒是中国传统香料，一定自古就长在中国。跟他讲讲：辣椒从哪里来，中国最早什么时候有记载，为什么一种「传统」食物也可能挺新的。"
+     },
+     "home": {
+      "en": "List the ingredients of tonight's dinner. Guess for each: from the Americas, or from Africa, Europe and Asia? Look them up. How many would be missing in 1400?",
+      "zh": "列出今天晚饭的食材，每一样先猜：来自美洲，还是亚非欧？再查一查。放到 1400 年，会少几样？"
+     }
     },
     {
      "slug": "two-eyewitnesses",
@@ -4100,7 +4404,7 @@
       "us": "8",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Two people saw it — and told it differently",
       "zh": "两个人都看见了，说法却不一样"
@@ -4113,7 +4417,15 @@
       "en": "If two eyewitnesses disagree, one of them must be lying.",
       "zh": "两个目击者说法不一样，就一定有一个在说谎。"
      },
-     "play": null
+     "play": "two-eyewitnesses.html",
+     "explain": {
+      "en": "A friend says: “The apple seller and the neighbour disagree, so one of them is a liar.” Use the plan to show how both could be honest, and say which record settles who helped.",
+      "zh": "朋友说：「苹果摊主和邻居说法不一样，所以有一个是骗子。」用这张平面图说明两人怎么可能都诚实，再说说哪份记录能定下到底有没有人帮忙。"
+     },
+     "home": {
+      "en": "Ask two people at home, separately, to describe the same moment (a meal, a trip). Sketch where each sat or stood and what each could see. Which details do both tell? Which only one?",
+      "zh": "请家里两个人分别讲同一个时刻（一顿饭、一次出门）。画个草图，标出每人坐或站在哪、能看见什么。哪些细节两人都讲了？哪些只有一人讲？"
+     }
     },
     {
      "slug": "change-and-continuity",
@@ -4128,7 +4440,7 @@
       "us": "9",
       "uk": "9"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "What changed, and what stayed the same?",
       "zh": "什么变了，什么没变？"
@@ -4141,7 +4453,15 @@
       "en": "The past was one unchanging ‘before’, and modern times changed everything at once.",
       "zh": "过去是一成不变的「从前」，到了近代一下子什么都变了。"
      },
-     "play": null
+     "play": "change-and-continuity.html",
+     "explain": {
+      "en": "A friend says: “In the old days nothing changed, then modern times changed everything.” Use two rows from the board — one that changed fast and one that hardly changed — to answer them.",
+      "zh": "朋友说：「从前什么都不变，到了近代一下子全变了。」用变化板上的两行——一行变得快、一行几乎没变——来回答他。"
+     },
+     "home": {
+      "en": "Ask an older relative to compare their childhood with today for: travel, lighting, the main food, how news arrives, a family festival. Which changed a lot, and which stayed the same?",
+      "zh": "请一位长辈比较他小时候和现在：出行、照明、主食、怎么得到消息、一个家里过的节日。哪些变了很多，哪些没变？"
+     }
     }
    ]
   },
@@ -4541,7 +4861,7 @@
       "us": "2",
       "uk": "3"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Send a picture with a few numbers",
       "zh": "用几个数送一张图"
@@ -4554,7 +4874,15 @@
       "en": "Making a picture file smaller always loses some of the picture.",
       "zh": "把图片文件变小，一定会丢掉一部分画面。"
      },
-     "play": null
+     "play": "run-length-picture.html",
+     "explain": {
+      "en": "Read the numbers for one heart row to a friend who can't see it. Why can they colour exactly the same row? Why does a checkerboard need more numbers?",
+      "zh": "把心的某一行的数念给看不见图的朋友听。为什么他能涂出一模一样的一行？为什么棋盘格要的数更多？"
+     },
+     "home": {
+      "en": "On squared paper, colour a simple 10 × 10 picture. Read only the row numbers to someone at home and let them colour their own grid. Hold the two papers side by side: are they the same?",
+      "zh": "在方格纸上涂一张简单的 10 × 10 图。只把每行的数念给家里人听，让他在自己的格子上涂。把两张纸放在一起：一样吗？"
+     }
     },
     {
      "slug": "if-wall-robot",
@@ -4570,7 +4898,7 @@
       "us": "4",
       "uk": "5"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "A robot that checks for walls",
       "zh": "会看墙的机器人"
@@ -4583,7 +4911,15 @@
       "en": "A program always makes exactly the same moves every time it runs.",
       "zh": "程序每次运行，走的步子都一模一样。"
      },
-     "play": null
+     "play": "if-wall-robot.html",
+     "explain": {
+      "en": "A friend says “a program always does exactly the same thing”. Use the wall-checking robot to explain when that is true (a plain list) and when it is not (an if inside a loop).",
+      "zh": "朋友说「程序每次都做一模一样的事」。用会看墙的机器人跟他讲讲：什么时候是这样（直接列步骤），什么时候不是（循环里放「如果」）。"
+     },
+     "home": {
+      "en": "Draw a maze on squared paper. Move your pencil from the start, keeping a wall always on its right. Does it reach the end? Then draw a maze with a wall island where it never does.",
+      "zh": "在方格纸上画一个迷宫。铅笔从起点出发，始终让墙在它右边。能走到终点吗？再画一个带「墙岛」的迷宫，让它永远走不到。"
+     }
     },
     {
      "slug": "parity-card-trick",
@@ -4598,7 +4934,7 @@
       "us": "4",
       "uk": "5"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "The card-flip trick: catching an error",
       "zh": "翻牌魔术：抓住那个错"
@@ -4611,7 +4947,15 @@
       "en": "To notice a mistake in a message you have to remember the whole message.",
       "zh": "要发现信息里的错，就得把整条信息都记住。"
      },
-     "play": null
+     "play": "parity-card-trick.html",
+     "explain": {
+      "en": "A friend says you can only spot a changed card if you remember the whole layout. Explain how the extra row and column let you find it, and why the trick fails when two cards are flipped.",
+      "zh": "朋友说，要发现哪张牌变了，就得记住整个牌阵。给他讲讲补上的一行一列怎样帮你找到那张牌，再说说为什么翻两张就不灵了。"
+     },
+     "home": {
+      "en": "Use 25 coins or paper squares coloured on one side. Lay out 5 × 5 at random, then add a 6th card to each row and a 6th row so every row and column has an even number of coloured sides. Turn your back while someone flips one, then find it.",
+      "zh": "用 25 枚硬币，或一面涂了颜色的纸片，随便摆成 5 × 5；再给每行补第 6 张、补上第 6 行，让每行每列涂色面朝上的都是偶数个。转过身请家人翻一张，你再把它找出来。"
+     }
     },
     {
      "slug": "variable-boxes",
@@ -4626,7 +4970,7 @@
       "us": "6",
       "uk": "7"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Variables are labelled boxes",
       "zh": "变量是贴了名字的盒子"
@@ -4639,7 +4983,15 @@
       "en": "Writing 'a = b' and then 'b = a' swaps the two values.",
       "zh": "先写「a = b」再写「b = a」，两个值就交换了。"
      },
-     "play": null
+     "play": "variable-boxes.html",
+     "explain": {
+      "en": "Your friend wrote a = b and then b = a to swap two numbers, and both came out the same. Explain what happened to the first number, and how a third box fixes it.",
+      "zh": "朋友想交换两个数，写了 a = b 再写 b = a，结果两个数一样了。跟他讲讲第一个数去哪了，第三个盒子为什么能解决问题。"
+     },
+     "home": {
+      "en": "Two cups: one with water, one with juice. Swap what is in them. What did you need? Write down each move as a line like “empty cup = water cup”.",
+      "zh": "两个杯子，一杯水，一杯果汁。把两杯里的东西对调。你需要什么？把每一步写成一行，比如「空杯 = 水杯」。"
+     }
     },
     {
      "slug": "single-neuron",
@@ -4655,7 +5007,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "One artificial neuron learns to sort",
       "zh": "一个人工神经元学分类"
@@ -4668,7 +5020,15 @@
       "en": "A program that learns to sort things correctly must understand them the way a person does.",
       "zh": "能学会正确分类的程序，一定像人一样懂得它分的是什么。"
      },
-     "play": null
+     "play": "single-neuron.html",
+     "explain": {
+      "en": "Explain to someone how this neuron gets all 16 fruits right without knowing what a fruit is. Then say why it can never get the XOR fruit all right, using the straight line.",
+      "zh": "跟别人讲讲：这个神经元不知道水果是什么，为什么还能把 16 个水果全部分对？再用「直线」说明它为什么永远分不对异或水果。"
+     },
+     "home": {
+      "en": "Score 10 snacks from 0 to 10 for sweetness and for crunch, and plot them on squared paper: a circle if a family member likes it, a square if not. Can one ruler line split circles from squares? Try to find four snacks that no line can split.",
+      "zh": "给 10 种零食的甜度和脆度各打 0 到 10 分，画在方格纸上：家人喜欢的画圆、不喜欢的画方块。能用尺子画一条直线把圆和方块分开吗？试着找出四种零食，让任何直线都分不开。"
+     }
     }
    ]
   }

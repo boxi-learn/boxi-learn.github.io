@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>REcord or reCORD?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .visual { padding: 12px 10px 8px; }
+  .formrow { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 2px 0 4px; }
+  .formrow button { font-size: 14px; }
+  .formrow button .w { font-family: var(--serif); font-size: 16px; }
+  svg.word { width: 100%; height: auto; display: block; margin: 2px 0; }
+  .syl { cursor: pointer; }
+  .syl:focus { outline: none; }
+  .syl:focus-visible .box { stroke: var(--hl); stroke-width: 6; }
+  .syl .box { fill: var(--soft); stroke: var(--line); stroke-width: 3; transition: fill .2s, stroke .2s; }
+  .syl.st .box { fill: var(--surface); stroke: var(--a); stroke-width: 5; }
+  .syl text { text-anchor: middle; font-family: var(--serif); fill: var(--muted); }
+  .syl text.sp { dominant-baseline: central; transition: font-size .2s; }
+  .syl.st text.sp { fill: var(--a); font-weight: 750; }
+  .syl.odd.st .box { stroke: var(--no); }
+  .syl.odd.st text.sp { fill: var(--no); }
+  .ipa { font-family: var(--font); font-size: 30px; fill: var(--fg); text-anchor: middle; }
+  .ipa.weak { fill: var(--muted); }
+  .wtag { font-family: var(--font); font-size: 24px; fill: var(--b); text-anchor: middle; }
+  .beat { fill: var(--a); transition: r .2s, cy .2s; }
+  .beat.odd { fill: var(--no); }
+  .beatline { stroke: var(--line); stroke-width: 3; fill: none; stroke-dasharray: 6 6; }
+  .hint { font-family: var(--font); font-size: 24px; fill: var(--muted); text-anchor: middle; }
+  @media (prefers-reduced-motion: reduce) { .syl .box, .syl text.sp, .beat { transition: none; } }
+  .status { text-align: center; margin: 2px 0 4px; }
+  .pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 14px; font-weight: 650; border: 1px solid var(--line); background: var(--soft); max-width: 100%; }
+  .pill.n { border-color: var(--a); color: var(--a); }
+  .pill.odd { border-color: var(--no); color: var(--no); }
+  .ipaline { text-align: center; font-size: 16px; margin: 4px 0 0; }
+  .ipaline .ip { font-family: var(--font); }
+  .sent { text-align: center; font-family: var(--serif); font-size: 19px; margin: 6px 8px 2px; min-height: 1.5em; overflow-wrap: anywhere; }
+  .sent b { color: var(--a); }
+  .sbtns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0 4px; }
+  .pick { border-top: 1px solid var(--line); margin: 10px 4px 0; padding: 10px 4px 6px; font-size: 14px; }
+  .pick .ft { color: var(--muted); margin: 0 0 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .chips button { font-family: var(--serif); font-size: 16px; padding: 2px 10px; border-radius: 999px; }
+  .chips button.now { border-color: var(--a); color: var(--a); }
+  .chips button.same { border-style: dashed; }
+  .tally { width: 100%; border-collapse: collapse; font-size: 14px; margin: 2px 0 10px; }
+  .tally td, .tally th { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+  .tally th { color: var(--muted); font-weight: 600; }
+  .tally td.n { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--a); white-space: nowrap; }
+  .tally .w { font-family: var(--serif); }
+  .quiz { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--soft); }
+  .quiz .qs { font-family: var(--serif); font-size: 18px; margin: 4px 0 8px; color: var(--fg); }
+  .quiz .qs b { text-decoration: underline; text-underline-offset: 4px; }
+  .quiz .qb { display: flex; gap: 8px; flex-wrap: wrap; }
+  .quiz .qb button { font-family: var(--serif); font-size: 17px; min-width: 96px; }
+  .quiz .qb button.right { border-color: var(--a); color: var(--a); }
+  .quiz .qb button.wrong { border-color: var(--no); color: var(--no); }
+  .quiz .qf { font-size: 14px; color: var(--muted); margin: 8px 0 0; min-height: 1.4em; }
+  .play .note { font-size: 14px !important; }
+  .result .math { font-family: var(--serif); white-space: normal; overflow-wrap: anywhere; }
+  .foot { font-size: 13px; }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="formrow" id="forms"></div>
+      <svg class="word" id="fig" viewBox="0 0 600 330" role="group" data-t-aria="figAria"></svg>
+      <div class="status"><span class="pill" id="pill"></span></div>
+      <p class="ipaline" id="ipaline"></p>
+      <p class="sent" id="sent" lang="en"></p>
+      <div class="sbtns">
+        <button type="button" id="say" data-t="say"></button>
+        <button type="button" id="sayBoth" data-t="sayBoth"></button>
+      </div>
+      <div class="pick">
+        <p class="ft" data-t="pickPairs"></p>
+        <div class="chips" id="chipsP" lang="en"></div>
+        <p class="ft" data-t="pickSame"></p>
+        <div class="chips" id="chipsS" lang="en"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="ruleBox" hidden>
+        <table class="tally" id="tally"></table>
+        <div class="quiz" id="quiz">
+          <div class="kicker" data-t="quizK"></div>
+          <div class="qs" id="qs" lang="en"></div>
+          <div class="qb" id="qb" lang="en"></div>
+          <p class="qf" id="qf" aria-live="polite"></p>
+          <div class="sbtns" style="justify-content:flex-start"><button type="button" class="small" id="qnext" data-t="qNext"></button><button type="button" class="small" id="qsay" data-t="qSay"></button></div>
+        </div>
+      </div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain" lang="en"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "REcord or reCORD?", eyebrow: "English · Stage 3", h1: "REcord or reCORD? Moving the stress changes the word",
+    intro: "One syllable in an English word is stressed: longer, louder, higher. Tap a syllable to move the stress and watch the word change.",
+    reset: "Reset", figAria: "The word split into syllables. The stressed syllable is bigger, with a big high beat above it.",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "a record, to record",
+    b1: "Same letters, two jobs: \"a record\" is a thing (a disc, a best result); \"to record\" is an action (save a sound). Pick an answer, then tap the syllables.",
+    q: "\"a record\" and \"to record\": do they sound the same?",
+    o1: "Yes: same letters, every syllable gets the same weight",
+    o2: "No: the strong beat moves from the first syllable to the second",
+    o3: "No, but only the last sound changes",
+    right: "Yes! a REcord /ˈrekɔːd/, to reCORD /rɪˈkɔːd/. The beat moves, and the weak syllable even changes its vowel.",
+    wrong: "Look at the picture: a REcord has the big beat on re-, to reCORD has it on -cord. Same letters, different stress, different word.",
+    k2: "Hands on", t2: "Tap a syllable to stress it",
+    b2: "Tap a syllable (or use ← → on it) to put the big beat there. Try every word in the first list, then the dashed ones in the second list. Which words change, and which refuse to?",
+    k3: "The rule", t3: "Noun first, verb second",
+    b3: "Every English word has one stressed syllable. In many two-syllable pairs, the noun (or adjective) is stressed on the first syllable and the verb on the second. Not every word does this: report, review and promise keep the same stress for both.",
+    quizK: "Your turn: where is the stress in this sentence?",
+    qNext: "Next sentence", qSay: "▶ Hear it",
+    qRight: "Right: here it is the {form}, so {w}. Score {s} / {n}.",
+    qWrong: "Not this time: here it is the {form}, so {w}. Score {s} / {n}.",
+    noun: "noun", verb: "verb", adj: "adjective",
+    btnN: "{art} {w} (noun)", btnV: "to {w} (verb)",
+    sylAria: "Syllable {s}{st}. Press Enter to stress it, or left and right arrows.",
+    sylSt: ", stressed",
+    pillN: "noun: {art} {w}", pillV: "verb: to {w}", pillBoth: "noun and verb: same stress",
+    pillOdd: "not how English says {w}",
+    ipaN: "noun {ipa}", ipaV: "verb {ipa}", ipaBoth: "{ipa} for both",
+    ipaOdd: "Try the other syllable: {w} is stressed on syllable {k} as a noun and as a verb.",
+    weak: "weak vowel",
+    hint: "tap a syllable",
+    say: "▶ Hear the sentence", sayBoth: "▶ Hear both in one sentence",
+    pickPairs: "Pairs that shift:", pickSame: "Words that don't shift:",
+    liveW: "{w}: {status}",
+    thPattern: "Pattern", thWords: "Words", thCount: "Count",
+    rowShift: "noun 1st · verb 2nd", rowSame2: "both 2nd", rowSame1: "both 1st",
+    resultTitle: "Stress this word",
+    rnPair: "Same letters, two words: the stress tells the listener which one you mean.",
+    rnSame: "This one doesn't shift: noun and verb share one stress. The pattern is common, not universal.",
+    explainK: "Explain it", explainQ: "A friend says the stress in an English word doesn't matter as long as each sound is right. Use \"present\" in one sentence to show them why it does.",
+    homeK: "Try at home", homeQ: "Clap the beats of a word: one big clap for the stressed syllable, one small clap for the other. Clap \"a PREsent\" and \"to preSENT\", then try record, object and rebel.",
+    foot: "IPA is British English as given in Oxford Learner's and Cambridge dictionaries; American English differs in some vowels (e.g. a record /ˈrekərd/), and some speakers also stress verbs like increase on the first syllable. The stress pattern for noun–verb pairs follows standard descriptions (e.g. Roach, English Phonetics and Phonology). The beats in the picture show which syllable is stressed, not measured loudness. Your browser's voice may not stress single words correctly, so trust the picture; sentences give it the best chance. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "REcord 还是 reCORD？", eyebrow: "英语 · 阶段 3", h1: "REcord 还是 reCORD？重音一挪，词就变了",
+    intro: "英语单词里有一个音节要重读：更长、更响、更高。点一个音节把重音挪过去，看这个词怎么变。",
+    reset: "重置", figAria: "按音节拆开的单词。重读的音节更大，上面有一个又大又高的拍子。",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "a record 和 to record",
+    b1: "同样的字母，两种用法：a record 是个东西（唱片、最好成绩），to record 是个动作（录下来）。先选一个答案，再点音节试试。",
+    q: "a record 和 to record，读起来一样吗？",
+    o1: "一样：字母一样，每个音节一样重",
+    o2: "不一样：重拍从第一个音节挪到了第二个",
+    o3: "不一样，但只有最后一个音变了",
+    right: "对！a REcord /ˈrekɔːd/，to reCORD /rɪˈkɔːd/。重拍挪了位置，不重读的音节连元音都变弱了。",
+    wrong: "看图：a REcord 的大拍子在 re- 上，to reCORD 在 -cord 上。字母一样，重音不同，就是两个词。",
+    k2: "动手", t2: "点一个音节，把重音放上去",
+    b2: "点一个音节（或在上面按 ← →），把大拍子放到那里。第一排的词每个都试试，再试第二排虚线框的词。哪些词会变，哪些词不肯变？",
+    k3: "规律", t3: "名词在前，动词在后",
+    b3: "每个英语单词都有一个重读音节。许多双音节词成对出现：名词（或形容词）重音在第一个音节，动词在第二个。但不是所有词都这样：report、review、promise 名词动词重音一样。",
+    quizK: "轮到你：这句话里重音在哪儿？",
+    qNext: "下一句", qSay: "▶ 听一听",
+    qRight: "对：这里是{form}，读 {w}。得分 {s} / {n}。",
+    qWrong: "这次不对：这里是{form}，读 {w}。得分 {s} / {n}。",
+    noun: "名词", verb: "动词", adj: "形容词",
+    btnN: "{art} {w}（名词）", btnV: "to {w}（动词）",
+    sylAria: "音节 {s}{st}。按回车重读它，或按左右方向键。",
+    sylSt: "，重读",
+    pillN: "名词：{art} {w}", pillV: "动词：to {w}", pillBoth: "名词和动词：重音一样",
+    pillOdd: "英语不这么读 {w}",
+    ipaN: "名词 {ipa}", ipaV: "动词 {ipa}", ipaBoth: "{ipa}（两种都这样读）",
+    ipaOdd: "换另一个音节试试：{w} 不管作名词还是动词，都重读第 {k} 个音节。",
+    weak: "弱读元音",
+    hint: "点一个音节",
+    say: "▶ 听这句话", sayBoth: "▶ 一句话里听两种",
+    pickPairs: "会挪重音的词：", pickSame: "不挪重音的词：",
+    liveW: "{w}：{status}",
+    thPattern: "规律", thWords: "词", thCount: "个数",
+    rowShift: "名词第 1 · 动词第 2", rowSame2: "都在第 2", rowSame1: "都在第 1",
+    resultTitle: "这个词的重音",
+    rnPair: "字母一样，是两个词：重音告诉听的人你说的是哪一个。",
+    rnSame: "这个词不挪：名词动词同一个重音。这个规律很常见，但不是每个词都这样。",
+    explainK: "说一说", explainQ: "朋友说英语单词只要每个音发对，重音无所谓。用 present 造一句话，给他演示为什么重音有关系。",
+    homeK: "家里做一做", homeQ: "给单词拍节拍：重读音节拍一下大的，另一个拍一下小的。拍拍 a PREsent 和 to preSENT，再试 record、object、rebel。",
+    foot: "音标是英式英语，依据牛津高阶和剑桥词典；美式英语有些元音不同（如 a record 读 /ˈrekərd/），也有人把 increase 这类动词也重读在第一个音节。名词—动词重音规律依据通行的语音学教材（如 Roach《English Phonetics and Phonology》）。图上的拍子只表示哪个音节重读，不是测量出来的响度。浏览器的语音单读一个词时重音常常不准，以图为准；放在句子里读最好。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---- data ----
+// syl: spelling split. n / v: IPA syllables (British), st = stressed syllable, wk = weak (reduced) syllable or -1.
+// ns / vs: example sentences (written for this page) with the word in [brackets]. both: one sentence using both forms.
+const WORDS = [
+  { w: "record", syl: ["re", "cord"], n: { ipa: ["rek", "ɔːd"], st: 0, wk: -1 }, v: { ipa: ["rɪ", "kɔːd"], st: 1, wk: 0 },
+    ns: "She broke the world [record].", vs: "We [record] a song every week.", both: "They record a new record." },
+  { w: "present", syl: ["pre", "sent"], n: { ipa: ["prez", "ənt"], st: 0, wk: 1 }, v: { ipa: ["prɪ", "zent"], st: 1, wk: 0 },
+    ns: "Thank you for the [present]!", vs: "We [present] our project on Friday.", both: "I want to present you with a present." },
+  { w: "object", syl: ["ob", "ject"], n: { ipa: ["ɒb", "dʒɪkt"], st: 0, wk: 1 }, v: { ipa: ["əb", "dʒekt"], st: 1, wk: 0 },
+    ns: "What is that strange [object]?", vs: "I [object] to that plan.", both: "" },
+  { w: "project", syl: ["pro", "ject"], n: { ipa: ["prɒ", "dʒekt"], st: 0, wk: -1 }, v: { ipa: ["prə", "dʒekt"], st: 1, wk: 0 },
+    ns: "Our science [project] is due on Monday.", vs: "They [project] a film onto the wall.", both: "" },
+  { w: "permit", syl: ["per", "mit"], n: { ipa: ["pɜː", "mɪt"], st: 0, wk: -1 }, v: { ipa: ["pə", "mɪt"], st: 1, wk: 0 },
+    ns: "You need a [permit] to fish here.", vs: "The rules [permit] two bags each.", both: "" },
+  { w: "progress", syl: ["pro", "gress"], n: { ipa: ["prəʊ", "ɡres"], st: 0, wk: -1 }, v: { ipa: ["prə", "ɡres"], st: 1, wk: 0 },
+    ns: "You are making good [progress].", vs: "The work will [progress] slowly.", both: "" },
+  { w: "contrast", syl: ["con", "trast"], n: { ipa: ["kɒn", "trɑːst"], st: 0, wk: -1 }, v: { ipa: ["kən", "trɑːst"], st: 1, wk: 0 },
+    ns: "I like the [contrast] of the colours.", vs: "[Contrast] the two pictures.", both: "" },
+  { w: "conduct", syl: ["con", "duct"], n: { ipa: ["kɒn", "dʌkt"], st: 0, wk: -1 }, v: { ipa: ["kən", "dʌkt"], st: 1, wk: 0 },
+    ns: "His [conduct] in class was excellent.", vs: "She will [conduct] the orchestra.", both: "" },
+  { w: "insult", syl: ["in", "sult"], n: { ipa: ["ɪn", "sʌlt"], st: 0, wk: -1 }, v: { ipa: ["ɪn", "sʌlt"], st: 1, wk: -1 },
+    ns: "That was an [insult]!", vs: "Please don't [insult] him.", both: "" },
+  { w: "suspect", syl: ["sus", "pect"], n: { ipa: ["sʌs", "pekt"], st: 0, wk: -1 }, v: { ipa: ["sə", "spekt"], st: 1, wk: 0 },
+    ns: "The police caught the [suspect].", vs: "I [suspect] it will rain.", both: "" },
+  { w: "rebel", syl: ["re", "bel"], n: { ipa: ["reb", "əl"], st: 0, wk: 1 }, v: { ipa: ["rɪ", "bel"], st: 1, wk: 0 },
+    ns: "He was a [rebel] at school.", vs: "Teenagers often [rebel] against rules.", both: "" },
+  { w: "increase", syl: ["in", "crease"], n: { ipa: ["ɪŋ", "kriːs"], st: 0, wk: -1 }, v: { ipa: ["ɪn", "kriːs"], st: 1, wk: -1 },
+    ns: "There was an [increase] in price.", vs: "Prices [increase] every year.", both: "" },
+  // control set: no shift
+  { w: "report", syl: ["re", "port"], n: { ipa: ["rɪ", "pɔːt"], st: 1, wk: 0 }, v: { ipa: ["rɪ", "pɔːt"], st: 1, wk: 0 },
+    ns: "Read the [report] first.", vs: "[Report] the problem to a teacher.", both: "" },
+  { w: "respect", syl: ["re", "spect"], n: { ipa: ["rɪ", "spekt"], st: 1, wk: 0 }, v: { ipa: ["rɪ", "spekt"], st: 1, wk: 0 },
+    ns: "Show some [respect].", vs: "I [respect] your choice.", both: "" },
+  { w: "control", syl: ["con", "trol"], n: { ipa: ["kən", "trəʊl"], st: 1, wk: 0 }, v: { ipa: ["kən", "trəʊl"], st: 1, wk: 0 },
+    ns: "Take [control] of the ball.", vs: "[Control] the ball with your foot.", both: "" },
+  { w: "review", syl: ["re", "view"], n: { ipa: ["rɪ", "vjuː"], st: 1, wk: 0 }, v: { ipa: ["rɪ", "vjuː"], st: 1, wk: 0 },
+    ns: "I read a [review] of the film.", vs: "[Review] your notes tonight.", both: "" },
+  { w: "promise", syl: ["prom", "ise"], n: { ipa: ["prɒm", "ɪs"], st: 0, wk: 1 }, v: { ipa: ["prɒm", "ɪs"], st: 0, wk: 1 },
+    ns: "Keep your [promise].", vs: "I [promise] to help.", both: "" },
+  { w: "visit", syl: ["vis", "it"], n: { ipa: ["vɪz", "ɪt"], st: 0, wk: -1 }, v: { ipa: ["vɪz", "ɪt"], st: 0, wk: -1 },
+    ns: "Thanks for your [visit].", vs: "[Visit] us again soon.", both: "" },
+];
+const shifts = (d) => d.n.st !== d.v.st;
+const PAIRS = WORDS.filter(shifts), SAME = WORDS.filter((d) => !shifts(d));
+
+// pure helpers
+const ipaOf = (f) => "/" + f.ipa.map((s, i) => (i === f.st ? "ˈ" : "") + s).join("") + "/";
+const capsOf = (d, st) => d.syl.map((s, i) => (i === st ? s.toUpperCase() : s)).join("");
+/** Which forms of word d have stress on syllable p: "n", "v", "both" or "odd". */
+function formAt(d, p) {
+  const n = d.n.st === p, v = d.v.st === p;
+  return n && v ? "both" : n ? "n" : v ? "v" : "odd";
+}
+const art = (d) => (/^[aeiou]/.test(d.w) ? "an" : "a");
+const plainSent = (s) => s.replace(/\[|\]/g, "");
+
+// ---- state ----
+const $ = (id) => document.getElementById(id);
+const START = { wi: 0, st: 0 };
+let wi = START.wi, stress = START.st;
+const cur = () => WORDS[wi];
+
+// ---- figure ----
+const fig = $("fig");
+const BIG = 92, SMALL = 52, GAP = 22;
+function sylWidth(text, size) { return Math.max(130, text.length * size * 0.56 + 44); }
+function drawFig() {
+  const d = cur(), form = formAt(d, stress), odd = form === "odd";
+  const f = form === "v" ? d.v : d.n; // which IPA row to show under the tiles
+  fig.innerHTML = "";
+  const sizes = d.syl.map((_, i) => (i === stress ? BIG : SMALL));
+  const ws = d.syl.map((s, i) => sylWidth(s, sizes[i]));
+  const total = ws.reduce((a, b) => a + b, 0) + GAP * (ws.length - 1);
+  let x = 300 - total / 2;
+  const centers = [];
+  const beats = [];
+  ws.forEach((w, i) => {
+    const cx = x + w / 2, isSt = i === stress;
+    centers.push(cx);
+    const g = Play.svg("g", { class: "syl" + (isSt ? " st" : "") + (odd ? " odd" : ""), tabindex: "0", role: "button" }, fig);
+    g.setAttribute("aria-pressed", isSt ? "true" : "false");
+    g.setAttribute("aria-label", P.t("sylAria", { s: d.syl[i], st: isSt ? P.t("sylSt") : "" }));
+    const h = isSt ? 150 : 110, y = 170 - h / 2;
+    Play.svg("rect", { class: "box", x: x, y: y, width: w, height: h, rx: 20 }, g);
+    const tx = Play.svg("text", { class: "sp", x: cx, y: 170 }, g);
+    tx.setAttribute("font-size", sizes[i]);
+    tx.setAttribute("lang", "en");
+    tx.textContent = d.syl[i];
+    g.addEventListener("click", () => setStress(i, true));
+    g.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { setStress(i, true); e.preventDefault(); }
+      else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        const j = Play.clamp(i + (e.key === "ArrowLeft" ? -1 : 1), 0, d.syl.length - 1);
+        setStress(j, true); e.preventDefault();
+      }
+    });
+    // beat: big and high on the stressed syllable
+    beats.push({ cx, cy: isSt ? 40 : 66, r: isSt ? 24 : 10 });
+    // IPA syllable under the tile (not shown for a stress English doesn't use)
+    if (!odd) {
+      const weak = f.wk === i;
+      const ip = Play.svg("text", { class: "ipa" + (weak ? " weak" : ""), x: cx, y: 286 }, fig);
+      ip.textContent = (i === f.st ? "ˈ" : "") + f.ipa[i];
+      if (weak) Play.svg("text", { class: "wtag", x: cx, y: 318 }, fig).textContent = P.t("weak");
+    }
+    x += w + GAP;
+  });
+  Play.svg("path", { class: "beatline", d: "M " + beats.map((b) => b.cx + " " + b.cy).join(" L ") }, fig);
+  beats.forEach((b) => Play.svg("circle", { class: "beat" + (odd ? " odd" : ""), cx: b.cx, cy: b.cy, r: b.r }, fig));
+  if (odd) Play.svg("text", { class: "hint", x: 300, y: 290 }, fig).textContent = P.t("hint");
+  return centers;
+}
+
+// ---- panel ----
+function markSent(s) {
+  const frag = document.createDocumentFragment();
+  s.split(/(\[[^\]]*\])/).forEach((part) => {
+    if (part.startsWith("[")) { const b = document.createElement("b"); b.textContent = part.slice(1, -1); frag.appendChild(b); }
+    else if (part) frag.appendChild(document.createTextNode(part));
+  });
+  return frag;
+}
+function statusText(d, form) {
+  if (form === "odd") return P.t("pillOdd", { w: d.w });
+  if (form === "both") return P.t("pillBoth");
+  return P.t(form === "n" ? "pillN" : "pillV", { w: capsOf(d, stress), art: art(d) });
+}
+function draw() {
+  const d = cur(), form = formAt(d, stress);
+  drawFig();
+  const pill = $("pill");
+  pill.textContent = statusText(d, form);
+  pill.className = "pill" + (form === "odd" ? " odd" : form === "n" ? " n" : "");
+  const ipl = $("ipaline");
+  if (form === "odd") ipl.textContent = P.t("ipaOdd", { w: d.w, k: d.n.st + 1 });
+  else if (form === "both") ipl.textContent = P.t("ipaBoth", { ipa: ipaOf(d.n) });
+  else ipl.textContent = P.t(form === "n" ? "ipaN" : "ipaV", { ipa: ipaOf(form === "n" ? d.n : d.v) });
+  const s = $("sent");
+  s.innerHTML = "";
+  if (form === "odd") s.textContent = "";
+  else if (form === "both") s.append(markSent(d.ns), " ", markSent(d.vs));
+  else s.appendChild(markSent(form === "n" ? d.ns : d.vs));
+  $("say").disabled = form === "odd";
+  $("sayBoth").hidden = !d.both;
+  // form buttons
+  fb.forEach(([b, k]) => {
+    const f = d[k];
+    b.innerHTML = "";
+    const [pre, post] = P.t(k === "n" ? "btnN" : "btnV", { w: "\u0000", art: art(d) }).split("\u0000");
+    const w = document.createElement("span");
+    w.className = "w"; w.lang = "en"; w.textContent = capsOf(d, f.st);
+    b.append(pre, w, post);
+    b.classList.toggle("on", form !== "odd" && f.st === stress);
+  });
+  [...$("chipsP").children, ...$("chipsS").children].forEach((c) => c.classList.toggle("now", c.dataset.w === d.w));
+  // result bar
+  $("resultMain").textContent = shifts(d)
+    ? art(d) + " " + capsOf(d, d.n.st) + " " + ipaOf(d.n) + " · to " + capsOf(d, d.v.st) + " " + ipaOf(d.v)
+    : capsOf(d, d.n.st) + " " + ipaOf(d.n);
+  $("resultNote").textContent = P.t(shifts(d) ? "rnPair" : "rnSame");
+  Play.live($("live"), P.t("liveW", { w: capsOf(d, stress), status: statusText(d, form) }));
+}
+function setStress(i, focus) {
+  stress = Play.clamp(i, 0, cur().syl.length - 1);
+  draw();
+  if (focus) { const g = fig.querySelectorAll(".syl")[stress]; if (g) g.focus(); }
+}
+function setWord(i) { wi = i; stress = WORDS[i].n.st; draw(); }
+
+// form buttons
+const fb = ["n", "v"].map((k) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.addEventListener("click", () => setStress(cur()[k].st));
+  $("forms").appendChild(b);
+  return [b, k];
+});
+// chips
+WORDS.forEach((d, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = d.w; b.dataset.w = d.w;
+  if (!shifts(d)) b.className = "same";
+  b.addEventListener("click", () => setWord(i));
+  $(shifts(d) ? "chipsP" : "chipsS").appendChild(b);
+});
+$("say").addEventListener("click", () => {
+  const d = cur(), form = formAt(d, stress);
+  if (form === "odd") return;
+  Play.speak(form === "both" ? plainSent(d.ns) + " " + plainSent(d.vs) : plainSent(form === "n" ? d.ns : d.vs), "en-US");
+});
+$("sayBoth").addEventListener("click", () => { if (cur().both) Play.speak(cur().both, "en-US"); });
+
+// ---- rule step: tally + quiz ----
+function buildTally() {
+  const t = $("tally");
+  t.innerHTML = "";
+  const head = document.createElement("tr");
+  [P.t("thPattern"), P.t("thWords"), P.t("thCount")].forEach((h) => { const th = document.createElement("th"); th.textContent = h; head.appendChild(th); });
+  t.appendChild(head);
+  const rows = [
+    ["rowShift", WORDS.filter((d) => d.n.st === 0 && d.v.st === 1)],
+    ["rowSame2", SAME.filter((d) => d.n.st === 1)],
+    ["rowSame1", SAME.filter((d) => d.n.st === 0)],
+  ];
+  rows.forEach(([k, list]) => {
+    const tr = document.createElement("tr");
+    const a = document.createElement("td"); a.textContent = P.t(k);
+    const b = document.createElement("td"); b.className = "w"; b.lang = "en"; b.textContent = list.map((d) => d.w).join(", ");
+    const c = document.createElement("td"); c.className = "n"; c.textContent = list.length + " / " + WORDS.length;
+    tr.append(a, b, c);
+    t.appendChild(tr);
+  });
+}
+// quiz items: every pair word × noun / verb sentence, in a fixed shuffled order
+const QUIZ = [];
+PAIRS.forEach((d) => { QUIZ.push({ d, k: "n" }); QUIZ.push({ d, k: "v" }); });
+(function shuffle(a, seed) { // small LCG so the order is the same on every load
+  for (let i = a.length - 1; i > 0; i--) { seed = (seed * 1103515245 + 12345) % 2147483648; const j = seed % (i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+})(QUIZ, 7);
+let qi = 0, qScore = 0, qDone = 0, qAnswered = false;
+function showQuiz() {
+  const item = QUIZ[qi % QUIZ.length], d = item.d;
+  qAnswered = false;
+  $("qs").innerHTML = "";
+  $("qs").appendChild(markSent(item.k === "n" ? d.ns : d.vs));
+  $("qf").textContent = "";
+  const qb = $("qb");
+  qb.innerHTML = "";
+  [0, 1].forEach((p) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = capsOf(d, p);
+    b.addEventListener("click", () => {
+      if (qAnswered) return;
+      qAnswered = true;
+      const want = d[item.k].st, ok = p === want;
+      qDone++; if (ok) qScore++;
+      b.classList.add(ok ? "right" : "wrong");
+      if (!ok) qb.children[want].classList.add("right");
+      const vars = { form: P.t(item.k === "n" ? "noun" : "verb"), w: capsOf(d, want) + " " + ipaOf(d[item.k]), s: qScore, n: qDone };
+      $("qf").textContent = P.t(ok ? "qRight" : "qWrong", vars);
+      // show it in the figure too
+      wi = WORDS.indexOf(d); stress = want; draw();
+    });
+    qb.appendChild(b);
+  });
+}
+$("qnext").addEventListener("click", () => { qi++; showQuiz(); });
+$("qsay").addEventListener("click", () => { const it = QUIZ[qi % QUIZ.length]; Play.speak(plainSent(it.k === "n" ? it.d.ns : it.d.vs), "en-US"); });
+
+// ---- steps ----
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { wi = 0; stress = 1; draw(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("ruleBox").hidden = i !== 2;
+});
+$("reset").addEventListener("click", () => {
+  if ("speechSynthesis" in window) { try { speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+  wi = START.wi; stress = START.st; qi = 0; qScore = 0; qDone = 0;
+  pr.reset(); st.go(0); showQuiz(); draw();
+});
+buildTally();
+showQuiz();
+draw();
+</script>
+</body>
+</html>

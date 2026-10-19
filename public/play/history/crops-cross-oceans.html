@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where did your dinner come from?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main#fig { height: auto; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  #fig text { font-size: 13px; }
+  #fig .sea { fill: var(--soft); }
+  #fig .land { fill: var(--surface); stroke: var(--muted); stroke-width: .8px; stroke-opacity: .5; }
+  #fig .ocean { fill: var(--muted); font-style: italic; }
+  #fig .tag { fill: var(--muted); font-weight: 700; }
+  #fig .lab { fill: var(--fg); paint-order: stroke; stroke: var(--soft); stroke-width: 4px; stroke-linejoin: round; }
+  #fig .lab.x { fill: var(--a); font-weight: 750; }
+  #fig .lab.gone { fill: var(--no); text-decoration: line-through; font-weight: 400; }
+  #fig .lab.rg { fill: var(--muted); }
+  #fig .lab.home { font-weight: 750; }
+  #fig .ln { fill: none; stroke: var(--c); stroke-width: 2px; opacity: .75; stroke-linecap: round; }
+  #fig .ln.x { stroke: var(--a); stroke-width: 3.5px; opacity: 1; }
+  #fig .ln.gone { stroke: var(--no); stroke-width: 2px; opacity: .55; stroke-dasharray: 4 5; }
+  #fig .og { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5px; }
+  #fig .dot { fill: var(--c); }
+  #fig .dot.x { fill: var(--a); }
+  #fig .dot.gone { fill: var(--no); }
+  #fig .plate { fill: var(--hl); stroke: var(--ink-panel); stroke-width: 2px; }
+  #fig .plate.dim { fill: var(--surface); stroke: var(--muted); }
+  #fig .plate.on { stroke-width: 3.5px; }
+  #fig .hit { cursor: pointer; }
+  #fig .divide { stroke: var(--muted); stroke-width: 1.5px; stroke-dasharray: 2 6; opacity: .7; }
+  .deck { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px 4px; align-items: center; }
+  .deck .lead { width: 100%; font-size: 13px; color: var(--muted); }
+  .controls input[type=range] { flex: 1 1 140px; }
+  .info { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 0 0 10px; }
+  .info > div + div { margin-top: 6px; }
+  .info .gp { font-weight: 750; color: var(--a); }
+  .info .it { color: var(--muted); font-size: 13px; }
+  .info .row { display: grid; grid-template-columns: 12px 1fr; gap: 8px; align-items: baseline; }
+  .info .row .d { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: inline-block; }
+  .info .row.x .d { background: var(--a); }
+  .info .row.gone .d { background: var(--no); }
+  .info .row b { color: var(--fg); }
+  .info .row .w { color: var(--muted); font-size: 13px; }
+  .info .row.gone b { color: var(--no); text-decoration: line-through; }
+  .info .lists { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .info .lists > div { background: var(--surface); border-radius: 10px; padding: 6px 10px; font-size: 13px; }
+  .info .lists .h { font-weight: 750; color: var(--a); }
+  .info ul { margin: 4px 0 0; padding-left: 18px; }
+  .info li { margin: 2px 0; }
+  @media (max-width: 420px) { .info .lists { grid-template-columns: 1fr; } }
+  #resMain { white-space: normal; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="deck" id="deck"></div>
+      <svg class="main" id="fig" viewBox="0 0 600 330" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctl">
+        <button type="button" class="small" id="play"></button>
+        <label for="yr" data-t="yrLabel"></label>
+        <input type="range" id="yr" min="1400" max="2000" step="1" value="2000">
+        <span class="val" id="yrVal"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="info" id="info" hidden></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" data-t="resNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+/* ---------- data ----------
+   Regions where each plant or animal was first domesticated (broad, textbook-level regions).
+   side: "A" = the Americas, "E" = Africa, Europe and Asia. Coordinates are [lon, lat] on a schematic map. */
+const REGIONS = {
+  MESO: { side: "A", at: [-101, 19] },
+  ANDES: { side: "A", at: [-70, -15] },
+  WASIA: { side: "E", at: [42, 35] },
+  CASIA: { side: "E", at: [66, 41] },
+  SASIA: { side: "E", at: [88, 16] },
+  CHINA: { side: "E", at: [114, 34] },
+};
+const INGR = {
+  chilli: "MESO", tomato: "MESO", maize: "MESO", beans: "MESO", potato: "ANDES",
+  soy: "CHINA", huajiao: "CHINA", porkC: "CHINA", cabbage: "CHINA", rice: "CHINA",
+  broad: "WASIA", wheat: "WASIA", olive: "WASIA", mutton: "WASIA", dairy: "WASIA", porkW: "WASIA",
+  garlic: "CASIA", onion: "CASIA", basil: "SASIA", ginger: "SASIA",
+};
+/* Each dish: where it is eaten (side + map point + label side), and its ingredients.
+   An ingredient from the other side of the ocean carries `first` (year used by the slider),
+   `fl` (how the date is written) and `w` (where that first record is). Dates are FIRST RECORDS, not "everyday food". */
+const DISHES = [
+  { id: "mapo", side: "E", at: [104, 30.6], ls: "w", items: [
+    { i: "soy" }, { i: "huajiao" }, { i: "porkC" }, { i: "broad" }, { i: "chilli", first: 1591, fl: "1591", w: "cn" }] },
+  { id: "pasta", side: "E", at: [14.5, 40.9], ls: "s", items: [
+    { i: "wheat" }, { i: "olive" }, { i: "garlic" }, { i: "basil" }, { i: "tomato", first: 1544, fl: "1540s", w: "it" }] },
+  { id: "stew", side: "E", at: [-8, 53], ls: "w", items: [
+    { i: "mutton" }, { i: "onion" }, { i: "potato", first: 1570, fl: "c1570", w: "eu" }] },
+  { id: "kimchi", side: "E", at: [127, 37.5], ls: "e", items: [
+    { i: "cabbage" }, { i: "garlic" }, { i: "ginger" }, { i: "chilli", first: 1614, fl: "e1600", w: "kr" }] },
+  { id: "polenta", side: "E", at: [10.5, 45.6], ls: "n", items: [
+    { i: "dairy" }, { i: "maize", first: 1493, fl: "1490s", w: "eu" }] },
+  { id: "rice", side: "A", at: [-40, -14], ls: "e", items: [
+    { i: "beans" }, { i: "rice", first: 1500, fl: "c16", w: "br" }, { i: "porkW", first: 1493, fl: "1493", w: "am" }] },
+];
+const YMIN = 1400, YMAX = 2000, Y1492 = 1492;
+
+/* ---------- pure logic ---------- */
+function crosses(dish, it) { return REGIONS[INGR[it.i]].side !== dish.side; }
+function present(dish, it, year) {
+  if (!crosses(dish, it)) return true;
+  const y = Number.isFinite(year) ? year : YMAX;
+  return y >= it.first;
+}
+function stats(dish, year) {
+  const m = dish.items.length;
+  const x = dish.items.filter((it) => crosses(dish, it)).length;
+  const here = dish.items.filter((it) => present(dish, it, year)).length;
+  return { m, x, here, complete: here === m };
+}
+function totals(year) {
+  let m = 0, x = 0, complete = 0, withX = 0;
+  DISHES.forEach((d) => { const s = stats(d, year); m += s.m; x += s.x; if (s.complete) complete++; if (s.x > 0) withX++; });
+  return { m, x, complete, withX, n: DISHES.length, pct: m ? Math.round((100 * x) / m) : 0 };
+}
+/* earliest year at which a dish has all its ingredients on record in this story */
+function completeFrom(dish) {
+  return dish.items.reduce((y, it) => (crosses(dish, it) ? Math.max(y, it.first) : y), YMIN);
+}
+/* schematic projection: plain lon/lat grid, Americas on the left, Pacific split at the edges */
+const LON0 = -130, LON1 = 190, LAT0 = 75, LAT1 = -60;
+function proj(ll, W, H) {
+  const lon = Number.isFinite(ll[0]) ? ll[0] : 0, lat = Number.isFinite(ll[1]) ? ll[1] : 0;
+  return { x: ((lon - LON0) / (LON1 - LON0)) * W, y: ((LAT0 - lat) / (LAT0 - LAT1)) * H };
+}
+if (typeof module !== "undefined") module.exports = { REGIONS, INGR, DISHES, crosses, present, stats, totals, completeFrom, proj, YMIN, YMAX };
+
+/* very rough coastlines, [lon, lat] — schematic only */
+const LAND = [
+  [[-130,58],[-118,70],[-95,72],[-75,70],[-62,58],[-55,50],[-66,44],[-76,37],[-80,31],[-80,25],[-84,30],[-90,29],[-97,27],[-97,20],[-92,16],[-84,11],[-78,8],[-83,8],[-87,13],[-95,15],[-105,20],[-112,30],[-118,34],[-124,40],[-125,48],[-130,54]],
+  [[-78,8],[-72,12],[-62,10],[-50,0],[-35,-6],[-39,-14],[-42,-23],[-48,-27],[-58,-38],[-65,-42],[-68,-52],[-74,-50],[-73,-38],[-71,-28],[-70,-18],[-76,-13],[-81,-5],[-80,0],[-77,5]],
+  [[-50,60],[-42,60],[-22,70],[-25,75],[-65,75],[-55,68]],
+  [[-10,36],[-9,43],[-2,44],[-5,48],[2,51],[5,53],[8,57],[5,62],[15,69],[28,71],[40,67],[60,70],[80,73],[100,75],[120,73],[140,72],[160,70],[180,66],[170,60],[160,55],[155,59],[142,52],[140,47],[132,43],[129,37],[129,35],[126,34],[126,37],[125,39],[121,40],[118,38],[121,32],[122,28],[117,23],[110,21],[108,16],[109,12],[105,9],[103,1],[100,6],[98,10],[98,16],[94,17],[92,22],[88,22],[80,16],[77,8],[73,17],[70,22],[66,25],[57,25],[56,27],[50,30],[48,29],[51,24],[56,26],[59,22],[52,16],[44,13],[43,16],[39,22],[35,28],[34,31],[36,36],[30,37],[27,37],[26,40],[23,38],[22,40],[19,42],[16,41],[18,40],[16,38],[12,44],[13,45],[9,44],[3,43],[0,39],[-2,37],[-6,36]],
+  [[-17,21],[-16,14],[-13,8],[-8,4],[0,5],[8,4],[10,2],[9,-1],[12,-6],[13,-12],[12,-18],[15,-27],[18,-34],[25,-34],[32,-28],[35,-24],[35,-18],[40,-15],[40,-10],[39,-5],[42,0],[51,11],[44,11],[43,13],[38,18],[35,25],[32,31],[25,32],[20,31],[11,33],[10,37],[3,37],[-5,36],[-10,30],[-13,27]],
+  [[-5,50],[1,51],[2,53],[-1,55],[-3,58],[-6,58],[-5,54],[-3,53],[-5,52]],
+  [[-10,52],[-6,52],[-6,55],[-8,55],[-10,54]],
+  [[130,31],[136,34],[141,38],[142,43],[145,44],[141,45],[139,40],[136,37],[131,34]],
+  [[95,5],[100,1],[106,-6],[103,-5],[96,2]],
+  [[109,1],[117,7],[119,1],[116,-4],[110,-3]],
+  [[131,-1],[141,-3],[150,-10],[141,-9],[135,-4]],
+  [[114,-22],[122,-18],[130,-12],[137,-12],[142,-11],[146,-19],[153,-26],[150,-37],[141,-38],[135,-35],[129,-32],[115,-34],[113,-26]],
+  [[44,-25],[50,-15],[49,-12],[44,-17]],
+];
+
+/* ---------- strings ---------- */
+const EN = {
+  title: "Where did your dinner come from?", eyebrow: "History · Stage 3", h1: "Where did your dinner come from?",
+  intro: "Guess where Sichuan's chilli came from, then split famous dishes into their ingredients and send each one home to where it was first farmed. Turn the clock back to 1400 and watch what disappears.",
+  reset: "Reset", figAria: "Schematic world map. Lines join each ingredient's first farming region to the place where the dish is eaten. Thick lines crossed the ocean between the Americas and the rest of the world. In step 2, left and right arrows change the year, up and down change the dish.",
+  s1: "Guess", s2: "Unpack a dish", s3: "Rule",
+  k1: "Predict first", t1: "Has Sichuan food always been hot?",
+  b1: "Mapo tofu is a famous Sichuan dish: tofu, minced pork, broad-bean paste, numbing Sichuan pepper and red chilli. The map joins each ingredient to where it was first farmed. Where the chilli came from is left as a question.",
+  chilliQ: "Chilli: from where?",
+  q: "Has chilli always been part of Sichuan cooking?",
+  o1: "Yes, Sichuan food has been hot for thousands of years", o2: "It came overland from India along the Silk Roads", o3: "No, it came from the Americas, after 1492",
+  right: "Yes. Chilli was first farmed in Mexico. The first record of it in China is in Gao Lian's book Zunsheng bajian (1591), as a plant from abroad. It became a Sichuan staple only later, in the Qing dynasty. The numbing Sichuan pepper (huajiao) is the local spice.",
+  wrong: "A common belief, but no. Chilli was first farmed in Mexico. The first record of it in China is in Gao Lian's book Zunsheng bajian (1591), as a plant from abroad. It became a Sichuan staple only later, in the Qing dynasty. The numbing Sichuan pepper (huajiao) is the local spice.",
+  k2: "Hands on", t2: "Unpack a dish, turn back the clock",
+  b2: "Pick a dish (or tap a plate on the map). Its ingredients fly back to where they were first farmed. Then drag the year: before 1492 nothing crossed the Atlantic, so ingredients from the other side vanish.",
+  deckLead: "Pick a dish",
+  d_mapo: "Mapo tofu", d_pasta: "Tomato pasta", d_stew: "Irish stew", d_kimchi: "Kimchi", d_polenta: "Polenta (maize porridge)", d_rice: "Rice and beans",
+  sd_mapo: "Mapo tofu", sd_pasta: "Tomato pasta", sd_stew: "Irish stew", sd_kimchi: "Kimchi", sd_polenta: "Polenta", sd_rice: "Rice and beans",
+  h_mapo: "Sichuan", h_pasta: "Italy", h_stew: "Ireland", h_kimchi: "Korea", h_polenta: "Northern Italy", h_rice: "Brazil",
+  i_chilli: "Chilli", i_tomato: "Tomato", i_maize: "Maize", i_beans: "Beans", i_potato: "Potato",
+  i_soy: "Soybeans (tofu)", i_huajiao: "Sichuan pepper", i_porkC: "Pork", i_cabbage: "Chinese cabbage", i_rice: "Rice",
+  i_broad: "Broad beans (bean paste)", i_wheat: "Wheat (pasta)", i_olive: "Olive oil", i_mutton: "Mutton (sheep)", i_dairy: "Butter, cheese (cattle)", i_porkW: "Pork",
+  i_garlic: "Garlic", i_onion: "Onion", i_basil: "Basil", i_ginger: "Ginger",
+  r_MESO: "Mexico & Central America", r_ANDES: "Andes", r_WASIA: "West Asia", r_CASIA: "Central Asia", r_SASIA: "South & SE Asia", r_CHINA: "China",
+  w_cn: "China", w_it: "Italy", w_eu: "Europe (Spain)", w_kr: "Korea", w_br: "Brazil", w_am: "the Caribbean",
+  f_1591: "1591", f_1540s: "1540s", f_c1570: "c. 1570", f_e1600: "early 1600s", f_1490s: "1490s", f_c16: "16th c.", f_1493: "1493",
+  same: "same side of the ocean", crossed: "crossed the ocean · first records in {w}: {f}", notYet: "not on record in {w} until {f}",
+  porkNote: "Pigs were domesticated in West Asia and, separately, in China.",
+  dishNote_mapo: "Before chilli, Sichuan cooking already had the numbing ‘ma’ of Sichuan pepper. The hot ‘la’ came later.",
+  dishNote_pasta: "Italy's first record of tomatoes is from the 1540s. Italian recipes for tomato sauce appear in the 1690s, about 150 years later.",
+  dishNote_stew: "Potatoes were first farmed in the Andes. They are first recorded in Europe in the later 16th c.; by the 1700s they were a staple in Ireland.",
+  dishNote_kimchi: "Older kimchi was salted or pickled vegetables without chilli. Red, chilli kimchi is generally dated to the 18th c.",
+  dishNote_polenta: "Before maize, polenta was made from other grains or flours, such as millet or chestnut flour.",
+  dishNote_rice: "This one goes the other way: the beans are local, while rice and pigs came across the Atlantic. Columbus's second voyage (1493) carried livestock and plants.",
+  count: "{x} of {m} ingredients crossed the ocean.", countYear: "In {y}: {h} of {m} on record.", complete: "Complete from {y} on (first records).",
+  firstOnly: "Dates are first records. Turning a new crop into an everyday food usually took a century or more.",
+  play: "▶ Play years", pause: "❚❚ Pause", yrLabel: "Year", yrVal: "{y}",
+  liveDish: "{d}: {x} of {m} ingredients crossed the ocean.", liveYear: "{y}: {h} of {m} ingredients of {d} on record. {c} of {n} dishes complete.",
+  k3: "The rule", t3: "‘Traditional’ food is often new",
+  b3: "Many ‘traditional’ dishes depend on plants and animals that crossed between the Americas and the rest of the world only after 1492. Historians call this swap the Columbian Exchange.",
+  ruleCount: "In these {n} dishes, {x} of {m} ingredients ({p}%) crossed the ocean, and {k} of {n} dishes need at least one of them.",
+  ruleYear: "Set the clock to 1400 and {c} of {n} dishes can be made.",
+  toWorld: "Americas → the world", toAm: "The world → Americas",
+  l_maize: "Maize", l_potato: "Potato", l_tomato: "Tomato", l_chilli: "Chilli", l_sweet: "Sweet potato", l_cacao: "Cacao (chocolate)", l_peanut: "Peanut",
+  l_wheat: "Wheat", l_rice: "Rice", l_sugar: "Sugar cane", l_coffee: "Coffee", l_cattle: "Cattle", l_horse: "Horses", l_pig: "Pigs",
+  sweetNote: "Sweet potato reached Fujian c. 1593, brought from Luzon (in the Philippines) by the merchant Chen Zhenlong: some crops crossed the Pacific too.",
+  horseNote: "Horses had lived in the Americas long ago but died out there more than 10,000 years ago; European ships brought them back.",
+  nameNote: "The name ‘Columbian Exchange’ comes from the historian Alfred Crosby (1972).",
+  resultTitle: "What we found",
+  resLine0: "{d}: {x} of {m} ingredients crossed the ocean after 1492",
+  resLine: "{d}: {x} of {m} ingredients crossed the ocean · in {y}: {h} of {m} on record",
+  resNote: "A dish can feel ancient and still be only two or three centuries old. Before 1492, no chilli in Sichuan or Korea, no tomato in Italy, no potato in Ireland, and no rice or pigs in Brazil.",
+  tagS: "schematic map, not to scale", tagX: "━ crossed the ocean", tagL: "─ same side",
+  oAtl: "Atlantic", oPac: "Pacific", sideA: "Americas", sideE: "Africa, Europe, Asia",
+  explainK: "Explain it", explainQ: "A friend says “chilli is a traditional Chinese spice, so it must have grown in China forever”. Use the map and the year slider to explain where chilli came from, when it is first recorded in China, and why a ‘traditional’ food can still be fairly new.",
+  homeK: "Try at home", homeQ: "Pick tonight's dinner and list its ingredients. For each one, guess: Americas, or Africa / Europe / Asia? Then look them up. How many would be missing in 1400?",
+  foot: "The map is schematic: rough coastlines on a plain longitude–latitude grid, not to scale. Lines join an ingredient's first farming region to the dish; they are not trade routes. ‘First farmed’ regions are broad, textbook-level regions: maize, chilli, tomato and beans in Mexico and Central America (beans also in the Andes); potato in the Andes; wheat, sheep, cattle, broad beans and olives in West Asia; pigs in West Asia and China; soybeans, Asian rice, Sichuan pepper and Chinese cabbage in China; garlic and onion in Central Asia; basil and ginger in South and Southeast Asia. Years are first records, not when a food became common: chilli in China 1591 (Gao Lian, Zunsheng bajian); tomato in Italy 1540s (P. A. Mattioli); potato in Europe c. 1570 (Spain); chilli in Korea early 1600s; maize in Spain 1490s; pigs in the Caribbean 1493 (Columbus's second voyage); rice in Brazil 16th c.; sweet potato in Fujian c. 1593 (Chen Zhenlong). Sources: standard reference works on crop domestication and the Columbian Exchange (A. W. Crosby, 1972). Dates are approximate. CC BY 4.0 · Boxi Yu",
+};
+const ZH = {
+  title: "你的晚饭从哪里来？", eyebrow: "历史 · 阶段 3", h1: "你的晚饭从哪里来？",
+  intro: "先猜四川的辣椒从哪里来，再把几道名菜拆成食材，让每样食材飞回最早种植或驯化它的地方。把时钟拨回 1400 年，看看什么会消失。",
+  reset: "重置", figAria: "世界示意地图。线把每样食材最早的种植或驯化地区和吃这道菜的地方连起来。粗线表示它跨过了美洲和世界其他地方之间的大洋。第 2 步里，左右方向键改年份，上下方向键换菜。",
+  s1: "先猜", s2: "拆一道菜", s3: "规律",
+  k1: "先猜一猜", t1: "川菜一直是辣的吗？",
+  b1: "麻婆豆腐是有名的川菜：豆腐、肉末、豆瓣酱、发麻的花椒，还有红辣椒。地图把每样食材连到它最早种植或驯化的地方，辣椒从哪来，先留个问号。",
+  chilliQ: "辣椒：从哪来？",
+  q: "辣椒是不是一直都在川菜里？",
+  o1: "是，川菜几千年来都是辣的", o2: "它是沿丝绸之路从印度陆路传来的", o3: "不是，它来自美洲，1492 年以后才传来",
+  right: "对。辣椒最早在墨西哥种植。中国最早的辣椒记载见于高濂《遵生八笺》（1591 年），称作「番椒」，当作外来植物。它成为川菜的常用料要更晚，在清代。花椒才是本地的香料。",
+  wrong: "很多人这么想，但不是。辣椒最早在墨西哥种植。中国最早的辣椒记载见于高濂《遵生八笺》（1591 年），称作「番椒」，当作外来植物。它成为川菜的常用料要更晚，在清代。花椒才是本地的香料。",
+  k2: "动手", t2: "拆一道菜，拨回时钟",
+  b2: "选一道菜（或点地图上的盘子），它的食材会飞回最早种植或驯化的地方。再拖年份：1492 年以前没有东西跨过大西洋，来自大洋另一边的食材就消失了。",
+  deckLead: "选一道菜",
+  d_mapo: "麻婆豆腐", d_pasta: "番茄意面", d_stew: "爱尔兰炖菜", d_kimchi: "韩式泡菜", d_polenta: "玉米粥（波伦塔）", d_rice: "米饭配豆子",
+  sd_mapo: "麻婆豆腐", sd_pasta: "番茄意面", sd_stew: "爱尔兰炖菜", sd_kimchi: "韩式泡菜", sd_polenta: "玉米粥", sd_rice: "米饭配豆子",
+  h_mapo: "四川", h_pasta: "意大利", h_stew: "爱尔兰", h_kimchi: "朝鲜半岛", h_polenta: "意大利北部", h_rice: "巴西",
+  i_chilli: "辣椒", i_tomato: "番茄", i_maize: "玉米", i_beans: "菜豆", i_potato: "土豆",
+  i_soy: "大豆（豆腐）", i_huajiao: "花椒", i_porkC: "猪肉", i_cabbage: "白菜", i_rice: "稻米",
+  i_broad: "蚕豆（豆瓣酱）", i_wheat: "小麦（面）", i_olive: "橄榄油", i_mutton: "羊肉", i_dairy: "黄油、奶酪（牛）", i_porkW: "猪肉",
+  i_garlic: "大蒜", i_onion: "洋葱", i_basil: "罗勒", i_ginger: "姜",
+  r_MESO: "墨西哥和中美洲", r_ANDES: "安第斯山区", r_WASIA: "西亚", r_CASIA: "中亚", r_SASIA: "南亚和东南亚", r_CHINA: "中国",
+  w_cn: "中国", w_it: "意大利", w_eu: "欧洲（西班牙）", w_kr: "朝鲜半岛", w_br: "巴西", w_am: "加勒比地区",
+  f_1591: "1591 年", f_1540s: "16 世纪 40 年代", f_c1570: "约 1570 年", f_e1600: "17 世纪初", f_1490s: "15 世纪 90 年代", f_c16: "16 世纪", f_1493: "1493 年",
+  same: "在大洋同一边", crossed: "跨过大洋 · {w}最早的记载：{f}", notYet: "{w}要到 {f}才有记载",
+  porkNote: "猪在西亚和中国分别被驯化。",
+  dishNote_mapo: "没有辣椒以前，川菜就有花椒的「麻」；「辣」是后来才有的。",
+  dishNote_pasta: "意大利最早的番茄记载在 16 世纪 40 年代；意大利的番茄酱菜谱到 17 世纪 90 年代才出现，晚了约 150 年。",
+  dishNote_stew: "土豆最早在安第斯山区种植。欧洲最早的记载在 16 世纪后期；到 18 世纪它已是爱尔兰的主食。",
+  dishNote_kimchi: "早先的泡菜是盐渍或腌的蔬菜，不放辣椒。红色的辣椒泡菜一般认为在 18 世纪才出现。",
+  dishNote_polenta: "有玉米以前，波伦塔用别的谷物或粉做，比如小米或栗子粉。",
+  dishNote_rice: "这道菜方向相反：豆子是本地的，稻米和猪是跨过大西洋来的。哥伦布第二次航行（1493 年）带来了牲畜和作物。",
+  count: "{m} 样食材里有 {x} 样跨过了大洋。", countYear: "{y} 年：{m} 样里有 {h} 样已有记载。", complete: "从 {y} 年起凑齐（按最早记载）。",
+  firstOnly: "年份是最早的记载。一种新作物变成家常饭菜，通常还要一百年甚至更久。",
+  play: "▶ 播放年份", pause: "❚❚ 暂停", yrLabel: "年份", yrVal: "{y} 年",
+  liveDish: "{d}：{m} 样食材里有 {x} 样跨过了大洋。", liveYear: "{y} 年：{d}的 {m} 样食材里有 {h} 样已有记载；{n} 道菜里 {c} 道凑齐。",
+  k3: "规律", t3: "「传统」饭菜常常很新",
+  b3: "许多「传统」菜靠的是 1492 年以后才在美洲和世界其他地方之间交换的作物和牲畜。历史学家把这场大交换叫做「哥伦布大交换」。",
+  ruleCount: "这 {n} 道菜的 {m} 样食材里，有 {x} 样（{p}%）跨过了大洋；{n} 道菜里有 {k} 道至少要用到一样。",
+  ruleYear: "把时钟拨到 1400 年，{n} 道菜里只能做出 {c} 道。",
+  toWorld: "美洲 → 世界", toAm: "世界 → 美洲",
+  l_maize: "玉米", l_potato: "土豆", l_tomato: "番茄", l_chilli: "辣椒", l_sweet: "红薯", l_cacao: "可可（巧克力）", l_peanut: "花生",
+  l_wheat: "小麦", l_rice: "稻米", l_sugar: "甘蔗", l_coffee: "咖啡", l_cattle: "牛", l_horse: "马", l_pig: "猪",
+  sweetNote: "约 1593 年，商人陈振龙把红薯从吕宋（今菲律宾）带到福建：有的作物也跨过了太平洋。",
+  horseNote: "很久以前美洲也有马，但一万多年前就在那里灭绝了；是欧洲的船又把马带了回去。",
+  nameNote: "「哥伦布大交换」这个名字来自历史学家克罗斯比（1972 年）。",
+  resultTitle: "我们发现",
+  resLine0: "{d}：{m} 样食材里 {x} 样是 1492 年以后跨过大洋来的",
+  resLine: "{d}：{m} 样食材里 {x} 样跨过了大洋 · {y} 年：{m} 样里 {h} 样已有记载",
+  resNote: "一道菜可以感觉很古老，其实只有两三百年。1492 年以前，四川和朝鲜半岛没有辣椒，意大利没有番茄，爱尔兰没有土豆，巴西没有稻米和猪。",
+  tagS: "示意地图，不按比例", tagX: "━ 跨过大洋", tagL: "─ 同一边",
+  oAtl: "大西洋", oPac: "太平洋", sideA: "美洲", sideE: "亚非欧",
+  explainK: "说一说", explainQ: "朋友说：「辣椒是中国传统香料，一定自古就长在中国。」用地图和年份滑块跟他讲讲：辣椒从哪里来，中国最早什么时候有记载，为什么一种「传统」食物也可能挺新的。",
+  homeK: "家里做一做", homeQ: "挑今天的晚饭，列出食材。每一样先猜：来自美洲，还是亚非欧？再查一查。放到 1400 年，会少几样？",
+  foot: "地图是示意图：在普通的经纬网上画的粗略海岸线，不按比例。线只连接食材最早的种植或驯化地区和这道菜，不是贸易路线。「最早种植或驯化」的地区是教科书常用的大区：玉米、辣椒、番茄、菜豆在墨西哥和中美洲（菜豆在安第斯也有）；土豆在安第斯；小麦、绵羊、牛、蚕豆、橄榄在西亚；猪在西亚和中国；大豆、亚洲稻、花椒、白菜在中国；大蒜、洋葱在中亚；罗勒、姜在南亚和东南亚。年份是最早的记载，不是普及的时间：辣椒在中国 1591 年（高濂《遵生八笺》）；番茄在意大利 16 世纪 40 年代（马蒂奥利）；土豆在欧洲约 1570 年（西班牙）；辣椒在朝鲜半岛 17 世纪初；玉米在西班牙 15 世纪 90 年代；猪在加勒比 1493 年（哥伦布第二次航行）；稻米在巴西 16 世纪；红薯在福建约 1593 年（陈振龙）。资料：作物驯化和哥伦布大交换的通行参考书（克罗斯比，1972）。年代都是大致的。CC BY 4.0 · Boxi Yu",
+};
+const P = Play.setup({ en: EN, zh: ZH });
+const $ = (id) => document.getElementById(id);
+
+/* ---------- state ---------- */
+let step = 0, dish = DISHES[0], year = YMAX, answered = false;
+let fly = 1, flyRaf = 0, playing = false, raf = 0, last = 0;
+let W = 600, H = 330;
+const fig = $("fig");
+function textW(s) { let w = 0; for (const ch of s) w += /[⺀-鿿＀-￯]/.test(ch) ? 13 : 7.2; return w; }
+function pt(ll) { return proj(ll, W, H); }
+function curve(a, b) {             // quadratic curve from a to b, bulging north
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, d = Math.hypot(b.x - a.x, b.y - a.y);
+  return { a, b, c: { x: mx, y: my - Math.min(70, d * 0.25) } };
+}
+function at(cv, t) { const s = 1 - t; return { x: s * s * cv.a.x + 2 * s * t * cv.c.x + t * t * cv.b.x, y: s * s * cv.a.y + 2 * s * t * cv.c.y + t * t * cv.b.y }; }
+function label(x, y, s, cls, anchor) {
+  const tw = textW(s);
+  let a = anchor || "middle";
+  if (a === "middle") x = Play.clamp(x, 3 + tw / 2, W - 3 - tw / 2);
+  else if (a === "start") { if (x + tw > W - 3) { a = "end"; x = Math.min(x - 16, W - 3); } }
+  else if (x - tw < 3) { a = "start"; x = Math.max(x + 16, 3); }
+  y = Play.clamp(y, 14, H - 22);
+  const t = Play.svg("text", { class: "lab " + (cls || ""), x, y, "text-anchor": a }, fig);
+  t.textContent = s;
+  return t;
+}
+
+/* ---------- drawing ---------- */
+function draw() {
+  H = Math.round(Play.clamp(W * 0.62, 240, 430));
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  fig.style.height = H + "px";
+  fig.innerHTML = "";
+  Play.svg("rect", { class: "sea", x: 0, y: 0, width: W, height: H }, fig);
+  LAND.forEach((poly) => {
+    Play.svg("path", { class: "land", d: "M" + poly.map((p) => { const q = pt(p); return q.x.toFixed(1) + " " + q.y.toFixed(1); }).join("L") + "Z" }, fig);
+  });
+  const wide = W >= 520;
+  // the Atlantic divide between the two "sides"
+  const d0 = pt([-30, 70]), d1 = pt([-25, -55]);
+  Play.svg("line", { class: "divide", x1: d0.x, y1: d0.y, x2: d1.x, y2: d1.y }, fig);
+  const oa = pt([-33, 25]);
+  Play.svg("text", { class: "ocean", x: oa.x, y: oa.y, "text-anchor": "middle" }, fig).textContent = P.t("oAtl");
+  if (wide) {
+    const op = pt([-128, -35]);
+    Play.svg("text", { class: "ocean", x: op.x + 4, y: op.y }, fig).textContent = P.t("oPac");
+  }
+  const sa = pt([-124, 72]), se = pt([180, 72]);
+  Play.svg("text", { class: "tag", x: Math.max(4, sa.x), y: Math.max(14, sa.y) }, fig).textContent = P.t("sideA");
+  Play.svg("text", { class: "tag", x: Math.min(W - 4, se.x), y: Math.max(14, se.y), "text-anchor": "end" }, fig).textContent = P.t("sideE");
+  Play.svg("text", { class: "tag", x: W - 6, y: wide ? H - 6 : H - 24, "text-anchor": "end" }, fig).textContent = P.t("tagS");
+  const lg = Play.svg("text", { class: "tag", x: 6, y: H - 6 }, fig);
+  Play.svg("tspan", { style: "fill: var(--a)" }, lg).textContent = P.t("tagX");
+  if (wide || step === 1) Play.svg("tspan", { style: "fill: var(--c)", dx: 10 }, lg).textContent = P.t("tagL");
+
+  const shown = step === 2 ? DISHES : [dish];
+  const yNow = step === 1 ? year : YMAX;
+  const stack = {};                 // region → labels so far (stacking)
+  const used = new Set();
+  // lines first, then dots, then labels on top
+  const layer = { ln: [], lab: [] };
+  shown.forEach((d) => {
+    const h = pt(d.at);
+    d.items.forEach((it) => {
+      const x = crosses(d, it);
+      if (step === 2 && !x) return;   // rule view: only what crossed
+      const rg = INGR[it.i], o = pt(REGIONS[rg].at);
+      used.add(rg);
+      const here = present(d, it, yNow);
+      const hidden = step === 0 && it.i === "chilli" && !answered;
+      if (hidden) { layer.q = h; return; }
+      const cls = !here ? "gone" : x ? "x" : "";
+      const cv = curve(h, o);
+      const t = step === 1 ? fly : 1;
+      const e = at(cv, t);
+      // line from the dish to where the ingredient has flown so far
+      const n = 16, pts = [];
+      for (let k = 0; k <= n; k++) { const q = at(cv, (k / n) * t); pts.push(q.x.toFixed(1) + " " + q.y.toFixed(1)); }
+      layer.ln.push(["path", { class: "ln " + cls, d: "M" + pts.join("L") }]);
+      layer.ln.push(["circle", { class: "dot " + cls, cx: e.x, cy: e.y, r: x ? 5 : 4 }]);
+      if (t < 1) return;
+      const key = rg;
+      const name = P.t("i_" + it.i);
+      if (step === 2) {                // one label per ingredient name per region
+        const nm = P.t("i_" + it.i);
+        stack[key] = stack[key] || [];
+        if (stack[key].includes(nm)) return;
+        stack[key].push(nm);
+      } else {
+        stack[key] = stack[key] || [];
+        stack[key].push(name);
+      }
+      layer.lab.push({ rg, name, cls, k: stack[key].length - 1 });
+    });
+  });
+  layer.ln.forEach(([tag, a]) => Play.svg(tag, a, fig));
+  // origin regions
+  used.forEach((rg) => {
+    const o = pt(REGIONS[rg].at);
+    Play.svg("circle", { class: "og", cx: o.x, cy: o.y, r: 4 }, fig);
+  });
+  // plates (dish homes)
+  DISHES.forEach((d) => {
+    const h = pt(d.at), on = shown.includes(d);
+    if (step === 0 && !on) return;
+    const c = Play.svg("circle", { class: "plate" + (on ? " on" : " dim") + (step === 1 ? " hit" : ""), cx: h.x, cy: h.y, r: on ? 8 : 6 }, fig);
+    if (step === 1) {
+      c.dataset.d = d.id;
+      Play.svg("circle", { cx: h.x, cy: h.y, r: 16, fill: "transparent", class: "hit" }, fig).dataset.d = d.id;
+    }
+  });
+  // ingredient labels, stacked under/over each region
+  layer.lab.forEach((l) => {
+    const o = pt(REGIONS[l.rg].at);
+    const below = REGIONS[l.rg].side === "A" || l.rg === "SASIA" || l.rg === "CHINA";
+    const anchor = l.rg === "WASIA" || l.rg === "CASIA" ? "end" : "middle";
+    const dx = anchor === "start" ? 9 : anchor === "end" ? -9 : 0;
+    const y = below ? o.y + 20 + l.k * 16 : o.y - 9 - l.k * 16;
+    label(o.x + dx, y, l.name, l.cls, anchor);
+  });
+  if (wide && step !== 0) used.forEach((rg) => {
+    const o = pt(REGIONS[rg].at);
+    if (rg === "MESO") label(o.x, o.y - 10, P.t("r_" + rg), "rg");
+  });
+  if (layer.q) label(layer.q.x, layer.q.y + 42, P.t("chilliQ"), "x");
+  // dish labels
+  if (step !== 2 || wide) shown.forEach((d) => {
+    const h = pt(d.at);
+    const s = step === 2 ? P.t("sd_" + d.id) : P.t("d_" + d.id) + " · " + P.t("h_" + d.id);
+    const side = d.ls;
+    if (side === "s") label(h.x, h.y + 24, s, "home");
+    else if (side === "n") label(h.x, h.y - 13, s, "home");
+    else if (side === "e") label(h.x + 12, h.y + 5, s, "home", "start");
+    else label(h.x - 12, h.y + 5, s, "home", "end");
+  });
+}
+
+/* ---------- side panel ---------- */
+function add(box, cls, txt) { const d = document.createElement("div"); d.className = cls; d.textContent = txt; box.appendChild(d); return d; }
+function panel() {
+  const box = $("info");
+  box.innerHTML = "";
+  box.hidden = step === 0;
+  if (step === 0) return;
+  if (step === 1) {
+    const s = stats(dish, year);
+    add(box, "gp", P.t("count", { x: s.x, m: s.m }) + " " + P.t("countYear", { y: year, h: s.here, m: s.m }));
+    dish.items.forEach((it) => {
+      const x = crosses(dish, it), here = present(dish, it, year);
+      const r = document.createElement("div");
+      r.className = "row" + (!here ? " gone" : x ? " x" : "");
+      const dt = document.createElement("span"); dt.className = "d"; r.appendChild(dt);
+      const tx = document.createElement("span");
+      const b = document.createElement("b"); b.textContent = P.t("i_" + it.i); tx.appendChild(b);
+      tx.appendChild(document.createTextNode(" · " + P.t("r_" + INGR[it.i])));
+      const w = document.createElement("div"); w.className = "w";
+      const f = it.fl ? P.t("f_" + it.fl) : "";
+      w.textContent = !x ? P.t("same") : here ? P.t("crossed", { w: P.t("w_" + it.w), f }) : P.t("notYet", { w: P.t("w_" + it.w), f });
+      tx.appendChild(w);
+      r.appendChild(tx);
+      box.appendChild(r);
+    });
+    add(box, "", P.t("dishNote_" + dish.id));
+    if (dish.items.some((it) => it.i === "porkC" || it.i === "porkW")) add(box, "it", P.t("porkNote"));
+    add(box, "it", P.t("complete", { y: completeFrom(dish) }) + " " + P.t("firstOnly"));
+    return;
+  }
+  const t = totals(YMAX), t0 = totals(YMIN);
+  add(box, "gp", P.t("ruleCount", { n: t.n, x: t.x, m: t.m, p: t.pct, k: t.withX }));
+  add(box, "", P.t("ruleYear", { c: t0.complete, n: t0.n }));
+  const lists = document.createElement("div"); lists.className = "lists"; box.appendChild(lists);
+  [["toWorld", ["maize", "potato", "tomato", "chilli", "sweet", "cacao", "peanut"]], ["toAm", ["wheat", "rice", "sugar", "coffee", "cattle", "horse", "pig"]]].forEach(([h, ks]) => {
+    const c = document.createElement("div"); lists.appendChild(c);
+    add(c, "h", P.t(h));
+    const ul = document.createElement("ul"); c.appendChild(ul);
+    ks.forEach((k) => { const li = document.createElement("li"); li.textContent = P.t("l_" + k); ul.appendChild(li); });
+  });
+  add(box, "it", P.t("sweetNote"));
+  add(box, "it", P.t("horseNote"));
+  add(box, "it", P.t("nameNote"));
+}
+function result() {
+  const y = step === 1 ? year : YMAX, s = stats(dish, y);
+  $("resMain").textContent = P.t(step === 1 ? "resLine" : "resLine0", { d: P.t("d_" + dish.id), x: s.x, m: s.m, y, h: s.here });
+  document.querySelector(".result").hidden = step === 0 && !answered;
+}
+function render() { draw(); panel(); result(); playBtn(); $("yrVal").textContent = P.t("yrVal", { y: year }); }
+
+/* ---------- dish deck ---------- */
+const deck = $("deck");
+function buildDeck() {
+  deck.innerHTML = "";
+  add(deck, "lead", P.t("deckLead"));
+  DISHES.forEach((d) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small" + (d === dish ? " on" : "");
+    b.setAttribute("aria-pressed", d === dish ? "true" : "false");
+    b.textContent = P.t("d_" + d.id);
+    b.addEventListener("click", () => { pick(d); deck.querySelectorAll("button")[DISHES.indexOf(d)].focus(); });
+    deck.appendChild(b);
+  });
+}
+function pick(d) {
+  dish = d;
+  buildDeck();
+  const s = stats(dish, year);
+  Play.live($("live"), P.t("liveDish", { d: P.t("d_" + d.id), x: s.x, m: s.m }));
+  startFly();
+}
+function startFly() {
+  cancelAnimationFrame(flyRaf);
+  if (Play.reduced) { fly = 1; render(); return; }
+  fly = 0;
+  const t0 = performance.now();
+  const go = (t) => {
+    fly = Play.clamp((t - t0) / 900, 0, 1);
+    fly = 1 - Math.pow(1 - fly, 3);
+    render();
+    if (fly < 1) flyRaf = requestAnimationFrame(go);
+  };
+  flyRaf = requestAnimationFrame(go);
+}
+
+/* ---------- year slider and playback ---------- */
+const yr = $("yr");
+function setYear(y, announce) {
+  const old = year;
+  year = Math.round(Play.clamp(Number.isFinite(y) ? y : YMAX, YMIN, YMAX));
+  yr.value = year;
+  render();
+  if (announce !== false && year !== old) {
+    const s = stats(dish, year), t = totals(year);
+    Play.live($("live"), P.t("liveYear", { y: year, d: P.t("d_" + dish.id), h: s.here, m: s.m, c: t.complete, n: t.n }));
+  }
+}
+function playBtn() { $("play").textContent = P.t(playing ? "pause" : "play"); }
+function setPlaying(on) {
+  playing = on;
+  cancelAnimationFrame(raf);
+  if (on) {
+    if (year >= YMAX) setYear(YMIN, false);
+    last = performance.now();
+    raf = requestAnimationFrame(tick);
+  }
+  playBtn();
+}
+function tick(t) {
+  const dt = Math.min(100, t - last); last = t;
+  setYear(year + dt / 40, false);     // 25 years per second
+  if (year >= YMAX) { setPlaying(false); setYear(YMAX); return; }
+  raf = requestAnimationFrame(tick);
+}
+yr.addEventListener("input", () => { setPlaying(false); setYear(+yr.value); });
+$("play").addEventListener("click", () => setPlaying(!playing));
+fig.addEventListener("keydown", (ev) => {
+  if (step !== 1) return;
+  const i = DISHES.indexOf(dish);
+  if (ev.key === "ArrowRight") { setPlaying(false); setYear(year + 10); }
+  else if (ev.key === "ArrowLeft") { setPlaying(false); setYear(year - 10); }
+  else if (ev.key === "ArrowDown") pick(DISHES[(i + 1) % DISHES.length]);
+  else if (ev.key === "ArrowUp") pick(DISHES[(i + DISHES.length - 1) % DISHES.length]);
+  else if (ev.key === "Home") { setPlaying(false); setYear(YMIN); }
+  else if (ev.key === "End") { setPlaying(false); setYear(YMAX); }
+  else if (ev.key === " " || ev.key === "Enter") setPlaying(!playing);
+  else return;
+  ev.preventDefault();
+});
+fig.addEventListener("pointerdown", (ev) => {
+  if (step !== 1) return;
+  const id = ev.target && ev.target.dataset ? ev.target.dataset.d : undefined;
+  const d = DISHES.find((x) => x.id === id);
+  if (d && d !== dish) pick(d);
+});
+
+function resize() {
+  const r = fig.getBoundingClientRect();
+  if (r.width < 10) return;
+  const w = Math.round(r.width);
+  if (w !== W) { W = w; draw(); }
+}
+if (window.ResizeObserver) new ResizeObserver(resize).observe(fig); else window.addEventListener("resize", resize);
+
+/* ---------- steps and predict ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { answered = true; render(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  deck.hidden = i !== 1;
+  $("ctl").hidden = i !== 1;
+  setPlaying(false);
+  cancelAnimationFrame(flyRaf); fly = 1;
+  if (i === 0) dish = DISHES[0];
+  if (i === 1) { buildDeck(); startFly(); }
+  Play.live($("live"), "");
+  render();
+});
+
+$("reset").addEventListener("click", () => {
+  setPlaying(false);
+  dish = DISHES[0]; answered = false; year = YMAX; yr.value = YMAX;
+  pr.reset(); st.go(0);
+});
+resize();
+render();
+</script>
+</body>
+</html>

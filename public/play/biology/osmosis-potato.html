@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why does a potato shrink in salt water?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .lab { font-size: 13px; fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round; }
+  .lab.b { font-weight: 650; }
+  .lab.m { fill: var(--muted); }
+  .lab.no { fill: var(--no); font-weight: 650; }
+  .lab.ok { fill: var(--a); font-weight: 650; }
+  .lab.big { font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .lab.q { fill: var(--a); font-size: 30px; font-weight: 750; }
+  .box { fill: var(--soft); stroke: var(--muted); stroke-width: 1.2; }
+  .boxhit { fill: transparent; cursor: copy; }
+  .mem { stroke: var(--c); stroke-width: 3; stroke-dasharray: 7 5; }
+  .w { fill: var(--c); }
+  .s { fill: var(--hl); stroke: var(--fg); stroke-width: .8; }
+  .axis { stroke: var(--muted); stroke-width: 1; fill: none; }
+  .zero { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+  .curve { stroke: var(--a); stroke-width: 2.5; fill: none; }
+  .mk { fill: var(--a); stroke: var(--surface); stroke-width: 2; }
+  .mk.hl { fill: var(--hl); stroke: var(--fg); stroke-width: 1; }
+  .cross { stroke: var(--no); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .barbg { fill: var(--line); opacity: .7; }
+  .barw { fill: var(--c); }
+  .glass { fill: none; stroke: var(--fg); stroke-width: 1.5; stroke-linejoin: round; }
+  .liq { fill: var(--c); }
+  .strip { stroke: var(--hl); stroke-linecap: round; fill: none; }
+  .stripE { stroke: var(--fg); stroke-linecap: round; fill: none; }
+  .beaker { cursor: pointer; outline: none; }
+  .beaker:focus-visible .glass, .beaker:hover .glass { stroke: var(--a); stroke-width: 3; }
+  .wall { fill: none; stroke: var(--a); stroke-width: 5; }
+  .proto { fill: var(--a); fill-opacity: .25; stroke: var(--a); stroke-width: 1.5; }
+  .vac { fill: var(--c); fill-opacity: .3; }
+  .nuc { fill: var(--a); fill-opacity: .7; }
+  .outside { fill: var(--c); fill-opacity: .1; }
+  .arr { stroke: var(--c); stroke-width: 2; fill: none; }
+  .arrN { stroke: var(--no); stroke-width: 5; fill: none; stroke-linecap: round; }
+  .head { fill: var(--c); } .headN { fill: var(--no); }
+  #extra { font-size: 14px; }
+  #extra strong { color: var(--fg); }
+  #extra table { border-collapse: collapse; font-size: 13px; width: 100%; font-variant-numeric: tabular-nums; }
+  #extra th, #extra td { padding: 2px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+  #extra th:first-child, #extra td:first-child { text-align: left; }
+  #predict2 { margin-top: 0; }
+  .controls .wide { min-width: 6.5em; }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctl2">
+        <button type="button" class="small" id="addL" data-t="addL"></button>
+        <button type="button" class="small" id="addR" data-t="addR"></button>
+        <button type="button" class="small" id="clr" data-t="clr"></button>
+        <button type="button" class="small wide" id="run"></button>
+        <button type="button" class="small" id="fast" aria-pressed="false" data-t="fast"></button>
+      </div>
+      <div class="controls" id="ctl3">
+        <button type="button" class="small" id="soakAll" data-t="soakAll"></button>
+        <label for="cx" data-t="cxLabel"></label>
+        <input type="range" id="cx" min="0" max="1" step="0.05" value="0.3">
+        <span class="val" id="cxVal"></span>
+      </div>
+      <div class="controls" id="ctl4">
+        <label for="co" data-t="coLabel"></label>
+        <input type="range" id="co" min="0" max="1" step="0.02" value="0.8">
+        <span class="val" id="coVal"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <div id="predict2"></div>
+      <p id="stepBody"></p>
+      <div id="extra"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+ en: {
+  title: "Why does a potato shrink in salt water?", eyebrow: "Biology · Stage 3", h1: "Why does a potato strip go soft in salt or sugar water?",
+  intro: "Guess first. Then watch water cross a membrane particle by particle, run a potato practical, and find the rule.",
+  reset: "Reset", figAria: "Particle model of a membrane, a potato-strip practical with a graph, and a plant cell",
+  s1: "Guess", s2: "Membrane", s3: "Potato bench", s4: "Rule",
+  k1: "Predict first", t1: "Two guesses before you look",
+  b1: "Pick an answer for each. Being wrong costs nothing: the next steps let you test both.",
+  q1: "Water and sugar on both sides of a membrane are spread out the same. What are the water particles doing?",
+  q1a: "Nothing: it is even, so they stop moving", q1b: "Still crossing, about as many each way", q1c: "Slowly all moving to one side",
+  q2: "A potato strip sits in strong sugar water (0.8 M) for a day. Its mass…",
+  q2a: "goes up: it soaks up the liquid", q2b: "goes down", q2c: "stays the same",
+  right: "Now test it.", wrong: "Keep your guess and test it.",
+  fb1a: "A very common idea. Step 2 has live counters: watch whether they stop once both sides are even.",
+  fb1b: "Yes. Particles never stop moving. Step 2 counts the crossings so you can check.",
+  fb1c: "Not when both sides are even. Step 2 shows what does make water pile up on one side.",
+  fb2a: "Many people think so: a sponge soaks things up. Step 3 weighs real-style strips before and after.",
+  fb2b: "Yes. Step 3 shows how much, and the concentration where it switches from gaining to losing.",
+  fb2c: "Only at one special concentration. Step 3 finds it.",
+  f1even: "same mix both sides", f1move: "moving?", f2sugar: "{c} M sugar water", f2mass: "{m} g → ? g",
+  addL: "+ sugar left", addR: "+ sugar right", clr: "Remove sugar", soakAll: "Soak all", play: "▶ Run", pause: "❚❚ Pause", fast: "×4 speed",
+  k2: "Hands on", t2: "Water crosses both ways, all the time",
+  b2: "Simplified model. Blue dots are water, yellow are sugar, and every particle takes up one place. The dashed membrane lets water through but not sugar. Press Run, then tap a side (or use the buttons) to add sugar.",
+  side0: "left", side1: "right", fMem: "membrane: water passes, sugar does not",
+  cR: "→ to the right", cL: "← to the left", cNet: "net", cShare: "share of water", cSince: "since last change, {t} s", fSimple: "simplified model",
+  netR: "{n} → right", netL: "{n} ← left", net0: "0",
+  x2: "Left: {wl} water + {sl} sugar ({pl}% water). Right: {wr} water + {sr} sugar ({pr}% water). In the last {win} s: {rr} per s to the right, {rl} per s to the left.",
+  x2eq: " <strong>In and out are balanced on average, so the net flow is about zero, but the counters keep running.</strong>",
+  x2goS: " <strong>Net flow is towards the {side} side: there, a smaller share of the particles hitting the membrane is water, so fewer water particles leave it.</strong>",
+  x2goW: " <strong>Net flow is towards the {side} side: the stretched membrane pushes water back, like a cell wall.</strong>",
+  x2wait: " Press Run to start the particles.",
+  live2: "{a} crossed to the right, {b} to the left, net {n}.",
+  k3: "Hands on", t3: "The potato practical",
+  b3: "Each beaker holds a different sucrose (sugar) solution. Tap a beaker to soak its strip and weigh it, or soak them all. Use the slider for your own beaker and hunt for the concentration where nothing changes.",
+  bMass: "% mass change", bAxis: "sucrose, M (mol/L)", bYou: "yours", bTap: "tap", bAria: "Beaker of {c} M sucrose, tap to soak",
+  bPct: "{p}%", bCross: "≈ {c} M",
+  thC: "sucrose", thB: "before, g", thA: "after, g", thP: "change",
+  x3none: "No strips weighed yet.",
+  x3one: "Need strips on both sides of zero to find where the line crosses.",
+  x3cross: "The line crosses zero between {a} M and {b} M, at about <strong>{c} M</strong>. Below that the strips gain water; above it they lose water.",
+  x3why: " Strips start at different masses, so we compare <strong>% change</strong>.",
+  live3: "{c} M: {b} g before, {a} g after, {p}% change.",
+  k4: "The rule", t4: "Net flow goes to the side where water is scarcer",
+  b4: "Water crosses a cell membrane both ways all the time. The net flow is towards the side where water is scarcer: the saltier or sweeter side. Drag the slider to change the liquid around a potato cell.",
+  coLabel: "Outside", cxLabel: "Your beaker",
+  sTurgid: "turgid: swells and presses on its wall", sEven: "about even: in equals out", sPlasmo: "plasmolysed: shrinks away from its wall",
+  fWall: "cell wall", fVac: "vacuole", fIn: "in", fOut: "out", fNet: "net", fIso: "≈ {c} M",
+  fCell: "potato cell (sketch)", fOutside: "outside: {c} M sucrose",
+  x4: "Outside {c} M, inside the cells about {i} M. {s} Model mass change of a strip: <strong>{p}%</strong>.",
+  x4in: "Less sugar outside, so a bigger share of water outside: net flow in.", x4out: "More sugar outside, so a smaller share of water outside: net flow out.", x4even: "Same strength both sides: water still crosses, but in equals out.",
+  x4salt: " Salt does the same, and more per mole: each NaCl splits into two particles, so about {s} M salt matches {i} M sucrose.",
+  live4: "{c} M outside: {st}, mass change {p}%.",
+  resultTitle: "What we found", resultMain: "below ≈ {c} M: gains · above: loses",
+  resultNote: "Particles never stop. Water crosses both ways; the net flow goes to where water is scarcer, so a strip in salty or sugary water loses water and goes soft.",
+  explainK: "Explain it", explainQ: "A friend says that once both sides are equal, the water stops moving. Use the counters from step 2 to explain what really happens, and why a potato strip in salt water loses mass.",
+  homeK: "Try at home", homeQ: "Cut two equal potato sticks. Put one in plain water and one in water with 2 big spoons of salt. After an hour, bend them. Which one is floppy? Weigh them if you have a kitchen scale.",
+  foot: "Simplified particle model: {w} water particles; every particle, water or sugar, takes up one place, so on the sugary side a smaller share of the particles hitting the membrane is water. A water particle that hits the membrane passes with a chance of {pp}%; the membrane is a little springy (each crossing is scaled by e^(−{k} × the difference in water count ÷ 2)), standing in for a cell wall. Sugar is drawn far more crowded than real sugar water. The real cause of osmosis is that dissolved particles lower the water potential; this picture makes the same prediction. Potato bench: a model fitted to typical school results (sucrose, soaked about a day); values are approximate and real potatoes vary. Isotonic point in the model: {c} M sucrose (school results usually land near 0.25–0.30 M). Model: below it, change = {g}% × ({c} − C) ÷ {c}; above it, change = {l}% × ({c} ÷ C − 1). Protoplast sketch: volume = {b} + {b1} × {c} ÷ C above the isotonic point. Salt: NaCl gives about {phi} × 2 particles per unit. · CC BY 4.0 · Boxi Yu",
+ },
+ zh: {
+  title: "土豆条为什么在盐水里变软变轻？", eyebrow: "生物 · 阶段 3", h1: "土豆条为什么在盐水、糖水里变软？",
+  intro: "先猜一猜。再看水分子一颗一颗穿过细胞膜，做一次土豆条实验，找出规律。",
+  reset: "重置", figAria: "细胞膜的粒子模型、土豆条实验和图、一个植物细胞",
+  s1: "先猜", s2: "细胞膜", s3: "土豆实验台", s4: "规律",
+  k1: "先猜一猜", t1: "看之前先猜两题",
+  b1: "每题选一个。猜错没关系，后面几步可以检验。",
+  q1: "膜两边的水和糖分布得一样。水分子在做什么？",
+  q1a: "什么也不做：两边一样了，它们就不动了", q1b: "还在穿过膜，两个方向差不多一样多", q1c: "慢慢都跑到一边去",
+  q2: "土豆条在浓糖水（0.8 M）里泡一天，它的质量……",
+  q2a: "变大：它会吸进液体", q2b: "变小", q2c: "不变",
+  right: "去检验一下。", wrong: "记住你的猜测，去检验。",
+  fb1a: "很多人这么想。第 2 步有实时计数器：看看两边一样以后它们停不停。",
+  fb1b: "对。颗粒从不停止运动。第 2 步数着穿过的次数，你可以核对。",
+  fb1c: "两边一样时不会。第 2 步看看是什么让水堆到一边。",
+  fb2a: "很多人这么想：海绵会吸水。第 3 步把土豆条泡之前、泡之后都称一称。",
+  fb2b: "对。第 3 步看看变化有多大，以及从变重转为变轻的浓度在哪儿。",
+  fb2c: "只在一个特别的浓度才不变。第 3 步把它找出来。",
+  f1even: "两边一样", f1move: "还动吗？", f2sugar: "{c} M 糖水", f2mass: "{m} 克 → ? 克",
+  addL: "+ 糖到左边", addR: "+ 糖到右边", clr: "去掉糖", soakAll: "全部浸泡", play: "▶ 运行", pause: "❚❚ 暂停", fast: "×4 速度",
+  k2: "动手", t2: "水一直在两个方向穿过膜",
+  b2: "简化模型。蓝点是水，黄点是糖，每个颗粒占一个位置。虚线是膜，水能过，糖不能过。按「运行」，再点一边（或用按钮）加糖。",
+  side0: "左", side1: "右", fMem: "膜：水能过，糖不能过",
+  cR: "→ 到右边", cL: "← 到左边", cNet: "净流", cShare: "水所占比例", cSince: "从上次改动起 {t} 秒", fSimple: "简化模型",
+  netR: "{n} → 右", netL: "{n} ← 左", net0: "0",
+  x2: "左边：水 {wl} + 糖 {sl}（水占 {pl}%）。右边：水 {wr} + 糖 {sr}（水占 {pr}%）。最近 {win} 秒：每秒 {rr} 个到右边，{rl} 个到左边。",
+  x2eq: "<strong>平均来看进出相等，净流约为零，但计数器一直在跑。</strong>",
+  x2goS: "<strong>净流向{side}边：那边撞到膜上的颗粒里水占得少，离开那边的水就少。</strong>",
+  x2goW: "<strong>净流向{side}边：被撑开的膜把水往回推，像细胞壁一样。</strong>",
+  x2wait: "按「运行」让颗粒动起来。",
+  live2: "到右边 {a} 个，到左边 {b} 个，净流 {n}。",
+  k3: "动手", t3: "土豆条实验",
+  b3: "每个烧杯装着不同浓度的蔗糖溶液。点一个烧杯，把土豆条泡进去再称重，或者一起泡。用滑块设定你自己的烧杯，找出质量不变的那个浓度。",
+  bMass: "质量变化 %", bAxis: "蔗糖浓度，M（mol/L）", bYou: "你的", bTap: "点我", bAria: "{c} M 蔗糖烧杯，点一下浸泡",
+  bPct: "{p}%", bCross: "≈ {c} M",
+  thC: "蔗糖", thB: "泡前（克）", thA: "泡后（克）", thP: "变化",
+  x3none: "还没有称过土豆条。",
+  x3one: "零线两边都要有数据，才能找到线和零的交点。",
+  x3cross: "线在 {a} M 和 {b} M 之间穿过零，大约在 <strong>{c} M</strong>。低于它土豆条吸水，高于它失水。",
+  x3why: "各条土豆开始时质量不同，所以比较的是<strong>变化的百分比</strong>。",
+  live3: "{c} M：泡前 {b} 克，泡后 {a} 克，变化 {p}%。",
+  k4: "规律", t4: "净流向水更少的那一边",
+  b4: "水一直在细胞膜两边来回穿过。净流向是水更少的那一边：更咸或更甜的那一边。拖滑块，改变土豆细胞外面的液体。",
+  coLabel: "外面", cxLabel: "你的烧杯",
+  sTurgid: "膨胀：鼓起来，压着细胞壁", sEven: "差不多平衡：进出相等", sPlasmo: "质壁分离：缩小，离开细胞壁",
+  fWall: "细胞壁", fVac: "液泡", fIn: "进", fOut: "出", fNet: "净", fIso: "≈ {c} M",
+  fCell: "土豆细胞（示意）", fOutside: "外面：{c} M 蔗糖",
+  x4: "外面 {c} M，细胞里约 {i} M。{s}模型算出土豆条质量变化：<strong>{p}%</strong>。",
+  x4in: "外面糖少，水所占比例大：净流向里。", x4out: "外面糖多，水所占比例小：净流向外。", x4even: "两边一样浓：水仍在穿过，进出相等。",
+  x4salt: "盐也一样，而且每摩尔作用更强：每个 NaCl 分成两个颗粒，所以约 {s} M 的盐水相当于 {i} M 的蔗糖。",
+  live4: "外面 {c} M：{st}，质量变化 {p}%。",
+  resultTitle: "我们发现", resultMain: "低于 ≈ {c} M 变重 · 高于则变轻",
+  resultNote: "颗粒从不停下。水在两个方向穿过膜；净流向水更少的一边，所以泡在盐水或糖水里的土豆条失水变软。",
+  explainK: "说一说", explainQ: "朋友说：两边一样以后水就不动了。用第 2 步的计数器给他讲讲到底发生了什么，再讲讲土豆条泡在盐水里为什么变轻。",
+  homeK: "家里做一做", homeQ: "切两根一样的土豆条，一根泡清水，一根泡加了两大勺盐的水。一小时后弯一弯，哪根软塌塌？有厨房秤就称一称。",
+  foot: "简化粒子模型：{w} 个水颗粒；水和糖每个颗粒都占一个位置，所以糖多的一边，撞到膜上的颗粒里水所占的比例小。水颗粒碰到膜时有 {pp}% 的机会穿过；膜有一点弹性（每次穿过的机会乘以 e^(−{k} × 两边水颗粒数之差 ÷ 2)），代替细胞壁的作用。图中的糖比真实糖水拥挤得多。渗透的真正原因是溶解的颗粒降低了水势；这个简化图景给出相同的预测。土豆实验台：按典型的学校实验结果拟合的模型（蔗糖，浸泡约一天）；数值是近似值，真实土豆各有不同。模型的等渗点：{c} M 蔗糖（学校实验结果通常在 0.25–0.30 M 附近）。模型：低于等渗点，变化 = {g}% ×（{c} − C）÷ {c}；高于它，变化 = {l}% ×（{c} ÷ C − 1）。原生质体示意：高于等渗点时体积 = {b} + {b1} × {c} ÷ C。盐：每个 NaCl 约给出 {phi} × 2 个颗粒。· CC BY 4.0 · Boxi Yu",
+ },
+});
+
+// ================= numbers (all computed here) =================
+const CISO = 0.28;          // model isotonic sucrose concentration of potato tissue, M (approximate)
+const GAIN = 20;            // % mass gain in pure water (model, approximate)
+const LOSS = 35;            // scale of loss above CISO, % (model)
+const PHI = 0.93;           // osmotic coefficient of NaCl near 0.15 M (approximate)
+const BNON = 0.3;           // non-water fraction of protoplast volume in the sketch
+const dm = (C) => { C = Play.clamp(+C || 0, 0, 2); return C <= CISO ? GAIN * (CISO - C) / CISO : LOSS * (CISO / C - 1); };
+const SALT = CISO / (2 * PHI);
+const BENCH = [0, 0.1, 0.2, 0.4, 0.8];
+const MASS0 = [2.51, 2.46, 2.55, 2.49, 2.53, 2.5]; // starting masses, g (last = your beaker)
+const r2 = (x) => Math.round(x * 100) / 100;
+const weigh = (m0, C) => { const a = r2(m0 * (1 + dm(C) / 100)); return { b: m0, a, p: (a - m0) / m0 * 100 }; };
+// zero crossing by linear interpolation between neighbouring measured points
+function crossing(pts) {
+  const s = pts.slice().sort((p, q) => p.c - q.c);
+  for (let i = 0; i + 1 < s.length; i++) {
+    const p = s[i], q = s[i + 1];
+    if (p.p === 0) return { a: p.c, b: p.c, c: p.c };
+    if (p.p > 0 && q.p <= 0 && q.c > p.c) return { a: p.c, b: q.c, c: p.c + (q.c - p.c) * p.p / (p.p - q.p) };
+  }
+  return null;
+}
+const protoVol = (C) => (C <= CISO ? 1 : BNON + (1 - BNON) * CISO / C);
+
+const g = (x, d = 2) => (Number.isFinite(x) ? String(+x.toFixed(d)) : "—");
+const sg = (x, d = 1) => (Number.isFinite(x) ? (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x).toFixed(d) : "—");
+const T = (x, y, txt, cls, parent, anchor) => { const e = Play.svg("text", { x, y, class: "lab " + (cls || ""), "text-anchor": anchor || "start" }, parent); e.textContent = txt; return e; };
+
+// ================= particle model (step 2; simplified) =================
+// Physics lives in its own box (PB); drawing maps it onto the figure. Every particle takes one place,
+// so each side's width is proportional to its particle count, and the share of hits on the membrane
+// that are water equals that side's water share.
+const PB = { w: 380, h: 256 }, LIM = [0.15, 0.85];
+const RW = 3.5, RS = 5, VW = 90, VS = 40, PASS = 0.8, KSPRING = 0.008, NW = 60, SMAX = 30, WIN = 5;
+let parts = [], simT = 0, since = 0, nLR = 0, nRL = 0, events = [], cnt = { w: [0, 0], s: [0, 0] }, xm = PB.w / 2;
+const rnd = Math.random;
+const nSide = (i) => cnt.w[i] + cnt.s[i];
+const xmOf = () => PB.w * Play.clamp(nSide(0) / Math.max(1, nSide(0) + nSide(1)), LIM[0], LIM[1]);
+function setXM() {
+  // move the membrane to match the counts and stretch each side's particles with it (keeps density even)
+  const m0 = xm, m = xmOf();
+  if (m === m0) return;
+  for (const p of parts) {
+    p.x = p.side ? PB.w - (PB.w - p.x) * (PB.w - m) / (PB.w - m0) : p.x * m / m0;
+    p.x = p.side ? Play.clamp(p.x, m + p.r, PB.w - p.r) : Play.clamp(p.x, p.r, m - p.r);
+  }
+  xm = m;
+}
+function addP(kind, side, x, y) {
+  const r = kind === "w" ? RW : RS;
+  cnt[kind][side]++; setXM();
+  const lo = side ? xm + r : r, hi = side ? PB.w - r : xm - r;
+  parts.push({ kind, side, r, x: Play.clamp(x ?? lo + rnd() * (hi - lo), lo, hi), y: Play.clamp(y ?? r + rnd() * (PB.h - 2 * r), r, PB.h - r), a: rnd() * 6.283, el: null });
+}
+function addSugar(side, x, y) {
+  if (cnt.s[side] >= SMAX) return false;
+  addP("s", side, x, y); markChange(); return true;
+}
+function clearSugar() { parts = parts.filter((p) => p.kind === "w"); cnt.s = [0, 0]; setXM(); markChange(); }
+function markChange() { since = 0; nLR = 0; nRL = 0; events = []; }
+function initSim() {
+  parts = []; cnt = { w: [0, 0], s: [0, 0] }; xm = PB.w / 2; simT = 0;
+  for (let i = 0; i < NW; i++) { addP("w", 0); addP("w", 1); }
+  markChange();
+}
+// chance that a water particle hitting the membrane from side `from` gets through
+function passChance(from) {
+  const to = 1 - from;
+  if ((nSide(to) + 1) / (nSide(0) + nSide(1)) > LIM[1]) return 0;
+  return Math.min(1, PASS * Math.exp(-KSPRING * (cnt.w[to] - cnt.w[from]) / 2));
+}
+function simStep(dt) {
+  simT += dt; since += dt;
+  for (const p of parts) {
+    const v = p.kind === "w" ? VW : VS, r = p.r;
+    p.a += (rnd() - 0.5) * 4 * Math.sqrt(dt);
+    p.x += Math.cos(p.a) * v * dt; p.y += Math.sin(p.a) * v * dt;
+    if (p.y < r) { p.y = 2 * r - p.y; p.a = -p.a; }
+    if (p.y > PB.h - r) { p.y = 2 * (PB.h - r) - p.y; p.a = -p.a; }
+    p.y = Play.clamp(p.y, r, PB.h - r);
+    const lo = p.side ? xm + r : r, hi = p.side ? PB.w - r : xm - r;
+    if (p.x >= lo && p.x <= hi) continue;
+    const atMem = p.side ? p.x < lo : p.x > hi;
+    if (atMem && p.kind === "w" && rnd() < passChance(p.side)) {
+      cnt.w[p.side]--; p.side = 1 - p.side; cnt.w[p.side]++;
+      if (p.side) nLR++; else nRL++;
+      events.push({ t: simT, d: p.side });
+      setXM();
+      p.x = p.side ? xm + r : xm - r;
+    } else {
+      p.x = p.x < lo ? 2 * lo - p.x : 2 * hi - p.x; p.a = Math.PI - p.a;
+      p.x = Play.clamp(p.x, lo, Math.max(lo, hi));
+    }
+  }
+  while (events.length && events[0].t < simT - WIN) events.shift();
+}
+function simStats() {
+  const w = cnt.w.slice(), s = cnt.s.slice(), sh = [0, 1].map((i) => w[i] / Math.max(1, w[i] + s[i]));
+  const win = Math.min(WIN, since), r = [0, 0];
+  for (const e of events) if (e.t >= simT - win) r[e.d]++;
+  // expected flow each way: share of water at the membrane × pass chance
+  const jR = sh[0] * passChance(0), jL = sh[1] * passChance(1);
+  const bal = jR > 0 && jL > 0 ? Math.log(jR / jL) : jR > 0 ? 9 : jL > 0 ? -9 : 0;
+  return { w, s, sh, win, bal, rr: win > 0.5 ? r[1] / win : 0, rl: win > 0.5 ? r[0] / win : 0 };
+}
+
+// ================= state =================
+const fig = document.getElementById("fig"), extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+const runBtn = document.getElementById("run"), fastBtn = document.getElementById("fast");
+const cxEl = document.getElementById("cx"), coEl = document.getElementById("co");
+let step = 0, raf = 0, last = 0, fast = false, notes = ["", ""], H = null, textT = 0, narrow = false;
+let soaked = new Array(6).fill(false), anim = new Array(6).fill(1), soakRaf = 0;
+// Wide figures are 600 units across; when the figure is narrower than that on screen, switch to a
+// 340-unit stacked layout so 13-unit labels are at least 13 px.
+const NW_VB = 340, HEIGHTS = { wide: [360, 360, 360, 360], narrow: [530, 420, 540, 650] };
+function sizeFig() {
+  narrow = fig.clientWidth > 0 && fig.clientWidth < 600;
+  const w = narrow ? NW_VB : 600, h = (narrow ? HEIGHTS.narrow : HEIGHTS.wide)[step];
+  fig.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  fig.style.height = narrow ? (fig.clientWidth * h / w).toFixed(0) + "px" : "";
+}
+const G = (parent, dx, dy) => Play.svg("g", { transform: `translate(${dx} ${dy})` }, parent);
+
+// ================= step 1 figure =================
+function drawGuess() {
+  const a = narrow ? G(fig, 20, -50) : fig, b = narrow ? G(fig, -275, 210) : fig;
+  Play.svg("rect", { class: "box", x: 30, y: 90, width: 240, height: 170, rx: 8 }, a);
+  Play.svg("line", { class: "mem", x1: 150, y1: 90, x2: 150, y2: 260 }, a);
+  let seed = 7; const pr = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (const off of [30, 150]) {
+    for (let i = 0; i < 16; i++) Play.svg("circle", { class: "w", cx: off + 10 + pr() * 100, cy: 100 + pr() * 150, r: RW }, a);
+    for (let i = 0; i < 4; i++) Play.svg("circle", { class: "s", cx: off + 14 + pr() * 92, cy: 106 + pr() * 138, r: RS }, a);
+  }
+  T(150, 80, P.t("f1even"), "b", a, "middle");
+  T(150, 290, P.t("f1move"), "q", a, "middle");
+  Play.svg("path", { class: "liq", d: "M380 140 L380 270 Q380 280 390 280 L500 280 Q510 280 510 270 L510 140 Z", "fill-opacity": 0.35 }, b);
+  Play.svg("path", { class: "glass", d: "M374 90 L380 96 L380 270 Q380 280 390 280 L500 280 Q510 280 510 270 L510 96 L516 90" }, b);
+  Play.svg("path", { class: "strip", d: "M430 270 L450 120", "stroke-width": 14 }, b);
+  T(445, 80, P.t("f2sugar", { c: g(BENCH[4]) }), "b", b, "middle");
+  T(445, 310, P.t("f2mass", { m: MASS0[4].toFixed(2) }), "m", b, "middle");
+}
+
+// ================= step 2 figure =================
+function drawSim() {
+  const L = narrow
+    ? { ox: 10, oy: 40, sc: 320 / PB.w, cap: 274, since: [10, 412], c: [[10, 300], [175, 300], [10, 356]], share: [175, 356] }
+    : { ox: 20, oy: 44, sc: 1, cap: 322, since: [418, 34], c: [[418, 64], [418, 120], [418, 176]], share: [418, 236] };
+  const bw = PB.w * L.sc, bh = PB.h * L.sc;
+  Play.svg("rect", { class: "box", x: L.ox, y: L.oy, width: bw, height: bh, rx: 6 }, fig);
+  T(L.ox + bw * 0.25, L.oy - 10, P.t("side0"), "b", fig, "middle");
+  T(L.ox + bw * 0.75, L.oy - 10, P.t("side1"), "b", fig, "middle");
+  T(L.ox + bw, 16, P.t("fSimple"), "m", fig, "end");
+  const g2 = Play.svg("g", { transform: `translate(${L.ox} ${L.oy}) scale(${L.sc})` }, fig);
+  const mem = Play.svg("line", { class: "mem", y1: 0, y2: PB.h }, g2);
+  const pg = Play.svg("g", {}, g2);
+  for (const p of parts) p.el = Play.svg("circle", { class: p.kind === "w" ? "w" : "s", r: p.r }, pg);
+  T(L.ox + bw / 2, L.cap, P.t("fMem"), "m", fig, "middle");
+  const hit = Play.svg("rect", { class: "boxhit", x: L.ox, y: L.oy, width: bw, height: bh }, fig);
+  hit.addEventListener("pointerdown", (e) => {
+    const q = Play.pointer(fig, e), x = (q.x - L.ox) / L.sc, y = (q.y - L.oy) / L.sc;
+    if (addSugar(x < xm ? 0 : 1, x, y)) { rebuildDots(); paintSim(); text(); }
+  });
+  const cs = T(L.since[0], L.since[1], "", "m", fig);
+  const num = (k, i) => { T(L.c[i][0], L.c[i][1], P.t(k), "m", fig); return T(L.c[i][0], L.c[i][1] + 26, "0", i === 2 ? "big ok" : "big", fig); };
+  const tR = num("cR", 0), tL = num("cL", 1), tN = num("cNet", 2);
+  const [sx, sy] = L.share, bwid = narrow ? 80 : 100;
+  T(sx, sy, P.t("cShare"), "m", fig);
+  const bars = [0, 1].map((i) => {
+    const y = sy + 12 + i * 24;
+    T(sx, y + 11, P.t("side" + i), "m", fig);
+    Play.svg("rect", { class: "barbg", x: sx + 40, y, width: bwid, height: 12, rx: 3 }, fig);
+    return { bar: Play.svg("rect", { class: "barw", x: sx + 40, y, width: 0, height: 12, rx: 3 }, fig), lab: T(sx + 46 + bwid, y + 11, "", "", fig), w: bwid };
+  });
+  H = { pg, mem, tR, tL, tN, bars, cs };
+  paintSim();
+}
+function rebuildDots() {
+  if (!H) return;
+  H.pg.innerHTML = "";
+  for (const p of parts) p.el = Play.svg("circle", { class: p.kind === "w" ? "w" : "s", r: p.r }, H.pg);
+}
+function paintSim() {
+  if (!H || step !== 1) return;
+  for (const p of parts) { if (!p.el) continue; p.el.setAttribute("cx", p.x.toFixed(1)); p.el.setAttribute("cy", p.y.toFixed(1)); }
+  H.mem.setAttribute("x1", xm.toFixed(1)); H.mem.setAttribute("x2", xm.toFixed(1));
+  const st = simStats(), net = nLR - nRL;
+  H.tR.textContent = nLR; H.tL.textContent = nRL;
+  H.tN.textContent = net > 0 ? P.t("netR", { n: net }) : net < 0 ? P.t("netL", { n: -net }) : P.t("net0");
+  H.cs.textContent = P.t("cSince", { t: Math.floor(since) });
+  H.bars.forEach((b, i) => { b.bar.setAttribute("width", (b.w * st.sh[i]).toFixed(1)); b.lab.textContent = Math.round(st.sh[i] * 100) + "%"; });
+}
+
+// ================= step 3 figure =================
+let GR = {};
+const gx = (c) => GR.x0 + c / GR.cmax * (GR.x1 - GR.x0);
+const gy = (p) => GR.y0 + (GR.top - Play.clamp(p, GR.bot, GR.top)) / (GR.top - GR.bot) * (GR.y1 - GR.y0);
+const concOf = (i) => (i < 5 ? BENCH[i] : +cxEl.value);
+function stripPath(p, k) {
+  // drawn at x = 0; length grows/shrinks with mass (exaggerated); a strip that lost water droops
+  const f = 1 + 1.2 * p / 100 * k, L = 70 * f, droop = Math.max(0, -p) * 0.9 * k;
+  const x0 = -6, y0 = 132, x1 = x0 + 10 + droop * 0.9, y1 = y0 - L + droop * 0.9;
+  return `M${x0} ${y0} Q${x0 + 4} ${(y0 - L * 0.6).toFixed(1)} ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+}
+function drawBench() {
+  GR = narrow ? { x0: 54, x1: 322, y0: 352, y1: 500, top: 25, bot: -30, cmax: 1 } : { x0: 70, x1: 580, y0: 196, y1: 336, top: 25, bot: -30, cmax: 1 };
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const c = concOf(i), w = weigh(MASS0[i], c), k = soaked[i] ? anim[i] : 0;
+    const dx = narrow ? 60 + (i % 3) * 110 : 60 + i * 96, dy = narrow ? Math.floor(i / 3) * 150 : 0;
+    const gr = Play.svg("g", { class: "beaker", "data-i": i, tabindex: 0, role: "button", "aria-label": P.t("bAria", { c: g(c) }), transform: `translate(${dx} ${dy})` }, fig);
+    Play.svg("path", { class: "liq", d: "M-30 80 L-30 136 Q-30 142 -24 142 L24 142 Q30 142 30 136 L30 80 Z", "fill-opacity": (0.12 + 0.5 * c).toFixed(2) }, gr);
+    Play.svg("path", { class: "glass", d: "M-34 46 L-30 50 L-30 136 Q-30 142 -24 142 L24 142 Q30 142 30 136 L30 50 L34 46" }, gr);
+    if (soaked[i]) Play.svg("path", { class: "strip", d: stripPath(w.p, k), "stroke-width": 9 }, gr);
+    else Play.svg("path", { class: "stripE", d: stripPath(0, 0), "stroke-width": 9, opacity: 0.2 }, gr);
+    T(0, 160, (i === 5 ? P.t("bYou") + " " : "") + g(c) + " M", i === 5 ? "b" : "", gr, "middle");
+    const done = soaked[i] && k >= 1;
+    T(0, 36, done ? P.t("bPct", { p: sg(w.p) }) : P.t("bTap"), done ? (w.p >= 0 ? "ok" : "no") : "m", gr, "middle");
+    gr.addEventListener("click", () => soak(i));
+    gr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); soak(i); } });
+    if (done) pts.push({ c, p: w.p, i });
+  }
+  Play.svg("path", { class: "axis", d: `M${GR.x0} ${GR.y0 - 4} V${GR.y1} M${GR.x0} ${gy(0)} H${GR.x1}` }, fig);
+  T(GR.x0 - 6, GR.y0 + 4, "+" + GR.top + "%", "m", fig, "end");
+  T(GR.x0 - 6, gy(0) + 4, "0", "m", fig, "end");
+  T(GR.x0 - 6, GR.y1, "−" + -GR.bot + "%", "m", fig, "end");
+  T(GR.x0 + 6, GR.y0 - 10, P.t("bMass"), "m", fig);
+  for (const c of [0.2, 0.4, 0.6, 0.8, 1]) T(gx(c), gy(0) + 16, g(c), "m", fig, "middle");
+  T(GR.x1, GR.y1 + 18, P.t("bAxis") + " →", "m", fig, "end");
+  const xs = pts.slice().sort((a, b) => a.c - b.c);
+  if (xs.length > 1) Play.svg("path", { class: "curve", d: xs.map((q, j) => (j ? "L" : "M") + gx(q.c).toFixed(1) + " " + gy(q.p).toFixed(1)).join(" ") }, fig);
+  for (const q of pts) Play.svg("circle", { class: q.i === 5 ? "mk hl" : "mk", cx: gx(q.c), cy: gy(q.p), r: 6 }, fig);
+  const cr = crossing(pts);
+  if (cr) {
+    Play.svg("line", { class: "cross", x1: gx(cr.c), y1: GR.y0, x2: gx(cr.c), y2: GR.y1 }, fig);
+    T(gx(cr.c) + 6, GR.y1 - 4, P.t("bCross", { c: g(cr.c) }), "no", fig);
+  }
+}
+function soak(i) {
+  soaked[i] = true; anim[i] = Play.reduced ? 1 : 0;
+  if (!Play.reduced && !soakRaf) {
+    let t0 = 0;
+    const tick2 = (t) => {
+      const dt = t0 ? Math.min(0.05, (t - t0) / 1000) : 0; t0 = t;
+      let busy = false;
+      for (let j = 0; j < 6; j++) if (soaked[j] && anim[j] < 1) { anim[j] = Math.min(1, anim[j] + dt / 1.2); busy = true; }
+      if (step === 2) draw();
+      soakRaf = busy ? requestAnimationFrame(tick2) : 0;
+    };
+    soakRaf = requestAnimationFrame(tick2);
+  }
+  if (step === 2) draw();
+  const c = concOf(i), w = weigh(MASS0[i], c);
+  Play.live(liveEl, P.t("live3", { c: g(c), b: w.b.toFixed(2), a: w.a.toFixed(2), p: sg(w.p) }));
+}
+
+// ================= step 4 figure =================
+function drawCell() {
+  const C = +coEl.value, p = dm(C), v = protoVol(C), sc = Math.sqrt(v);
+  const bulge = C < CISO ? 8 * (CISO - C) / CISO : 0;
+  const cx0 = 150, cy0 = 190, W0 = 180 + bulge * 2, H0 = 200 + bulge * 2;
+  Play.svg("rect", { class: "outside", x: 20, y: 40, width: 290, height: 300, rx: 10 }, fig);
+  T(30, 30, P.t("fOutside", { c: g(C) }), "b", fig);
+  Play.svg("rect", { class: "wall", x: cx0 - W0 / 2, y: cy0 - H0 / 2, width: W0, height: H0, rx: 22 + bulge }, fig);
+  const pw = (W0 - 12) * sc, ph = (H0 - 12) * sc;
+  Play.svg("rect", { class: "proto", x: cx0 - pw / 2, y: cy0 - ph / 2, width: pw, height: ph, rx: 18 * sc + 4 }, fig);
+  Play.svg("rect", { class: "vac", x: cx0 - pw / 2 + 14, y: cy0 - ph / 2 + 14, width: Math.max(4, pw - 28), height: Math.max(4, ph - 28), rx: 14 * sc + 2 }, fig);
+  Play.svg("circle", { class: "nuc", cx: cx0 - pw / 2 + 12, cy: cy0 - ph / 2 + 12, r: 8 }, fig);
+  T(cx0, cy0 + H0 / 2 + 20, P.t("fWall"), "ok", fig, "middle");
+  T(cx0, cy0 + 5, P.t("fVac"), "m", fig, "middle");
+  T(cx0, 56, P.t("fCell"), "m", fig, "middle");
+  const ax = cx0 + W0 / 2;
+  const arrow = (y, dir, cls, hcls, len) => {
+    const x1 = dir > 0 ? ax + 30 : ax - 30, x2 = dir > 0 ? ax - 30 : ax + 28;
+    const xe = x1 + (x2 - x1) * len, s = Math.sign(x2 - x1);
+    Play.svg("line", { class: cls, x1, y1: y, x2: xe, y2: y }, fig);
+    Play.svg("path", { class: hcls, d: `M${xe + s * 8} ${y} L${xe - s * 2} ${y - 6} L${xe - s * 2} ${y + 6} Z` }, fig);
+  };
+  arrow(cy0 - 46, 1, "arr", "head", 1); T(ax + 44, cy0 - 42, P.t("fIn"), "m", fig);
+  arrow(cy0 - 20, -1, "arr", "head", 1); T(ax + 44, cy0 - 16, P.t("fOut"), "m", fig);
+  const imb = Play.clamp(Math.abs(p) / GAIN, 0, 1);
+  if (imb > 0.04) { arrow(cy0 + 20, p > 0 ? 1 : -1, "arrN", "headN", 0.35 + 0.65 * imb); T(ax + 44, cy0 + 24, P.t("fNet"), "no", fig); }
+  const s = cellState(C);
+  T(20, 362, P.t(s), s === "sPlasmo" ? "no" : "ok", fig);
+  // chart of model mass change against outside concentration
+  const ch = narrow ? G(fig, -296, 330) : fig;
+  const X0 = 360, X1 = 584, Y0 = 70, Y1 = 270, top = 25, bot = -30;
+  const X = (c) => X0 + c * (X1 - X0), Y = (q) => Y0 + (top - Play.clamp(q, bot, top)) / (top - bot) * (Y1 - Y0);
+  Play.svg("path", { class: "axis", d: `M${X0} ${Y0 - 4} V${Y1} M${X0} ${Y(0)} H${X1}` }, ch);
+  T(X0, 54, P.t("bMass"), "m", ch);
+  T(X0 - 4, Y0 + 4, "+" + top, "m", ch, "end"); T(X0 - 4, Y(0) + 4, "0", "m", ch, "end"); T(X0 - 4, Y1, "−" + -bot, "m", ch, "end");
+  let d = "";
+  for (let i = 0; i <= 100; i++) { const c = i / 100; d += (i ? "L" : "M") + X(c).toFixed(1) + " " + Y(dm(c)).toFixed(1); }
+  Play.svg("path", { class: "curve", d }, ch);
+  Play.svg("line", { class: "cross", x1: X(CISO), y1: Y0, x2: X(CISO), y2: Y1 }, ch);
+  T(X(CISO) + 4, Y1 + 16, P.t("fIso", { c: g(CISO) }), "no", ch);
+  for (const c of [0.5, 1]) T(X(c), Y(0) - 6, g(c), "m", ch, "middle");
+  T(X1, Y1 + 34, P.t("bAxis") + " →", "m", ch, "end");
+  Play.svg("circle", { class: "mk", cx: X(C), cy: Y(p), r: 7 }, ch);
+}
+const cellState = (C) => (Math.abs(C - CISO) <= 0.02 ? "sEven" : C < CISO ? "sTurgid" : "sPlasmo");
+
+// ================= text =================
+function text() {
+  if (step === 0) { extra.textContent = notes.filter(Boolean).join(" "); Play.live(liveEl, ""); return; }
+  if (step === 1) {
+    const st = simStats();
+    let html = P.t("x2", { wl: st.w[0], sl: st.s[0], pl: Math.round(st.sh[0] * 100), wr: st.w[1], sr: st.s[1], pr: Math.round(st.sh[1] * 100), win: g(st.win, 0), rr: g(st.rr, 1), rl: g(st.rl, 1) });
+    if (!raf && simT === 0) html += P.t("x2wait");
+    else if (Math.abs(st.bal) < 0.2) html += P.t("x2eq");
+    else {
+      const to = st.bal > 0 ? 1 : 0; // bal > 0: more flow to the right
+      html += P.t(Math.abs(st.sh[0] - st.sh[1]) > 0.005 && st.sh[to] < st.sh[1 - to] ? "x2goS" : "x2goW", { side: P.t("side" + to) });
+    }
+    extra.innerHTML = html;
+    const net = nLR - nRL;
+    Play.live(liveEl, P.t("live2", { a: nLR, b: nRL, n: net > 0 ? P.t("netR", { n: net }) : net < 0 ? P.t("netL", { n: -net }) : "0" }));
+    return;
+  }
+  if (step === 2) {
+    const pts = [];
+    for (let i = 0; i < 6; i++) if (soaked[i] && anim[i] >= 1) { const c = concOf(i), w = weigh(MASS0[i], c); pts.push({ c, p: w.p, b: w.b, a: w.a }); }
+    if (!pts.length) { extra.textContent = P.t("x3none"); return; }
+    const rows = pts.slice().sort((a, b) => a.c - b.c).map((q) => `<tr><td>${g(q.c)} M</td><td>${q.b.toFixed(2)}</td><td>${q.a.toFixed(2)}</td><td>${sg(q.p)}%</td></tr>`).join("");
+    const cr = crossing(pts);
+    extra.innerHTML = `<table><tr><th>${P.t("thC")}</th><th>${P.t("thB")}</th><th>${P.t("thA")}</th><th>${P.t("thP")}</th></tr>${rows}</table><p>` +
+      (cr ? P.t("x3cross", { a: g(cr.a), b: g(cr.b), c: g(cr.c) }) : P.t("x3one")) + P.t("x3why") + "</p>";
+    return;
+  }
+  const C = +coEl.value, st = cellState(C);
+  extra.innerHTML = P.t("x4", { c: g(C), i: g(CISO), s: P.t(st === "sEven" ? "x4even" : C < CISO ? "x4in" : "x4out"), p: sg(dm(C)) }) + P.t("x4salt", { s: g(SALT), i: g(CISO) });
+  Play.live(liveEl, P.t("live4", { c: g(C), st: P.t(st), p: sg(dm(C)) }));
+}
+
+function draw() {
+  const ae = document.activeElement, fi = ae && fig.contains(ae) ? ae.getAttribute("data-i") : null;
+  sizeFig();
+  fig.innerHTML = ""; H = null;
+  if (step === 0) drawGuess(); else if (step === 1) drawSim(); else if (step === 2) drawBench(); else drawCell();
+  if (fi !== null) { const el = fig.querySelector(`[data-i="${fi}"]`); if (el) el.focus(); }
+  runBtn.textContent = raf ? P.t("pause") : P.t("play");
+  fastBtn.setAttribute("aria-pressed", fast ? "true" : "false");
+  fastBtn.classList.toggle("on", fast);
+  document.getElementById("cxVal").textContent = g(+cxEl.value) + " M";
+  document.getElementById("coVal").textContent = g(+coEl.value) + " M";
+  text();
+}
+
+// ================= animation (step 2; never autoplays when reduced motion is on) =================
+function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; runBtn.textContent = P.t("play"); }
+function start() {
+  if (raf) return;
+  last = 0;
+  raf = requestAnimationFrame(tick);
+  runBtn.textContent = P.t("pause");
+}
+function tick(t) {
+  const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+  last = t;
+  const n = fast ? 8 : 2, h = dt / 2;
+  for (let i = 0; i < n && dt > 0; i++) simStep(h);
+  paintSim();
+  textT += dt;
+  if (textT > 0.4) { textT = 0; text(); }
+  raf = requestAnimationFrame(tick);
+}
+runBtn.addEventListener("click", () => { if (raf) stop(); else start(); text(); });
+fastBtn.addEventListener("click", () => { fast = !fast; fastBtn.setAttribute("aria-pressed", fast ? "true" : "false"); fastBtn.classList.toggle("on", fast); });
+const sugarBtn = (fn) => () => { fn(); rebuildDots(); paintSim(); text(); };
+document.getElementById("addL").addEventListener("click", sugarBtn(() => addSugar(0)));
+document.getElementById("addR").addEventListener("click", sugarBtn(() => addSugar(1)));
+document.getElementById("clr").addEventListener("click", sugarBtn(clearSugar));
+document.getElementById("soakAll").addEventListener("click", () => { for (let i = 0; i < 6; i++) if (!soaked[i]) soak(i); });
+cxEl.addEventListener("input", () => {
+  if (step === 2) draw();
+  if (soaked[5]) { const c = +cxEl.value, w = weigh(MASS0[5], c); Play.live(liveEl, P.t("live3", { c: g(c), b: w.b.toFixed(2), a: w.a.toFixed(2), p: sg(w.p) })); }
+});
+coEl.addEventListener("input", () => { if (step === 3) draw(); });
+let rz = 0;
+addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { const was = narrow; sizeFig(); if (was !== narrow) draw(); }); });
+
+// ================= steps =================
+const mk = (q, opts, ok, k, el) => Play.predict(document.getElementById(el), {
+  q: P.t(q), options: opts.map((o, j) => ({ label: P.t(o), right: j === ok })), right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { notes[k] = P.t("fb" + (k + 1) + "abc"[i]); if (step === 0) text(); });
+const pr1 = mk("q1", ["q1a", "q1b", "q1c"], 1, 0, "predict");
+const pr2 = mk("q2", ["q2a", "q2b", "q2c"], 1, 1, "predict2");
+
+initSim();
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  if (i !== 1) stop();
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  document.getElementById("predict").hidden = i !== 0;
+  document.getElementById("predict2").hidden = i !== 0;
+  for (const j of [2, 3, 4]) document.getElementById("ctl" + j).hidden = i !== j - 1;
+  draw();
+  if (i === 1 && !Play.reduced) start();
+});
+
+document.getElementById("resultMain").textContent = P.t("resultMain", { c: g(CISO) });
+document.getElementById("foot").textContent = P.t("foot", {
+  w: NW * 2, k: g(KSPRING, 3), pp: Math.round(PASS * 100), c: g(CISO), g: g(GAIN), l: g(LOSS), b: g(BNON), b1: g(1 - BNON), phi: g(PHI),
+});
+document.getElementById("reset").addEventListener("click", () => {
+  stop(); fast = false; initSim(); soaked.fill(false); anim.fill(1); cxEl.value = 0.3; coEl.value = 0.8;
+  notes = ["", ""]; pr1.reset(); pr2.reset(); st.go(0);
+});
+</script>
+</body>
+</html>

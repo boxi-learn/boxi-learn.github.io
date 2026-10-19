@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The card-flip trick: catching an error</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  #fig { width: 100%; height: auto; max-height: 440px; display: block; touch-action: manipulation; margin: 0 auto; }
+  #fig .cell { outline: none; }
+  #fig.live .cell { cursor: pointer; }
+  #fig .face { stroke: var(--muted); stroke-width: 1.5; transition: fill 0s linear .14s; }
+  #fig .cell.b .face { fill: var(--ink-panel); }
+  #fig .cell.w .face { fill: var(--on-panel); }
+  #fig .cell.spin { transform-box: fill-box; transform-origin: center; animation: spin .28s ease-in-out; }
+  @keyframes spin { 50% { transform: scaleX(0.05); } }
+  #fig .ring { fill: none; stroke: var(--hl); stroke-width: 3; stroke-dasharray: 5 4; opacity: 0; }
+  #fig .cell:focus-visible .ring { opacity: 1; }
+  #fig .hit { fill: none; stroke: var(--hl); stroke-width: 5; opacity: 0; }
+  #fig .cell.found .hit { opacity: 1; }
+  #fig .miss { fill: none; stroke: var(--no); stroke-width: 4; stroke-dasharray: 6 4; opacity: 0; }
+  #fig .cell.missed .miss { opacity: 1; }
+  #fig .mark { fill: var(--a); opacity: 0; }
+  #fig .cell.mine .mark { opacity: 1; }
+  #fig .band { fill: var(--hl); opacity: 0; }
+  #fig .band.on { opacity: .35; }
+  #fig .zone { fill: none; stroke: var(--a); stroke-width: 2.5; stroke-dasharray: 7 5; }
+  #fig .idx { font: 650 15px var(--font); fill: var(--muted); text-anchor: middle; }
+  #fig .badge rect { fill: var(--soft); stroke: var(--line); }
+  #fig .badge text { font: 800 18px var(--font); fill: var(--fg); text-anchor: middle; font-variant-numeric: tabular-nums; }
+  #fig .badge.odd rect { fill: var(--no); stroke: var(--no); }
+  #fig .badge.odd text { fill: var(--surface); }
+  #fig .badges.off { opacity: 0; }
+  #fig .curtain { fill: var(--soft); opacity: .97; }
+  #fig .curtain-t { font: 700 18px var(--font); fill: var(--fg); text-anchor: middle; }
+  body.noanim #fig *, body.noanim #fig { transition: none !important; animation: none !important; }
+  @media (prefers-reduced-motion: reduce) { #fig *, #fig { transition: none !important; animation: none !important; } }
+  .pane { padding: 10px 14px 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 13px; color: var(--muted); font-weight: 650; }
+  .legend2 { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  .sw { display: inline-block; width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid var(--muted); vertical-align: -2px; margin-right: 4px; }
+  .sw.b { background: var(--ink-panel); } .sw.w { background: var(--on-panel); }
+  .sw.z { border: 2px dashed var(--a); background: transparent; }
+  .sw.o { background: var(--no); border-color: var(--no); }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+  .score { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .rulebox { background: var(--soft); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; font-size: 14px; display: grid; gap: 6px; }
+  .rulebox .hd { font-weight: 700; font-size: 13px; }
+  .rulebox .nums { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .rulebox .odd { color: var(--no); font-weight: 800; }
+  .uses { font-size: 13px !important; }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg id="fig" viewBox="0 0 390 390" role="group" data-t-aria="figAria"></svg>
+      <div class="pane" id="pane">
+        <div class="legend2">
+          <span><span class="sw b"></span><span data-t="lgB"></span></span>
+          <span><span class="sw w"></span><span data-t="lgW"></span></span>
+          <span><span class="sw z"></span><span data-t="lgZ"></span></span>
+          <span id="lgOdd"><span class="sw o"></span><span data-t="lgO"></span></span>
+        </div>
+        <div class="row" id="modeRow">
+          <span class="lbl" data-t="modeLbl"></span>
+          <button type="button" class="small" id="modeA" aria-pressed="true" data-t="modeA"></button>
+          <button type="button" class="small" id="modeB" aria-pressed="false" data-t="modeB"></button>
+        </div>
+        <div class="row" id="actRow">
+          <button type="button" class="small" id="hide" data-t="hide"></button>
+          <button type="button" class="small" id="corners" data-t="corners"></button>
+          <button type="button" class="small" id="again" data-t="again"></button>
+          <button type="button" class="small" id="undo" data-t="undo"></button>
+          <button type="button" class="small" id="deal" data-t="deal"></button>
+          <label class="check"><input type="checkbox" id="counts" checked> <span data-t="countsLbl"></span></label>
+          <span class="score" id="score"></span>
+        </div>
+        <p class="msg" id="live"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="rulebox" id="ruleBox" hidden>
+        <div class="hd" data-t="beforeHd"></div>
+        <div class="nums" id="before"></div>
+        <div class="hd" id="afterHd"></div>
+        <div class="nums" id="after"></div>
+      </div>
+      <p class="uses" id="uses" hidden></p>
+      <p class="note" id="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure logic (no DOM) so it can be checked in node. Grids are arrays of rows, 1 = black side up. */
+const N = 5, M = N + 1;
+/* mulberry32: small seeded RNG, same cards for the same seed. */
+function rng(seed) {
+  let a = Number.isFinite(+seed) ? (+seed | 0) : 1;
+  return function () {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function deal(seed, n = N) {
+  const r = rng(seed);
+  return Array.from({ length: n }, () => Array.from({ length: n }, () => (r() < 0.5 ? 1 : 0)));
+}
+const rowCounts = (g) => g.map((row) => row.reduce((s, v) => s + v, 0));
+const colCounts = (g) => (g.length ? g[0].map((_, c) => g.reduce((s, row) => s + row[c], 0)) : []);
+/* The magician's move: one extra card per row, then one extra row, so every row and column is even. */
+function withParity(g) {
+  const rows = g.map((row) => row.concat(row.reduce((s, v) => s + v, 0) % 2));
+  const last = colCounts(rows).map((s) => s % 2);
+  return rows.concat([last]);
+}
+const allEven = (g) => rowCounts(g).every((v) => v % 2 === 0) && colCounts(g).every((v) => v % 2 === 0);
+const flipCell = (g, r, c) => g.map((row, i) => row.map((v, j) => (i === r && j === c ? 1 - v : v)));
+/* What the magician sees: which rows and columns are odd, and what that means. */
+function diagnose(g) {
+  const rows = [], cols = [];
+  rowCounts(g).forEach((v, i) => { if (v % 2) rows.push(i); });
+  colCounts(g).forEach((v, j) => { if (v % 2) cols.push(j); });
+  const kind = !rows.length && !cols.length ? "clean" : rows.length === 1 && cols.length === 1 ? "one" : "many";
+  return { kind, rows, cols, cell: kind === "one" ? [rows[0], cols[0]] : null, candidates: rows.length * cols.length };
+}
+/* Four corners of a random rectangle: flipping all four keeps every row and column even. */
+function corners(r, m = M) {
+  const pick2 = () => { const a = Math.floor(r() * m); let b = Math.floor(r() * (m - 1)); if (b >= a) b++; return [Math.min(a, b), Math.max(a, b)]; };
+  const [r1, r2] = pick2(), [c1, c2] = pick2();
+  return [[r1, c1], [r1, c2], [r2, c1], [r2, c2]];
+}
+const randCell = (r, m = M) => [Math.floor(r() * m), Math.floor(r() * m)];
+if (typeof module !== "undefined") module.exports = { N, M, rng, deal, rowCounts, colCounts, withParity, allEven, flipCell, diagnose, corners, randCell };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "The card-flip trick: catching an error", eyebrow: "Computing · Stage 2",
+    h1: "One extra card per row and column catches a flipped card",
+    intro: "Lay out 25 two-sided cards at random. The magician adds one more card to every row and column. Then someone secretly flips one card, and the magician points straight at it without having memorised anything.",
+    reset: "Reset", figAria: "A 6 by 6 grid of cards, black or white side up; row 6 and column 6 are the magician's extra cards",
+    s1: "Guess", s2: "Find it", s3: "Two flips", s4: "Rule",
+    k1: "Predict first", t1: "Can the magician find the flipped card?",
+    b1: "The 25 cards in the top left were dealt at random. The magician added the dashed row and column. Now someone flips one card while the magician looks away. The magician never memorised the layout.",
+    q: "Can the magician still say exactly which card was flipped?",
+    oMis: "No: you would have to remember all 36 cards",
+    oLuck: "Only by luck: about 1 chance in 36",
+    oYes: "Yes: count the black cards in each row and column",
+    right: "Yes. Go to step 2 and see what the counting shows.",
+    wrong: "Many people think so. But the magician does not need to remember anything. Go to step 2 and count.",
+    k2: "Hands on", t2: "Flip a card, then find it",
+    b2: "Look first: every row and every column has an even number of black cards (0, 2, 4 or 6). Flip one card and exactly one row and one column turn odd.",
+    k3: "Push it", t3: "What if two cards are flipped?",
+    b3: "Flip any cards you like. With two flips the magician still sees that something is wrong, but can no longer say which card. Try 4 corners: four flips that cancel out completely.",
+    k4: "The rule", t4: "One odd row × one odd column = the flipped card",
+    b4: "The extra cards make every row and column even. One flip changes one row by 1 and one column by 1, so those two, and only those two, become odd. You only have to check 12 counts, not remember 36 cards.",
+    uses: "Computers use the same idea with 0s and 1s: an extra parity bit lets them notice that a 0 or 1 changed while it was stored or sent, and a grid of parity bits can even fix it. Book ISBNs and shop barcodes end with a check digit for the same reason, but they use different maths.",
+    lgB: "black", lgW: "white", lgZ: "magician's extra cards", lgO: "odd count",
+    modeLbl: "Who flips?", modeA: "You flip, magician finds", modeB: "Magician hides one, you find",
+    hide: "Hide & flip one", corners: "Flip 4 corners", again: "Flip another", undo: "Undo flips", deal: "New cards",
+    countsLbl: "Show counts",
+    aStart: "Tap any card to flip it. The magician is not looking.",
+    aFound: "Row {r} now has {rc} black cards and column {c} has {cc}: both odd. They cross at row {r}, column {c}. That is your card.",
+    bStart: "Press “Hide & flip one”. A card flips while the grid is covered.",
+    bHiding: "The magician looks away…", bHidden: "One card has been flipped. Which one? Tap it.",
+    bRight: "Found it: row {r}, column {c}. Row {r} has {rc} black (odd), column {c} has {cc} (odd).",
+    bWrong: "Not that one. Count the black cards in each row: which row is odd? Then which column?",
+    bDone: "Press “Hide & flip one” for another round, or “New cards”.",
+    score: "Found {f} of {n} · {t} taps",
+    curtain: "Looking away…",
+    cClean0: "No flips yet: every row and column is even.",
+    cOne: "{k} flip: row {r} and column {c} are odd. The card is at their crossing.",
+    cClean: "{k} flips, but every row and column is still even. The magician sees nothing: the flips cancelled out.",
+    cFooled: "{k} flips, yet it looks like one flip at row {r}, column {c}. The magician is fooled: the trick works for one flip only.",
+    cMany: "{k} flips: {nr} odd rows and {nc} odd columns. The magician knows something changed, but there are {cand} places it could be.",
+    cManyLine: "{k} flips: {nr} odd rows and {nc} odd columns. The magician knows something changed, but cannot point to any single card.",
+    cornersSay: "Flipped 4 corners: rows {r1} and {r2}, columns {c1} and {c2}.",
+    flipSay: "Flipped row {r}, column {c}: now {side}.", black: "black", white: "white",
+    dealt: "New cards dealt (deal #{d}). Every row and column is even again.",
+    beforeHd: "Before the flip: black cards in each row / column",
+    afterHd: "After flipping row {r}, column {c}",
+    rowsL: "Rows", colsL: "Columns",
+    keys: "Keyboard: Tab to the grid, arrow keys move, Space or Enter flips (or picks) a card.",
+    cellAria: "Row {r}, column {c}, {side}{extra}", extraCard: ", magician's card",
+    resultTitle: "What we found", resultMain: "1 flip → 1 odd row × 1 odd column",
+    resultNote: "{n} × {n} random cards + {k} extra cards. To find one flip, check {lines} counts for odd or even; nothing has to be remembered.",
+    explainK: "Explain it",
+    explainQ: "A friend says you can only spot a changed card if you remember the whole layout. Explain how the extra row and column let you find it, and why the trick fails when two cards are flipped.",
+    homeK: "Try at home",
+    homeQ: "Use 25 coins or paper squares coloured on one side. Lay out 5 × 5 at random, then add a 6th card to each row and a 6th row so every row and column has an even number of coloured sides. Turn your back while someone flips one, then find it.",
+    foot: "CC BY 4.0 · Boxi Yu · Idea after the CS Unplugged “Card Flip Magic” activity (parity); drawings are original · {n} × {n} = {nn} random cards + {k} extra = {mm} cards; deal #{d}",
+  },
+  zh: {
+    title: "翻牌魔术：抓住那个错", eyebrow: "信息科技 · 阶段 2",
+    h1: "每行每列多补一张牌，就能抓住被翻的那一张",
+    intro: "随便摆好 25 张两面颜色不同的牌。魔术师给每一行、每一列各补一张牌。然后有人偷偷翻了一张，魔术师什么都没记，却能一下指出是哪张。",
+    reset: "重置", figAria: "6 行 6 列的牌，黑面或白面朝上；第 6 行和第 6 列是魔术师补的牌",
+    s1: "先猜", s2: "找牌", s3: "翻两张", s4: "规律",
+    k1: "先猜一猜", t1: "魔术师找得到被翻的牌吗？",
+    b1: "左上角的 25 张牌是随机摆的，虚线框里的一行一列是魔术师补上的。现在魔术师转过身，有人翻了一张牌。魔术师从来没记过牌是怎么摆的。",
+    q: "魔术师还能准确说出是哪一张被翻了吗？",
+    oMis: "不能：得把 36 张牌全记住才行",
+    oLuck: "只能靠运气：大约 36 次猜中 1 次",
+    oYes: "能：数一数每行每列有几张黑牌",
+    right: "对。到第 2 步看看数一数能发现什么。",
+    wrong: "很多人这么想。可魔术师什么都不用记。到第 2 步数一数。",
+    k2: "动手", t2: "翻一张，再把它找出来",
+    b2: "先看：每一行、每一列的黑牌都是偶数张（0、2、4 或 6）。翻一张牌，就正好有一行、一列变成奇数。",
+    k3: "再试试", t3: "翻两张会怎样？",
+    b3: "随便翻几张。翻两张时，魔术师还看得出出了错，但说不出是哪一张了。再试试「翻四个角」：四次翻转正好互相抵消。",
+    k4: "规律", t4: "唯一的奇数行 × 唯一的奇数列 = 被翻的牌",
+    b4: "补上的牌让每行每列的黑牌都是偶数。翻一张牌，只让一行、一列各变 1，所以正好这一行和这一列变成奇数。只要查 12 个数是奇是偶，不用记住 36 张牌。",
+    uses: "电脑用同样的办法处理 0 和 1：多加一个「校验位」（奇偶校验），存储或传送时哪个 0 或 1 变了就能发现；把校验位排成行和列，还能把它改回来。书上的 ISBN 和商品条形码最后一位是校验码，目的一样，算法不同。",
+    lgB: "黑面", lgW: "白面", lgZ: "魔术师补的牌", lgO: "奇数",
+    modeLbl: "谁来翻？", modeA: "你翻，魔术师找", modeB: "魔术师藏一张，你来找",
+    hide: "遮住并翻一张", corners: "翻四个角", again: "再翻一张", undo: "撤销翻牌", deal: "重新发牌",
+    countsLbl: "显示黑牌数",
+    aStart: "点任意一张牌把它翻过来。魔术师没在看。",
+    aFound: "第 {r} 行现在有 {rc} 张黑牌，第 {c} 列有 {cc} 张：都是奇数。它们交叉在第 {r} 行第 {c} 列，就是你翻的那张。",
+    bStart: "按「遮住并翻一张」。牌被遮住时，有一张会被翻过来。",
+    bHiding: "魔术师转过身……", bHidden: "有一张牌被翻了。是哪张？点它。",
+    bRight: "找到了：第 {r} 行第 {c} 列。第 {r} 行有 {rc} 张黑牌（奇数），第 {c} 列有 {cc} 张（奇数）。",
+    bWrong: "不是这张。数一数每行的黑牌：哪一行是奇数？再看哪一列？",
+    bDone: "按「遮住并翻一张」再来一局，或者「重新发牌」。",
+    score: "找到 {f} / {n} 局 · 点了 {t} 次",
+    curtain: "转过身……",
+    cClean0: "还没翻：每行每列都是偶数。",
+    cOne: "翻了 {k} 张：第 {r} 行和第 {c} 列是奇数。牌就在它们的交叉处。",
+    cClean: "翻了 {k} 张，可每行每列还是偶数。魔术师什么也看不出来：这几次翻转互相抵消了。",
+    cFooled: "翻了 {k} 张，看起来却像只翻了第 {r} 行第 {c} 列那一张。魔术师被骗了：这个魔术只对翻一张有效。",
+    cMany: "翻了 {k} 张：{nr} 行、{nc} 列是奇数。魔术师知道出了错，但有 {cand} 个位置都可能是。",
+    cManyLine: "翻了 {k} 张：{nr} 行、{nc} 列是奇数。魔术师知道出了错，却指不出是哪一张。",
+    cornersSay: "翻了四个角：第 {r1}、{r2} 行，第 {c1}、{c2} 列。",
+    flipSay: "翻了第 {r} 行第 {c} 列：现在是{side}。", black: "黑面", white: "白面",
+    dealt: "重新发牌（第 {d} 副）。每行每列又都是偶数了。",
+    beforeHd: "翻之前：每行 / 每列的黑牌数",
+    afterHd: "翻了第 {r} 行第 {c} 列之后",
+    rowsL: "各行", colsL: "各列",
+    keys: "键盘：用 Tab 进入牌阵，方向键移动，空格或回车翻牌（或选牌）。",
+    cellAria: "第 {r} 行第 {c} 列，{side}{extra}", extraCard: "，魔术师补的牌",
+    resultTitle: "我们发现", resultMain: "翻 1 张 → 1 个奇数行 × 1 个奇数列",
+    resultNote: "{n} × {n} 张随机牌 + {k} 张补的牌。要找出翻了哪张，只查 {lines} 个数是奇是偶，什么都不用记。",
+    explainK: "说一说",
+    explainQ: "朋友说，要发现哪张牌变了，就得记住整个牌阵。给他讲讲补上的一行一列怎样帮你找到那张牌，再说说为什么翻两张就不灵了。",
+    homeK: "家里做一做",
+    homeQ: "用 25 枚硬币，或一面涂了颜色的纸片，随便摆成 5 × 5；再给每行补第 6 张、补上第 6 行，让每行每列涂色面朝上的都是偶数个。转过身请家人翻一张，你再把它找出来。",
+    foot: "CC BY 4.0 · Boxi Yu · 玩法参考 CS Unplugged「Card Flip Magic」（奇偶校验）活动，图为原创 · {n} × {n} = {nn} 张随机牌 + {k} 张补的 = {mm} 张；第 {d} 副",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = Play.svg;
+const X0 = 26, Y0 = 26, CELL = 50, GAP = 10, CARD = 42;
+const START_SEED = 1;
+const cx = (j) => X0 + j * CELL + (j === N ? GAP : 0);
+const cy = (i) => Y0 + i * CELL + (i === N ? GAP : 0);
+const GRID_END = X0 + M * CELL + GAP; /* 336 */
+
+let seed = START_SEED, base = withParity(deal(seed)), cur = base, flips = new Map();
+let step = 0, mode = "a", focus = [0, 0], showCounts = true;
+let secret = null, solved = false, score = { f: 0, n: 0, t: 0 }, pick = rng(seed * 7919 + 13), hideTimer = null, demo = null;
+let cells = [], rowBands = [], colBands = [], rowBadges = [], colBadges = [], badgeLayer = null, curtain = null;
+if (Play.reduced) document.body.classList.add("noanim");
+
+/* ---------- figure ---------- */
+function badge(parent, x, y) {
+  const g = S("g", { class: "badge" }, parent);
+  S("rect", { x: x - 18, y: y - 16, width: 36, height: 32, rx: 8 }, g);
+  const t = S("text", { x, y: y + 6 }, g);
+  return { g, t };
+}
+function build() {
+  fig.innerHTML = "";
+  const bandW = M * CELL + GAP;
+  rowBands = Array.from({ length: M }, (_, i) => S("rect", { class: "band", x: X0 - 4, y: cy(i), width: bandW + 4, height: CELL - 2, rx: 6 }, fig));
+  colBands = Array.from({ length: M }, (_, j) => S("rect", { class: "band", x: cx(j), y: Y0 - 4, width: CELL - 2, height: bandW + 4, rx: 6 }, fig));
+  for (let k = 0; k < M; k++) {
+    S("text", { class: "idx", x: cx(k) + CELL / 2 - 1, y: Y0 - 8 }, fig).textContent = k + 1;
+    S("text", { class: "idx", x: X0 - 13, y: cy(k) + CELL / 2 + 4 }, fig).textContent = k + 1;
+  }
+  S("rect", { class: "zone", x: cx(N) - 4, y: Y0 - 3, width: CELL + 6, height: M * CELL + GAP + 4, rx: 8 }, fig);
+  S("rect", { class: "zone", x: X0 - 3, y: cy(N) - 4, width: N * CELL + 2, height: CELL + 6, rx: 8 }, fig);
+  cells = [];
+  for (let i = 0; i < M; i++) {
+    const rowArr = [];
+    for (let j = 0; j < M; j++) {
+      const x = cx(j) + (CELL - CARD) / 2 - 1, y = cy(i) + (CELL - CARD) / 2 - 1;
+      const g = S("g", { class: "cell", role: "button", tabindex: -1 }, fig);
+      S("rect", { class: "face", x, y, width: CARD, height: CARD, rx: 6 }, g);
+      S("circle", { class: "mark", cx: x + CARD - 8, cy: y + 8, r: 4.5 }, g);
+      S("rect", { class: "hit", x: x - 3, y: y - 3, width: CARD + 6, height: CARD + 6, rx: 8 }, g);
+      S("rect", { class: "miss", x: x - 3, y: y - 3, width: CARD + 6, height: CARD + 6, rx: 8 }, g);
+      S("rect", { class: "ring", x: x - 5, y: y - 5, width: CARD + 10, height: CARD + 10, rx: 9 }, g);
+      g.addEventListener("click", () => { focus = [i, j]; act(i, j); });
+      g.addEventListener("keydown", (e) => onKey(e, i, j));
+      g.addEventListener("animationend", () => g.classList.remove("spin"));
+      rowArr.push(g);
+    }
+    cells.push(rowArr);
+  }
+  badgeLayer = S("g", { class: "badges" }, fig);
+  rowBadges = Array.from({ length: M }, (_, i) => badge(badgeLayer, GRID_END + 28, cy(i) + CELL / 2 - 1));
+  colBadges = Array.from({ length: M }, (_, j) => badge(badgeLayer, cx(j) + CELL / 2 - 1, GRID_END + 26));
+  curtain = S("g", { visibility: "hidden" }, fig);
+  S("rect", { class: "curtain", x: X0 - 6, y: Y0 - 6, width: M * CELL + GAP + 10, height: M * CELL + GAP + 10, rx: 10 }, curtain);
+  S("text", { class: "curtain-t", x: X0 + (M * CELL + GAP) / 2, y: Y0 + (M * CELL + GAP) / 2 + 6 }, curtain).textContent = P.t("curtain");
+}
+
+const interactive = () => step > 0;
+function paint() {
+  const d = diagnose(cur), rc = rowCounts(cur), cc = colCounts(cur);
+  const guessing = step === 1 && mode === "b" && secret && !solved;
+  const countsOn = step > 0 && (showCounts || step === 3);
+  const bandsOn = countsOn && !(guessing && !showCounts);
+  fig.classList.toggle("live", interactive());
+  for (let i = 0; i < M; i++) for (let j = 0; j < M; j++) {
+    const g = cells[i][j], black = cur[i][j] === 1, extra = i === N || j === N;
+    g.classList.toggle("b", black);
+    g.classList.toggle("w", !black);
+    g.classList.toggle("mine", step > 0 && !(step === 1 && mode === "b") && flips.has(i + "," + j));
+    g.classList.toggle("found", step > 0 && !!d.cell && d.cell[0] === i && d.cell[1] === j && !guessing);
+    g.setAttribute("tabindex", interactive() && focus[0] === i && focus[1] === j ? 0 : -1);
+    g.setAttribute("aria-label", P.t("cellAria", { r: i + 1, c: j + 1, side: P.t(black ? "black" : "white"), extra: extra ? P.t("extraCard") : "" }));
+  }
+  rowBands.forEach((b, i) => b.classList.toggle("on", bandsOn && rc[i] % 2 === 1));
+  colBands.forEach((b, j) => b.classList.toggle("on", bandsOn && cc[j] % 2 === 1));
+  rowBadges.forEach((b, i) => { b.t.textContent = rc[i]; b.g.classList.toggle("odd", rc[i] % 2 === 1); });
+  colBadges.forEach((b, j) => { b.t.textContent = cc[j]; b.g.classList.toggle("odd", cc[j] % 2 === 1); });
+  badgeLayer.classList.toggle("off", !countsOn);
+  $("lgOdd").hidden = !countsOn;
+  $("score").textContent = step === 1 && mode === "b" ? P.t("score", score) : "";
+  if (step === 3) paintRule();
+}
+const msg = $("live");
+const say = (t) => Play.live(msg, t);
+function spin(i, j) {
+  if (Play.reduced) return;
+  const g = cells[i][j];
+  g.classList.remove("spin"); void g.getBBox(); g.classList.add("spin");
+  clearTimeout(g._t); g._t = setTimeout(() => g.classList.remove("spin"), 400); /* in case animationend never fires */
+}
+function clearMarks() { cells.flat().forEach((g) => g.classList.remove("missed")); }
+
+/* ---------- actions ---------- */
+function toggle(i, j, anim = true) {
+  cur = flipCell(cur, i, j);
+  const k = i + "," + j;
+  if (flips.has(k)) flips.delete(k); else flips.set(k, [i, j]);
+  if (anim) spin(i, j);
+}
+function restore() { cur = base; flips = new Map(); secret = null; solved = false; clearMarks(); }
+function stopHide() { if (hideTimer) clearTimeout(hideTimer); hideTimer = null; curtain && curtain.setAttribute("visibility", "hidden"); }
+
+function diagText() {
+  const d = diagnose(cur), k = flips.size;
+  if (k === 0) return P.t("cClean0");
+  if (d.kind === "clean") return P.t("cClean", { k });
+  if (d.kind === "one") {
+    const real = k === 1 && flips.has(d.cell.join(","));
+    return P.t(real ? "cOne" : "cFooled", { k, r: d.cell[0] + 1, c: d.cell[1] + 1 });
+  }
+  return P.t(d.candidates ? "cMany" : "cManyLine", { k, nr: d.rows.length, nc: d.cols.length, cand: d.candidates });
+}
+const sayDiag = () => say(diagText());
+function act(i, j) {
+  if (!interactive() || hideTimer) return;
+  if (step === 1 && mode === "a") {
+    /* One flip at a time here: tapping another card moves the flip. */
+    const prev = [...flips.values()][0];
+    if (prev) toggle(prev[0], prev[1], false);
+    if (!prev || prev[0] !== i || prev[1] !== j) toggle(i, j);
+    paint();
+    const d = diagnose(cur);
+    if (d.cell) say(P.t("aFound", { r: d.cell[0] + 1, c: d.cell[1] + 1, rc: rowCounts(cur)[d.cell[0]], cc: colCounts(cur)[d.cell[1]] }));
+    else say(P.t("aStart"));
+  } else if (step === 1 && mode === "b") {
+    if (!secret || solved) { say(P.t(solved ? "bDone" : "bStart")); return; }
+    score.t++;
+    clearMarks();
+    if (i === secret[0] && j === secret[1]) {
+      solved = true; score.f++;
+      paint();
+      say(P.t("bRight", { r: i + 1, c: j + 1, rc: rowCounts(cur)[i], cc: colCounts(cur)[j] }));
+    } else {
+      cells[i][j].classList.add("missed");
+      paint();
+      say(P.t("bWrong"));
+    }
+  } else if (step === 2) {
+    toggle(i, j); paint(); sayDiag();
+  } else if (step === 3) {
+    showDemo(i, j);
+  }
+}
+function onKey(e, i, j) {
+  const k = e.key;
+  const moveTo = (a, b) => { focus = [Play.clamp(a, 0, M - 1), Play.clamp(b, 0, M - 1)]; paint(); cells[focus[0]][focus[1]].focus(); };
+  if (k === "ArrowLeft") moveTo(i, j - 1);
+  else if (k === "ArrowRight") moveTo(i, j + 1);
+  else if (k === "ArrowUp") moveTo(i - 1, j);
+  else if (k === "ArrowDown") moveTo(i + 1, j);
+  else if (k === "Home") moveTo(i, 0);
+  else if (k === "End") moveTo(i, M - 1);
+  else if (k === " " || k === "Enter") act(i, j);
+  else return;
+  e.preventDefault();
+}
+function hideAndFlip() {
+  stopHide(); restore(); paint();
+  const [i, j] = randCell(pick);
+  curtain.setAttribute("visibility", "visible");
+  say(P.t("bHiding"));
+  hideTimer = setTimeout(() => {
+    hideTimer = null;
+    toggle(i, j, false);
+    secret = [i, j]; solved = false; score.n++;
+    curtain.setAttribute("visibility", "hidden");
+    paint();
+    say(P.t("bHidden"));
+  }, Play.reduced ? 0 : 700);
+}
+function newDeal() {
+  stopHide();
+  seed++;
+  base = withParity(deal(seed)); pick = rng(seed * 7919 + 13);
+  restore();
+  if (step === 3) { const [i, j] = randCell(pick); showDemo(i, j); }
+  paint(); paintFoot();
+  if (step !== 3) say(P.t("dealt", { d: seed }));
+}
+function showDemo(i, j) {
+  restore(); demo = [i, j];
+  toggle(i, j); paint();
+  say(P.t("aFound", { r: i + 1, c: j + 1, rc: rowCounts(cur)[i], cc: colCounts(cur)[j] }));
+}
+function paintRule() {
+  const fmtList = (arr, odd) => arr.map((v, k) => (odd && v % 2 ? "<span class=\"odd\">" + v + "</span>" : v)).join(" · ");
+  $("before").innerHTML = P.t("rowsL") + ": " + fmtList(rowCounts(base)) + "<br>" + P.t("colsL") + ": " + fmtList(colCounts(base));
+  $("afterHd").textContent = demo ? P.t("afterHd", { r: demo[0] + 1, c: demo[1] + 1 }) : "";
+  $("after").innerHTML = P.t("rowsL") + ": " + fmtList(rowCounts(cur), true) + "<br>" + P.t("colsL") + ": " + fmtList(colCounts(cur), true);
+}
+
+$("modeA").addEventListener("click", () => setMode("a"));
+$("modeB").addEventListener("click", () => setMode("b"));
+function setMode(m) {
+  stopHide(); mode = m; restore();
+  showCounts = m === "a"; $("counts").checked = showCounts;
+  $("modeA").classList.toggle("on", m === "a"); $("modeA").setAttribute("aria-pressed", m === "a");
+  $("modeB").classList.toggle("on", m === "b"); $("modeB").setAttribute("aria-pressed", m === "b");
+  $("hide").hidden = m !== "b";
+  paint();
+  say(P.t(m === "a" ? "aStart" : "bStart"));
+}
+$("hide").addEventListener("click", hideAndFlip);
+$("deal").addEventListener("click", newDeal);
+$("undo").addEventListener("click", () => { restore(); paint(); sayDiag(); });
+$("again").addEventListener("click", () => {
+  let c = randCell(pick);
+  if (demo && c[0] === demo[0] && c[1] === demo[1]) c = [(c[0] + 1) % M, c[1]];
+  showDemo(c[0], c[1]);
+});
+$("corners").addEventListener("click", () => {
+  const cs = corners(pick);
+  cs.forEach(([i, j]) => toggle(i, j));
+  paint();
+  say(P.t("cornersSay", { r1: cs[0][0] + 1, r2: cs[3][0] + 1, c1: cs[0][1] + 1, c2: cs[3][1] + 1 }) + " " + diagText());
+});
+$("counts").addEventListener("change", () => { showCounts = $("counts").checked; paint(); });
+
+/* ---------- steps ---------- */
+build();
+fresh();
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("oMis") }, { label: P.t("oLuck") }, { label: P.t("oYes"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i; stopHide(); restore(); demo = null;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("modeRow").hidden = i !== 1;
+  $("hide").hidden = !(i === 1 && mode === "b");
+  $("corners").hidden = $("undo").hidden = i !== 2;
+  $("again").hidden = i !== 3;
+  $("deal").hidden = i === 0;
+  $("counts").parentElement.hidden = i !== 1;
+  $("ruleBox").hidden = $("uses").hidden = i !== 3;
+  $("keys").hidden = i === 0;
+  if (i === 1) showCounts = mode === "a" ? true : $("counts").checked;
+  if (i === 2) showCounts = true;
+  if (i === 3) { const [a, b] = randCell(pick); showDemo(a, b); }
+  paint();
+  if (i === 0) say("");
+  else if (i === 1) say(P.t(mode === "a" ? "aStart" : "bStart"));
+  else if (i === 2) sayDiag();
+});
+$("uses").textContent = P.t("uses");
+$("keys").textContent = P.t("keys");
+$("resultMain").textContent = P.t("resultMain");
+$("resultNote").textContent = P.t("resultNote", { n: N, k: M * M - N * N, lines: 2 * M });
+function paintFoot() { $("foot").textContent = P.t("foot", { n: N, nn: N * N, k: M * M - N * N, mm: M * M, d: seed }); }
+
+function fresh() {
+  stopHide();
+  seed = START_SEED; base = withParity(deal(seed)); pick = rng(seed * 7919 + 13);
+  mode = "a"; showCounts = true; $("counts").checked = true; focus = [0, 0];
+  score = { f: 0, n: 0, t: 0 }; demo = null;
+  $("modeA").classList.add("on"); $("modeA").setAttribute("aria-pressed", "true");
+  $("modeB").classList.remove("on"); $("modeB").setAttribute("aria-pressed", "false");
+  restore(); paintFoot();
+}
+$("reset").addEventListener("click", () => { fresh(); pr.reset(); st.go(0); });
+</script>
+</body>
+</html>

@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polyphones in context</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .han { font-family: "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", "Songti SC", serif; }
+  .board { padding: 16px 14px 14px; display: flex; flex-direction: column; gap: 12px; min-height: 360px; }
+  .pickrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .pickrow button.ch { font-size: 20px; padding: 2px 10px; min-width: 46px; line-height: 1.4; position: relative; }
+  .pickrow button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .pickrow button .tick { position: absolute; top: -6px; right: -6px; font-size: 11px; line-height: 16px; width: 16px; height: 16px; border-radius: 50%; background: var(--a); color: var(--surface); font-family: var(--font); }
+  .card2 { background: var(--soft); border-radius: 12px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .sent { display: flex; flex-wrap: wrap; gap: 1px; align-items: flex-end; }
+  .tok { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15; padding: 2px 3px 4px; border-radius: 8px; border: 2px solid transparent; background: transparent; min-width: 0; }
+  .tok .py { font-size: 14px; min-height: 17px; color: var(--a); font-family: var(--font); font-weight: 700; }
+  .tok .w { font-size: 23px; color: var(--fg); }
+  .tok.punct { padding: 2px 0 4px; cursor: default; }
+  .tok.punct:hover { border-color: transparent; }
+  .tok.tg { border-color: var(--a); background: var(--surface); }
+  .tok.tg .w { color: var(--a); font-weight: 700; }
+  .tok.clue { border-color: var(--hl); background: var(--surface); border-style: solid; }
+  .tok.clue .w { text-decoration: underline 3px var(--hl); text-underline-offset: 5px; }
+  .tok.pickable { border-color: var(--line); border-style: dashed; }
+  .tok.miss { border-color: var(--no); border-style: dashed; }
+  .tok.shake, .pyb.shake { animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  @media (prefers-reduced-motion: reduce) { .tok.shake, .pyb.shake { animation: none; } }
+  .gloss { font-size: 13px; color: var(--muted); }
+  .pyrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .pyb { font-size: 16px; font-weight: 650; padding: 4px 14px; }
+  .pyb.ok { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .pyb.no { border-color: var(--no); color: var(--no); }
+  .cfb { font-size: 14px; min-height: 1.3em; }
+  .cfb.no { color: var(--no); }
+  .score { font-size: 14px; font-weight: 650; }
+  table.rule { border-collapse: collapse; width: 100%; font-size: 14px; }
+  table.rule th, table.rule td { border-bottom: 1px solid var(--line); padding: 6px 4px; text-align: left; vertical-align: top; }
+  table.rule th { font-size: 12px; color: var(--muted); font-weight: 650; }
+  table.rule td.c { font-size: 26px; width: 40px; text-align: center; }
+  table.rule .p { color: var(--a); font-weight: 700; }
+  table.rule .ex { font-size: 17px; white-space: nowrap; }
+  table.rule .m { color: var(--muted); font-size: 13px; }
+  .poem { background: var(--soft); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .poem .line1 { font-size: 22px; }
+  .legend .dot.t { background: var(--a); } .legend .dot.k { background: var(--hl); }
+  @media (max-width: 560px) {
+    .tok { padding: 2px 2px 4px; }
+    .tok .w { font-size: 21px; }
+    .tok .py { font-size: 13px; }
+    table.rule td.c { font-size: 22px; width: 30px; }
+    table.rule { font-size: 13px; }
+  }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="board" id="board" role="group" data-t-aria="boardAria">
+        <div class="pickrow" id="pick" hidden><span data-t="pickLabel"></span></div>
+        <div id="cards" style="display:flex;flex-direction:column;gap:12px"></div>
+        <div class="score" id="score" aria-live="polite"></div>
+        <div id="rules"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math han" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// All sentences are original, written for this page. Readings follow 《现代汉语词典》(第7版) and the
+// 普通话异读词审音表 (1985). Chinese stays Chinese in both UI languages; only the explanations are translated.
+const PAIRS = [
+  { c: "长", r: [{ py: "cháng", en: "long", zh: "长短" }, { py: "zhǎng", en: "grow", zh: "生长" }] },
+  { c: "行", r: [{ py: "xíng", en: "walk, go", zh: "行走" }, { py: "háng", en: "row, line", zh: "一行一行" }] },
+  { c: "好", r: [{ py: "hǎo", en: "good", zh: "好坏" }, { py: "hào", en: "like to", zh: "喜爱" }] },
+  { c: "乐", r: [{ py: "lè", en: "happy", zh: "高兴" }, { py: "yuè", en: "music", zh: "乐曲、乐器" }] },
+  { c: "重", r: [{ py: "zhòng", en: "heavy", zh: "轻重" }, { py: "chóng", en: "again", zh: "再一次" }] },
+  { c: "还", r: [{ py: "hái", en: "still", zh: "仍然" }, { py: "huán", en: "give back", zh: "归还" }] },
+  { c: "都", r: [{ py: "dōu", en: "all", zh: "全都" }, { py: "dū", en: "capital city", zh: "都城、大城市" }] },
+  { c: "教", r: [{ py: "jiāo", en: "teach (someone)", zh: "教给别人" }, { py: "jiào", en: "teaching (in words like 教室)", zh: "跟教学有关的词" }] },
+];
+// t = tokens; k = index of the polyphone token; r = which reading of PAIRS (0/1); clue = token indices that
+// prove the reading (first one is used for the example word in the rule table).
+const SENTS = [
+  { c: "长", r: 0, t: ["这条", "围巾", "很", "长", "，", "能", "绕", "脖子", "两圈", "。"], k: 3, clue: [1, 2, 8],
+    en: "This scarf is very long; it goes round your neck twice.",
+    why: { zh: "「围巾很长」说的是围巾有多长，能绕两圈，是长短的长。", en: "围巾很长 'the scarf is very long' (it wraps twice) is about length, so it's cháng." } },
+  { c: "长", r: 1, t: ["小猫", "长", "大了", "，", "能", "自己", "抓", "老鼠", "。"], k: 1, clue: [2],
+    en: "The kitten has grown up and can catch mice by itself.",
+    why: { zh: "「长大」是一天天变大，是生长的长。", en: "长大 means 'grow up' — growing, so it's zhǎng." } },
+  { c: "行", r: 0, t: ["放学后", "，", "我们", "步", "行", "回家", "。"], k: 4, clue: [3],
+    en: "After school we walk home.",
+    why: { zh: "「步行」就是用脚走路，是行走的行。", en: "步行 means 'go on foot' — walking, so it's xíng." } },
+  { c: "行", r: 1, t: ["操场上", "，", "小朋友", "排成", "两", "行", "做", "早操", "。"], k: 5, clue: [4, 3],
+    en: "On the playground the children line up in two rows for morning exercises.",
+    why: { zh: "「排成两行」是排成两排，是一行一行的行。", en: "排成两行 'line up in two rows' — a row, so it's háng." } },
+  { c: "好", r: 0, t: ["今天", "天气", "真", "好", "，", "我们", "去", "放风筝", "吧", "。"], k: 3, clue: [1, 2],
+    en: "The weather is really nice today — let's go and fly a kite.",
+    why: { zh: "「天气真好」说天气怎么样，是好坏的好。", en: "天气真好 says what the weather is like — good, so it's hǎo." } },
+  { c: "好", r: 1, t: ["我的", "爱", "好", "是", "画画", "和", "下棋", "。"], k: 2, clue: [1],
+    en: "My hobbies are drawing and playing chess.",
+    why: { zh: "「爱好」是喜欢做的事，好读 hào。", en: "爱好 'hobby' is something you like doing — 'like to', so it's hào." } },
+  { c: "乐", r: 0, t: ["祝", "你", "生日", "快", "乐", "！"], k: 4, clue: [3],
+    en: "Happy birthday to you!",
+    why: { zh: "「快乐」是高兴，乐读 lè。", en: "快乐 means 'happy', so it's lè." } },
+  { c: "乐", r: 1, t: ["音", "乐", "课上", "，", "我们", "一起", "唱歌", "。"], k: 1, clue: [0, 6],
+    en: "In music class we sing together.",
+    why: { zh: "「音乐」是唱歌、弹琴这些声音的艺术，乐读 yuè。", en: "音乐 means 'music' (singing goes with it), so it's yuè." } },
+  { c: "重", r: 0, t: ["这箱", "书", "太", "重", "了", "，", "我", "搬不动", "。"], k: 3, clue: [2, 7],
+    en: "This box of books is too heavy; I can't lift it.",
+    why: { zh: "「太重了」「搬不动」说的是分量，是轻重的重。", en: "太重了 'too heavy' and 搬不动 'can't lift it' are about weight, so it's zhòng." } },
+  { c: "重", r: 1, t: ["积木", "倒了", "，", "我们", "重", "新", "搭", "一遍", "。"], k: 4, clue: [5, 1],
+    en: "The blocks fell down, so we build them again.",
+    why: { zh: "「重新」是再来一次，重读 chóng。", en: "重新 means 'over again' — the blocks fell, so we start again: chóng." } },
+  { c: "还", r: 0, t: ["天", "黑了", "，", "弟弟", "还", "在", "看书", "。"], k: 4, clue: [5],
+    en: "It's already dark, and little brother is still reading.",
+    why: { zh: "「还在」是仍然在，还读 hái。", en: "还在 means 'is still …', so it's hái." } },
+  { c: "还", r: 1, t: ["看完的", "书", "要", "按时", "还", "给", "图书馆", "。"], k: 4, clue: [5, 6],
+    en: "Books you have finished should go back to the library on time.",
+    why: { zh: "「还给图书馆」是把借的东西送回去，还读 huán。", en: "还给图书馆 'give back to the library' — returning, so it's huán." } },
+  { c: "都", r: 0, t: ["全班", "同学", "都", "到齐了", "。"], k: 2, clue: [0, 1],
+    en: "Everyone in the class is here.",
+    why: { zh: "「全班……都」说的是一个不少，都读 dōu。", en: "全班 'the whole class' … 都 'all' — everyone, so it's dōu." } },
+  { c: "都", r: 1, t: ["北京", "是", "中国的", "首", "都", "。"], k: 4, clue: [3],
+    en: "Beijing is the capital of China.",
+    why: { zh: "「首都」是一个国家的中心城市，都读 dū。", en: "首都 means 'capital city', so it's dū." } },
+  { c: "教", r: 0, t: ["奶奶", "教", "我", "包饺子", "。"], k: 1, clue: [2, 3],
+    en: "Grandma teaches me to make dumplings.",
+    why: { zh: "「教我包饺子」是把本领教给别人，教读 jiāo。", en: "教我包饺子 'teach me to make dumplings' — teaching someone, so it's jiāo." } },
+  { c: "教", r: 1, t: ["下课了", "，", "大家", "走出", "教", "室", "。"], k: 4, clue: [5],
+    en: "Class is over and everyone walks out of the classroom.",
+    why: { zh: "「教室」是上课的房间，教读 jiào。", en: "教室 means 'classroom', so it's jiào." } },
+];
+// Step 1: one sentence, 长 twice.
+const GUESS = { t: ["院子里的", "小树", "长", "高了", "，", "影子", "也", "变", "长", "了", "。"],
+  marks: [{ k: 2, c: "长", r: 1, clue: 3 }, { k: 8, c: "长", r: 0, clue: 7 }],
+  en: "The little tree in the yard has grown taller, and its shadow has got longer too." };
+const POEM = { t: ["长", "风", "破", "浪", "会", "有", "时"], k: 0, c: "长", r: 0 };
+
+// ---- pure logic (also tested in node) ----
+const PUNCT = /^[，。！？、；：]$/;
+const isPunct = (w) => PUNCT.test(w);
+const pairOf = (c) => PAIRS.find((p) => p.c === c);
+const readingOf = (s) => pairOf(s.c).r[s.r];
+const plain = (s) => s.t.join("");
+// The span from the polyphone to its main clue, e.g. 「细又长」, 「长大了」.
+function exampleOf(s) {
+  const a = Math.min(s.k, s.clue[0]), b = Math.max(s.k, s.clue[0]);
+  return s.t.slice(a, b + 1).filter((w) => !isPunct(w)).join("");
+}
+// Distance (in words) from the polyphone to its nearest clue, ignoring punctuation.
+function clueDistance(s) {
+  const words = s.t.map((w, i) => i).filter((i) => !isPunct(s.t[i]));
+  const pos = (i) => words.indexOf(i);
+  return Math.min(...s.clue.map((i) => Math.abs(pos(i) - pos(s.k))));
+}
+function stats(list) {
+  let adj = 0, before = 0, after = 0;
+  list.forEach((s) => {
+    if (clueDistance(s) === 1) adj++;
+    if (s.clue[0] < s.k) before++; else after++;
+  });
+  const chars = new Set(list.map((s) => s.c)).size;
+  const readings = new Set(list.map((s) => s.c + s.r)).size;
+  return { n: list.length, adj, before, after, chars, readings };
+}
+// Is tapping token i a correct clue? "ok" | "self" | "punct" | "no"
+function clueCheck(s, i) {
+  if (i === s.k) return "self";
+  if (!s.t[i] || isPunct(s.t[i])) return "punct";
+  return s.clue.includes(i) ? "ok" : "no";
+}
+// Order the two sentences of a character so the first one is not always reading 0.
+function cardsFor(ci) {
+  const c = PAIRS[ci].c;
+  const two = SENTS.map((s, i) => i).filter((i) => SENTS[i].c === c);
+  return ci % 2 ? two.slice().reverse() : two;
+}
+
+const P = Play.setup({
+  en: {
+    title: "Polyphones in context", eyebrow: "Chinese · Stage 1", h1: "One character, two sounds: let the sentence decide",
+    intro: "Some characters have two readings. You can't tell which from the character alone — but the words around it always tell you.",
+    reset: "Reset", boardAria: "Sentences with a highlighted character", pickLabel: "Character",
+    s1: "Guess", s2: "Read & prove", s3: "Rule",
+    k1: "Predict first", t1: "Is 长 read the same both times?",
+    b1: "Look at the two highlighted 长. Pick an answer, then see the readings appear.",
+    k2: "Hands on", t2: "Tap the reading, then tap the proof",
+    b2: "For each sentence: tap the pinyin you think is right, then tap the word in the sentence that proves it. Pick a character above to get its two sentences. Keyboard: Tab to a row, arrow keys, Enter.",
+    k3: "The rule", t3: "The sound follows the meaning",
+    b3: "Each reading belongs to one meaning. Find the word joined to the character, work out the meaning, and the reading follows.",
+    q: "In 「院子里的小树长高了，影子也变长了。」, are the two 长 read the same?",
+    o1: "Yes — 长 is 长, it always sounds the same", o2: "No — the words next to each one decide",
+    right: "Right: 长高 is zhǎng (grow taller), 变长 is cháng (get longer). Same character, two sounds.",
+    wrong: "Not here: 长高 is zhǎng (grow taller), but 变长 is cháng (get longer). Same character, two sounds.",
+    guessHint: "Choose an answer on the right to reveal the readings.",
+    guessShown: "The word next to each 长 decides: 高 (taller) → grow → zhǎng; 变 (become) → longer → cháng.",
+    readAs: "Read it as:", pickPy: "Which reading fits here?",
+    pyOk: "Yes, {py}. Now tap the word that proves it.", pyNo: "Read the whole sentence again. Which meaning fits: {a} or {b}?",
+    clueOk: "✓ {why}", clueSelf: "That's the character itself — tap a word next to it.",
+    clueNo: "「{w}」 doesn't decide it. Which word is joined to 「{c}」?", pyFirst: "First choose a reading.",
+    score: "Readings right on first try: {a} of {n} · proofs found: {b} of {n}",
+    allDone: "All {n} sentences done! Go to step 3.",
+    hRead: "reading", hMean: "meaning", hEx: "in this page",
+    ruleCount: "{chars} characters · {readings} readings · {n} sentences. In {adj} of {n} the proving word sits right next to the character ({before} before it, {after} after it).",
+    poemQ: "Bonus — a line by Li Bai (Tang dynasty): how is 长 read here?",
+    poemOk: "cháng. 长风 is a long, far-blowing wind — length, not growing.",
+    poemNo: "Not quite: 长风 is a long, far-blowing wind — length, so cháng.",
+    legT: "the character with two readings", legK: "the word that proves the reading",
+    resultTitle: "What we found", resultMain: "读音跟着意思走",
+    resultNote: "One character can have two readings, each with its own meaning. Don't guess from the character alone: look at the word it is joined to.",
+    explainK: "Explain it",
+    explainQ: "A friend reads 还 as hái everywhere. Use 还在 and 还给 to show them why that's wrong, and say which word told you each time.",
+    homeK: "Try at home",
+    homeQ: "Play 'two-sound tag' with someone: one person says a character from this page, the other makes one word for each reading (长: 长短, 长大). One point per correct reading, then swap.",
+    foot: "Readings follow 《现代汉语词典》(7th ed.) and the 普通话异读词审音表 (1985); modern usage only. 教 is jiāo as a verb ('teach someone') and jiào in words such as 教室, 教师. One reading can carry several meanings (班长 'class monitor' uses the same zhǎng as 长大), and a few characters have more than two readings; this page shows the two most common. The poem line is from 李白《行路难》(Tang). All other sentences are original. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "多音字，看句子", eyebrow: "语文 · 阶段 1", h1: "多音字，看句子：一个字两个音，句子说了算",
+    intro: "有些字有两个读音。光看这个字，分不出该读哪个；可它前后的词总会告诉你。",
+    reset: "重置", boardAria: "带标亮字的句子", pickLabel: "选字",
+    s1: "先猜", s2: "读一读，找证据", s3: "规律",
+    k1: "先猜一猜", t1: "两个「长」读音一样吗？",
+    b1: "看句子里标亮的两个「长」。先选一个答案，再看拼音。",
+    k2: "动手", t2: "先点读音，再点证据",
+    b2: "每个句子：先点你觉得对的拼音，再点句子里能证明它的那个词。上面换一个字，就换两句新的。键盘：Tab 到一行，方向键选，回车确认。",
+    k3: "规律", t3: "读音跟着意思走",
+    b3: "每个读音对应一个意思。找到跟这个字连在一起的词，弄清意思，读音就定了。",
+    q: "「院子里的小树长高了，影子也变长了。」两个「长」读音一样吗？",
+    o1: "一样——长就是长，到哪儿都这么读", o2: "不一样——看它旁边的词",
+    right: "对：「长高」读 zhǎng（生长），「变长」读 cháng（长短）。同一个字，两个音。",
+    wrong: "这里不一样：「长高」读 zhǎng（生长），「变长」读 cháng（长短）。同一个字，两个音。",
+    guessHint: "先在右边选一个答案，再看拼音。",
+    guessShown: "看每个「长」旁边的词：「高」——长高了，是生长，读 zhǎng；「变」——变长了，是长短，读 cháng。",
+    readAs: "读作：", pickPy: "这里读哪个音？",
+    pyOk: "对，读 {py}。再点能证明它的词。", pyNo: "把整句再读一遍：这里是「{a}」还是「{b}」的意思？",
+    clueOk: "✓ {why}", clueSelf: "这是它自己——点它旁边的词。",
+    clueNo: "「{w}」决定不了读音。哪个词跟「{c}」连在一起？", pyFirst: "先选读音。",
+    score: "第一次就读对：{a} / {n} 句 · 找到证据：{b} / {n} 句",
+    allDone: "{n} 句全部完成！去第 3 步看看规律。",
+    hRead: "读音", hMean: "意思", hEx: "本页的词",
+    ruleCount: "{chars} 个字 · {readings} 个读音 · {n} 个句子。其中 {adj} / {n} 句，证据词就紧挨着这个字（{before} 句在前面，{after} 句在后面）。",
+    poemQ: "加一题——李白（唐）的诗句：这里的「长」读什么？",
+    poemOk: "cháng。「长风」是吹得又远又久的大风，说的是长短，不是生长。",
+    poemNo: "不对哦：「长风」是吹得又远又久的大风，说的是长短，读 cháng。",
+    legT: "有两个读音的字", legK: "证明读音的词",
+    resultTitle: "我们发现", resultMain: "读音跟着意思走",
+    resultNote: "一个字可以有两个读音，每个读音带着自己的意思。别光看字猜，看它跟哪个词连在一起。",
+    explainK: "说一说",
+    explainQ: "同学把「还」一律读成 hái。用「还在」和「还给」跟他讲讲为什么不对，再说说每次你是看哪个词判断的。",
+    homeK: "家里做一做",
+    homeQ: "和家人玩「一字两音」：一人说本页的一个字，另一人用它的两个读音各说一个词（长：长短、长大）。说对一个读音得一分，再交换。",
+    foot: "读音依据《现代汉语词典》（第 7 版）和《普通话异读词审音表》（1985），只取现代用法。「教」作动词（教给别人）读 jiāo，在「教室、教师」等词里读 jiào。同一个读音也可能有几个意思（「班长」的长和「长大」一样读 zhǎng，意思是领头的人）；少数字不止两个读音，本页只取最常见的两个。诗句出自李白《行路难》（唐）；其余句子都是原创。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const cardsEl = $("cards"), rulesEl = $("rules"), scoreEl = $("score"), liveEl = $("live"), pick = $("pick");
+
+let step = 0, guessed = false, ci = 0;
+// per-sentence state: phase "py" | "clue" | "done"; firstOk: first pinyin pick right; wrongPy: index tried wrong; miss: wrong clue index
+let state;
+let poemPick = null;
+function freshState() { state = SENTS.map(() => ({ phase: "py", firstOk: null, wrongPy: null, miss: null, msg: "", bad: false })); }
+freshState();
+
+function shake(el) { if (!Play.reduced && el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); } }
+function arrowNav(el) {
+  el.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const bs = [...el.querySelectorAll("button:not([disabled])")];
+    const i = bs.indexOf(document.activeElement);
+    if (i < 0) return;
+    bs[Play.clamp(i + (e.key === "ArrowRight" ? 1 : -1), 0, bs.length - 1)].focus();
+    e.preventDefault();
+  });
+}
+
+// One sentence as a row of word buttons. opts: { py: {k: text}, tg: Set, clue: Set, miss, pickable, onTap }
+function sentenceRow(tokens, opts) {
+  const row = document.createElement("div");
+  row.className = "sent han";
+  row.lang = "zh-CN";
+  tokens.forEach((w, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    const p = isPunct(w);
+    b.className = "tok" + (p ? " punct" : "") + (opts.tg.has(i) ? " tg" : "") + (opts.clue.has(i) ? " clue" : "") +
+      (opts.miss === i ? " miss" : "") + (opts.pickable && !p && !opts.tg.has(i) && !opts.clue.has(i) ? " pickable" : "");
+    const py = document.createElement("span");
+    py.className = "py";
+    py.textContent = opts.py[i] || "";
+    const ww = document.createElement("span");
+    ww.className = "w";
+    ww.textContent = w;
+    b.append(py, ww);
+    b.dataset.i = i;
+    if (p) { b.tabIndex = -1; b.setAttribute("aria-hidden", "true"); b.disabled = true; }
+    else b.setAttribute("aria-label", w + (opts.py[i] ? " " + opts.py[i] : ""));
+    if (opts.onTap && !p) b.addEventListener("click", () => opts.onTap(i, b));
+    row.appendChild(b);
+  });
+  arrowNav(row);
+  return row;
+}
+
+function legend(show) {
+  const lg = $("legend");
+  lg.innerHTML = "";
+  if (!show) return;
+  [["t", "legT"], ["k", "legK"]].forEach(([c, k]) => {
+    const s = document.createElement("span");
+    s.innerHTML = '<span class="dot ' + c + '"></span>';
+    s.appendChild(document.createTextNode(P.t(k)));
+    lg.appendChild(s);
+  });
+}
+
+// ---- step 1 ----
+function renderGuess() {
+  cardsEl.innerHTML = "";
+  const box = document.createElement("div");
+  box.className = "card2";
+  const py = {}, clue = new Set();
+  if (guessed) GUESS.marks.forEach((m) => { py[m.k] = pairOf(m.c).r[m.r].py; clue.add(m.clue); });
+  box.appendChild(sentenceRow(GUESS.t, { py, tg: new Set(GUESS.marks.map((m) => m.k)), clue, onTap: () => {} }));
+  if (L === "en") { const g = document.createElement("div"); g.className = "gloss"; g.textContent = GUESS.en; box.appendChild(g); }
+  const f = document.createElement("div");
+  f.className = "cfb";
+  f.textContent = P.t(guessed ? "guessShown" : "guessHint");
+  box.appendChild(f);
+  cardsEl.appendChild(box);
+  scoreEl.textContent = "";
+  legend(guessed);
+  Play.live(liveEl, f.textContent);
+}
+
+// ---- step 2 ----
+function buildPicker() {
+  pick.querySelectorAll("button").forEach((b) => b.remove());
+  PAIRS.forEach((p, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "ch han";
+    b.lang = "zh-CN";
+    b.textContent = p.c;
+    b.setAttribute("aria-pressed", i === ci ? "true" : "false");
+    const done = cardsFor(i).filter((j) => state[j].phase === "done").length;
+    b.setAttribute("aria-label", p.c + " · " + done + "/2");
+    if (done === 2) { const t = document.createElement("span"); t.className = "tick"; t.textContent = "✓"; b.appendChild(t); }
+    b.addEventListener("click", () => { ci = i; render(); const again = pick.querySelectorAll("button")[i]; if (again) again.focus(); });
+    pick.appendChild(b);
+  });
+}
+arrowNav(pick);
+
+function tally() {
+  const a = state.filter((s) => s.firstOk === true).length;
+  const b = state.filter((s) => s.phase === "done").length;
+  return { a, b, n: SENTS.length };
+}
+
+function renderCards() {
+  cardsEl.innerHTML = "";
+  cardsFor(ci).forEach((j) => {
+    const s = SENTS[j], st = state[j], pair = pairOf(s.c);
+    const box = document.createElement("div");
+    box.className = "card2";
+    const py = {};
+    if (st.phase !== "py") py[s.k] = readingOf(s).py;
+    else py[s.k] = "?";
+    const clue = new Set(st.phase === "done" ? [st.found] : []);
+    const row = sentenceRow(s.t, {
+      py, tg: new Set([s.k]), clue, miss: st.miss, pickable: st.phase === "clue",
+      onTap: (i, btn) => {
+        if (st.phase === "py") { st.msg = P.t("pyFirst"); st.bad = true; render(); return; }
+        if (st.phase === "done") return;
+        const res = clueCheck(s, i);
+        if (res === "ok") { st.phase = "done"; st.found = i; st.miss = null; st.msg = P.t("clueOk", { why: s.why[L] }); st.bad = false; }
+        else { st.miss = res === "no" ? i : null; st.msg = P.t(res === "self" ? "clueSelf" : "clueNo", { w: s.t[i], c: s.c }); st.bad = true; }
+        render();
+        const again = cardsEl.querySelector('[data-card="' + j + '"] .sent [data-i="' + i + '"]');
+        if (again) { again.focus(); if (res !== "ok") shake(again); }
+      },
+    });
+    box.dataset.card = j;
+    box.appendChild(row);
+    if (L === "en") { const g = document.createElement("div"); g.className = "gloss"; g.textContent = s.en; box.appendChild(g); }
+    const pr = document.createElement("div");
+    pr.className = "pyrow";
+    pr.setAttribute("role", "group");
+    pr.setAttribute("aria-label", P.t("pickPy"));
+    const lab = document.createElement("span");
+    lab.textContent = P.t(st.phase === "py" ? "pickPy" : "readAs");
+    pr.appendChild(lab);
+    pair.r.forEach((rd, ri) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "pyb" + (st.phase !== "py" && ri === s.r ? " ok" : "") + (st.phase === "py" && st.wrongPy === ri ? " no" : "");
+      b.textContent = rd.py;
+      b.dataset.ri = ri;
+      b.setAttribute("aria-label", rd.py + " · " + (L === "zh" ? rd.zh : rd.en));
+      b.addEventListener("click", () => {
+        if (st.phase !== "py") return;
+        const ok = ri === s.r;
+        if (st.firstOk === null) st.firstOk = ok;
+        if (ok) { st.phase = "clue"; st.wrongPy = null; st.msg = P.t("pyOk", { py: rd.py }); st.bad = false; }
+        else {
+          st.wrongPy = ri;
+          const m = (x) => (L === "zh" ? x.zh : x.en);
+          st.msg = P.t("pyNo", { a: m(pair.r[0]), b: m(pair.r[1]) });
+          st.bad = true;
+        }
+        render();
+        const sel = ok ? cardsEl.querySelector('[data-card="' + j + '"] .tok.pickable') : cardsEl.querySelector('[data-card="' + j + '"] [data-ri="' + ri + '"]');
+        if (sel) { sel.focus(); if (!ok) shake(sel); }
+      });
+      pr.appendChild(b);
+    });
+    arrowNav(pr);
+    box.appendChild(pr);
+    const f = document.createElement("div");
+    f.className = "cfb" + (st.bad ? " no" : "");
+    f.textContent = st.msg;
+    box.appendChild(f);
+    cardsEl.appendChild(box);
+  });
+  const tl = tally();
+  scoreEl.textContent = P.t("score", tl) + (tl.b === tl.n ? " — " + P.t("allDone", { n: tl.n }) : "");
+  legend(true);
+  const last = cardsFor(ci).map((j) => state[j].msg).filter(Boolean).pop();
+  Play.live(liveEl, last || scoreEl.textContent);
+}
+
+// ---- step 3 ----
+function renderRules() {
+  rulesEl.innerHTML = "";
+  const tb = document.createElement("table");
+  tb.className = "rule";
+  const hd = document.createElement("tr");
+  ["", P.t("hRead") + " 1", P.t("hRead") + " 2"].forEach((h) => { const th = document.createElement("th"); th.textContent = h; hd.appendChild(th); });
+  tb.appendChild(hd);
+  PAIRS.forEach((p) => {
+    const tr = document.createElement("tr");
+    const c = document.createElement("td");
+    c.className = "c han";
+    c.lang = "zh-CN";
+    c.textContent = p.c;
+    tr.appendChild(c);
+    p.r.forEach((rd, ri) => {
+      const td = document.createElement("td");
+      const s = SENTS.find((x) => x.c === p.c && x.r === ri);
+      const ex = document.createElement("span");
+      ex.className = "ex han";
+      ex.lang = "zh-CN";
+      ex.textContent = exampleOf(s);
+      const pp = document.createElement("span");
+      pp.className = "p";
+      pp.textContent = rd.py + " ";
+      const m = document.createElement("div");
+      m.className = "m";
+      m.textContent = L === "zh" ? rd.zh : rd.en;
+      td.append(pp, ex, m);
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  rulesEl.appendChild(tb);
+  const c = document.createElement("p");
+  c.className = "score";
+  c.textContent = P.t("ruleCount", stats(SENTS));
+  rulesEl.appendChild(c);
+  // Bonus: a Tang poem line
+  const poem = document.createElement("div");
+  poem.className = "poem";
+  const q = document.createElement("div");
+  q.className = "gloss";
+  q.textContent = P.t("poemQ");
+  poem.appendChild(q);
+  const py = {};
+  if (poemPick !== null) py[POEM.k] = pairOf(POEM.c).r[POEM.r].py;
+  poem.appendChild(sentenceRow(POEM.t, { py, tg: new Set([POEM.k]), clue: new Set(poemPick !== null ? [1] : []), onTap: () => {} }));
+  const pr = document.createElement("div");
+  pr.className = "pyrow";
+  pairOf(POEM.c).r.forEach((rd, ri) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pyb" + (poemPick !== null && ri === POEM.r ? " ok" : "") + (poemPick === ri && ri !== POEM.r ? " no" : "");
+    b.textContent = rd.py;
+    b.addEventListener("click", () => { poemPick = ri; render(); });
+    pr.appendChild(b);
+  });
+  arrowNav(pr);
+  poem.appendChild(pr);
+  if (poemPick !== null) {
+    const f = document.createElement("div");
+    f.className = "cfb";
+    f.textContent = P.t(poemPick === POEM.r ? "poemOk" : "poemNo");
+    poem.appendChild(f);
+  }
+  rulesEl.appendChild(poem);
+  legend(false);
+  Play.live(liveEl, c.textContent);
+}
+
+function render() {
+  const rule = step === 2;
+  pick.hidden = step !== 1;
+  cardsEl.hidden = rule;
+  scoreEl.hidden = rule;
+  rulesEl.hidden = !rule;
+  if (step === 0) renderGuess();
+  else if (step === 1) { buildPicker(); renderCards(); }
+  else renderRules();
+}
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { guessed = true; render(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  freshState(); ci = 0; guessed = false; poemPick = null;
+  pr.reset(); st.go(0);
+});
+</script>
+</body>
+</html>

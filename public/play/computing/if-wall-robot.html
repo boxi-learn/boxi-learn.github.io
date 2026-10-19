@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A robot that checks for walls</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main { width: 100%; height: auto; aspect-ratio: 1 / 1; max-height: 420px; display: block; }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .cell { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  .wall { fill: var(--b); }
+  .frame { fill: none; stroke: var(--b); stroke-width: 6; }
+  .star { fill: var(--hl); stroke: var(--fg); stroke-width: 1.2; }
+  .startc { fill: none; stroke: var(--a); stroke-width: 2.5; stroke-dasharray: 5 4; }
+  .trail { fill: none; stroke: var(--a); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; opacity: .35; }
+  .probe { fill: none; stroke-width: 3.5; stroke-dasharray: 6 4; }
+  .probe.w { stroke: var(--no); } .probe.o { stroke: var(--a); }
+  .rbody { fill: var(--a); stroke: var(--fg); stroke-width: 1.5; }
+  .rnose { fill: var(--surface); }
+  .rbump .rbody { fill: var(--no); }
+  .pane { padding: 10px 14px 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 12px; color: var(--muted); font-weight: 650; margin-right: 2px; }
+  .ic { display: inline-block; width: 1.2em; text-align: center; color: var(--a); font-weight: 800; }
+  .prog { padding: 8px 10px; border: 1px dashed var(--line); border-radius: 10px; background: var(--bg); font-size: 14px; display: grid; gap: 5px; }
+  .kw { font-weight: 750; color: var(--c); }
+  .ind { padding-left: 16px; display: grid; gap: 5px; }
+  .br { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; min-height: 34px; padding: 3px 6px; border-left: 3px solid var(--soft); border-radius: 4px; }
+  .br.live { border-left-color: var(--hl); background: var(--soft); }
+  .br .empty { font-size: 12px; color: var(--muted); }
+  .cmd { font-size: 14px; padding: 4px 9px; white-space: nowrap; }
+  .cmd.cur { background: var(--hl); color: #1a2822; border-color: var(--hl); }
+  .cmd.cur .ic { color: #1a2822; }
+  .cmd.bad { background: var(--no); color: #fff; border-color: var(--no); }
+  .cmd.bad .ic { color: #fff; }
+  .cmd:disabled { cursor: default; opacity: 1; }
+  .cond { font-weight: 700; border-color: var(--c); color: var(--c); padding: 3px 9px; }
+  .cond:disabled { opacity: 1; cursor: default; }
+  .tg { font-size: 12px; padding: 2px 8px; color: var(--muted); }
+  .tg.on { background: var(--a); color: var(--surface); border-color: var(--a); }
+  .where { font-size: 12px; color: var(--muted); min-height: 1.4em; }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+  .msg.ok { font-weight: 650; }
+  .msg.ok::before { content: "✓ "; color: var(--a); font-weight: 800; }
+  .msg.no { color: var(--no); font-weight: 650; }
+  .msg.no::before { content: "! "; font-weight: 800; }
+  button.primary { background: var(--a); color: var(--surface); border-color: var(--a); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .lvl button.done::after { content: " ✓"; color: var(--a); }
+  .lvl button.on.done::after { color: var(--bg); }
+  .tbl { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 4px 10px; font-size: 13px; background: var(--soft); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; align-items: baseline; }
+  .tbl .h { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  .tbl .mv { font-size: 12px; letter-spacing: .02em; overflow-wrap: anywhere; color: var(--muted); }
+  .tbl .y { color: var(--a); font-weight: 700; } .tbl .n { color: var(--no); font-weight: 700; }
+  .rule { font-size: 15px; color: var(--fg) !important; border-left: 4px solid var(--a); padding-left: 10px; }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 360 360" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="pane">
+        <div class="row lvl" id="lvlRow"></div>
+        <div class="row" id="kindRow">
+          <span class="lbl" data-t="progLbl"></span>
+          <button type="button" class="small" id="kList" data-t="kList"></button>
+          <button type="button" class="small" id="kIf" data-t="kIf"></button>
+        </div>
+        <div class="prog" id="prog"></div>
+        <div class="row" id="pal">
+          <span class="lbl" data-t="addLbl"></span>
+          <button type="button" data-op="F"><span class="ic">↑</span> <span data-t="opF"></span></button>
+          <button type="button" data-op="L"><span class="ic">↺</span> <span data-t="opL"></span></button>
+          <button type="button" data-op="R"><span class="ic">↻</span> <span data-t="opR"></span></button>
+          <button type="button" class="small" id="clr" data-t="clr"></button>
+          <button type="button" class="small" id="ans"></button>
+        </div>
+        <div class="row">
+          <button type="button" class="primary" id="run"></button>
+          <button type="button" id="stepBtn" data-t="stepBtn"></button>
+          <button type="button" id="back" data-t="back"></button>
+          <button type="button" id="fast" aria-pressed="false" data-t="fast"></button>
+          <button type="button" id="all" data-t="all"></button>
+        </div>
+        <div class="where" id="where"></div>
+        <p class="msg" id="live"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="rule" id="rule" hidden></p>
+      <div class="tbl" id="tbl" hidden></div>
+      <p class="note" data-t="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure logic (no DOM). Grid 7×7, x right, y down; d: 0 up, 1 right, 2 down, 3 left. Grid edge = outer wall. */
+const N = 7, CAP = 300;
+const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const SIDE = { ahead: 0, right: 1, left: 3 };
+const MAZES = {
+  A: { rows: ["#######", "#....*#", "#.#####", "#.#####", "#.#####", "#.#####", "#######"], start: [1, 5, 0] },
+  B: { rows: ["#######", "#######", "##...*#", "##.####", "##.####", "##....#", "#######"], start: [5, 5, 3] },
+  C: { rows: ["#######", "#.....#", "#.###.#", "#.#*#.#", "#.#.#.#", "#.#...#", "#######"], start: [1, 5, 0] },
+  D: { rows: ["#######", "###..*#", "###.###", "#...###", "#.#####", "#.#####", "#######"], start: [1, 5, 0] },
+  E: { rows: ["...#..*", ".#.#.##", ".#...#.", ".###.#.", "...#...", "##.#.#.", "...#.#."], start: [0, 6, 0] },
+  F: { rows: [".......", ".##.##.", ".#...#.", ".#.#.#.", ".#.#*#.", ".#####.", "......."], start: [3, 6, 1] },
+};
+for (const k in MAZES) {
+  const m = MAZES[k];
+  m.key = k;
+  m.walls = new Set();
+  m.rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === "#") m.walls.add(x + "," + y); if (c === "*") m.goal = [x, y]; }));
+  m.start = { x: m.start[0], y: m.start[1], d: m.start[2] };
+}
+function blocked(m, x, y) { return x < 0 || y < 0 || x >= N || y >= N || m.walls.has(x + "," + y); }
+function sense(m, s, side) { const d = DIRS[(s.d + SIDE[side]) % 4]; return blocked(m, s.x + d[0], s.y + d[1]); }
+function apply(m, s, op) {
+  if (op === "L") return { s: { x: s.x, y: s.y, d: (s.d + 3) % 4 } };
+  if (op === "R") return { s: { x: s.x, y: s.y, d: (s.d + 1) % 4 } };
+  const nx = s.x + DIRS[s.d][0], ny = s.y + DIRS[s.d][1];
+  if (blocked(m, nx, ny)) return { s, bump: true };
+  return { s: { x: nx, y: ny, d: s.d } };
+}
+const atGoal = (m, s) => s.x === m.goal[0] && s.y === m.goal[1];
+/* Run a program to the end. prog = {kind:"list", ops:[…]} or {kind:"if", cond, a:[…], b:[…]} (inside "repeat until at ★").
+   Returns {ev:[{op, br, k, round, s, bump}], end:"goal"|"bump"|"miss"|"loop"|"cap", first, round}. */
+function run(m, prog) {
+  let s = { ...m.start };
+  const ev = [];
+  const step = (op, br, k, round) => {
+    const r = apply(m, s, op);
+    ev.push({ op, br, k, round, s: r.s, bump: !!r.bump });
+    s = r.s;
+    return r.bump ? "bump" : op === "F" && atGoal(m, s) ? "goal" : ev.length >= CAP ? "cap" : "";
+  };
+  if (prog.kind === "list") {
+    for (let k = 0; k < prog.ops.length; k++) { const e = step(prog.ops[k], "list", k, 0); if (e) return { ev, end: e }; }
+    return { ev, end: atGoal(m, s) ? "goal" : "miss" };
+  }
+  const seen = {};
+  let last = null;
+  for (let round = 1; ; round++) {
+    if (atGoal(m, s)) return { ev, end: "goal", round };
+    const key = s.x + "," + s.y + "," + s.d;
+    if (key in seen) return { ev, end: "loop", first: seen[key], round, empty: last && !prog[last].length ? last : null };
+    seen[key] = round;
+    const br = sense(m, s, prog.cond) ? "a" : "b", list = prog[br];
+    last = br;
+    for (let k = 0; k < list.length; k++) { const e = step(list[k], br, k, round); if (e) return { ev, end: e, round }; }
+  }
+}
+/* Shortest straight list of commands to the star (breadth-first search over x, y, facing). */
+function shortestList(m) {
+  const key = (s) => s.x + "," + s.y + "," + s.d;
+  const prev = { [key(m.start)]: null };
+  const q = [m.start];
+  while (q.length) {
+    const s = q.shift();
+    if (atGoal(m, s)) { const ops = []; let k = key(s); while (prev[k]) { ops.unshift(prev[k].op); k = prev[k].from; } return ops; }
+    for (const op of ["F", "L", "R"]) {
+      const r = apply(m, s, op);
+      if (r.bump || key(r.s) in prev) continue;
+      prev[key(r.s)] = { op, from: key(s) };
+      q.push(r.s);
+    }
+  }
+  return null;
+}
+const moves = (r) => r.ev.filter((e) => !e.bump).map((e) => e.op).join("");
+if (typeof module !== "undefined") module.exports = { N, CAP, MAZES, blocked, sense, apply, run, shortestList, moves };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "A robot that checks for walls", eyebrow: "Computing · Stage 2",
+    h1: "Put “if there’s a wall, turn” inside a loop, and one short program gets through mazes it has never seen",
+    intro: "The robot can look one square ahead, left or right. Give it a loop with an if inside, and watch the same program make different moves in different mazes.",
+    reset: "Reset", figAria: "A 7 by 7 maze with a robot, walls and a star",
+    s1: "Guess", s2: "Build", s3: "Rule",
+    k1: "Predict first", t1: "Same program, three mazes: same moves?",
+    b1: "The loop below never changes. Pick an answer, then run it in maze A, B and C and compare the moves in the table. Then switch to the plain list, which was written for maze A, and run that in all three.",
+    k2: "Hands on", t2: "Write one program for four mazes",
+    b2: "Choose what the robot checks (tap the blue button) and what it does in each part. Use “Test on all mazes” to try A, B, C and D at once. Maze D turns both left and right.",
+    k3: "The rule", t3: "Keep your right hand on the wall",
+    b3: "This program is the right-hand rule: if there is a wall on the right, turn left; otherwise turn right and step forward. Maze E has dead ends; in maze F the star sits beside an island of walls that does not touch the outer wall. (Try “wall on the left” in F, then picture F in a mirror.)",
+    q: "We run this one loop in mazes A, B and C. Will the robot make exactly the same moves each time?",
+    oYes: "Yes — the same program always makes the same moves", oNo: "No — the moves will change with the maze",
+    right: "Right. The program stays the same, but what the robot sees changes, so its moves change. Run it to check.",
+    wrong: "Run it in A, B and C and compare the moves in the table. Only a plain list repeats the same moves every time.",
+    progLbl: "Program:", kList: "Plain list", kIf: "Loop with if",
+    addLbl: "Add:", opF: "Forward", opL: "Turn left", opR: "Turn right",
+    nameF: "forward", nameL: "turn left", nameR: "turn right",
+    clr: "Clear", ansShow: "Show an answer", ansRH: "Right-hand rule again",
+    run: "▶ Run", pause: "❚❚ Pause", stepBtn: "Step", back: "⟲ Back to start", fast: "Fast", all: "Test on all mazes",
+    maze: "Maze {m}", repeatUntil: "repeat until on ★ {", ifW: "if", elseW: "else", listHead: "plain list (written for maze A):",
+    condahead: "wall ahead", condright: "wall on the right", condleft: "wall on the left",
+    condAria: "Robot checks: {c}. Press to change.", addHere: "add here", addingHere: "adding here",
+    emptyBr: "empty — does nothing", removeAria: "Remove {c}", full: "Each part holds at most 3 commands.",
+    roundInfo: "Round {r}: {c}? {yn} → {part}", yes: "yes", no: "no", partA: "if part", partB: "else part",
+    listInfo: "Command {k} of {n}",
+    hMaze: "Maze", hRes: "Result", hMoves: "Moves the robot made",
+    labList: "{m} · list", labIf: "{m} · loop",
+    rGoal: "✓ {n} moves", rBump: "✗ bump", rMiss: "✗ not on ★", rLoop: "✗ loops forever", rCap: "✗ stopped", notYet: "—",
+    pickFirst: "Pick an answer first.", noProg: "Both parts are empty — add a command.",
+    goal: "Reached ★ in {n} moves ({r} rounds of the same loop).", goalList: "Reached ★ in {n} moves.",
+    bump: "Bump! In round {r}, “{c}” ran into a wall. Change what that part does.",
+    bumpList: "Bump! Command {k} ({c}) ran into a wall: this list was written for maze A.",
+    miss: "The list ran out, but the robot is not on ★: it was written for maze A.",
+    loop: "Round {r}: back on the same square, facing the same way as in round {f}. Same place + same program = the same moves again, forever. Stopped.",
+    loopEmpty: "The {part} is empty: the robot does nothing, checks again, does nothing … forever. Stopped.",
+    cap: "Stopped after {n} moves without reaching ★.",
+    allOk: "One program, every maze here! Moves: {list}. Different maze, different moves.",
+    allSome: "Reached ★ in {k} of {n} mazes. Run a red one to watch where it goes wrong.",
+    allF: "Maze E: reached ★. Maze F: loops forever — the right hand stays on the outer wall and never touches the island beside the star.",
+    hintD: "Maze D turns both ways. Idea: keep the robot’s right hand on the wall — check “wall on the right”.",
+    sep: ", ", movesN: "{m} {n}", never: "{m} never",
+    ruleTxt: "One two-part program, six mazes — moves: {list}. A loop with an if lets the robot choose each move from what it sees, so the moves change with the maze.",
+    keys: "Keyboard: click the maze, then ↑ forward, ← turn left, → turn right (added to the highlighted part), Backspace removes, Enter runs, Space steps.",
+    resultTitle: "What we found", resultMain: "same program + different maze = different moves",
+    resultNote: "A plain list makes the same moves every time and fits one maze. An if inside a loop chooses each move from what the robot senses. Limit: a hand on the wall can circle forever when the star sits beside a wall island.",
+    explainK: "Explain it",
+    explainQ: "A friend says “a program always does exactly the same thing”. Use the wall-checking robot to explain when that is true (a plain list) and when it is not (an if inside a loop).",
+    homeK: "Try at home",
+    homeQ: "Draw a maze on squared paper. Move your pencil from the start, keeping a wall always on its right. Does it reach the end? Then draw a maze with a wall island where it never does.",
+    foot: "Wall following (“right-hand rule”): in a maze of one-square-wide paths whose walls are all joined to the outer wall, it passes every square, so it finds the star. Grid 7 × 7; the edge counts as a wall. The robot stops on ★, after 300 moves, or when a round starts on the same square facing the same way as before. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "会看墙的机器人", eyebrow: "信息科技 · 阶段 2",
+    h1: "把「有墙就转弯」放进循环，一段短程序就能走过没见过的迷宫",
+    intro: "机器人能看前面、左边、右边一格有没有墙。给它一个里面带「如果」的循环，看同一段程序在不同迷宫里走出不同的步子。",
+    reset: "重置", figAria: "7 × 7 的迷宫，有机器人、墙和星星",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "同一段程序、三个迷宫：步子一样吗？",
+    b1: "下面这段循环一直不变。先选答案，再在迷宫 A、B、C 里运行，在表里比一比走的步子。然后换成「直接列步骤」——它是照着迷宫 A 写的——也在三个迷宫里跑一跑。",
+    k2: "动手", t2: "写一段程序，走通四个迷宫",
+    b2: "选机器人看哪边（点蓝色按钮），再定两部分各做什么。按「全部迷宫试一遍」一次试 A、B、C、D。迷宫 D 有左拐也有右拐。",
+    k3: "规律", t3: "右手一直扶着墙",
+    b3: "这段程序就是「右手法则」：右边有墙就左转，否则右转再前进一格。迷宫 E 有死胡同；迷宫 F 的星星在一座「墙岛」旁边，这座岛不连着外墙。（在 F 里试试「左边有墙」，再想想 F 照镜子后会怎样。）",
+    q: "同一段循环在迷宫 A、B、C 里运行，机器人每次走的步子会一模一样吗？",
+    oYes: "会——同一段程序走的步子总是一样", oNo: "不会——步子会随迷宫变",
+    right: "对。程序没变，可机器人看到的不一样，步子就跟着变。运行验证一下。",
+    wrong: "在 A、B、C 里各跑一次，比比表里的步子。只有直接列出的步骤，才每次都走一样的步子。",
+    progLbl: "程序：", kList: "直接列步骤", kIf: "循环 + 如果",
+    addLbl: "添加：", opF: "前进", opL: "左转", opR: "右转",
+    nameF: "前进", nameL: "左转", nameR: "右转",
+    clr: "清空", ansShow: "看一个答案", ansRH: "恢复右手法则",
+    run: "▶ 运行", pause: "❚❚ 暂停", stepBtn: "单步", back: "⟲ 回到起点", fast: "快速", all: "全部迷宫试一遍",
+    maze: "迷宫 {m}", repeatUntil: "重复执行，直到站上 ★ {", ifW: "如果", elseW: "否则", listHead: "直接列步骤（照迷宫 A 写的）：",
+    condahead: "前面有墙", condright: "右边有墙", condleft: "左边有墙",
+    condAria: "机器人看：{c}。点一下换一种。", addHere: "加到这里", addingHere: "正加到这里",
+    emptyBr: "空——什么也不做", removeAria: "删掉{c}", full: "每部分最多 3 条指令。",
+    roundInfo: "第 {r} 圈：{c}？{yn} → {part}", yes: "是", no: "否", partA: "「如果」部分", partB: "「否则」部分",
+    listInfo: "第 {k} / {n} 条",
+    hMaze: "迷宫", hRes: "结果", hMoves: "机器人走的步子",
+    labList: "{m} · 列步骤", labIf: "{m} · 循环",
+    rGoal: "✓ {n} 步", rBump: "✗ 撞墙", rMiss: "✗ 没到 ★", rLoop: "✗ 永远绕圈", rCap: "✗ 被叫停", notYet: "—",
+    pickFirst: "先选一个答案。", noProg: "两部分都是空的——先添加指令。",
+    goal: "用 {n} 步到达 ★（同一段循环跑了 {r} 圈）。", goalList: "用 {n} 步到达 ★。",
+    bump: "撞墙了！第 {r} 圈里「{c}」撞到墙。改改这一部分做的事。",
+    bumpList: "撞墙了！第 {k} 条（{c}）撞到墙：这串步骤是照迷宫 A 写的。",
+    miss: "步骤执行完了，可机器人不在 ★ 上：这串步骤是照迷宫 A 写的。",
+    loop: "第 {r} 圈：又回到第 {f} 圈时的格子，朝向也一样。同一个位置 + 同一段程序 = 再走一遍同样的步子，永远出不去。已叫停。",
+    loopEmpty: "{part}是空的：机器人什么也不做，再看一次，又什么也不做……永远停不下来。已叫停。",
+    cap: "走了 {n} 步还没到 ★，已叫停。",
+    allOk: "一段程序走通这里每个迷宫！步数：{list}。迷宫不同，步子就不同。",
+    allSome: "{n} 个迷宫里到达 ★ 的有 {k} 个。运行一个红色的，看看哪里出了错。",
+    allF: "迷宫 E：到达 ★。迷宫 F：永远绕圈——右手一直扶着外墙，碰不到星星旁边那座墙岛。",
+    hintD: "迷宫 D 左右都会拐。提示：让机器人的右手一直扶着墙——看「右边有墙」。",
+    sep: "，", movesN: "{m} {n} 步", never: "{m} 永远到不了",
+    ruleTxt: "同一段两部分的程序，六个迷宫——步数：{list}。循环里放一个「如果」，机器人就能按看到的情况决定每一步，所以步子随迷宫而变。",
+    keys: "键盘：先点一下迷宫，↑ 前进，← 左转，→ 右转（加到高亮的那部分），退格键删除，回车运行，空格单步。",
+    resultTitle: "我们发现", resultMain: "同一段程序 + 不同迷宫 = 不同步子",
+    resultNote: "直接列出的步骤每次都走一样的步子，只适合一个迷宫。循环里的「如果」让机器人按看到的情况选每一步。局限：星星挨着一座墙岛时，扶墙走可能永远绕圈。",
+    explainK: "说一说",
+    explainQ: "朋友说「程序每次都做一模一样的事」。用会看墙的机器人跟他讲讲：什么时候是这样（直接列步骤），什么时候不是（循环里放「如果」）。",
+    homeK: "家里做一做",
+    homeQ: "在方格纸上画一个迷宫。铅笔从起点出发，始终让墙在它右边。能走到终点吗？再画一个带「墙岛」的迷宫，让它永远走不到。",
+    foot: "沿墙走（「右手法则」）：在通道都只有一格宽、所有墙都连着外墙的迷宫里，它会经过每一格，所以一定找到星星。格子 7 × 7，边界算墙。机器人站上 ★、走满 300 步，或某一圈开始时回到以前的格子且朝向相同，就停下。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), progEl = $("prog"), msg = $("live");
+const C = 48, O = 12, cx = (v) => O + v * C + C / 2;
+const ICON = { F: "↑", L: "↺", R: "↻" }, CONDS = ["ahead", "right", "left"], MAXB = 3;
+const SETS = [["A", "B", "C"], ["A", "B", "C", "D"], ["E", "F"]];
+const RH = () => ({ kind: "if", cond: "right", a: ["L"], b: ["R", "F"] });
+const LIST_A = { kind: "list", ops: shortestList(MAZES.A) };
+
+/* ---------- state ---------- */
+let step = 0, lvIdx, lv, progs, kind1, tgt, results, picked = false, fast = false;
+let ex = null, timer = null, running = false, anim = null;
+function freshState() {
+  progs = [null, { kind: "if", cond: "ahead", a: [], b: [] }, RH()];
+  kind1 = "if"; tgt = ["a", "a", "a"]; lvIdx = [0, 0, 0]; results = [{}, {}, {}];
+}
+const prog = () => (step === 0 ? (kind1 === "list" ? LIST_A : { kind: "if", cond: "ahead", a: ["R"], b: ["F"] }) : progs[step]);
+const editable = () => step > 0;
+
+/* ---------- drawing ---------- */
+let gTrail, gRobot, gProbe;
+function drawMaze() {
+  fig.innerHTML = "";
+  const g = Play.svg("g", {}, fig);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    Play.svg("rect", { class: "cell", x: O + x * C, y: O + y * C, width: C, height: C }, g);
+    if (lv.walls.has(x + "," + y)) Play.svg("rect", { class: "wall", x: O + x * C + 2, y: O + y * C + 2, width: C - 4, height: C - 4, rx: 5 }, g);
+  }
+  Play.svg("rect", { class: "frame", x: O - 3, y: O - 3, width: N * C + 6, height: N * C + 6, rx: 4 }, g);
+  Play.svg("rect", { class: "startc", x: O + lv.start.x * C + 5, y: O + lv.start.y * C + 5, width: C - 10, height: C - 10, rx: 7 }, g);
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 ? 8 : 18, a = -Math.PI / 2 + (i * Math.PI) / 5;
+    pts.push((cx(lv.goal[0]) + r * Math.cos(a)).toFixed(1) + "," + (cx(lv.goal[1]) + r * Math.sin(a)).toFixed(1));
+  }
+  Play.svg("polygon", { class: "star", points: pts.join(" ") }, g);
+  gProbe = Play.svg("g", {}, fig);
+  gTrail = Play.svg("polyline", { class: "trail", points: "" }, fig);
+  gRobot = Play.svg("g", {}, fig);
+  Play.svg("circle", { class: "rbody", cx: 0, cy: 0, r: 15 }, gRobot);
+  Play.svg("polygon", { class: "rbody", points: "0,-21 8,-11 -8,-11" }, gRobot);
+  Play.svg("polygon", { class: "rnose", points: "0,-10 7,5 0,2 -7,5" }, gRobot);
+}
+function placeRobot(x, y, a) {
+  gRobot.setAttribute("transform", `translate(${(O + x * C + C / 2).toFixed(1)} ${(O + y * C + C / 2).toFixed(1)}) rotate(${a.toFixed(1)})`);
+}
+function drawTrail(path) { gTrail.setAttribute("points", path.map(([x, y]) => cx(x) + "," + cx(y)).join(" ")); }
+function drawProbe(s, cond) {
+  gProbe.innerHTML = "";
+  if (!cond) return;
+  const d = DIRS[(s.d + SIDE[cond]) % 4], x = s.x + d[0], y = s.y + d[1];
+  const w = blocked(lv, x, y);
+  Play.svg("rect", { class: "probe " + (w ? "w" : "o"), x: O + x * C + 4, y: O + y * C + 4, width: C - 8, height: C - 8, rx: 6 }, gProbe);
+}
+
+/* ---------- program view + editor ---------- */
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function chip(op, br, k) {
+  const b = el("button", "cmd");
+  b.type = "button";
+  b.innerHTML = `<span class="ic">${ICON[op]}</span> `;
+  b.appendChild(document.createTextNode(P.t("name" + op)));
+  const ev = ex && ex.i > 0 ? ex.res.ev[ex.i - 1] : null;
+  if (ev && ev.br === br && ev.k === k) b.classList.add(ev.bump ? "bad" : "cur");
+  if (editable() && br !== "list") {
+    b.setAttribute("aria-label", P.t("removeAria", { c: P.t("name" + op) }));
+    b.addEventListener("click", () => { prog()[br].splice(k, 1); tgt[step] = br; edited(); });
+  } else b.disabled = true;
+  return b;
+}
+function branch(br) {
+  const p = prog(), box = el("div", "br");
+  const ev = ex && ex.i > 0 ? ex.res.ev[ex.i - 1] : null;
+  if ((ev && ev.br === br) || (ex && ex.sensed === br)) box.classList.add("live");
+  p[br].forEach((op, k) => box.appendChild(chip(op, br, k)));
+  if (!p[br].length) box.appendChild(el("span", "empty", P.t("emptyBr")));
+  if (editable()) {
+    const on = tgt[step] === br, t = el("button", "tg" + (on ? " on" : ""), P.t(on ? "addingHere" : "addHere"));
+    t.type = "button";
+    t.setAttribute("aria-pressed", on ? "true" : "false");
+    t.addEventListener("click", () => { tgt[step] = br; renderProg(); });
+    box.appendChild(t);
+  }
+  return box;
+}
+function renderProg() {
+  const p = prog();
+  progEl.innerHTML = "";
+  if (p.kind === "list") {
+    progEl.appendChild(el("div", "kw", P.t("listHead")));
+    const box = el("div", "br");
+    p.ops.forEach((op, k) => box.appendChild(chip(op, "list", k)));
+    progEl.appendChild(box);
+  } else {
+    progEl.appendChild(el("div", "kw", P.t("repeatUntil")));
+    const ind = el("div", "ind"), head = el("div", "row");
+    head.appendChild(el("span", "kw", P.t("ifW")));
+    const cb = el("button", "cond", P.t("cond" + p.cond));
+    cb.type = "button";
+    cb.setAttribute("aria-label", P.t("condAria", { c: P.t("cond" + p.cond) }));
+    if (editable()) cb.addEventListener("click", () => { p.cond = CONDS[(CONDS.indexOf(p.cond) + 1) % 3]; edited(); });
+    else cb.disabled = true;
+    head.append(cb, el("span", "kw", "{"));
+    const mid = el("div", "row");
+    mid.append(el("span", "kw", "} " + P.t("elseW") + " {"));
+    ind.append(head, branch("a"), mid, branch("b"), el("span", "kw", "}"));
+    progEl.append(ind, el("div", "kw", "}"));
+  }
+  $("clr").disabled = !editable() || (!p.a.length && !p.b.length);
+}
+function add(op) {
+  if (!editable()) return;
+  const list = prog()[tgt[step]];
+  if (list.length >= MAXB) { setMsg(P.t("full"), "no"); return; }
+  list.push(op);
+  edited();
+}
+function removeLast() {
+  if (!editable()) return;
+  const p = prog(), br = p[tgt[step]].length ? tgt[step] : p.a.length ? "a" : "b";
+  if (p[br].length) { p[br].pop(); edited(); }
+}
+function edited() { stopRun(); ex = null; results[step] = {}; showStart(); renderProg(); renderTable(); setMsg(""); }
+
+/* ---------- results table ---------- */
+const rowKey = (m, k) => m + "·" + k;
+const mvText = (r) => { const s = moves(r).replace(/[FLR]/g, (c) => ICON[c]); return s.length > 48 ? s.slice(0, 48) + "…" : s; };
+function resCell(r) {
+  if (!r) return el("span", "", P.t("notYet"));
+  const n = r.ev.filter((e) => !e.bump).length;
+  const k = { goal: "rGoal", bump: "rBump", miss: "rMiss", loop: "rLoop", cap: "rCap" }[r.end];
+  return el("span", r.end === "goal" ? "y" : "n", P.t(k, { n }));
+}
+function renderTable() {
+  const t = $("tbl");
+  t.innerHTML = "";
+  [P.t("hMaze"), P.t("hRes"), P.t("hMoves")].forEach((h) => t.appendChild(el("span", "h", h)));
+  const rows = [];
+  SETS[step].forEach((m) => {
+    if (step === 0) rows.push([m, "list", P.t("labList", { m })], [m, "if", P.t("labIf", { m })]);
+    else rows.push([m, "if", m]);
+  });
+  rows.forEach(([m, k, lab]) => {
+    const r = results[step][rowKey(m, k)];
+    t.append(el("span", "", lab), resCell(r), el("span", "mv", r ? mvText(r) : ""));
+  });
+}
+function record(m, k, r) { results[step][rowKey(m, k)] = r; renderTable(); renderLevels(); }
+
+/* ---------- running ---------- */
+const curKind = () => (step === 0 ? kind1 : "if");
+function begin() {
+  ex = { res: run(lv, prog()), i: 0, s: { ...lv.start }, ang: lv.start.d * 90, path: [[lv.start.x, lv.start.y]], sensed: null };
+}
+function showStart() {
+  cancelAnim();
+  gRobot.classList.remove("rbump");
+  placeRobot(lv.start.x, lv.start.y, lv.start.d * 90);
+  drawTrail([[lv.start.x, lv.start.y]]);
+  drawProbe(null);
+  $("where").textContent = "";
+}
+function cancelAnim() { if (anim) { cancelAnimationFrame(anim.raf); anim = null; } }
+function tween(from, to, ms, done) {
+  cancelAnim();
+  if (ms <= 0) { placeRobot(to.x, to.y, to.a); done(); return; }
+  const t0 = performance.now();
+  anim = { raf: 0 };
+  const f = (t) => {
+    const k = Math.min(1, (t - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    placeRobot(from.x + (to.x - from.x) * e, from.y + (to.y - from.y) * e, from.a + (to.a - from.a) * e);
+    if (k < 1) anim.raf = requestAnimationFrame(f); else { anim = null; done(); }
+  };
+  anim.raf = requestAnimationFrame(f);
+}
+const dur = (op) => (Play.reduced ? 0 : (op === "F" ? 300 : 200) / (fast ? 4 : 1));
+function doOne(after) {
+  if (!ex || ex.done) { begin(); showStart(); setMsg(""); }
+  const p = prog();
+  if (p.kind === "if" && !p.a.length && !p.b.length) { ex = null; setMsg(P.t("noProg"), "no"); stopRun(); return; }
+  if (ex.i >= ex.res.ev.length) { finish(); return; }
+  const e = ex.res.ev[ex.i], from = { x: ex.s.x, y: ex.s.y, a: ex.ang };
+  if (e.br === "list") $("where").textContent = P.t("listInfo", { k: e.k + 1, n: p.ops.length });
+  else if (e.k === 0) {
+    ex.sensed = e.br;
+    drawProbe(ex.s, p.cond);
+    $("where").textContent = P.t("roundInfo", { r: e.round, c: P.t("cond" + p.cond), yn: P.t(e.br === "a" ? "yes" : "no"), part: P.t(e.br === "a" ? "partA" : "partB") });
+  }
+  ex.i++;
+  renderProg();
+  if (e.bump) {
+    gRobot.classList.add("rbump");
+    const dx = DIRS[ex.s.d][0] * .22, dy = DIRS[ex.s.d][1] * .22, mid = { x: from.x + dx, y: from.y + dy, a: from.a };
+    tween(from, mid, dur("F") / 2, () => tween(mid, from, dur("F") / 2, finish));
+    return;
+  }
+  ex.ang += e.op === "L" ? -90 : e.op === "R" ? 90 : 0;
+  ex.s = e.s;
+  if (e.op === "F") { ex.path.push([e.s.x, e.s.y]); drawProbe(null); }
+  tween(from, { x: e.s.x, y: e.s.y, a: ex.ang }, dur(e.op), () => {
+    drawTrail(ex.path);
+    if (ex.i >= ex.res.ev.length) finish();
+    else if (after) after();
+  });
+}
+function finish() {
+  const r = ex.res, n = r.ev.filter((e) => !e.bump).length, last = r.ev[r.ev.length - 1];
+  ex.done = true;
+  stopRun();
+  drawProbe(null);
+  if (r.end !== "goal" && r.end !== "bump") gRobot.classList.add("rbump");
+  record(lv.key, curKind(), r);
+  const nm = last ? P.t("name" + last.op) : "";
+  if (r.end === "goal") setMsg(r.ev.length && last.br === "list" ? P.t("goalList", { n }) : P.t("goal", { n, r: last ? last.round : 0 }), "ok");
+  else if (r.end === "bump") setMsg(last.br === "list" ? P.t("bumpList", { k: last.k + 1, c: nm }) : P.t("bump", { r: last.round, c: nm }), "no");
+  else if (r.end === "miss") setMsg(P.t("miss"), "no");
+  else if (r.end === "loop") setMsg(r.empty ? P.t("loopEmpty", { part: P.t(r.empty === "a" ? "partA" : "partB") }) : P.t("loop", { r: r.round, f: r.first }), "no");
+  else setMsg(P.t("cap", { n }), "no");
+  renderProg();
+}
+function setMsg(t, cls) { msg.className = "msg" + (cls ? " " + cls : ""); Play.live(msg, t); }
+function loop() {
+  if (!running) return;
+  doOne(() => { timer = setTimeout(loop, Play.reduced ? (fast ? 60 : 250) : 50); });
+}
+function canRun() {
+  if (step === 0 && !picked) { setMsg(P.t("pickFirst"), "no"); return false; }
+  return true;
+}
+function runBtn() {
+  if (running) { stopRun(); return; }
+  if (anim || !canRun()) return;
+  if (!ex || ex.done) { begin(); showStart(); setMsg(""); }
+  running = true;
+  $("run").textContent = P.t("pause");
+  loop();
+}
+function stopRun() { running = false; clearTimeout(timer); $("run").textContent = P.t("run"); }
+function stepOnce() { if (running) stopRun(); if (anim || !canRun()) return; doOne(); }
+function backToStart() { stopRun(); ex = null; showStart(); renderProg(); setMsg(""); }
+function testAll() {
+  if (!canRun()) return;
+  const p = prog();
+  if (p.kind === "if" && !p.a.length && !p.b.length) { setMsg(P.t("noProg"), "no"); return; }
+  stopRun();
+  const ms = SETS[step], k = curKind();
+  const rs = ms.map((m) => [m, run(MAZES[m], p)]);
+  rs.forEach(([m, r]) => (results[step][rowKey(m, k)] = r));
+  renderTable(); renderLevels();
+  const ok = rs.filter(([, r]) => r.end === "goal");
+  if (ok.length === ms.length) setMsg(P.t("allOk", { list: ok.map(([m, r]) => P.t("movesN", { m, n: moves(r).length })).join(P.t("sep")) }), "ok");
+  else {
+    if (step === 2 && rs[0][1].end === "goal" && rs[1][1].end === "loop" && p.cond === "right") { setMsg(P.t("allF"), "no"); return; }
+    const dOnly = step === 1 && ok.length === 3 && rs[3][1].end !== "goal";
+    setMsg(P.t("allSome", { k: ok.length, n: ms.length }) + (dOnly ? " " + P.t("hintD") : ""), "no");
+  }
+}
+
+/* ---------- mazes and steps ---------- */
+function renderLevels() {
+  const row = $("lvlRow");
+  row.innerHTML = "";
+  SETS[step].forEach((m, i) => {
+    const b = el("button", "small", P.t("maze", { m }));
+    b.type = "button";
+    const r = results[step][rowKey(m, curKind())];
+    b.classList.toggle("on", lv.key === m);
+    b.classList.toggle("done", !!r && r.end === "goal");
+    b.setAttribute("aria-pressed", lv.key === m ? "true" : "false");
+    b.addEventListener("click", () => { lvIdx[step] = i; setMaze(m); });
+    row.appendChild(b);
+  });
+}
+function setMaze(m) {
+  stopRun();
+  lv = MAZES[m]; ex = null;
+  drawMaze(); showStart(); renderLevels(); renderProg(); setMsg("");
+}
+function markKind(k) {
+  kind1 = k;
+  $("kList").classList.toggle("on", k === "list"); $("kIf").classList.toggle("on", k === "if");
+  $("kList").setAttribute("aria-pressed", k === "list"); $("kIf").setAttribute("aria-pressed", k === "if");
+}
+function setKind(k) {
+  markKind(k);
+  stopRun(); ex = null; showStart(); renderProg(); renderLevels(); setMsg("");
+}
+/* Rule line: the right-hand program on all six mazes, computed. */
+function ruleText() {
+  const parts = Object.keys(MAZES).map((m) => {
+    const r = run(MAZES[m], RH());
+    return r.end === "goal" ? P.t("movesN", { m, n: moves(r).length }) : P.t("never", { m });
+  });
+  return P.t("ruleTxt", { list: parts.join(P.t("sep")) });
+}
+freshState();
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("oYes") }, { label: P.t("oNo"), right: true }], right: P.t("right"), wrong: P.t("wrong"),
+}, () => { picked = true; if (msg.textContent === P.t("pickFirst")) setMsg(""); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("kindRow").hidden = i !== 0;
+  $("pal").hidden = i === 0;
+  $("ans").textContent = P.t(i === 1 ? "ansShow" : "ansRH");
+  $("rule").hidden = i !== 2;
+  $("tbl").hidden = false;
+  if (i === 0) markKind(kind1);
+  setMaze(SETS[i][lvIdx[i]]);
+  renderTable();
+});
+$("rule").textContent = ruleText();
+
+/* ---------- wiring ---------- */
+document.querySelectorAll("#pal [data-op]").forEach((b) => b.addEventListener("click", () => add(b.dataset.op)));
+$("clr").addEventListener("click", () => { const p = prog(); p.a = []; p.b = []; tgt[step] = "a"; edited(); });
+$("ans").addEventListener("click", () => { progs[step] = RH(); edited(); });
+$("kList").addEventListener("click", () => setKind("list"));
+$("kIf").addEventListener("click", () => setKind("if"));
+$("run").addEventListener("click", runBtn);
+$("stepBtn").addEventListener("click", stepOnce);
+$("back").addEventListener("click", backToStart);
+$("all").addEventListener("click", testAll);
+$("fast").addEventListener("click", () => { fast = !fast; $("fast").classList.toggle("on", fast); $("fast").setAttribute("aria-pressed", fast); });
+fig.addEventListener("keydown", (e) => {
+  const k = e.key;
+  if (k === "ArrowUp") add("F");
+  else if (k === "ArrowLeft") add("L");
+  else if (k === "ArrowRight") add("R");
+  else if (k === "Backspace" || k === "Delete") removeLast();
+  else if (k === "Enter") runBtn();
+  else if (k === " ") stepOnce();
+  else return;
+  e.preventDefault();
+});
+$("reset").addEventListener("click", () => {
+  stopRun(); freshState(); picked = false; fast = false;
+  $("fast").classList.remove("on"); $("fast").setAttribute("aria-pressed", "false");
+  pr.reset(); st.go(0);
+});
+</script>
+</body>
+</html>

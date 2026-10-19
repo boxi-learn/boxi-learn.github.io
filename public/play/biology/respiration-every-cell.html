@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breathing is not respiration</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .lbl { fill: var(--fg); font-size: 14px; }
+  .lbl.m { fill: var(--muted); font-size: 13px; }
+  .lbl.b { font-weight: 650; }
+  .lbl.big { font-size: 19px; font-weight: 700; }
+  .lbl.eq { font-family: var(--math); font-size: 15px; }
+  .lbl.on { fill: var(--a); }
+  .lbl.w { fill: var(--surface); font-weight: 700; font-size: 13px; }
+  .zone { fill: var(--soft); }
+  .zone.on { fill: var(--a); opacity: .16; }
+  .zline { stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; }
+  .air { stroke: var(--muted); stroke-width: 10; stroke-linecap: round; fill: none; opacity: .35; }
+  .alv { fill: var(--surface); stroke: var(--c); stroke-width: 2; }
+  .vessel { fill: var(--no); opacity: .14; }
+  .vline { stroke: var(--no); stroke-width: 1.5; opacity: .5; fill: none; }
+  .cell { fill: var(--surface); stroke: var(--a); stroke-width: 2; }
+  .nuc { fill: var(--a); opacity: .25; }
+  .mito { fill: var(--hl); opacity: .35; stroke: var(--b); stroke-width: 1.5; }
+  .mito.on { opacity: .9; }
+  .crista { stroke: var(--b); stroke-width: 1.3; fill: none; }
+  .glu { fill: var(--a); }
+  .rbc { fill: var(--no); opacity: .75; }
+  .trail { stroke: var(--muted); stroke-width: 1.5; fill: none; stroke-dasharray: 2 5; opacity: .7; }
+  .done { stroke: var(--c); stroke-width: 3; fill: none; opacity: .55; }
+  .done.co2 { stroke: var(--b); }
+  .mO2 { fill: var(--c); }
+  .mCO2 { fill: var(--b); }
+  .spark { fill: var(--hl); }
+  .barbg { fill: var(--line); opacity: .6; }
+  .bA { fill: var(--a); } .bB { fill: var(--b); } .bC { fill: var(--c); } .bH { fill: var(--hl); } .bN { fill: var(--no); }
+  .axis { stroke: var(--fg); stroke-width: 1.5; }
+  .chl { fill: var(--a); }
+  .sun { fill: var(--hl); }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow.c { stroke: var(--b); stroke-width: 3; }
+  .ah { fill: var(--muted); }
+  .ah.c { fill: var(--b); }
+  .q { fill: var(--a); font-size: 34px; font-weight: 750; }
+  #fig { cursor: default; }
+  #fig.drag { cursor: grab; }
+  .controls .play-btn { min-width: 5.5em; }
+  .controls .pick { display: flex; gap: 4px; flex-wrap: wrap; }
+  .controls .pick button { font-size: 13px; padding: 4px 9px; }
+  #extra { font-size: 14px; color: var(--fg); }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlTrip">
+        <label for="trip" data-t="tripLabel"></label>
+        <input type="range" id="trip" min="0" max="1000" step="5" value="0">
+        <button type="button" class="small play-btn" id="playBtn"></button>
+      </div>
+      <div class="controls" id="ctlCell">
+        <span data-t="cellLabel"></span>
+        <div class="pick" id="cellPick"></div>
+      </div>
+      <div class="controls" id="ctlMet">
+        <label for="met" data-t="metLabel"></label>
+        <input type="range" id="met" min="0.9" max="12" step="0.1" value="1">
+        <span class="val" id="metVal"></span>
+      </div>
+      <div class="controls" id="ctlLight">
+        <label for="light" data-t="lightLabel"></label>
+        <input type="range" id="light" min="0" max="2000" step="10" value="0">
+        <span class="val" id="lightVal"></span>
+      </div>
+      <div class="controls" id="ctlLightPick">
+        <div class="pick" id="lightPick"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="extra"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Breathing is not respiration", eyebrow: "Biology · Stage 3", h1: "Breathing is not respiration",
+    intro: "Guess first. Then follow one oxygen molecule from the air to the place where it is really used, speed up your body, and switch a leaf's light on and off.",
+    reset: "Reset", figAria: "One oxygen molecule travelling from the air through the lungs and blood into a body cell, and a carbon dioxide molecule travelling back",
+    tripLabel: "Trip", play: "Play", pause: "Pause", cellLabel: "Destination cell",
+    metLabel: "Activity", lightLabel: "Light",
+    s1: "Guess", s2: "Follow O₂", s3: "Exercise", s4: "Rule",
+    k1: "Predict first", t1: "Where in your body does respiration happen?",
+    b1: "Pick one. A wrong guess is useful: the next steps test every answer.",
+    q: "Respiration (using oxygen to release energy) happens…", o1: "only in the lungs", o2: "in the blood", o3: "in the heart", o4: "in every living cell",
+    right: "Yes. Now follow an oxygen molecule and see it with your own eyes.", wrong: "A very common idea. Follow one oxygen molecule in step 2 and see where it is used up.",
+    fb1: "The lungs are where air goes in and out, so this is the most common guess. But the lungs only hand the oxygen over.",
+    fb2: "Blood carries oxygen, but carrying is not using: the oxygen arrives at its destination unchanged.",
+    fb3: "The heart is a pump. Its own cells do use oxygen, just like every other cell, but it does not use the oxygen for the whole body.",
+    fb4: "That is what biologists found. Step 2 shows where inside the cell.",
+    k2: "Hands on · drag the molecule", t2: "Follow one oxygen molecule",
+    b2: "Drag the blue O₂ along its path (or use the slider, or press Play). Watch which zone is lit: only one of them changes the molecule.",
+    st1: "Breathing in. Your diaphragm and rib muscles pull air down your windpipe into tiny air sacs (alveoli). This is breathing: it just moves air. Nothing is used up yet.",
+    st2: "The O₂ diffuses across the air sac wall, less than a thousandth of a millimetre thin, into the blood in a capillary.",
+    st3: "A red blood cell picks it up (on haemoglobin) and the blood carries it, through the heart, out to the body. The red blood cell does not use it: it has no mitochondria.",
+    st4: "In a capillary next to a {cell}, the O₂ leaves the blood and diffuses into the cell.",
+    st5: "Here it is used. In a mitochondrion, oxygen and glucose react: glucose + oxygen → carbon dioxide + water + energy. This is respiration, inside a {cell}.",
+    st6: "A new molecule leaves: CO₂, made in the cell from the glucose's carbon. It diffuses out of the cell into the blood.",
+    st7: "The blood carries the CO₂ back (most of it dissolved in the plasma as hydrogencarbonate).",
+    st8: "In the lungs the CO₂ diffuses out of the blood into an air sac.",
+    st9: "Breathing out carries it away. Breathing moved the gases at both ends; the chemistry happened in the cell.",
+    zLung: "Lungs", zLungP: "breathing", zBlood: "Blood", zBloodP: "carrying", zCellP: "respiration",
+    cMuscle: "muscle cell", cBrain: "brain cell", cSkin: "skin cell", cLiver: "liver cell",
+    fAir: "air", fGlu: "glucose", fEnergy: "energy", fUsed: "O₂ was used up in the cell", fNotUsed: "O₂ still unchanged",
+    live2: "{pct}% of the trip. Zone: {zone}. {state}",
+    stO2: "The molecule is still O₂.", stCO2: "The O₂ is gone; a CO₂ is heading out.",
+    k3: "Hands on · speed up", t3: "Exercise: who needs the extra oxygen?",
+    b3: "Move from sleeping to sprinting. The cells in your muscles respire faster, so they need more O₂ and make more CO₂. Breathing and heart rate rise to keep up: they follow the cells, not the other way round.",
+    actSleep: "asleep", actSit: "sitting", actWalk: "walking", actJog: "jogging", actRun: "running hard",
+    metVal: "{act} · {met}× rest",
+    rO2: "O₂ used by cells", rAir: "Air breathed", rHeart: "Heart rate", rBlood: "Blood pumped",
+    uMlMin: "{v} mL/min", uAir: "{v} L/min · {b} breaths", uHr: "{v} beats/min", uLMin: "{v} L/min",
+    gMus: "muscles {v}%", gBrain: "brain {v}%", gOther: "other organs {v}%",
+    x3: "{act}: your cells use about {o2} mL of O₂ a minute, and your muscles take {mus}% of it.",
+    x3s: "Even asleep, your cells still use about {sleep} mL a minute: the brain, heart, liver and kidneys never stop respiring.",
+    live3: "{act}: O₂ {o2} mL/min, breathing {ve} L/min ({br} breaths/min), heart {hr} beats/min.",
+    k4: "The rule", t4: "Breathing moves air; respiration happens in every living cell, day and night",
+    b4: "Plants do not breathe with lungs, yet every leaf cell respires too. Drag the light from night to full sun. The mitochondria never stop; the chloroplasts only work in light.",
+    lNight: "night", lDim: "dim room", lCloud: "cloudy", lSun: "full sun",
+    lightVal: "{v} µmol/m²/s",
+    fResp: "respiration: CO₂ out", fPhoto: "photosynthesis: CO₂ in", fNet: "net CO₂ for the leaf",
+    fOut: "leaf gives out CO₂", fIn: "leaf takes in CO₂", fEven: "balanced", fMito: "mitochondria: always on", fChl: "chloroplasts",
+    x4a: "At {v} µmol/m²/s the leaf still gives out CO₂: photosynthesis ({p}) is weaker than respiration ({r}). Only above about {ic} µmol/m²/s does photosynthesis outpace it.",
+    x4b: "In this light photosynthesis ({p}) is {k} times faster than respiration ({r}), so the leaf takes in CO₂ overall. Respiration has not stopped: the {r} is still there, just outpaced.",
+    live4: "Light {v}: respiration {r}, photosynthesis {p}, net {n} µmol CO₂/m²/s.",
+    resultTitle: "What we found", resultMain: "glucose + O₂ → CO₂ + water + energy, in every cell",
+    resultNote: "Breathing only delivers the O₂. At rest your cells use about {o2} mL of it a minute, even while you sleep.",
+    explainK: "Explain it", explainQ: "A friend says “respiration is breathing, so it happens in the lungs, and plants don't do it”. Using the oxygen trip and the leaf in the dark, explain where respiration happens and what breathing is for.",
+    homeK: "Try at home", homeQ: "Count your breaths and your pulse for one minute sitting still, then again right after 30 jumping jacks. Both rise. Which cells asked for the extra oxygen?",
+    foot: "Model of a typical 70 kg adult: O₂ use = 3.5 mL/kg/min × activity (1 MET = rest). Oxygen taken from each litre of blood rises from about 50 to 150 mL; stroke volume 70 → 110 mL; air breathed ≈ 25–35 L per L of O₂. At rest the brain uses ≈ 20% of the body's O₂ and skeletal muscle ≈ 20%; organ shares in exercise are rough. Alveoli: about 480 million (Ochs et al. 2004); air–blood barrier ≈ 0.6 µm. Leaf: illustrative C₃ leaf, photosynthesis 20·I/(I+400), dark respiration 1.5 µmol CO₂/m²/s; full sun ≈ 2000 µmol photons/m²/s. Mature red blood cells have no mitochondria and release energy without oxygen. · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "呼吸运动不等于细胞呼吸", eyebrow: "生物 · 阶段 3", h1: "呼吸运动不等于细胞呼吸",
+    intro: "先猜一猜。再跟着一个氧分子从空气走到真正用掉它的地方，让身体动起来，最后给一片叶子开灯、关灯。",
+    reset: "重置", figAria: "一个氧分子从空气经过肺和血液进入身体细胞，一个二氧化碳分子沿原路出去",
+    tripLabel: "行程", play: "播放", pause: "暂停", cellLabel: "目的地细胞",
+    metLabel: "活动", lightLabel: "光照",
+    s1: "先猜", s2: "跟着 O₂", s3: "运动", s4: "规律",
+    k1: "先猜一猜", t1: "身体的哪里在进行呼吸作用？",
+    b1: "选一个。猜错也有用，后面几步会把每个答案都检验一遍。",
+    q: "呼吸作用（用氧气释放能量）发生在……", o1: "只在肺里", o2: "在血液里", o3: "在心脏里", o4: "在每个活细胞里",
+    right: "对。接下来跟着一个氧分子，亲眼看一看。", wrong: "很多人都这么想。第 2 步跟着一个氧分子走，看它到底在哪里被用掉。",
+    fb1: "空气从肺进出，所以这是最常见的猜测。但肺只是把氧气交出去。",
+    fb2: "血液运送氧气，但运送不等于使用：氧气到达目的地时还是原样。",
+    fb3: "心脏是一台泵。它自己的细胞也用氧，和别的细胞一样，但它不替全身用氧。",
+    fb4: "生物学家发现的正是这样。第 2 步看看是在细胞里的哪儿。",
+    k2: "动手 · 拖动分子", t2: "跟着一个氧分子走",
+    b2: "沿路拖动蓝色的 O₂（也可以拖滑块或按「播放」）。看哪个区域亮起来：只有一个区域会改变这个分子。",
+    st1: "吸气。膈肌和肋间肌把空气经气管拉进肺里细小的气囊（肺泡）。这就是呼吸运动：只是搬运空气，什么也没用掉。",
+    st2: "O₂ 穿过不到千分之一毫米厚的肺泡壁，扩散进毛细血管的血液里。",
+    st3: "红细胞（用血红蛋白）把它接住，血液带着它经过心脏送往全身。红细胞自己不用它：成熟红细胞没有线粒体。",
+    st4: "到了{cell}旁边的毛细血管，O₂ 离开血液，扩散进细胞。",
+    st5: "就在这里被用掉。在线粒体里，氧气和葡萄糖反应：葡萄糖 + 氧气 → 二氧化碳 + 水 + 能量。这就是细胞呼吸，发生在{cell}里。",
+    st6: "出来的是一个新分子：CO₂，由葡萄糖里的碳在细胞里生成。它扩散出细胞，进入血液。",
+    st7: "血液把 CO₂ 运回去（大部分以碳酸氢根的形式溶在血浆里）。",
+    st8: "到了肺，CO₂ 从血液扩散进肺泡。",
+    st9: "呼气把它带走。呼吸运动只在两头搬运气体；化学变化发生在细胞里。",
+    zLung: "肺", zLungP: "呼吸运动", zBlood: "血液", zBloodP: "运输", zCellP: "细胞呼吸",
+    cMuscle: "肌肉细胞", cBrain: "脑细胞", cSkin: "皮肤细胞", cLiver: "肝细胞",
+    fAir: "空气", fGlu: "葡萄糖", fEnergy: "能量", fUsed: "O₂ 已在细胞里用掉", fNotUsed: "O₂ 还是原样",
+    live2: "行程 {pct}%。区域：{zone}。{state}",
+    stO2: "分子还是 O₂。", stCO2: "O₂ 已经没了，一个 CO₂ 正往外走。",
+    k3: "动手 · 加快", t3: "运动时，是谁要更多的氧？",
+    b3: "从睡觉拖到全力跑。肌肉里的细胞呼吸加快，需要更多 O₂，也产生更多 CO₂。呼吸和心跳跟着加快来供应：是它们跟着细胞走，不是反过来。",
+    actSleep: "睡觉", actSit: "坐着", actWalk: "走路", actJog: "慢跑", actRun: "全力跑",
+    metVal: "{act} · 静息的 {met} 倍",
+    rO2: "细胞用掉的 O₂", rAir: "呼吸的空气", rHeart: "心率", rBlood: "心脏泵血",
+    uMlMin: "{v} 毫升/分", uAir: "{v} 升/分 · {b} 次", uHr: "{v} 次/分", uLMin: "{v} 升/分",
+    gMus: "肌肉 {v}%", gBrain: "脑 {v}%", gOther: "其他器官 {v}%",
+    x3: "{act}：全身细胞每分钟用掉约 {o2} 毫升 O₂，其中肌肉占 {mus}%。",
+    x3s: "就算睡着了，细胞每分钟仍用掉约 {sleep} 毫升：脑、心、肝、肾的细胞呼吸从不停止。",
+    live3: "{act}：O₂ {o2} 毫升/分，呼吸 {ve} 升/分（{br} 次/分），心率 {hr} 次/分。",
+    k4: "规律", t4: "呼吸运动只搬运空气；细胞呼吸在每个活细胞里日夜进行",
+    b4: "植物没有肺，可每个叶细胞也在呼吸。把光从黑夜拖到烈日。线粒体从不停工；叶绿体只在有光时工作。",
+    lNight: "黑夜", lDim: "暗室", lCloud: "阴天", lSun: "烈日",
+    lightVal: "{v} µmol/m²/s",
+    fResp: "细胞呼吸：放出 CO₂", fPhoto: "光合作用：吸收 CO₂", fNet: "叶片的 CO₂ 净进出",
+    fOut: "叶片放出 CO₂", fIn: "叶片吸收 CO₂", fEven: "收支相抵", fMito: "线粒体：一直在工作", fChl: "叶绿体",
+    x4a: "光照 {v} µmol/m²/s 时，叶片仍在放出 CO₂：光合作用（{p}）比细胞呼吸（{r}）弱。光照超过约 {ic} µmol/m²/s，光合作用才能盖过细胞呼吸。",
+    x4b: "这样的光照下，光合作用（{p}）是细胞呼吸（{r}）的 {k} 倍，所以叶片总体上吸收 CO₂。细胞呼吸并没有停：那 {r} 一直都在，只是被盖过了。",
+    live4: "光照 {v}：细胞呼吸 {r}，光合作用 {p}，净值 {n} µmol CO₂/m²/s。",
+    resultTitle: "我们发现", resultMain: "葡萄糖 + O₂ → CO₂ + 水 + 能量，在每个细胞里",
+    resultNote: "呼吸运动只负责送来 O₂。静息时全身细胞每分钟用掉约 {o2} 毫升，睡着时也一样。",
+    explainK: "说一说", explainQ: "朋友说「呼吸作用就是喘气，所以发生在肺里，植物也不呼吸」。用氧分子的行程和黑暗里的叶片，给他讲讲细胞呼吸在哪里发生，呼吸运动又是干什么的。",
+    homeK: "家里做一做", homeQ: "安静坐着数一分钟呼吸次数和脉搏，再做 30 个开合跳后马上数一次。两个数都变大了。是哪些细胞要了更多的氧？",
+    foot: "模型按 70 千克的普通成年人：耗氧 = 3.5 毫升/千克/分 × 活动强度（1 MET = 静息）。每升血被取走的氧从约 50 毫升升到 150 毫升；每搏输出量 70 → 110 毫升；每消耗 1 升 O₂ 约呼吸 25–35 升空气。静息时脑约占全身耗氧 20%，骨骼肌约 20%；运动时各器官的比例是粗略值。肺泡约 4.8 亿个（Ochs 等，2004）；气血屏障约 0.6 µm。叶片：示意用的 C₃ 叶片，光合作用 20·I/(I+400)，暗呼吸 1.5 µmol CO₂/m²/s；烈日约 2000 µmol 光子/m²/s。成熟红细胞没有线粒体，不用氧气释放能量。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- numbers (all computed here) ----------
+// Exercise model: typical 70 kg adult.
+const BODY = { mass: 70, perMet: 3.5, brain: 50, other: 145, metMax: 12 };
+function body(met) {
+  const m = Play.clamp(Number.isFinite(met) ? met : 1, 0.5, BODY.metMax);
+  const f = Play.clamp((m - 1) / (BODY.metMax - 1), 0, 1);       // 0 at rest, 1 flat out
+  const o2 = BODY.perMet * BODY.mass * m;                          // mL O2 / min
+  const brain = Math.min(BODY.brain, o2 * 0.2), other = Math.min(BODY.other, o2 * 0.6);
+  const mus = Math.max(0, o2 - brain - other);
+  const avd = 50 + 100 * Math.pow(f, 0.6);                         // mL O2 taken per L of blood
+  const q = o2 / avd;                                              // L blood / min
+  const sv = 70 + 40 * Math.min(1, f / 0.4);                       // mL per beat
+  const hr = q * 1000 / sv;
+  const ve = (o2 / 1000) * (25 + 10 * f * f);                      // L air / min
+  const vt = 0.5 + 2 * Math.pow(f, 0.8);                           // L per breath
+  return { met: m, o2, brain, other, mus, q, hr, ve, br: ve / vt };
+}
+const actKey = (m) => (m < 1 ? "actSleep" : m < 2 ? "actSit" : m < 5 ? "actWalk" : m < 9 ? "actJog" : "actRun");
+// Leaf model (illustrative C3 leaf), µmol CO2 / m² / s
+const LEAF = { pmax: 20, k: 400, r: 1.5 };
+const photo = (I) => LEAF.pmax * Math.max(0, I) / (Math.max(0, I) + LEAF.k);
+const IC = LEAF.k * LEAF.r / (LEAF.pmax - LEAF.r);                 // light compensation point
+const REST = body(1), SLEEP = body(0.9);
+const f = Play.fmt;
+const round = (x, s) => Math.round(x / s) * s;
+
+// ---------- DOM ----------
+const fig = document.getElementById("fig");
+const trip = document.getElementById("trip"), met = document.getElementById("met"), light = document.getElementById("light");
+const playBtn = document.getElementById("playBtn");
+const extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+let step = 0, predictNote = "", raf = 0, last = 0, pf = 0, cellK = "cMuscle", dragging = false;
+document.getElementById("resultNote").textContent = P.t("resultNote", { o2: f(round(REST.o2, 10), 0) });
+
+const S = (tag, a, p) => Play.svg(tag, a, p || fig);
+function text(x, y, s, cls, anchor, p) {
+  const t = S("text", { x, y, class: "lbl " + (cls || ""), "text-anchor": anchor || "start" }, p);
+  t.textContent = s;
+  return t;
+}
+function arrow(x1, y1, x2, y2, cls) {
+  S("line", { x1, y1, x2, y2, class: "arrow " + (cls || "") });
+  const a = Math.atan2(y2 - y1, x2 - x1), L = 9;
+  const p = [[x2, y2], [x2 - L * Math.cos(a - 0.45), y2 - L * Math.sin(a - 0.45)], [x2 - L * Math.cos(a + 0.45), y2 - L * Math.sin(a + 0.45)]];
+  S("polygon", { points: p.map((q) => q.join(",")).join(" "), class: "ah " + (cls || "") });
+}
+function bar(x, y, w, h, frac, cls) {
+  S("rect", { x, y, width: Math.max(0, w), height: h, rx: 3, class: "barbg" });
+  const v = Play.clamp(frac, 0, 1) * w;
+  if (v > 0) S("rect", { x, y, width: Math.max(1, v), height: h, rx: 3, class: cls });
+}
+function size() {
+  const r = fig.getBoundingClientRect();
+  const W = Math.max(280, Math.round(r.width || 600)), H = Math.max(240, Math.round(r.height || 360));
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  return { W, H };
+}
+
+// ---------- step 2: the trip ----------
+// Path = list of legs; each leg has a text key and a zone (0 lungs, 1 blood, 2 cell).
+// A "dwell" leg at the mitochondrion has a fixed share of the slider: that is where O2 turns into CO2.
+const DWELL = 0.14;
+function geom(W, H) {
+  const g = {
+    mouth: [W * 0.09, 30], alv: [W * 0.15, H * 0.4], alvR: Math.min(W * 0.1, H * 0.12),
+    vTop: H * 0.62, vBot: H * 0.84, vx0: W * 0.08, vx1: W * 0.92,
+    cell: [W * 0.67, H * 0.17, W * 0.3, H * 0.38], mito: [W * 0.67 + W * 0.3 * 0.62, H * 0.31],
+  };
+  const y1 = g.vTop + (g.vBot - g.vTop) * 0.3, y2 = g.vTop + (g.vBot - g.vTop) * 0.72;
+  const cellBot = g.cell[1] + g.cell[3];
+  g.nodes = [
+    { p: g.mouth, key: "st1", zone: 0 },
+    { p: [g.alv[0] + g.alvR * 0.3, g.alv[1] + g.alvR * 0.2], key: "st2", zone: 0 },
+    { p: [W * 0.2, y1], key: "st3", zone: 1 },
+    { p: [W * 0.76, y1], key: "st4", zone: 1 },
+    { p: [W * 0.77, cellBot - 12], key: "st4", zone: 2 },
+    { p: g.mito, key: "st5", zone: 2, dwell: true },
+    { p: g.mito, key: "st6", zone: 2 },
+    { p: [W * 0.88, cellBot - 12], key: "st6", zone: 2 },
+    { p: [W * 0.84, y2], key: "st7", zone: 1 },
+    { p: [W * 0.22, y2], key: "st8", zone: 1 },
+    { p: [g.alv[0] - g.alvR * 0.3, g.alv[1] + g.alvR * 0.3], key: "st9", zone: 0 },
+    { p: [g.mouth[0] - 10, 30], key: "st9", zone: 0 },
+  ];
+  // leg lengths; the dwell leg gets DWELL of the total
+  const legs = [];
+  let L = 0;
+  for (let i = 0; i < g.nodes.length - 1; i++) {
+    const a = g.nodes[i].p, b = g.nodes[i + 1].p;
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    legs.push({ a, b, len, key: g.nodes[i].key, zone: g.nodes[i].zone, dwell: !!g.nodes[i].dwell });
+    if (!g.nodes[i].dwell) L += len;
+  }
+  const move = 1 - DWELL;
+  let acc = 0;
+  legs.forEach((l) => {
+    l.u0 = acc;
+    l.du = l.dwell ? DWELL : (L > 0 ? (l.len / L) * move : 0);
+    acc += l.du;
+    l.u1 = acc;
+  });
+  g.legs = legs;
+  return g;
+}
+// u in [0,1] -> {x, y, leg, k (0..1 within the leg)}
+function at(g, u) {
+  const v = Play.clamp(u, 0, 1);
+  for (const l of g.legs) {
+    if (v <= l.u1 || l === g.legs[g.legs.length - 1]) {
+      const k = l.du > 0 ? Play.clamp((v - l.u0) / l.du, 0, 1) : 1;
+      return { x: l.a[0] + (l.b[0] - l.a[0]) * k, y: l.a[1] + (l.b[1] - l.a[1]) * k, leg: l, k };
+    }
+  }
+  return { x: 0, y: 0, leg: g.legs[0], k: 0 };
+}
+const dwellLeg = (g) => g.legs.find((l) => l.dwell);
+// nearest u on the path to a point (for dragging); skips the zero-length dwell leg except by snapping
+function nearest(g, x, y) {
+  let best = { d: Infinity, u: 0 };
+  g.legs.forEach((l) => {
+    if (l.dwell) return;
+    const dx = l.b[0] - l.a[0], dy = l.b[1] - l.a[1], L2 = dx * dx + dy * dy;
+    const k = L2 > 0 ? Play.clamp(((x - l.a[0]) * dx + (y - l.a[1]) * dy) / L2, 0, 1) : 0;
+    const d = Math.hypot(l.a[0] + dx * k - x, l.a[1] + dy * k - y);
+    if (d < best.d) best = { d, u: l.u0 + l.du * k };
+  });
+  return best;
+}
+const isCO2 = (g, u) => { const dl = dwellLeg(g); return u > dl.u0 + dl.du * 0.5; };
+
+function molecule(x, y, co2) {
+  const r = co2 ? 17 : 15;
+  S("circle", { cx: x, cy: y, r, class: co2 ? "mCO2" : "mO2" });
+  text(x, y + 4.5, co2 ? "CO₂" : "O₂", "w", "middle");
+}
+function drawTrip(W, H) {
+  const g = geom(W, H), u = +trip.value / 1000, pos = at(g, u), zone = pos.leg.zone, co2 = isCO2(g, u);
+  const dl = dwellLeg(g), used = u >= dl.u0 + dl.du * 0.5;
+  // zones
+  const zx = [0, W * 0.3, W * 0.64, W];
+  const zt = [[P.t("zLung"), P.t("zLungP")], [P.t("zBlood"), P.t("zBloodP")], [P.t(cellK), P.t("zCellP")]];
+  for (let i = 0; i < 3; i++) {
+    S("rect", { x: zx[i], y: 0, width: zx[i + 1] - zx[i], height: H, class: "zone" + (i === zone ? " on" : "") });
+    const cx = (zx[i] + zx[i + 1]) / 2;
+    const ty = i === 0 ? H - 8 : i === 1 ? 20 : 20;
+    text(i === 0 ? zx[0] + 8 : cx, i === 0 ? ty - 16 : ty, zt[i][0], "b" + (i === zone ? " on" : ""), i === 0 ? "start" : "middle");
+    text(i === 0 ? zx[0] + 8 : cx, i === 0 ? ty : ty + 16, zt[i][1], "m" + (i === zone ? " on" : ""), i === 0 ? "start" : "middle");
+  }
+  S("line", { x1: zx[1], y1: 0, x2: zx[1], y2: H, class: "zline" });
+  S("line", { x1: zx[2], y1: 0, x2: zx[2], y2: H, class: "zline" });
+  // airway + air sac
+  S("path", { d: `M${g.mouth[0]} 18 L${g.mouth[0]} ${g.alv[1] - g.alvR}`, class: "air" });
+  text(g.mouth[0] + 12, 22, P.t("fAir"), "m");
+  // vessel (one capillary bed drawn as a band)
+  S("rect", { x: g.vx0, y: g.vTop, width: g.vx1 - g.vx0, height: g.vBot - g.vTop, rx: (g.vBot - g.vTop) / 2, class: "vessel" });
+  S("rect", { x: g.vx0, y: g.vTop, width: g.vx1 - g.vx0, height: g.vBot - g.vTop, rx: (g.vBot - g.vTop) / 2, class: "vline" });
+  S("circle", { cx: g.alv[0], cy: g.alv[1], r: g.alvR, class: "alv" });
+  // cell with nucleus, mitochondrion, glucose
+  const [cx0, cy0, cw, ch] = g.cell;
+  S("rect", { x: cx0, y: cy0, width: cw, height: ch, rx: 16, class: "cell" });
+  S("circle", { cx: cx0 + cw * 0.22, cy: cy0 + ch * 0.68, r: Math.min(cw, ch) * 0.13, class: "nuc" });
+  const mrx = Math.min(cw * 0.3, 40), mry = Math.min(ch * 0.2, 18);
+  const inDwell = pos.leg.dwell;
+  S("ellipse", { cx: g.mito[0], cy: g.mito[1], rx: mrx, ry: mry, class: "mito" + (inDwell ? " on" : "") });
+  for (let i = -1; i <= 1; i++) S("path", { d: `M${g.mito[0] + i * mrx * 0.45} ${g.mito[1] - mry * 0.7} q${mrx * 0.15} ${mry * 0.7} 0 ${mry * 1.4}`, class: "crista" });
+  // glucose waits beside the mitochondrion until the reaction, then is gone
+  const gk = inDwell ? pos.k : used ? 1 : 0;
+  if (gk < 1) {
+    const hx = cx0 + 16, hy = cy0 + 18, hr = 9;
+    const pts = [];
+    for (let i = 0; i < 6; i++) pts.push([hx + hr * Math.cos(Math.PI / 3 * i), hy + hr * Math.sin(Math.PI / 3 * i)].join(","));
+    S("polygon", { points: pts.join(" "), class: "glu", opacity: 1 - gk });
+    if (W >= 560) text(hx + 14, hy + 5, P.t("fGlu"), "m");
+  }
+  // trail already travelled
+  const done = [];
+  for (const l of g.legs) {
+    if (l.u0 > u) break;
+    done.push(l.a);
+    if (u < l.u1) { done.push([pos.x, pos.y]); break; }
+    done.push(l.b);
+  }
+  if (done.length > 1) {
+    const split = done.findIndex((p) => p[0] === g.mito[0] && p[1] === g.mito[1]);
+    const o2Part = split >= 0 ? done.slice(0, split + 1) : done, co2Part = split >= 0 ? done.slice(split) : [];
+    S("polyline", { points: o2Part.map((p) => p.join(",")).join(" "), class: "done" });
+    if (co2Part.length > 1) S("polyline", { points: co2Part.map((p) => p.join(",")).join(" "), class: "done co2" });
+  }
+  // rest of the path, faint
+  S("polyline", { points: g.nodes.map((n) => n.p.join(",")).join(" "), class: "trail" });
+  // red blood cell around the O2 while it rides in the blood
+  if (!co2 && zone === 1) S("ellipse", { cx: pos.x, cy: pos.y, rx: 26, ry: 18, class: "rbc" });
+  // energy sparks during the reaction
+  if (inDwell && pos.k > 0.15) {
+    const n = 6, rr = mrx + 10;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + pos.k * 2;
+      S("circle", { cx: g.mito[0] + rr * Math.cos(a), cy: g.mito[1] + (mry + 8) * Math.sin(a), r: 3 + 2 * pos.k, class: "spark" });
+    }
+    text(g.mito[0], cy0 + ch + 18, P.t("fEnergy") + " + H₂O", "b on", "middle");
+  }
+  molecule(pos.x, pos.y, co2);
+  // status line
+  const sy = g.vBot + (H - g.vBot) / 2 + 5;
+  text(W * 0.97, sy, used ? P.t("fUsed") : P.t("fNotUsed"), "b" + (used ? " on" : " m"), "end");
+  return { g, u, pos, co2 };
+}
+
+// ---------- step 3: exercise ----------
+function drawBody(W, H) {
+  const b = body(+met.value);
+  let y = 16;
+  // O2 use, split by who uses it
+  text(12, y + 14, P.t("rO2"), "m b");
+  text(W - 12, y + 14, P.t("uMlMin", { v: f(round(b.o2, 10), 0) }), "b", "end");
+  y += 22;
+  const max = BODY.perMet * BODY.mass * BODY.metMax, full = W - 24;
+  let x = 12;
+  [[b.mus, "bA"], [b.brain, "bC"], [b.other, "bB"]].forEach(([v, cls]) => {
+    const w = (v / max) * full;
+    if (w > 0.5) S("rect", { x, y, width: Math.max(1, w - 1), height: 18, rx: 3, class: cls });
+    x += w;
+  });
+  S("rect", { x, y, width: Math.max(0, 12 + full - x), height: 18, rx: 3, class: "barbg" });
+  y += 36;
+  const pc = (v) => f(100 * v / b.o2, 0);
+  const leg = [[P.t("gMus", { v: pc(b.mus) }), "bA"], [P.t("gBrain", { v: pc(b.brain) }), "bC"], [P.t("gOther", { v: pc(b.other) }), "bB"]];
+  if (W < 420) {
+    leg.forEach((l, i) => { S("circle", { cx: 18, cy: y - 4 + i * 18, r: 5, class: l[1] }); text(28, y + i * 18, l[0], "m"); });
+    y += 54;
+  } else {
+    let lx = 12;
+    leg.forEach((l) => { S("circle", { cx: lx + 6, cy: y - 4, r: 5, class: l[1] }); const t = text(lx + 16, y, l[0], "m"); lx += 16 + t.getComputedTextLength() + 18; });
+    y += 22;
+  }
+  y += 4;
+  const top = body(BODY.metMax);
+  const rows = [
+    [P.t("rAir"), P.t("uAir", { v: f(b.ve, 0), b: f(b.br, 0) }), b.ve / (top.ve * 1.05), "bC"],
+    [P.t("rHeart"), P.t("uHr", { v: f(b.hr, 0) }), b.hr / 200, "bN"],
+    [P.t("rBlood"), P.t("uLMin", { v: f(b.q, 1) }), b.q / (top.q * 1.05), "bN"],
+  ];
+  const lw2 = W < 420 ? 0 : 120;
+  rows.forEach((r) => {
+    text(12, y + 14, r[0], "m b");
+    text(W - 12, y + 14, r[1], "b", "end");
+    if (lw2) bar(12 + lw2, y + 4, W - 24 - lw2 - 150, 14, r[2], r[3]);
+    else bar(12, y + 22, W - 24, 12, r[2], r[3]);
+    y += lw2 ? 32 : 42;
+  });
+  return b;
+}
+
+// ---------- step 4: leaf ----------
+function drawLeaf(W, H) {
+  const I = +light.value, p = photo(I), r = LEAF.r, net = p - r, wide = W >= 420;
+  // leaf cell: chloroplasts (top row, lit by light) and mitochondria (bottom row, always on)
+  const cw = Math.min(W * 0.56, 240), ch = Math.min(H * 0.32, 110), cx = (W - cw) / 2, cy = 16;
+  S("rect", { x: cx, y: cy, width: cw, height: ch, rx: 14, class: "cell" });
+  const lit = Play.clamp(p / LEAF.pmax, 0, 1);
+  for (let i = 0; i < 4; i++) S("ellipse", { cx: cx + cw * (0.2 + 0.2 * i), cy: cy + ch * 0.27, rx: cw * 0.07, ry: ch * 0.1, class: "chl", opacity: 0.15 + 0.85 * lit });
+  text(cx + cw / 2, cy + ch * 0.27 + ch * 0.1 + 16, P.t("fChl"), "m", "middle");
+  for (let i = 0; i < 2; i++) S("ellipse", { cx: cx + cw * (0.3 + 0.4 * i), cy: cy + ch * 0.78, rx: cw * 0.1, ry: ch * 0.09, class: "mito on" });
+  // sun (dashed outline at night)
+  const sx = W - 28, sy = 28, sl = I / 2000;
+  if (I > 0) S("circle", { cx: sx, cy: sy, r: 7 + 13 * sl, class: "sun", opacity: 0.35 + 0.65 * sl });
+  else S("circle", { cx: sx, cy: sy, r: 13, fill: "none", stroke: "var(--muted)", "stroke-width": 2, "stroke-dasharray": "3 3" });
+  // CO2 arrows: out on the left (respiration, constant), in on the right (photosynthesis, grows with light)
+  const ay = cy + ch * 0.78, room = Math.min(cx - 10, 60);
+  arrow(cx - 4, ay, cx - 4 - room * Play.clamp(r / 4, 0.35, 1), ay, "c");
+  text(cx - 6, ay - 10, "CO₂", "m", "end");
+  if (p > 0.05) {
+    arrow(cx + cw + 4 + room * Play.clamp(p / LEAF.pmax, 0.25, 1), ay, cx + cw + 4, ay, "c");
+    text(cx + cw + 6, ay - 10, "CO₂", "m", "start");
+  }
+  // bars around a zero line
+  const by = cy + ch + 20, lw = wide ? 170 : 0, vw = wide ? 64 : 0, rh = wide ? 30 : 38;
+  const bx = 12 + lw, bw = W - 24 - lw - vw, mid = bx + bw * 0.12, scale = (bw * 0.88) / LEAF.pmax;
+  const rows = [[P.t("fResp"), -r, "bB"], [P.t("fPhoto"), p, "bA"], [P.t("fNet"), net, net < 0 ? "bB" : "bA"]];
+  rows.forEach((row, i) => {
+    const y = by + i * rh, yy = wide ? y : y + 18, v = row[1] * scale;
+    text(12, y + 13, row[0], "m b");
+    S("rect", { x: mid + Math.min(0, v), y: yy, width: Math.max(1, Math.abs(v)), height: 14, rx: 3, class: row[2] });
+    S("line", { x1: mid, y1: yy - 3, x2: mid, y2: yy + 17, class: "axis" });
+    text(W - 12, y + 13, (row[1] > 0.05 ? "+" : row[1] < -0.05 ? "−" : "") + f(Math.abs(row[1]), 1), "b", "end");
+  });
+  const verdict = Math.abs(net) < 0.05 ? P.t("fEven") : net < 0 ? P.t("fOut") : P.t("fIn");
+  const vy = by + 3 * rh + (wide ? 14 : 8);
+  text(12, vy, verdict, "b on");
+  text(12, Math.min(H - 6, vy + 20), P.t("fMito"), "m");
+  return { I, p, r, net };
+}
+
+function draw() {
+  const { W, H } = size();
+  fig.innerHTML = "";
+  fig.classList.toggle("drag", step === 1);
+  document.getElementById("metVal").textContent = P.t("metVal", { act: P.t(actKey(+met.value)), met: f(+met.value, 1) });
+  document.getElementById("lightVal").textContent = P.t("lightVal", { v: f(+light.value, 0) });
+  playBtn.textContent = raf ? P.t("pause") : P.t("play");
+  if (step === 0) {
+    drawGuessFig(W, H);
+    extra.textContent = predictNote;
+    Play.live(liveEl, "");
+  } else if (step === 1) {
+    const r = drawTrip(W, H);
+    extra.textContent = P.t(r.pos.leg.key, { cell: P.t(cellK) });
+    const zn = [P.t("zLung"), P.t("zBlood"), P.t(cellK)][r.pos.leg.zone];
+    Play.live(liveEl, P.t("live2", { pct: f(r.u * 100, 0), zone: zn, state: r.co2 ? P.t("stCO2") : P.t("stO2") }));
+  } else if (step === 2) {
+    const b = drawBody(W, H);
+    const act = P.t(actKey(b.met));
+    extra.textContent = P.t("x3", { act: act.charAt(0).toUpperCase() + act.slice(1), o2: f(round(b.o2, 10), 0), mus: f(100 * b.mus / b.o2, 0) }) + (b.met < 1 ? "" : " " + P.t("x3s", { sleep: f(round(SLEEP.o2, 10), 0) }));
+    Play.live(liveEl, P.t("live3", { act, o2: f(round(b.o2, 10), 0), ve: f(b.ve, 0), br: f(b.br, 0), hr: f(b.hr, 0) }));
+  } else {
+    const l = drawLeaf(W, H);
+    extra.textContent = l.net < 0
+      ? P.t("x4a", { v: f(l.I, 0), p: f(l.p, 1), r: f(l.r, 1), ic: f(IC, 0) })
+      : P.t("x4b", { p: f(l.p, 1), r: f(l.r, 1), k: f(l.p / l.r, 1) });
+    Play.live(liveEl, P.t("live4", { v: f(l.I, 0), r: f(l.r, 1), p: f(l.p, 1), n: (l.net < 0 ? "−" : "+") + f(Math.abs(l.net), 1) }));
+  }
+}
+function drawGuessFig(W, H) {
+  // three candidate places with a question mark: lungs, blood, a cell
+  const xs = [W * 0.18, W * 0.5, W * 0.82], y = H * 0.48, r = Math.min(W * 0.12, 54);
+  S("circle", { cx: xs[0], cy: y, r, class: "alv" });
+  S("ellipse", { cx: xs[1], cy: y, rx: r, ry: r * 0.62, class: "rbc" });
+  S("rect", { x: xs[2] - r, y: y - r * 0.8, width: 2 * r, height: 1.6 * r, rx: 12, class: "cell" });
+  S("ellipse", { cx: xs[2] + r * 0.2, cy: y + r * 0.1, rx: r * 0.5, ry: r * 0.25, class: "mito" });
+  [P.t("zLung"), P.t("zBlood"), P.t("cMuscle")].forEach((s, i) => text(xs[i], y + r + 26, s, "m b", "middle"));
+  text(W / 2, y - r - 22, "?", "q", "middle").setAttribute("class", "q");
+  molecule(xs[0] - r - 2 > 20 ? xs[0] - r * 0.3 : xs[0], y - r * 0.2, false);
+}
+
+// ---------- animation (never autoplays) ----------
+function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
+function tick(t) {
+  const dt = last ? (t - last) / 1000 : 0;
+  last = t;
+  pf = Play.clamp(pf + dt * 1000 / 14, 0, 1000);                 // whole trip in ~14 s
+  trip.value = pf;
+  if (pf >= 1000) { stop(); draw(); return; }
+  raf = requestAnimationFrame(tick);
+  draw();
+}
+playBtn.addEventListener("click", () => {
+  if (raf) { stop(); draw(); return; }
+  if (+trip.value >= 1000) trip.value = 0;
+  pf = +trip.value;
+  last = 0;
+  raf = requestAnimationFrame(tick);
+  draw();
+});
+
+// ---------- dragging the molecule ----------
+function dragTo(e) {
+  const { W, H } = size(), g = geom(W, H), p = Play.pointer(fig, e), cur = +trip.value / 1000;
+  const n = nearest(g, p.x, p.y);
+  // the reaction at the mitochondrion takes a little dragging: the molecule moves through it step by step
+  const dl = dwellLeg(g), near = Math.hypot(p.x - g.mito[0], p.y - g.mito[1]) < 30;
+  let u = n.u;
+  if (near && cur >= dl.u0 - 0.02) u = cur > dl.u1 ? cur : Math.min(dl.u1, cur + 0.03);
+  else if (cur < dl.u1 && n.u > dl.u1) u = Math.min(n.u, Math.max(cur, dl.u0) + 0.03);
+  else if (cur > dl.u0 && n.u < dl.u0) u = Math.max(n.u, Math.min(cur, dl.u1) - 0.03);
+  // no jumping across the figure: only move along the path near where the molecule is
+  if (Math.abs(u - cur) > 0.25) return;
+  trip.value = Math.round(u * 1000);
+  draw();
+}
+fig.addEventListener("pointerdown", (e) => {
+  if (step !== 1) return;
+  const { W, H } = size(), g = geom(W, H), p = Play.pointer(fig, e), pos = at(g, +trip.value / 1000);
+  if (Math.hypot(p.x - pos.x, p.y - pos.y) > 44) return;
+  stop();
+  dragging = true;
+  try { fig.setPointerCapture(e.pointerId); } catch (err) { /* synthetic pointer: drag still works inside the svg */ }
+  e.preventDefault();
+});
+fig.addEventListener("pointermove", (e) => { if (dragging) dragTo(e); });
+const endDrag = () => { dragging = false; };
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", endDrag);
+
+// ---------- pickers ----------
+const cellPick = document.getElementById("cellPick");
+const cellBtns = ["cMuscle", "cBrain", "cLiver", "cSkin"].map((k) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = P.t(k);
+  b.addEventListener("click", () => { cellK = k; syncPick(); draw(); });
+  cellPick.appendChild(b);
+  return [k, b];
+});
+const lightPick = document.getElementById("lightPick");
+const lightBtns = [["lNight", 0], ["lDim", 20], ["lCloud", 300], ["lSun", 2000]].map(([k, v]) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = P.t(k);
+  b.addEventListener("click", () => { light.value = v; syncPick(); draw(); });
+  lightPick.appendChild(b);
+  return [v, b];
+});
+function syncPick() {
+  cellBtns.forEach(([k, b]) => { b.classList.toggle("on", k === cellK); b.setAttribute("aria-pressed", k === cellK ? "true" : "false"); });
+  lightBtns.forEach(([v, b]) => { const on = +light.value === v; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+}
+
+// ---------- steps ----------
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3") }, { label: P.t("o4"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { predictNote = P.t("fb" + (i + 1)); if (step === 0) extra.textContent = predictNote; });
+
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  if (i !== 1) stop();
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  document.getElementById("predict").hidden = i !== 0;
+  document.getElementById("ctlTrip").hidden = i !== 1;
+  document.getElementById("ctlCell").hidden = i !== 1;
+  document.getElementById("ctlMet").hidden = i !== 2;
+  document.getElementById("ctlLight").hidden = i !== 3;
+  document.getElementById("ctlLightPick").hidden = i !== 3;
+  draw();
+});
+
+trip.addEventListener("input", () => { stop(); draw(); });
+met.addEventListener("input", draw);
+light.addEventListener("input", () => { syncPick(); draw(); });
+document.getElementById("reset").addEventListener("click", () => {
+  stop(); trip.value = 0; met.value = 1; light.value = 0; cellK = "cMuscle"; predictNote = ""; pr.reset(); syncPick(); st.go(0);
+});
+syncPick();
+if ("ResizeObserver" in window) new ResizeObserver(() => draw()).observe(fig);
+else window.addEventListener("resize", draw);
+</script>
+</body>
+</html>

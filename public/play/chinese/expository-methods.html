@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Explain a thing: numbers, comparison or analogy</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .board { padding: 14px; display: flex; flex-direction: column; gap: 12px; min-height: 360px; }
+  .topics { display: flex; gap: 6px; flex-wrap: wrap; }
+  .topics button { font-size: 13px; padding: 5px 11px; }
+  svg.fig { width: 100%; height: auto; display: block; background: var(--soft); border-radius: 12px; }
+  .fig .earth { fill: var(--c); } .fig .moon { fill: var(--muted); } .fig .ghostm { fill: none; stroke: var(--fg); stroke-dasharray: 3 3; opacity: .55; }
+  .fig .ghoste { fill: none; stroke: var(--c); stroke-width: 1; opacity: .7; }
+  .fig .lab { fill: var(--fg); font-size: 14px; } .fig .labm { fill: var(--muted); font-size: 13px; }
+  .fig .num { fill: var(--a); font-size: 15px; font-weight: 700; }
+  .fig .cmp { stroke: var(--a); stroke-width: 2; fill: none; }
+  .fig .ana { stroke: var(--b); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .fig .anat { fill: var(--b); font-size: 14px; font-weight: 650; }
+  .fig .ground { fill: var(--line); } .fig .peak { fill: var(--muted); } .fig .snow { fill: var(--surface); }
+  .figcap { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: -6px; }
+  .figcap:empty { display: none; }
+  .figcap .c-cmp { color: var(--a); font-weight: 650; } .figcap .c-ana { color: var(--b); font-weight: 650; }
+  .slot { display: flex; flex-direction: column; gap: 6px; min-height: 64px; padding: 8px; border: 2px dashed var(--line); border-radius: 12px; }
+  .slot.ready { border-color: var(--hl); }
+  .slot.over { border-color: var(--a); background: var(--soft); }
+  .slot .lab0 { color: var(--muted); font-size: 13px; text-align: center; margin: auto; }
+  .line { display: flex; gap: 8px; align-items: flex-start; text-align: left; width: 100%; padding: 6px 9px; border-radius: 10px; }
+  .line .zh { font-size: 15px; line-height: 1.55; }
+  .line .en { display: block; font-size: 13px; color: var(--muted); line-height: 1.45; margin-top: 2px; }
+  .line .x { margin-left: auto; color: var(--muted); font-size: 13px; flex: none; }
+  .tag { flex: none; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 1px 6px; color: var(--surface); }
+  .m-num { background: var(--a); } .m-cmp { background: var(--c); } .m-ana { background: var(--b); }
+  .meter { background: var(--soft); border-radius: 12px; padding: 9px 12px; font-size: 13px; color: var(--muted); display: grid; gap: 5px; }
+  .meter .hd { color: var(--fg); font-weight: 650; }
+  .meter .row { display: grid; grid-template-columns: 9.5em 1fr 2.2em; gap: 8px; align-items: center; }
+  .meter .track { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .meter .fill { height: 100%; width: 0; background: var(--a); border-radius: 99px; transition: width .35s; }
+  .meter b { color: var(--fg); font-variant-numeric: tabular-nums; text-align: right; }
+  @media (prefers-reduced-motion: reduce) { .meter .fill { transition: none; } }
+  .tray { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--line); align-items: center; }
+  .tray .hd { font-size: 13px; color: var(--muted); width: 100%; }
+  .card2 { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; touch-action: none; min-width: 6.5em; }
+  .card2 .zh { font-size: 16px; font-weight: 700; }
+  .card2 .en { font-size: 12px; color: var(--muted); }
+  .card2.in { opacity: .45; border-style: dashed; }
+  .card2.sel { outline: 3px solid var(--hl); outline-offset: 2px; }
+  .ghost { position: fixed; z-index: 9; pointer-events: none; transform: translate(-50%, -60%); opacity: .9; }
+  .sortrow { display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .sortrow .zh { font-size: 15px; line-height: 1.55; }
+  .sortrow .en { font-size: 13px; color: var(--muted); }
+  .sortrow .btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .sortrow .btns button { font-size: 13px; padding: 3px 10px; }
+  .sortrow.ok { border-color: var(--c); } .sortrow.no { border-color: var(--no); border-style: dashed; }
+  .sortrow .why { font-size: 13px; color: var(--muted); }
+  .sortrow.no .why { color: var(--no); }
+  .reader { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+  .reader .who { font-weight: 700; }
+  .reader .need { font-size: 13px; color: var(--muted); }
+  .reader .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .reader .fbr { font-size: 13px; min-height: 1.2em; }
+  .reader .fbr.no { color: var(--no); }
+  button.good { background: var(--c); border-color: var(--c); color: var(--surface); }
+  button.bad { background: var(--no); border-color: var(--no); color: var(--surface); }
+  .pair { display: grid; gap: 8px; }
+  .fb3 { font-size: 14px; min-height: 1.4em; color: var(--fg) !important; }
+  .rule { font-size: 16px !important; color: var(--fg) !important; font-weight: 650; }
+  .nums { font-variant-numeric: tabular-nums; }
+  @media (max-width: 560px) {
+    .board { padding: 10px; }
+    .meter .row { grid-template-columns: 7.5em 1fr 2em; }
+  }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="board" id="board" role="group" data-t-aria="boardAria">
+        <div class="topics" id="topics" role="group" data-t-aria="topicsAria"></div>
+        <svg class="fig" id="fig" viewBox="0 0 600 210" role="img"></svg>
+        <div class="figcap" id="figcap" aria-hidden="true"></div>
+        <div class="slot" id="slot" data-target="slot" role="group" data-t-aria="slotAria"></div>
+        <div class="meter" id="meter"></div>
+        <div class="tray" id="tray" role="group" data-t-aria="trayAria"></div>
+        <div class="pair" id="pair"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="fb3" id="fb3" aria-live="polite"></p>
+      <p class="rule" id="rule" hidden></p>
+      <p class="nums" id="nums" hidden></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// ---- logic (pure; tested in node) ----
+// Constants (see footnote). Lengths in km unless noted.
+const K = {
+  earthD: 12742,          // Earth volumetric mean diameter (2 × 6,371.0 km)
+  moonD: 3474.8,          // Moon volumetric mean diameter (2 × 1,737.4 km)
+  dist: 384400,           // mean Earth–Moon distance
+  everestM: 8848.86,      // Everest height in metres (2020 survey)
+  sunD: 1391400,          // Sun volumetric mean diameter (2 × 695,700 km)
+  au: 149597870.7,        // mean Earth–Sun distance (1 au)
+  gEarth: 9.80665, gMoon: 1.62, // surface gravity, m/s²
+  cardMM: 0.76,           // bank-card thickness (ISO/IEC 7810 ID-1), mm
+};
+function derived(k = K) {
+  const dRatio = k.earthD / k.moonD;               // ≈ 3.67
+  const vol = dRatio ** 3;                          // ≈ 49 Moons fit inside Earth by volume
+  const earthsGap = k.dist / k.earthD;              // ≈ 30 Earths between Earth and Moon
+  const everestOnMetreGlobeMM = (k.everestM / 1000) / k.earthD * 1000; // Everest on a 1 m globe, mm
+  const sunRatio = k.sunD / k.earthD;               // ≈ 109
+  const auRatio = k.au / k.dist;                    // ≈ 389
+  const gFrac = k.gMoon / k.gEarth;                 // ≈ 0.165
+  return { dRatio, vol, volRound: Math.round(vol / 10) * 10, earthsGap, everestOnMetreGlobeMM, sunRatio, auRatio, gFrac, gInv: 1 / gFrac };
+}
+const group3 = (x) => { // 12742 → "12,742"; 8848.86 → "8,848.86"
+  if (!Number.isFinite(x)) return "—";
+  const [i, f] = String(x).split(".");
+  return i.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (f ? "." + f : "");
+};
+const fix = (x, d) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+// What the reader gets from each method, 0–3: exact / graspable (size you can feel) / vivid.
+const METHODS = ["num", "cmp", "ana"];
+const GAIN = { num: [3, 1, 0], cmp: [2, 3, 1], ana: [0, 1, 3] };
+function meter(list) {
+  const m = [0, 0, 0];
+  (list || []).forEach((id) => { const g = GAIN[id]; if (g) g.forEach((v, i) => { m[i] = Math.max(m[i], v); }); });
+  return m;
+}
+// One sentence per topic × method. Numbers are filled in from K and derived().
+function sentence(topic, method, k = K) {
+  const d = derived(k);
+  const S = {
+    size: {
+      num: ["月球的直径约 " + group3(Math.round(k.moonD)) + " 千米，地球的直径约 " + group3(k.earthD) + " 千米。",
+        "The Moon is about " + group3(Math.round(k.moonD)) + " km across; Earth is about " + group3(k.earthD) + " km across."],
+      cmp: ["地球的直径约是月球的 " + fix(d.dRatio, 1) + " 倍；论体积，地球里大约能装下 " + d.volRound + " 个月球。",
+        "Earth is about " + fix(d.dRatio, 1) + " times as wide as the Moon; by volume, about " + d.volRound + " Moons would fit inside it."],
+      ana: ["月球像跟在地球身边的小跟班，形影不离地绕着它转。",
+        "The Moon is like a little sidekick that never leaves Earth’s side, circling it again and again."],
+    },
+    dist: {
+      num: ["地球到月球的平均距离约 " + group3(k.dist) + " 千米。",
+        "The average distance from Earth to the Moon is about " + group3(k.dist) + " km."],
+      cmp: ["地月之间的这段路，大约能一个挨一个地排下 " + Math.round(d.earthsGap) + " 个地球。",
+        "Laid side by side, about " + Math.round(d.earthsGap) + " Earths would fill the gap between Earth and the Moon."],
+      ana: ["月球像一只被看不见的长绳拴住的风筝，远远地绕着地球飞。",
+        "The Moon is like a kite on an invisible string, flying in circles far away from Earth."],
+    },
+    peak: {
+      num: ["珠穆朗玛峰的高度为 " + group3(k.everestM) + " 米（2020 年公布的测量结果）。",
+        "Mount Everest is " + group3(k.everestM) + " m high (survey result announced in 2020)."],
+      cmp: ["要是把地球缩成直径 1 米的球，珠峰只高约 " + fix(d.everestOnMetreGlobeMM, 1) + " 毫米，" + (d.everestOnMetreGlobeMM < k.cardMM ? "比一张银行卡还薄。" : "跟一张银行卡差不多厚。"),
+        "Shrink Earth to a ball 1 m across and Everest would be only about " + fix(d.everestOnMetreGlobeMM, 1) + " mm high — " + (d.everestOnMetreGlobeMM < k.cardMM ? "thinner than a bank card." : "about as thick as a bank card.")],
+      ana: ["珠峰像一座披着白雪的金字塔，直直地刺进蓝天。",
+        "Everest is like a snow-covered pyramid stabbing straight into the blue sky."],
+    },
+  };
+  const t = S[topic] && S[topic][method];
+  return t ? { zh: t[0], en: t[1] } : null;
+}
+// Step 3: sort into 作比较 (cmp) or 打比方 (ana). All sentences written for this page.
+function sortItems(k = K) {
+  const d = derived(k);
+  return [
+    { id: 1, a: "cmp", zh: "太阳的直径大约是地球的 " + Math.round(d.sunRatio) + " 倍。", en: "The Sun is about " + Math.round(d.sunRatio) + " times as wide as Earth.", why: "same" },
+    { id: 2, a: "ana", zh: "土星的光环像一顶大草帽的宽帽檐。", en: "Saturn’s rings are like the wide brim of a big straw hat.", why: "image" },
+    { id: 3, a: "cmp", zh: "地球到太阳的距离，大约是地球到月球的 " + Math.round(d.auRatio / 10) * 10 + " 倍。", en: "Earth to the Sun is about " + Math.round(d.auRatio / 10) * 10 + " times as far as Earth to the Moon.", why: "same" },
+    { id: 4, a: "ana", zh: "月面上的环形山一个挨一个，像被大雨砸过的沙地。", en: "Craters crowd the Moon’s face like sand pounded by heavy rain.", why: "image" },
+    { id: 5, a: "cmp", zh: "在月球上，物体受到的重力只有在地球上的约" + ["", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"][Math.round(d.gInv)] + "分之一。", en: "On the Moon, things weigh only about 1/" + Math.round(d.gInv) + " of what they weigh on Earth.", why: "same" },
+    { id: 6, a: "ana", zh: "跟地球比起来，月球就像一个小弟弟。", en: "Next to Earth, the Moon is like a little brother.", why: "trap" },
+    { id: 7, a: "ana", zh: "大气层像给地球裹上的一层薄被子。", en: "The atmosphere is like a thin quilt wrapped around Earth.", why: "image" },
+  ];
+}
+function judgeSort(item, pick) { return item && (pick === "cmp" || pick === "ana") ? item.a === pick : false; }
+// Step 4: which method does this reader need? "best" / "ok" / "bad".
+const READERS = {
+  kid: { num: "bad", cmp: "ok", ana: "best" },
+  report: { num: "best", cmp: "ok", ana: "bad" },
+};
+function judgeReader(who, m) { return (READERS[who] && READERS[who][m]) || "bad"; }
+// ---- end logic ----
+
+const P = Play.setup({
+  en: {
+    title: "Explain a thing: numbers, comparison or analogy", eyebrow: "Chinese · Stage 3",
+    h1: "Numbers, comparison or analogy: what does your reader need?",
+    intro: "Describe the Moon (or Everest) with three tools of expository writing — 列数字 numbers, 作比较 comparison, 打比方 analogy — and watch what each one gives the reader.",
+    reset: "Reset", boardAria: "Description workbench", topicsAria: "What to describe", slotAria: "Your description", trayAria: "Method cards",
+    s1: "Guess", s2: "Build", s3: "Sort", s4: "Rule",
+    k1: "Predict first", t1: "Same method or not?",
+    b1: "Both sentences bring in something besides the Moon. Pick an answer; then the meters show what each one tells the reader.",
+    k2: "Hands on", t2: "Drag method cards into the description",
+    b2: "Drag a card into the dashed box (or tap it, or focus it and press Enter). Tap a sentence in the box to take it out. Try each card alone, then combine them. Switch topics above.",
+    k3: "Sort them", t3: "作比较 or 打比方?",
+    b3: "Comparison puts two real things of the same kind side by side and says how much bigger, farther, heavier. Analogy borrows a picture from a different kind of thing and says what it is like. Sort each sentence.",
+    k4: "The rule", t4: "Pick the method for the reader",
+    b4: "Same facts, two readers. Which tool would you reach for first?",
+    q: "A: 「地球的直径约是月球的 {r} 倍。」 B: 「月球像一面挂在夜空里的圆镜子。」 Do A and B use the same method?",
+    o1: "Yes — both describe the Moon by bringing in another thing", o2: "No — A sets two real things side by side and tells you how much; B borrows a picture", o3: "Both are listing numbers",
+    right: "Right. A is 作比较: Earth and Moon are both real bodies, measured against each other, so you learn a size. B is 打比方: a mirror is a different kind of thing — vivid, but it tells you no size, and it is only roughly right.",
+    wrong: "Look at the meters: A tells you how big (a size you can check), B tells you what it looks like (a picture). Two different jobs — 作比较 vs 打比方.",
+    sentA: "Sentence A", sentB: "Sentence B",
+    pA: "地球的直径约是月球的 {r} 倍。", pAen: "Earth’s diameter is about {r} times the Moon’s.",
+    pB: "月球像一面挂在夜空里的圆镜子。", pBen: "The Moon is like a round mirror hung in the night sky.",
+    topicSize: "How big is the Moon?", topicDist: "How far is the Moon?", topicPeak: "How high is Everest?",
+    mNum: "numbers", mCmp: "comparison", mAna: "analogy",
+    slotEmpty: "Drop method cards here", takeOut: "press to take it out", trayHd: "Method cards — drag, tap, or Enter",
+    meterHd: "What the reader gets", gExact: "Exact", gGrasp: "Graspable size", gVivid: "Vivid picture",
+    added: "Added {m}.", removed: "Removed {m}.", already: "{m} is already in. Tap it in the box to take it out.",
+    liveM: "Exact {a}/3, graspable {b}/3, vivid {c}/3.",
+    allThree: "All three together: exact, graspable and vivid. Real expository writing often mixes them.",
+    figD: "{n} km", figX: "×{r}", figV: "≈{v} Moons inside", figE: "≈{n} Earths in between", figS: "invisible string",
+    figKid: "sidekick", figMirror: "round mirror", figMmS: "≈{n} mm", figGlobe: "1 m globe", figMm: "Everest ≈ {n} mm", figPyr: "snowy pyramid", figH: "{n} m",
+    sortHint: "Tip: ask “are the two things the same kind, and is there a ‘how much’?”",
+    whySame: "Two real things of the same kind, and a “how much” — comparison.",
+    whyImage: "A borrowed picture from a different kind of thing — analogy.",
+    whyTrap: "It says “next to Earth”, but a little brother is a borrowed picture with no “how much” — analogy.",
+    sortScore: "{k} of {t} sorted correctly.",
+    kid: "Your 6-year-old cousin asks “Is the Moon big?”", kidNeed: "Needs: a picture they can see in their head.",
+    report: "A science report on the Earth–Moon system", reportNeed: "Needs: facts a reader can check.",
+    fbBest: "✓ Best fit.", fbOkKid: "✓ Works too — “about {v} Moons fit inside Earth” is easy to feel. Add a picture to make it stick.",
+    fbOkRep: "✓ Good as a helper, but put the exact numbers in as well — a report has to be checkable.",
+    fbBadKid: "✗ “{n} km” means nothing to a 6-year-old — it is exact, but they cannot feel it.",
+    fbBadRep: "✗ A kite or a sidekick is only roughly right; a report needs numbers you can check.",
+    rule: "列数字 makes a fact exact, 作比较 makes a size you can feel, 打比方 makes a picture that is only roughly right — pick by what the reader needs.",
+    nums: "All numbers on this page come from four measurements: Earth {e} km and Moon {m} km across → {e} ÷ {m} = {r1} ≈ {r}×; {r1}³ = {v1} ≈ {v} Moons by volume; {d} ÷ {e} = {g1} ≈ {g} Earths in the gap; Everest {h} m on a 1 m globe = {mm1} mm.",
+    resultTitle: "What we found", resultMain: "列数字 → exact · 作比较 → graspable · 打比方 → vivid",
+    resultNote: "作比较 and 打比方 both bring in a second thing, but comparison measures (two real things, “how much”), while analogy borrows a picture (what it is like) and is only roughly right.",
+    explainK: "Explain it", explainQ: "Explain to a friend why “the Moon is like a mirror” and “Earth is 3.7 times as wide as the Moon” are different methods. Use the word “how much”.",
+    homeK: "Try at home", homeQ: "Describe your fridge three ways: measure it (numbers), compare it with something else in the kitchen (comparison), and say what it is like (analogy). Read all three to someone and ask which one helped them most.",
+    foot: "Sources & constants: Earth mean diameter 12,742 km (mean radius 6,371.0 km) and Moon mean diameter 3,474.8 km (mean radius 1,737.4 km), Sun mean radius 695,700 km, surface gravity 9.80665 vs 1.62 m/s² — NASA planetary fact sheets; mean Earth–Moon distance 384,400 km; 1 au = 149,597,870.7 km (IAU 2012); Everest 8,848.86 m, announced jointly by China and Nepal in December 2020; bank card 0.76 mm (ISO/IEC 7810 ID-1). Volume ratio uses mean diameters (Earth is not a perfect sphere). The mirror analogy is only roughly right: the Moon reflects only about 12% of sunlight and scatters it rather than mirroring it. For teachers: 列数字, 作比较, 打比方 are three 说明方法 taught in Chinese middle school. All sentences are original. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "说明方法工具箱", eyebrow: "语文 · 阶段 3",
+    h1: "说明方法工具箱：列数字、作比较、打比方",
+    intro: "用三张说明方法卡片介绍月球（或珠峰），看看每一种方法分别给了读者什么。",
+    reset: "重置", boardAria: "说明工作台", topicsAria: "要说明的对象", slotAria: "你的说明段落", trayAria: "说明方法卡片",
+    s1: "先猜", s2: "动手", s3: "分一分", s4: "规律",
+    k1: "先猜一猜", t1: "是不是同一种方法？",
+    b1: "两句话都拿另一个东西来说月球。先选一个答案，再看下面的计量条：每句话分别告诉了读者什么。",
+    k2: "动手", t2: "把方法卡片拖进说明段落",
+    b2: "把卡片拖进虚线框（也可以点一下卡片，或聚焦后按回车）。点框里的句子可以拿出来。先一张一张试，再组合起来。上面可以换说明对象。",
+    k3: "分一分", t3: "作比较，还是打比方？",
+    b3: "作比较：把同一类的两个真实事物放在一起，说出大多少、远多少、重多少。打比方：从另一类事物借一幅画面，说出它像什么。给每句话分类。",
+    k4: "规律", t4: "按读者选方法",
+    b4: "同样的事实，两位读者。你会先用哪一种方法？",
+    q: "A：「地球的直径约是月球的 {r} 倍。」 B：「月球像一面挂在夜空里的圆镜子。」 A 和 B 用的是同一种说明方法吗？",
+    o1: "是，都是拿另一个东西来说月球", o2: "不是：A 把两个真实事物放在一起说出差多少，B 是借一幅画面", o3: "两句都是列数字",
+    right: "对。A 是作比较：地球和月球都是真实的天体，互相量一量，读者就知道了大小。B 是打比方：镜子是另一类东西，很形象，却说不出大小，而且只是大致像。",
+    wrong: "看看计量条：A 告诉你有多大（能核对的大小），B 告诉你看起来像什么（一幅画面）。两种不同的活儿：作比较和打比方。",
+    sentA: "句子 A", sentB: "句子 B",
+    pA: "地球的直径约是月球的 {r} 倍。", pAen: "",
+    pB: "月球像一面挂在夜空里的圆镜子。", pBen: "",
+    topicSize: "月球有多大？", topicDist: "月球有多远？", topicPeak: "珠峰有多高？",
+    mNum: "列数字", mCmp: "作比较", mAna: "打比方",
+    slotEmpty: "把方法卡片放到这里", takeOut: "按下可拿出", trayHd: "方法卡片：拖、点或按回车",
+    meterHd: "读者得到了什么", gExact: "准确", gGrasp: "能感到大小", gVivid: "形象",
+    added: "加入了{m}。", removed: "拿出了{m}。", already: "{m}已经在段落里了，点框里的句子可以拿出来。",
+    liveM: "准确 {a}/3，能感到大小 {b}/3，形象 {c}/3。",
+    allThree: "三种一起用：又准确、又能感到、又形象。真实的说明文常常把它们搭配起来。",
+    figD: "{n} 千米", figX: "×{r}", figV: "约装下 {v} 个月球", figE: "中间约排 {n} 个地球", figS: "看不见的绳子",
+    figKid: "小跟班", figMirror: "圆镜子", figMmS: "约 {n} 毫米", figGlobe: "直径 1 米的地球仪", figMm: "珠峰约 {n} 毫米", figPyr: "雪白的金字塔", figH: "{n} 米",
+    sortHint: "提示：问自己「两样东西是不是同一类？有没有说出差多少？」",
+    whySame: "同类的两个真实事物，还说出了差多少：作比较。",
+    whyImage: "从另一类事物借来的画面：打比方。",
+    whyTrap: "虽然有「跟地球比起来」，可「小弟弟」是借来的画面，没说差多少：打比方。",
+    sortScore: "分对 {k} / {t} 句。",
+    kid: "6 岁的小表弟问：「月亮大不大？」", kidNeed: "他需要：脑子里能看见的画面。",
+    report: "一份关于地月系统的科学报告", reportNeed: "读者需要：能核对的事实。",
+    fbBest: "✓ 最合适。", fbOkKid: "✓ 也行：「地球里能装下约 {v} 个月球」很好感受。再加一个比方，他会记得更牢。",
+    fbOkRep: "✓ 可以帮忙，但精确的数字也要写进去：报告要经得起核对。",
+    fbBadKid: "✗ 「{n} 千米」对 6 岁的孩子没有感觉：准确，但他感受不到。",
+    fbBadRep: "✗ 风筝、小跟班都只是大致像；报告需要能核对的数字。",
+    rule: "列数字让事实准确，作比较让大小能被感到，打比方让东西形象但只是大致；用哪种方法，看读者需要什么。",
+    nums: "这页所有的数都出自几项测量：地球直径 {e} 千米、月球 {m} 千米 → {e} ÷ {m} = {r1} ≈ {r} 倍；{r1}³ = {v1} ≈ {v} 个月球（按体积）；{d} ÷ {e} = {g1} ≈ {g} 个地球；珠峰 {h} 米放到 1 米的地球仪上 = {mm1} 毫米。",
+    resultTitle: "我们发现", resultMain: "列数字 → 准确 · 作比较 → 能感到 · 打比方 → 形象",
+    resultNote: "作比较和打比方都会请来第二样东西，但作比较是在量（两个真实事物，差多少），打比方是在借画面（像什么），只是大致。",
+    explainK: "说一说", explainQ: "跟同学讲讲：「月球像一面镜子」和「地球的直径约是月球的 3.7 倍」为什么是两种不同的方法？用上「差多少」这个词。",
+    homeK: "家里做一做", homeQ: "用三种方法介绍家里的冰箱：量一量（列数字），跟厨房里别的东西比一比（作比较），再说说它像什么（打比方）。读给家人听，问问哪一句最帮得上忙。",
+    foot: "资料与常数：地球平均直径 12,742 千米（平均半径 6,371.0 千米），月球平均直径 3,474.8 千米（平均半径 1,737.4 千米），太阳平均半径 695,700 千米，表面重力 9.80665 与 1.62 米/秒²，均据 NASA 行星数据表；地月平均距离 384,400 千米；1 天文单位 = 149,597,870.7 千米（IAU 2012）；珠峰 8,848.86 米，中国与尼泊尔 2020 年 12 月共同公布；银行卡厚 0.76 毫米（ISO/IEC 7810 ID-1）。体积比按平均直径算（地球不是正球）。「镜子」只是大致像：月球只反射约 12% 的阳光，而且是漫反射，不像镜子那样照出影像。全部句子均为原创。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), slot = $("slot"), tray = $("tray"), meterEl = $("meter"), pairEl = $("pair"), topicsEl = $("topics"), fb3 = $("fb3"), liveEl = $("live");
+const D = derived();
+const MKEY = { num: "mNum", cmp: "mCmp", ana: "mAna" };
+const MZH = { num: "列数字", cmp: "作比较", ana: "打比方" };
+const TOPICS = [["size", "topicSize"], ["dist", "topicDist"], ["peak", "topicPeak"]];
+
+let step = 0, topic = "size", desc = [], sel = null, predicted = false, sorted = {}, readerPick = {};
+
+function say(text, no) { fb3.textContent = text; fb3.classList.toggle("no", !!no); }
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function mName(m) { return L === "en" ? MZH[m] + " " + P.t(MKEY[m]) : P.t(MKEY[m]); }
+function tag(m) { const s = el("span", "tag m-" + m, MZH[m]); s.lang = "zh-CN"; return s; }
+function zhSpan(text) { const s = el("span", "zh", text); s.lang = "zh-CN"; return s; }
+function enSpan(text) { const s = el("span", "en", text); s.lang = "en"; return s; }
+
+// ---------- figure ----------
+let FS = 1; // SVG-unit → CSS-px compensation so figure labels stay ≥ 13 px when the figure is narrow
+const BASE = { lab: 14, labm: 13, num: 15, anat: 14 };
+function T(x, y, text, cls, anchor) { const t = Play.svg("text", { x, y, class: cls, "text-anchor": anchor || "middle", style: "font-size:" + ((BASE[cls] || 14) * FS).toFixed(1) + "px" }, fig); t.textContent = text; return t; }
+function cap(text, cls) { const s = el("span", cls, text); $("figcap").appendChild(s); }
+function drawFig(methods) {
+  fig.innerHTML = "";
+  $("figcap").innerHTML = "";
+  FS = Play.clamp(600 / (fig.clientWidth || 600), 1, 2.2);
+  const has = (m) => methods.includes(m);
+  const tp = step === 0 ? "size" : topic;
+  fig.setAttribute("aria-label", P.t(TOPICS.find((x) => x[0] === tp)[1]));
+  if (tp === "size") {
+    const R = 78, r = R / D.dRatio, cx = 170, cy = 105, mx = 400;
+    Play.svg("circle", { cx, cy, r: R, class: "earth" }, fig);
+    Play.svg("circle", { cx: mx, cy, r, class: "moon" }, fig);
+    T(cx, cy + R + 20, L === "en" ? "Earth" : "地球", "lab");
+    T(mx, cy + r + 20, L === "en" ? "Moon" : "月球", "lab");
+    if (has("num")) {
+      T(cx, 20, P.t("figD", { n: group3(K.earthD) }), "num");
+      T(mx, cy - r - 12, P.t("figD", { n: group3(Math.round(K.moonD)) }), "num");
+    }
+    if (has("cmp")) {
+      // Moon diameters laid across Earth's diameter: 3 whole + a fraction.
+      for (let i = 0; i < Math.ceil(D.dRatio); i++) {
+        const x = cx - R + r + i * 2 * r;
+        Play.svg("circle", { cx: x, cy, r, class: "ghostm" }, fig);
+      }
+      T(cx + R + 18, cy + 5, P.t("figX", { r: fix(D.dRatio, 1) }), "num", "start");
+      cap(P.t("figX", { r: fix(D.dRatio, 1) }) + " · " + P.t("figV", { v: D.volRound }), "c-cmp");
+    }
+    if (has("ana") && step === 0) {
+      // Sentence B's picture: a round mirror hung in the sky.
+      Play.svg("circle", { cx: mx, cy, r: r + 8, class: "ana" }, fig);
+      T(mx, cy - r - 16, P.t("figMirror"), "anat");
+    } else if (has("ana")) {
+      Play.svg("ellipse", { cx, cy, rx: mx - cx, ry: 70, class: "ana" }, fig);
+      T(mx + r + 10, cy + 6, P.t("figKid"), "anat", "start");
+    }
+  } else if (tp === "dist") {
+    const W = 540, x0 = 30, unit = W / (D.earthsGap + 1); // Earth diameters across the width
+    const R = unit / 2, r = R / D.dRatio, cy = 110, ex = x0 + R, mx = ex + unit * D.earthsGap;
+    Play.svg("circle", { cx: ex, cy, r: R, class: "earth" }, fig);
+    Play.svg("circle", { cx: mx, cy, r: Math.max(r, 1.5), class: "moon" }, fig);
+    T(ex, cy + 32, L === "en" ? "Earth" : "地球", "lab", "start");
+    T(mx, cy + 32, L === "en" ? "Moon" : "月球", "lab", "end");
+    if (has("num")) {
+      Play.svg("path", { d: `M${ex} ${cy - 22} H${mx}`, class: "cmp", "stroke-dasharray": "2 3" }, fig);
+      T((ex + mx) / 2, cy - 30, P.t("figD", { n: group3(K.dist) }), "num");
+    }
+    if (has("cmp")) {
+      for (let i = 1; i <= Math.floor(D.earthsGap); i++) Play.svg("circle", { cx: ex + i * unit, cy, r: R, class: "ghoste" }, fig);
+      cap(P.t("figE", { n: Math.round(D.earthsGap) }), "c-cmp");
+    }
+    if (has("ana")) {
+      Play.svg("path", { d: `M${ex} ${cy} C ${ex + 150} ${cy - 90}, ${mx - 150} ${cy + 90}, ${mx} ${cy}`, class: "ana" }, fig);
+      T((ex + mx) / 2, 30, P.t("figS"), "anat");
+    }
+  } else {
+    // Everest: true-scale on a 1 m globe is below one pixel, so the bump is drawn tiny and labelled.
+    const gy = 175;
+    Play.svg("rect", { x: 20, y: gy, width: 560, height: 20, class: "ground", rx: 4 }, fig);
+    Play.svg("path", { d: `M220 ${gy} L300 ${gy - 120} L380 ${gy} Z`, class: "peak" }, fig);
+    Play.svg("path", { d: `M280 ${gy - 90} L300 ${gy - 120} L320 ${gy - 90} L308 ${gy - 96} L300 ${gy - 86} L292 ${gy - 96} Z`, class: "snow" }, fig);
+    if (has("num")) {
+      Play.svg("path", { d: `M400 ${gy} V${gy - 120}`, class: "cmp" }, fig);
+      T(410, gy - 55, P.t("figH", { n: group3(K.everestM) }), "num", "start");
+    }
+    if (has("cmp")) {
+      // 1 m globe drawn as an arc; at that scale Everest's height in px (1 m → 400 px) is computed.
+      const pxPerMM = 400 / 1000, h = D.everestOnMetreGlobeMM * pxPerMM;
+      Play.svg("path", { d: "M30 70 Q130 20 230 70", class: "cmp" }, fig);
+      Play.svg("path", { d: `M130 45 v${-h}`, class: "cmp" }, fig); // ≈0.3 px: too small to see, which is the point
+      T(130, 70 + 18 * FS, P.t("figMmS", { n: fix(D.everestOnMetreGlobeMM, 1) }), "num");
+      cap(P.t("figGlobe") + ": " + P.t("figMm", { n: fix(D.everestOnMetreGlobeMM, 1) }), "c-cmp");
+    }
+    if (has("ana")) T(470, 50, P.t("figPyr"), "anat");
+  }
+}
+
+// ---------- meter ----------
+function drawMeter(m, heading) {
+  meterEl.innerHTML = "";
+  meterEl.appendChild(el("div", "hd", heading || P.t("meterHd")));
+  [["gExact", m[0]], ["gGrasp", m[1]], ["gVivid", m[2]]].forEach(([k, v]) => {
+    const row = el("div", "row");
+    const tr = el("div", "track"), f = el("div", "fill");
+    f.style.width = (Play.clamp(v, 0, 3) / 3) * 100 + "%";
+    tr.appendChild(f);
+    row.append(el("span", "", P.t(k)), tr, el("b", "", v + "/3"));
+    meterEl.appendChild(row);
+  });
+}
+
+// ---------- step 2: slot and tray ----------
+function addMethod(m) {
+  if (!GAIN[m]) return;
+  if (desc.includes(m)) { say(P.t("already", { m: mName(m) })); return; }
+  desc.push(m);
+  sel = null;
+  say(desc.length === 3 ? P.t("allThree") : P.t("added", { m: mName(m) }));
+  render();
+}
+function removeMethod(m) {
+  desc = desc.filter((x) => x !== m);
+  say(P.t("removed", { m: mName(m) }));
+  render();
+  const c = tray.querySelector('[data-m="' + m + '"]');
+  if (c) c.focus();
+}
+function renderSlot() {
+  slot.innerHTML = "";
+  slot.classList.toggle("ready", sel !== null);
+  if (!desc.length) { slot.appendChild(el("span", "lab0", P.t("slotEmpty"))); return; }
+  desc.forEach((m) => {
+    const s = sentence(topic, m);
+    const b = el("button", "line");
+    b.type = "button";
+    const body = el("span");
+    body.appendChild(zhSpan(s.zh));
+    if (L === "en") body.appendChild(enSpan(s.en));
+    b.append(tag(m), body, el("span", "x", "✕"));
+    b.setAttribute("aria-label", mName(m) + ": " + s.zh + " — " + P.t("takeOut"));
+    b.addEventListener("click", () => removeMethod(m));
+    slot.appendChild(b);
+  });
+}
+function renderTray() {
+  tray.innerHTML = "";
+  tray.appendChild(el("div", "hd", P.t("trayHd")));
+  METHODS.forEach((m) => {
+    const b = el("button", "card2" + (desc.includes(m) ? " in" : "") + (sel === m ? " sel" : ""));
+    b.type = "button";
+    b.dataset.m = m;
+    const z = el("span", "zh", MZH[m]); z.lang = "zh-CN";
+    b.appendChild(z);
+    if (L === "en") b.appendChild(el("span", "en", P.t(MKEY[m])));
+    b.setAttribute("aria-pressed", desc.includes(m) ? "true" : "false");
+    b.addEventListener("click", () => { if (b.dataset.dragged) return; addMethod(m); });
+    dragify(b, m);
+    tray.appendChild(b);
+  });
+}
+// Pointer drag onto the slot (mouse and touch); a plain tap still adds.
+function dragify(b, m) {
+  let start = null, ghost = null, over = false;
+  b.addEventListener("pointerdown", (e) => { start = { x: e.clientX, y: e.clientY }; try { b.setPointerCapture(e.pointerId); } catch (_) { /* ok */ } });
+  b.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    if (!ghost && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) {
+      ghost = el("span", "card2 ghost");
+      ghost.appendChild(tag(m));
+      document.body.appendChild(ghost);
+      sel = m; slot.classList.add("ready");
+    }
+    if (!ghost) return;
+    ghost.style.left = e.clientX + "px";
+    ghost.style.top = e.clientY + "px";
+    const r = slot.getBoundingClientRect();
+    over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    slot.classList.toggle("over", over);
+  });
+  const end = (cancel) => {
+    if (!start) return;
+    start = null;
+    if (!ghost) return;
+    ghost.remove(); ghost = null;
+    b.dataset.dragged = "1";
+    setTimeout(() => delete b.dataset.dragged, 0);
+    slot.classList.remove("over", "ready");
+    sel = null;
+    if (!cancel && over) addMethod(m); else render();
+    over = false;
+  };
+  b.addEventListener("pointerup", () => end(false));
+  b.addEventListener("pointercancel", () => end(true));
+}
+tray.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  const bs = [...tray.querySelectorAll("button")];
+  const i = bs.indexOf(document.activeElement);
+  if (i < 0) return;
+  bs[Play.clamp(i + (e.key === "ArrowRight" ? 1 : -1), 0, bs.length - 1)].focus();
+  e.preventDefault();
+});
+function renderTopics() {
+  topicsEl.innerHTML = "";
+  TOPICS.forEach(([id, key]) => {
+    const b = el("button", topic === id ? "on" : "", P.t(key));
+    b.type = "button";
+    b.setAttribute("aria-pressed", topic === id ? "true" : "false");
+    b.addEventListener("click", () => { topic = id; render(); topicsEl.querySelector('[aria-pressed="true"]').focus(); });
+    topicsEl.appendChild(b);
+  });
+}
+
+// ---------- step 1: the two predict sentences ----------
+function renderPair() {
+  pairEl.innerHTML = "";
+  if (step === 0) {
+    [["sentA", "pA", "pAen", "cmp"], ["sentB", "pB", "pBen", "ana"]].forEach(([lab, k, ken, m]) => {
+      const box = el("div", "reader");
+      box.appendChild(el("span", "who", P.t(lab) + (predicted ? " · " + mName(m) : "")));
+      box.appendChild(zhSpan(P.t(k, { r: fix(D.dRatio, 1) })));
+      if (L === "en") box.appendChild(enSpan(P.t(ken, { r: fix(D.dRatio, 1) })));
+      if (predicted) {
+        const g = GAIN[m];
+        box.appendChild(el("span", "need", P.t("gExact") + " " + g[0] + "/3 · " + P.t("gGrasp") + " " + g[1] + "/3 · " + P.t("gVivid") + " " + g[2] + "/3"));
+      }
+      pairEl.appendChild(box);
+    });
+  } else if (step === 2) {
+    const items = sortItems();
+    pairEl.appendChild(el("div", "need", P.t("sortHint")));
+    items.forEach((it) => {
+      const row = el("div", "sortrow");
+      const pick = sorted[it.id];
+      if (pick) row.classList.add(judgeSort(it, pick) ? "ok" : "no");
+      row.appendChild(zhSpan(it.zh));
+      if (L === "en") row.appendChild(enSpan(it.en));
+      const btns = el("div", "btns");
+      ["cmp", "ana"].forEach((m) => {
+        const b = el("button", pick === m ? (judgeSort(it, m) ? "good" : "bad") : "", L === "en" ? MZH[m] + " " + P.t(MKEY[m]) : MZH[m]);
+        b.type = "button";
+        b.setAttribute("aria-pressed", pick === m ? "true" : "false");
+        b.addEventListener("click", () => {
+          sorted[it.id] = m;
+          render();
+          const again = pairEl.querySelectorAll(".sortrow")[items.indexOf(it)];
+          if (again) again.querySelectorAll("button")[m === "cmp" ? 0 : 1].focus();
+        });
+        btns.appendChild(b);
+      });
+      if (pick) {
+        const ok = judgeSort(it, pick);
+        btns.appendChild(el("span", "why", (ok ? "✓ " : "✗ ") + P.t(it.why === "same" ? "whySame" : it.why === "trap" ? "whyTrap" : "whyImage")));
+      }
+      row.appendChild(btns);
+      pairEl.appendChild(row);
+    });
+  } else if (step === 3) {
+    [["kid", "kidNeed"], ["report", "reportNeed"]].forEach(([who, need]) => {
+      const box = el("div", "reader");
+      box.appendChild(el("span", "who", P.t(who)));
+      box.appendChild(el("span", "need", P.t(need)));
+      const btns = el("div", "btns");
+      const pick = readerPick[who];
+      METHODS.forEach((m) => {
+        const v = pick === m ? judgeReader(who, m) : null;
+        const b = el("button", v ? (v === "bad" ? "bad" : "good") : "", mName(m));
+        b.type = "button";
+        b.setAttribute("aria-pressed", pick === m ? "true" : "false");
+        b.addEventListener("click", () => {
+          readerPick[who] = m;
+          render();
+          const bb = pairEl.querySelector('[data-who="' + who + '"] button:nth-child(' + (METHODS.indexOf(m) + 1) + ")");
+          if (bb) bb.focus();
+        });
+        btns.appendChild(b);
+      });
+      box.dataset.who = who;
+      box.appendChild(btns);
+      const f = el("span", "fbr");
+      if (pick) {
+        const v = judgeReader(who, pick);
+        const key = v === "best" ? "fbBest" : (v === "ok" ? (who === "kid" ? "fbOkKid" : "fbOkRep") : (who === "kid" ? "fbBadKid" : "fbBadRep"));
+        f.textContent = P.t(key, { v: D.volRound, n: group3(Math.round(K.moonD)) });
+        f.classList.toggle("no", v === "bad");
+      }
+      f.setAttribute("aria-live", "polite");
+      box.appendChild(f);
+      pairEl.appendChild(box);
+    });
+  }
+}
+
+function render() {
+  const s2 = step === 1;
+  topicsEl.hidden = !s2;
+  slot.hidden = !s2;
+  tray.hidden = !s2;
+  pairEl.hidden = s2;
+  fig.style.display = step === 2 ? "none" : "";
+  let m;
+  if (step === 0) {
+        drawFig(predicted ? ["cmp", "ana"] : []);
+    meterEl.hidden = true;
+  } else if (step === 1) {
+    m = meter(desc);
+    drawFig(desc);
+    meterEl.hidden = false;
+    drawMeter(m);
+    renderTopics(); renderSlot(); renderTray();
+  } else if (step === 2) {
+    meterEl.hidden = true;
+    const items = sortItems();
+    const k = items.filter((it) => sorted[it.id] && judgeSort(it, sorted[it.id])).length;
+    Play.live(liveEl, P.t("sortScore", { k, t: items.length }));
+  } else {
+    meterEl.hidden = false;
+    m = meter(["num", "cmp", "ana"]);
+    drawFig(["num", "cmp", "ana"]);
+    drawMeter(m);
+  }
+  renderPair();
+  $("rule").hidden = $("nums").hidden = step !== 3;
+  if (step === 3) {
+    $("rule").textContent = P.t("rule");
+    $("nums").textContent = P.t("nums", {
+      e: group3(K.earthD), m: group3(K.moonD), r1: fix(D.dRatio, 3), r: fix(D.dRatio, 1), v1: fix(D.vol, 1), v: D.volRound,
+      d: group3(K.dist), g1: fix(D.earthsGap, 2), g: Math.round(D.earthsGap), h: group3(K.everestM), mm1: fix(D.everestOnMetreGlobeMM, 2),
+    });
+  }
+  if (step === 1) Play.live(liveEl, P.t("liveM", { a: m[0], b: m[1], c: m[2] }));
+  else if (step !== 2) liveEl.textContent = "";
+}
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q", { r: fix(D.dRatio, 1) }),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { predicted = true; render(); });
+
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  sel = null;
+  say("");
+  render();
+});
+
+let rz = 0;
+addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if (step !== 2) render(); }); });
+$("reset").addEventListener("click", () => {
+  topic = "size"; desc = []; sel = null; predicted = false; sorted = {}; readerPick = {};
+  pr.reset(); say(""); steps.go(0);
+});
+</script>
+</body>
+</html>

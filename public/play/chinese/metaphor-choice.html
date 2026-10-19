@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pick the comparison: what does the reader see?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .han { font-family: "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", "Songti SC", serif; }
+  .bench { padding: 14px 14px 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .row .lbl { font-size: 13px; color: var(--muted); margin-right: 2px; }
+  .row button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .row button .g { font-size: 13px; opacity: .75; margin-left: 4px; }
+  .sent { text-align: center; margin: 4px 0 2px; font-size: 26px; line-height: 1.4; }
+  .sent .v { color: var(--a); font-weight: 700; }
+  .sent.plain { color: var(--muted); }
+  .sgl { text-align: center; font-size: 13px; color: var(--muted); min-height: 1.3em; }
+  .quote { text-align: center; font-size: 14px; color: var(--muted); margin: 2px 0 6px; min-height: 1.4em; }
+  .quote .han { font-size: 18px; color: var(--fg); }
+  #pic { width: 100%; height: auto; aspect-ratio: 2 / 1; max-height: 300px; display: block; border-radius: 12px; }
+  #pic .panel { fill: var(--ink-panel); }
+  #pic .cap { fill: var(--on-panel-muted); font-size: 15px; }
+  #pic .q { fill: var(--on-panel-muted); font-size: 44px; }
+  #pic .solid { fill: var(--on-panel); }
+  #pic .outline { fill: none; stroke: var(--on-panel-muted); stroke-width: 2.5; }
+  #pic .dash { fill: none; stroke: var(--on-panel-muted); stroke-width: 2; stroke-dasharray: 6 6; }
+  #pic .glow { fill: var(--hl); }
+  #pic .warm { fill: var(--b); }
+  #pic .sheen { fill: none; stroke: var(--hl); stroke-width: 5; stroke-linecap: round; }
+  #pic .move { stroke: var(--on-panel-muted); stroke-width: 3; stroke-linecap: round; fill: none; }
+  #pic .star { fill: var(--on-panel-muted); }
+  #pic .zz { fill: var(--on-panel); font-size: 22px; font-weight: 700; }
+  .feats { margin-top: 10px; }
+  .feats .fh { font-size: 13px; color: var(--muted); margin: 6px 0 4px; }
+  .chip { display: inline-block; border-radius: 999px; padding: 2px 10px; margin: 0 4px 6px 0; font-size: 14px; border: 1px dashed var(--line); color: var(--muted); }
+  .chip.on { background: var(--a); border: 1px solid var(--a); color: var(--surface); font-weight: 650; }
+  .chip.left { text-decoration: line-through; border-style: solid; }
+  .count { font-size: 15px; font-weight: 650; }
+  .count .math { color: var(--a); }
+  /* step 1 */
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 10px; }
+  .pair > div { background: var(--soft); border-radius: 12px; padding: 14px 10px; text-align: center; }
+  .pair .han { font-size: 26px; }
+  .pair .gl { font-size: 13px; color: var(--muted); }
+  /* step 3 */
+  .quiz { list-style: none; margin: 0; padding: 0; }
+  .quiz li { border-bottom: 1px solid var(--line); padding: 8px 2px; }
+  .quiz .s { font-size: 21px; }
+  .quiz .gl { font-size: 13px; color: var(--muted); }
+  .quiz .bt { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .quiz button.right { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .quiz button.wrong { background: var(--no); border-color: var(--no); color: var(--surface); }
+  .quiz .why { font-size: 13px; margin-top: 4px; color: var(--fg); }
+  /* step 4 */
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.cmp td { border-bottom: 1px solid var(--line); padding: 6px 4px; vertical-align: middle; }
+  table.cmp td.w { font-size: 18px; white-space: nowrap; }
+  table.cmp td.n { font-family: var(--math); white-space: nowrap; text-align: right; }
+  table.cmp tr.plain td { color: var(--muted); }
+  .barbox { height: 10px; background: var(--soft); border-radius: 5px; overflow: hidden; min-width: 50px; }
+  .barbox i { display: block; height: 100%; background: var(--a); }
+  tr.plain .barbox i { background: var(--muted); }
+  .result .math { white-space: normal; line-height: 1.45; font-size: 20px; }
+  @media (max-width: 560px) {
+    .bench { padding: 12px 8px 10px; }
+    .sent { font-size: 22px; }
+    .pair { grid-template-columns: 1fr; }
+    table.cmp td.f { display: none; }
+  }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="bench">
+        <!-- step 1 -->
+        <div id="v1">
+          <div class="pair">
+            <div><div class="han">月亮像一只小船。</div><div class="gl" data-t="g1a"></div></div>
+            <div><div class="han">月亮是弯的。</div><div class="gl" data-t="g1b"></div></div>
+          </div>
+          <p class="quote"><span class="han">小时不识月，呼作白玉盘。</span><br><span data-t="libai"></span></p>
+        </div>
+        <!-- step 2 -->
+        <div id="v2" hidden>
+          <div class="row" id="targets" role="group" data-t-aria="targetAria"><span class="lbl" data-t="targetL"></span></div>
+          <div class="row" id="tray" role="group" data-t-aria="trayAria"><span class="lbl" data-t="trayL"></span></div>
+          <div class="row"><label class="check"><input type="checkbox" id="plain"> <span data-t="plainL"></span></label></div>
+          <div class="sent han" id="sent"></div>
+          <div class="sgl" id="sgl"></div>
+          <div class="quote" id="quote"></div>
+          <svg id="pic" viewBox="0 0 600 300" role="img"></svg>
+          <div class="feats">
+            <div class="count" id="count"></div>
+            <div class="fh" data-t="carriedH"></div>
+            <div id="chips"></div>
+            <div class="fh" data-t="leftH"></div>
+            <div id="lefts"></div>
+          </div>
+        </div>
+        <!-- step 3 -->
+        <div id="v3" hidden><ul class="quiz" id="quiz"></ul></div>
+        <!-- step 4 -->
+        <div id="v4" hidden>
+          <div class="row" id="targets4" role="group" data-t-aria="targetAria"></div>
+          <table class="cmp" id="cmp"></table>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math han" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// ---- data (Chinese sentences are original except the two 李白 lines) ----
+// Each target has the features a reader could notice; each comparison (vehicle) carries some of them,
+// plus features of its own that stay behind. "plain" is the literal sentence that states one feature.
+const TARGETS = [
+  { id: "moon", zh: "月亮", en: "the moon",
+    feats: [["round", "圆", "round"], ["curve", "弯", "curved"], ["bright", "亮", "bright"], ["white", "白", "white"], ["smooth", "光滑", "smooth"], ["sail", "在天上漂", "sails across the sky"]],
+    vehicles: [
+      { zh: "白玉盘", en: "white jade plate", s: "月亮像一个白玉盘。", g: "The moon is like a white jade plate.", f: ["round", "white", "bright", "smooth"], x: [["盛菜", "holds food"]],
+        p: ["月亮是圆的。", "The moon is round."], pf: ["round"], quote: 0 },
+      { zh: "镜子", en: "mirror", s: "月亮像一面镜子。", g: "The moon is like a mirror.", f: ["round", "bright", "smooth"], x: [["照出人影", "shows your face"]],
+        p: ["月亮是圆的。", "The moon is round."], pf: ["round"], quote: 1 },
+      { zh: "小船", en: "little boat", s: "月亮像一只小船。", g: "The moon is like a little boat.", f: ["curve", "sail"], x: [["木头做的", "made of wood"]],
+        p: ["月亮是弯的。", "The moon is curved."], pf: ["curve"] },
+      { zh: "银钩", en: "silver hook", s: "月亮像一弯银钩。", g: "The moon is like a silver hook.", f: ["curve", "white", "bright"], x: [["能挂东西", "hangs things up"]],
+        p: ["月亮是弯的。", "The moon is curved."], pf: ["curve"] },
+    ] },
+  { id: "cloud", zh: "云", en: "a cloud",
+    feats: [["white", "白", "white"], ["soft", "软", "soft"], ["puffy", "蓬松", "puffy"], ["clumps", "一团一团", "in clumps"], ["drift", "慢慢飘", "drifts slowly"]],
+    vehicles: [
+      { zh: "棉花糖", en: "cotton candy", s: "这朵云像一大团棉花糖。", g: "This cloud is like a big tuft of cotton candy.", f: ["white", "soft", "puffy"], x: [["甜", "sweet"]],
+        p: ["这朵云是白的。", "This cloud is white."], pf: ["white"] },
+      { zh: "绵羊", en: "sheep", s: "天上的云像一群绵羊。", g: "The clouds are like a flock of sheep.", f: ["white", "puffy", "clumps", "drift"], x: [["会咩咩叫", "say baa"]],
+        p: ["天上的云一团一团的。", "The clouds come in clumps."], pf: ["clumps"] },
+      { zh: "枕头", en: "pillow", s: "这朵云像一个大枕头。", g: "This cloud is like a big pillow.", f: ["white", "soft"], x: [["放在床上", "lives on a bed"]],
+        p: ["这朵云是软的。", "This cloud is soft."], pf: ["soft"] },
+    ] },
+  { id: "cat", zh: "睡着的猫", en: "a sleeping cat",
+    feats: [["roundcat", "圆滚滚", "curled up round"], ["soft", "软", "soft"], ["warm", "暖", "warm"], ["still", "一动不动", "perfectly still"]],
+    vehicles: [
+      { zh: "毛线", en: "ball of yarn", s: "睡着的猫像一团毛线。", g: "The sleeping cat is like a ball of yarn.", f: ["roundcat", "soft"], x: [["能滚", "rolls away"]],
+        p: ["猫蜷成一团睡觉。", "The cat sleeps curled up."], pf: ["roundcat"] },
+      { zh: "面包", en: "fresh loaf", s: "睡着的猫像一个刚出炉的面包。", g: "The sleeping cat is like a loaf fresh from the oven.", f: ["roundcat", "soft", "warm"], x: [["能吃", "you can eat it"]],
+        p: ["猫睡着了，身上暖暖的。", "The cat is asleep and warm."], pf: ["warm"] },
+      { zh: "石头", en: "stone", s: "睡着的猫像一块石头。", g: "The sleeping cat is like a stone.", f: ["roundcat", "still"], x: [["硬", "hard"], ["凉", "cold"]],
+        p: ["猫睡着了，一动不动。", "The cat is asleep and doesn't move."], pf: ["still"] },
+    ] },
+];
+const QUOTES = [["小时不识月，呼作白玉盘。", "As a child I didn't know the moon; I called it a white jade plate."],
+                ["又疑瑶台镜，飞在青云端。", "Or I wondered if it was the mirror of the fairy terrace, flying at the edge of the blue clouds."]];
+// Is it a 比喻? yes = two different kinds of thing that share a feature.
+const QUIZ = [
+  { s: "草地像一块绿色的地毯。", g: "The lawn is like a green carpet.", yes: true, why: ["草地和地毯是两样东西，都绿、都软、铺开一大片。", "Lawn and carpet are different things that share green, soft and spread-out."] },
+  { s: "他长得像他爸爸。", g: "He looks like his dad.", yes: false, why: ["人和人是同一类，这是比较长相，不是比喻。", "Person and person are the same kind: this compares, it isn't a metaphor."] },
+  { s: "天好像要下雨了。", g: "It looks like it's going to rain.", yes: false, why: ["「好像」在这里是猜测，没有拿别的东西来比。", "好像 here is a guess; nothing is compared to anything."] },
+  { s: "弯弯的月亮是天上的一只小船。", g: "The curved moon is a little boat in the sky.", yes: true, why: ["没有「像」也算：把月亮直接说成了小船。", "No 像, still a metaphor: the moon is simply called a boat."] },
+  { s: "妹妹的脸红得像苹果。", g: "My sister's face is as red as an apple.", yes: true, why: ["脸和苹果不同类，借来的是「红、圆」。", "Face and apple are different kinds; it borrows red and round."] },
+  { s: "这只小狗好像饿了。", g: "This puppy seems hungry.", yes: false, why: ["又是猜测：小狗大概饿了。", "Another guess: the puppy is probably hungry."] },
+  { s: "这个西瓜像那个西瓜一样大。", g: "This watermelon is as big as that one.", yes: false, why: ["西瓜比西瓜，同一类东西比大小。", "Watermelon vs watermelon: same kind, just comparing size."] },
+  { s: "树枝上的雪像一团团棉花。", g: "The snow on the branches is like tufts of cotton.", yes: true, why: ["雪和棉花不同类，借来的是「白、软、一团团」。", "Snow and cotton are different kinds; it borrows white, soft, in tufts."] },
+];
+
+// ---- pure logic ----
+function featsOf(t, v, plain) { return plain ? v.pf.slice() : v.f.slice(); }
+function carried(t, list) { const ids = t.feats.map((f) => f[0]); return ids.filter((id) => list.includes(id)); }
+function score(t, v, plain) { const k = carried(t, featsOf(t, v, plain)).length, n = t.feats.length; return { k, n, pct: n ? Math.round((100 * k) / n) : 0 }; }
+function quizScore(ans) { let right = 0, done = 0; QUIZ.forEach((q, i) => { if (ans[i] === undefined) return; done++; if (ans[i] === q.yes) right++; }); return { right, done, n: QUIZ.length }; }
+
+const P = Play.setup({
+  en: {
+    title: "Pick the comparison: what does the reader see?", eyebrow: "Chinese · Stage 2",
+    h1: "Pick the comparison, and you pick what the reader sees",
+    intro: "A 比喻 (metaphor or simile) lends the reader the features of a familiar thing. Choose what to compare the moon, a cloud or a sleeping cat to, and watch which features carry over.",
+    reset: "Reset", s1: "Guess", s2: "Compare", s3: "Is it 比喻?", s4: "Rule",
+    k1: "Predict first", t1: "Do these two sentences say the same thing?",
+    b1: "Pick an answer, then go to step 2 and test it. Li Bai's line above is the same trick with a different comparison.",
+    g1a: "The moon is like a little boat.", g1b: "The moon is curved.",
+    libai: "Li Bai, 古朗月行: “As a child I didn't know the moon; I called it a white jade plate.”",
+    q: "Does 月亮像一只小船 say the same as 月亮是弯的?",
+    o1: "Yes — the comparison is just decoration; the plain sentence says the same", o2: "No — the boat lends more: the curve and also sailing across the sky", o3: "No — the plain sentence says more",
+    right: "Yes. The plain sentence gives one feature; the boat gives the curve and a picture of the moon sailing. Count them in step 2.",
+    wrong: "Check it in step 2: switch the plain sentence on and off and count what the reader gets.",
+    k2: "Hands on", t2: "Choose a comparison and see what carries over",
+    b2: "Pick what to describe, then a comparison from the tray. The picture shows only what the sentence gives the reader; the chips list the features that carried over. Tick “plain sentence” to swap in the literal version.",
+    k3: "Hands on", t3: "Is each sentence a 比喻?",
+    b3: "像 does not make a 比喻, and a 比喻 does not need 像. Decide for each sentence: are two different kinds of thing being matched on a shared feature?",
+    k4: "The rule", t4: "A comparison lends its features; choosing it is choosing what the reader notices",
+    b4: "The thing described is the 本体 (moon); the thing it is compared to is the 喻体 (jade plate, boat). The reader takes the features the two share and leaves the rest behind (nobody puts food on the moon). A different 喻体 lends different features — the plate gives round and bright, the boat a thin curve. The plain sentence gives one.",
+    targetL: "Describe:", trayL: "Compare to:", targetAria: "What to describe", trayAria: "What to compare it to", plainL: "plain sentence instead",
+    carriedH: "Features the reader sees (filled = carried over):", leftH: "Features of the comparison that stay behind:",
+    count: "The reader sees <span class=\"math\">{k} / {n}</span> features.", none: "none",
+    picCap: "What the reader pictures", picAria: "Picture of {t} built only from: {list}",
+    liveV: "{s} — the reader sees {list}: {k} of {n}.", livePlain: "Plain: {s} — the reader sees {list}: {k} of {n}.",
+    yes: "比喻", no: "not 比喻", actually: "Actually ", quizLive: "{right} of {done} right ({n} sentences).",
+    thFeat: "features carried", resultTitle: "What we found",
+    resultNote: "A 比喻 is not decoration: it hands the reader a bundle of features at once, and the 喻体 decides which. Comparing two things of the same kind, or guessing with 好像, is not a 比喻.",
+    explainK: "Explain it", explainQ: "A friend says “月亮像小船 just means 月亮是弯的 — 比喻 is decoration.” Use what you found to tell them what the boat adds, and what a reader would see if you wrote 白玉盘 instead.",
+    homeK: "Try at home", homeQ: "Pick something at home (a lamp, a slipper, a pillow). Think of three things to compare it to and ask someone what each one makes them picture. Which one points at the feature you want noticed?",
+    foot: "李白 (701–762), 古朗月行, opening lines (public domain; text as in the common editions). English glosses are our own. All other sentences and comparisons on this page are original. The feature lists are a simplified model chosen for this page; a reader may notice more. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "比喻怎么选", eyebrow: "语文 · 阶段 2",
+    h1: "比喻怎么选：选什么来比，读者就看见什么",
+    intro: "比喻是把熟悉事物的特点借给读者。给月亮、云、睡着的猫选一个来比的东西，看看哪些特点跟着过去了。",
+    reset: "重置", s1: "先猜", s2: "动手比", s3: "是不是比喻", s4: "规律",
+    k1: "先猜一猜", t1: "这两句话说的一样吗？",
+    b1: "先选一个答案，再到第 2 步验证。上面李白那句，用的是同一个办法，只是换了一样东西来比。",
+    g1a: "比喻", g1b: "大白话",
+    libai: "——李白《古朗月行》",
+    q: "「月亮像一只小船」和「月亮是弯的」说的是一回事吗？",
+    o1: "一样——比喻只是装饰，换成大白话意思不变", o2: "不一样——小船借来的更多：弯，还有在天上漂", o3: "不一样——大白话说得更多",
+    right: "对。大白话只给了一个特点；小船给了弯，还给了月亮在天上漂的画面。第 2 步数一数。",
+    wrong: "到第 2 步验证：打开、关上「换成大白话」，数一数读者得到了什么。",
+    k2: "动手", t2: "选一样东西来比，看什么跟过去了",
+    b2: "先选要写的东西，再从下面挑一样来比。图里只画句子告诉读者的东西；亮起来的是借过去的特点。勾上「换成大白话」，对比直白的说法。",
+    k3: "动手", t3: "这句是不是比喻？",
+    b3: "有「像」不一定是比喻，比喻也不一定有「像」。每句判断一下：是不是拿两样不同类的东西，按共同的特点来比？",
+    k4: "规律", t4: "比喻借的是特点；选什么来比，就是选读者注意什么",
+    b4: "被写的东西叫「本体」（月亮），拿来比的叫「喻体」（白玉盘、小船）。读者只拿两者共有的特点，其余的留在原处（没人会往月亮上盛菜）。换一个喻体，借过去的特点就不同：白玉盘给圆和亮，小船给弯弯的一道。大白话只给一个。",
+    targetL: "要写：", trayL: "拿来比：", targetAria: "要写的东西", trayAria: "拿来比的东西", plainL: "换成大白话",
+    carriedH: "读者看见的特点（亮起的是借过去的）：", leftH: "喻体自己的、留在原处的特点：",
+    count: "读者看见 <span class=\"math\">{k} / {n}</span> 个特点。", none: "没有",
+    picCap: "读者脑中的画面", picAria: "只用这些特点画出的{t}：{list}",
+    liveV: "{s}——读者看见{list}：{n} 个里 {k} 个。", livePlain: "大白话：{s}——读者看见{list}：{n} 个里 {k} 个。",
+    yes: "是比喻", no: "不是比喻", actually: "其实", quizLive: "答了 {done} 句，对 {right} 句（共 {n} 句）。",
+    thFeat: "借过去的特点", resultTitle: "我们发现",
+    resultNote: "比喻不是装饰：它一下子把一组特点交给读者，借哪些由喻体决定。同类东西相比、用「好像」猜测，都不是比喻。",
+    explainK: "说一说", explainQ: "同学说：「『月亮像小船』就是『月亮是弯的』，比喻只是装饰。」用这页的发现跟他讲讲：小船多给了读者什么？换成「白玉盘」，读者又会看见什么？",
+    homeK: "家里做一做", homeQ: "在家里挑一样东西（台灯、拖鞋、枕头……），给它想三个比喻，问家里人每个比喻让他们想到了什么。哪一个最能让人注意到你想让人注意的那一点？",
+    foot: "李白（701–762）《古朗月行》开头四句（公有领域，文字依通行本）。本页其余句子和比喻都是原创。各事物的「特点」是为本页简化的模型，读者可能注意到更多。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang, $ = (id) => document.getElementById(id), S = Play.svg;
+const sep = L === "zh" ? "、" : ", ";
+const fname = (t, id) => { const f = t.feats.find((x) => x[0] === id); return L === "zh" ? f[1] : f[2]; };
+const listOf = (t, ids) => (ids.length ? ids.map((id) => fname(t, id)).join(sep) : P.t("none"));
+
+let step = 0, ti = 0, vi = 2, plain = false, ti4 = 0, answers = {};
+
+// ---- controls ----
+function mkBtn(parent, html, onClick) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.innerHTML = html;
+  b.addEventListener("click", onClick);
+  parent.appendChild(b);
+  return b;
+}
+const label = (zh, en) => '<span class="han">' + zh + "</span>" + (L === "en" ? '<span class="g">' + en + "</span>" : "");
+const tBtns = TARGETS.map((t, i) => mkBtn($("targets"), label(t.zh, t.en), () => { ti = i; vi = 0; render(); }));
+const t4Btns = TARGETS.map((t, i) => mkBtn($("targets4"), label(t.zh, t.en), () => { ti4 = i; renderTable(); }));
+let vBtns = [];
+function buildTray() {
+  vBtns.forEach((b) => b.remove());
+  vBtns = TARGETS[ti].vehicles.map((v, i) => mkBtn($("tray"), label(v.zh, v.en), () => { vi = i; render(); vBtns[i].focus(); }));
+}
+$("plain").addEventListener("change", (e) => { plain = e.target.checked; render(); });
+
+// ---- picture: draw the target using only the features the sentence carries ----
+function drawPic(t, on) {
+  const g = $("pic");
+  g.innerHTML = "";
+  const has = (id) => on.includes(id);
+  S("rect", { x: 0, y: 0, width: 600, height: 300, rx: 14, class: "panel" }, g);
+  S("text", { x: 16, y: 26, class: "cap" }, g).textContent = P.t("picCap");
+  const cx = 300, cy = 160;
+  if (t.id === "moon") {
+    [[60, 60], [520, 70], [470, 250], [110, 230], [200, 50]].forEach(([x, y]) => S("circle", { cx: x, cy: y, r: 2.5, class: "star" }, g));
+    const r = 72;
+    if (has("bright")) [r + 40, r + 22].forEach((rr, i) => S("circle", { cx, cy, r: rr, class: "glow", opacity: i ? 0.22 : 0.12 }, g));
+    const fill = has("white") ? "solid" : "outline";
+    if (has("round")) S("circle", { cx, cy, r, class: fill }, g);
+    else if (has("curve")) S("path", { d: `M${cx} ${cy - r} A${r} ${r} 0 0 0 ${cx} ${cy + r} A${r * 0.5} ${r} 0 0 1 ${cx} ${cy - r}Z`, class: fill, transform: `rotate(-80 ${cx} ${cy})` }, g);
+    else { S("circle", { cx, cy, r, class: "dash" }, g); S("text", { x: cx, y: cy + 15, class: "q", "text-anchor": "middle" }, g).textContent = "?"; }
+    if (has("smooth")) S("path", { d: has("round") ? `M${cx - 48} ${cy - 20} A52 52 0 0 1 ${cx - 14} ${cy - 50}` : `M${cx - 50} ${cy + 10} A60 60 0 0 1 ${cx - 40} ${cy - 30}`, class: "sheen" }, g);
+    if (has("sail")) {
+      [[-150, -10, 70], [-140, 20, 90], [-130, 50, 60]].forEach(([dx, dy, w]) => S("path", { d: `M${cx + dx} ${cy + dy} h${w}`, class: "move" }, g));
+      S("path", { d: `M${cx - 220} ${cy + 100} q30 -14 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0`, class: "move", opacity: 0.6 }, g);
+    }
+  } else if (t.id === "cloud") {
+    const spots = has("clumps") ? [[170, 120, 0.7], [330, 180, 0.85], [470, 110, 0.65]] : [[cx, cy, 1.2]];
+    const known = on.length > 0;
+    if (has("soft")) {
+      const f = S("filter", { id: "soft", x: "-20%", y: "-20%", width: "140%", height: "140%" }, g);
+      S("feGaussianBlur", { stdDeviation: 3 }, f);
+    }
+    spots.forEach(([x, y, k]) => {
+      const grp = S("g", { transform: `translate(${x} ${y}) scale(${k})` }, g);
+      if (has("soft")) grp.setAttribute("filter", "url(#soft)");
+      const cls = has("white") ? "solid" : known ? "outline" : "dash";
+      if (has("puffy")) [[-50, 10, 34], [-15, -14, 42], [28, -4, 38], [55, 16, 28], [0, 22, 36]].forEach(([dx, dy, r]) => S("circle", { cx: dx, cy: dy, r, class: cls }, grp));
+      else S("ellipse", { cx: 0, cy: 8, rx: 90, ry: 36, class: cls }, grp);
+      if (has("drift")) [[-130, -6, 40], [-125, 16, 30]].forEach(([dx, dy, w]) => S("path", { d: `M${dx} ${dy} h${w}`, class: "move" }, grp));
+    });
+    if (!known) S("text", { x: cx, y: cy + 22, class: "q", "text-anchor": "middle" }, g).textContent = "?";
+  } else {
+    if (has("warm")) [110, 90].forEach((rr, i) => S("circle", { cx, cy: cy + 10, r: rr, class: "glow", opacity: i ? 0.22 : 0.12 }, g));
+    if (has("soft")) { const f = S("filter", { id: "fur" }, g); S("feGaussianBlur", { stdDeviation: 2.2 }, f); }
+    const cls = has("warm") ? "warm" : on.length ? "outline" : "dash";
+    const grp = S("g", {}, g);
+    if (has("soft")) grp.setAttribute("filter", "url(#fur)");
+    if (has("roundcat")) {
+      S("circle", { cx, cy: cy + 10, r: 68, class: cls }, grp);
+      S("circle", { cx: cx + 50, cy: cy - 38, r: 30, class: cls }, grp);
+      S("path", { d: `M${cx + 30} ${cy - 58} l6 -26 l14 18 Z M${cx + 58} ${cy - 66} l16 -20 l4 26 Z`, class: cls }, grp);
+      S("path", { d: `M${cx - 60} ${cy + 40} q40 50 110 26`, class: "outline", "stroke-width": 9 }, grp);
+    } else {
+      S("ellipse", { cx: cx - 20, cy: cy + 30, rx: 120, ry: 44, class: cls }, grp);
+      S("circle", { cx: cx + 110, cy: cy - 4, r: 32, class: cls }, grp);
+      S("path", { d: `M${cx + 88} ${cy - 26} l6 -28 l16 18 Z M${cx + 118} ${cy - 34} l16 -22 l6 28 Z`, class: cls }, grp);
+      if (!on.length) S("text", { x: cx - 20, y: cy + 44, class: "q", "text-anchor": "middle" }, g).textContent = "?";
+    }
+    if (has("still")) ["z", "z", "Z"].forEach((z, i) => S("text", { x: cx + 100 + i * 22, y: cy - 70 - i * 20, class: "zz" }, g).textContent = z);
+  }
+  g.setAttribute("aria-label", P.t("picAria", { t: L === "zh" ? t.zh : t.en, list: listOf(t, on) }));
+}
+
+// ---- step 2 render ----
+function render() {
+  const t = TARGETS[ti], v = t.vehicles[vi];
+  tBtns.forEach((b, i) => b.setAttribute("aria-pressed", i === ti ? "true" : "false"));
+  if (!vBtns.length || vBtns.length !== t.vehicles.length || vBtns._t !== ti) { buildTray(); vBtns._t = ti; }
+  vBtns.forEach((b, i) => b.setAttribute("aria-pressed", i === vi ? "true" : "false"));
+  const on = carried(t, featsOf(t, v, plain));
+  const sc = score(t, v, plain);
+  const sent = $("sent");
+  sent.classList.toggle("plain", plain);
+  sent.innerHTML = "";
+  if (plain) sent.textContent = v.p[0];
+  else {
+    const i = Math.max(0, v.s.indexOf(v.zh));
+    sent.append(document.createTextNode(v.s.slice(0, i)));
+    const b = document.createElement("span"); b.className = "v"; b.textContent = v.zh; sent.appendChild(b);
+    sent.append(document.createTextNode(v.s.slice(i + v.zh.length)));
+  }
+  $("sgl").textContent = L === "en" ? (plain ? v.p[1] : v.g) : "";
+  const qb = $("quote");
+  qb.innerHTML = "";
+  if (!plain && v.quote !== undefined) {
+    const q = QUOTES[v.quote];
+    const h = document.createElement("span"); h.className = "han"; h.textContent = q[0];
+    qb.append(h, document.createTextNode(" ——李白《古朗月行》" + (L === "en" ? " · " + q[1] : "")));
+  }
+  drawPic(t, on);
+  $("count").innerHTML = P.t("count", sc);
+  const chips = $("chips"); chips.innerHTML = "";
+  t.feats.forEach((f) => {
+    const c = document.createElement("span");
+    c.className = "chip" + (on.includes(f[0]) ? " on" : "");
+    c.textContent = L === "zh" ? f[1] : f[1] + " " + f[2];
+    chips.appendChild(c);
+  });
+  const lefts = $("lefts"); lefts.innerHTML = "";
+  (plain ? [] : v.x).forEach((x) => {
+    const c = document.createElement("span"); c.className = "chip left";
+    c.textContent = L === "zh" ? x[0] : x[0] + " " + x[1];
+    lefts.appendChild(c);
+  });
+  if (plain) { const c = document.createElement("span"); c.className = "chip"; c.textContent = P.t("none"); lefts.appendChild(c); }
+  if (step === 1) Play.live($("live"), P.t(plain ? "livePlain" : "liveV", { s: plain ? v.p[0] : v.s, list: listOf(t, on), k: sc.k, n: sc.n }));
+}
+
+// ---- step 3 ----
+function renderQuiz() {
+  const ul = $("quiz"); ul.innerHTML = "";
+  QUIZ.forEach((q, i) => {
+    const li = document.createElement("li");
+    const s = document.createElement("div"); s.className = "s han"; s.textContent = q.s; li.appendChild(s);
+    if (L === "en") { const gl = document.createElement("div"); gl.className = "gl"; gl.textContent = q.g; li.appendChild(gl); }
+    const bt = document.createElement("div"); bt.className = "bt";
+    [[true, "yes"], [false, "no"]].forEach(([val, k]) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "small"; b.textContent = P.t(k);
+      b.setAttribute("aria-pressed", answers[i] === val ? "true" : "false");
+      if (answers[i] === val) b.classList.add(val === q.yes ? "right" : "wrong");
+      b.addEventListener("click", () => { answers[i] = val; renderQuiz(); ul.querySelectorAll("li")[i].querySelectorAll("button")[val ? 0 : 1].focus(); });
+      bt.appendChild(b);
+    });
+    li.appendChild(bt);
+    if (answers[i] !== undefined) {
+      const w = document.createElement("div"); w.className = "why";
+      w.textContent = (answers[i] === q.yes ? "✓ " : "✗ " + P.t("actually")) + (q.yes ? P.t("yes") : P.t("no")) + (L === "zh" ? "：" : ": ") + (L === "zh" ? q.why[0] : q.why[1]);
+      li.appendChild(w);
+    }
+    ul.appendChild(li);
+  });
+  const qs = quizScore(answers);
+  Play.live($("live"), qs.done ? P.t("quizLive", qs) : "");
+}
+
+// ---- step 4: every comparison for one target, plus the plain sentences ----
+function renderTable() {
+  t4Btns.forEach((b, i) => b.setAttribute("aria-pressed", i === ti4 ? "true" : "false"));
+  const t = TARGETS[ti4], tb = $("cmp"); tb.innerHTML = "";
+  const rows = t.vehicles.map((v) => ({ w: v.s, f: carried(t, v.f), plain: false }));
+  const seen = new Set();
+  t.vehicles.forEach((v) => { if (!seen.has(v.p[0])) { seen.add(v.p[0]); rows.push({ w: v.p[0], f: carried(t, v.pf), plain: true }); } });
+  rows.forEach((r) => {
+    const tr = document.createElement("tr"); if (r.plain) tr.className = "plain";
+    const k = r.f.length, n = t.feats.length;
+    const td1 = document.createElement("td"); td1.className = "w han"; td1.textContent = r.w;
+    const td2 = document.createElement("td"); td2.className = "f"; td2.textContent = listOf(t, r.f);
+    const td3 = document.createElement("td"); td3.style.width = "28%";
+    const bb = document.createElement("div"); bb.className = "barbox"; const bi = document.createElement("i"); bi.style.width = (n ? (100 * k) / n : 0) + "%"; bb.appendChild(bi); td3.appendChild(bb);
+    const td4 = document.createElement("td"); td4.className = "n"; td4.textContent = k + " / " + n;
+    tr.append(td1, td2, td3, td4); tb.appendChild(tr);
+  });
+}
+
+// ---- result line, built from the data ----
+function resultLine() {
+  const m = TARGETS[0], plate = m.vehicles[0], boat = m.vehicles[2];
+  const z = (ids) => ids.map((id) => m.feats.find((f) => f[0] === id)[1]).join("、");
+  return "白玉盘 → " + z(carried(m, plate.f)) + "　·　小船 → " + z(carried(m, boat.f)) + "　·　「" + boat.p[0].replace("。", "") + "」→ " + z(carried(m, boat.pf));
+}
+$("resultMain").textContent = resultLine();
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  [1, 2, 3, 4].forEach((n) => ($("v" + n).hidden = n !== k));
+  Play.live($("live"), "");
+  if (i === 1) render();
+  if (i === 2) renderQuiz();
+  if (i === 3) renderTable();
+});
+$("reset").addEventListener("click", () => {
+  ti = 0; vi = 2; plain = false; ti4 = 0; answers = {};
+  $("plain").checked = false;
+  pr.reset();
+  render();
+  steps.go(0);
+});
+render();
+Play.live($("live"), "");
+</script>
+</body>
+</html>

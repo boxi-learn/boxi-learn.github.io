@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which adjective goes first?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .board { padding: 16px 14px 14px; display: flex; flex-direction: column; gap: 12px; min-height: 360px; }
+  .pickrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .pickrow button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .pickrow button.solved::after { content: " ✓"; color: var(--a); font-weight: 800; }
+  .pickrow button[aria-pressed=true].solved::after { color: inherit; }
+  /* category colours: 0 opinion … 7 purpose */
+  .c0 { --cc: var(--h); } .c1 { --cc: var(--b); } .c2 { --cc: var(--c); } .c3 { --cc: var(--hl); }
+  .c4 { --cc: var(--no); } .c5 { --cc: var(--fg); } .c6 { --cc: var(--b); --cs: dashed; } .c7 { --cc: var(--muted); --cs: dashed; }
+  .ladder { display: flex; flex-wrap: wrap; gap: 4px; font-size: 13px; }
+  .rung { border: 2px var(--cs, solid) var(--cc); border-radius: 999px; padding: 0 8px; color: var(--muted); opacity: .45; white-space: nowrap; }
+  .rung.use { opacity: 1; color: var(--fg); font-weight: 650; }
+  .rung b, .tile .n { font-variant-numeric: tabular-nums; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px; min-height: 86px; padding: 6px 0; }
+  .fixed { font-family: var(--serif); font-size: 21px; padding: 0 2px; }
+  .noun { font-weight: 750; text-decoration: underline 3px var(--a); text-underline-offset: 6px; }
+  .tile { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 10px 5px; border: 2px var(--cs, solid) var(--cc); border-bottom-width: 6px; border-radius: 10px; background: var(--surface); touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; line-height: 1.2; }
+  .tile .w { font-family: var(--serif); font-size: 20px; color: var(--fg); }
+  .tile .k { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .tile .n { display: inline-block; min-width: 1.4em; border: 1.5px solid var(--cc); border-radius: 999px; font-size: 12px; font-weight: 750; color: var(--fg); margin-right: 3px; text-align: center; }
+  .tile.sel { background: var(--soft); outline: 3px solid var(--a); outline-offset: 1px; }
+  .tile.drag { position: relative; z-index: 3; cursor: grabbing; box-shadow: 0 6px 18px rgba(0,0,0,.18); opacity: .92; }
+  .tile.target { outline: 3px dashed var(--a); outline-offset: 2px; }
+  .tile.static { cursor: default; }
+  .mk { font-size: 15px; font-weight: 800; width: 14px; text-align: center; color: var(--a); }
+  .mk.bad { color: var(--no); }
+  .readout { background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+  .readout .lab { font-size: 13px; color: var(--muted); }
+  .readout .now { font-family: var(--serif); font-size: 19px; line-height: 1.5; }
+  .readout .zh { font-size: 14px; color: var(--muted); }
+  .status { font-size: 14px; font-weight: 650; }
+  .status.no { color: var(--no); }
+  .balls { width: 100%; max-width: 420px; height: auto; display: block; margin: 0 auto; }
+  .balls text { font-size: 15px; fill: var(--muted); font-family: var(--font); }
+  .vlad { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .vlad li { display: flex; gap: 8px; align-items: baseline; border-left: 6px solid var(--cc); padding: 2px 8px; font-size: 14px; }
+  .vlad .cat { min-width: 6.5em; font-weight: 700; color: var(--fg); }
+  .vlad .ws { font-family: var(--serif); font-size: 16px; color: var(--muted); }
+  .phr { font-family: var(--serif); font-size: 16px; }
+  .exc { margin: 4px 0 10px; padding-left: 18px; font-size: 14px; color: var(--muted); }
+  .exc li { margin: 5px 0; }
+  .exc i { font-family: var(--serif); font-style: italic; color: var(--fg); }
+  .fb3 { font-size: 14px; min-height: 1.4em; color: var(--fg) !important; }
+  .result .math { font-family: var(--serif); white-space: normal; }
+  .shake { animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  @media (prefers-reduced-motion: reduce) { .shake { animation: none; } }
+  @media (max-width: 560px) {
+    .fixed { font-size: 18px; }
+    .tile { padding: 5px 7px 4px; }
+    .tile .w { font-size: 17px; }
+    .vlad .cat { min-width: 5.5em; }
+  }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="board" id="board" role="group" data-t-aria="boardAria">
+        <div id="g1">
+          <svg class="balls" viewBox="0 0 420 170" role="img" data-t-aria="ballsAria">
+            <circle cx="120" cy="88" r="62" fill="var(--no)"></circle>
+            <path d="M78 60 q20 -22 52 -18" stroke="var(--surface)" stroke-width="6" fill="none" stroke-linecap="round" opacity=".55"></path>
+            <circle cx="300" cy="122" r="26" fill="var(--c)"></circle>
+            <text x="120" y="166" text-anchor="middle" id="ballL"></text>
+          </svg>
+          <div class="pickrow" id="hear1"></div>
+        </div>
+        <div class="pickrow" id="pick"><span data-t="pickLabel"></span></div>
+        <div class="ladder" id="ladder" aria-hidden="true"></div>
+        <div class="row" id="row" lang="en"></div>
+        <div class="pickrow" id="tools2">
+          <button type="button" class="small" id="say" data-t="say"></button>
+          <button type="button" class="small" id="again" data-t="again"></button>
+          <button type="button" class="small" id="next" data-t="next"></button>
+        </div>
+        <div class="readout" id="readout" aria-live="polite"></div>
+        <div id="g3"><ol class="vlad" id="vlad"></ol></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="quiz"></div>
+      <ul class="exc" id="exc"></ul>
+      <p class="fb3" id="fb3" aria-live="polite"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// ---- data (original phrases; the English stays English in both UI languages) ----
+// Category index = place on the usual-order ladder.
+const CATS = ["op", "size", "age", "shape", "colour", "origin", "material", "purpose"];
+const W = (w, c) => ({ w, c: CATS.indexOf(c) });
+// det "a" becomes "a" or "an" from the first word. start: the scrambled order the puzzle opens with.
+const PUZZLES = [
+  { det: "a", noun: "table", zh: "一张漂亮的大旧木桌", adj: [W("lovely", "op"), W("big", "size"), W("old", "age"), W("wooden", "material")], start: ["old", "wooden", "big", "lovely"] },
+  { det: "a", noun: "cat", zh: "一只可爱的小黑猫", adj: [W("cute", "op"), W("little", "size"), W("black", "colour")], start: ["black", "cute", "little"] },
+  { det: "my", noun: "shoes", zh: "我那双舒服的新白跑鞋", adj: [W("comfortable", "op"), W("new", "age"), W("white", "colour"), W("running", "purpose")], start: ["running", "white", "comfortable", "new"] },
+  { det: "a", noun: "vase", zh: "一个高高的圆形蓝玻璃花瓶", adj: [W("tall", "size"), W("round", "shape"), W("blue", "colour"), W("glass", "material")], start: ["glass", "round", "blue", "tall"] },
+  { det: "a", noun: "car", zh: "一辆漂亮的意大利老跑车", adj: [W("beautiful", "op"), W("old", "age"), W("Italian", "origin"), W("sports", "purpose")], start: ["Italian", "sports", "old", "beautiful"] },
+  { det: "a", noun: "bag", zh: "一个巨大的绿色睡袋", adj: [W("huge", "size"), W("green", "colour"), W("sleeping", "purpose")], start: ["green", "sleeping", "huge"] },
+];
+const BALL = { det: "a", noun: "ball", adj: [W("big", "size"), W("red", "colour")] };
+const QUIZ = { det: "a", noun: "boat", adj: [W("little", "size"), W("old", "age"), W("wooden", "material")],
+  orders: [["wooden", "little", "old"], ["little", "old", "wooden"], ["old", "wooden", "little"]] };
+
+// ---- pure logic (also tested in node) ----
+const AN_EXCEPT = new Set(["one", "once", "useful", "used", "unique", "european", "university"]);
+const HOUR = new Set(["honest", "hour", "honour", "honor", "heir"]);
+function article(det, first) {
+  if (det !== "a") return det;
+  const f = String(first || "").toLowerCase();
+  if (HOUR.has(f)) return "an";
+  if (AN_EXCEPT.has(f)) return "a";
+  return /^[aeiou]/.test(f) ? "an" : "a";
+}
+// adjectives in a given order of words → array of {w, c}
+function arrange(p, words) {
+  return words.map((w) => { const a = p.adj.find((x) => x.w === w); if (!a) throw new Error("unknown word " + w); return a; });
+}
+const usual = (p) => p.adj.slice().sort((x, y) => x.c - y.c);
+// pairs (i < j) where the earlier word sits lower on the ladder than a later one
+function inversions(list) {
+  let n = 0;
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) if (list[i].c > list[j].c) n++;
+  return n;
+}
+// marks between neighbours: true = steps forward (or same rung), false = steps back
+const steps = (list) => list.slice(1).map((x, i) => list[i].c <= x.c);
+function phrase(p, list) {
+  const ws = list.map((x) => x.w);
+  return [article(p.det, ws[0] || p.noun), ...ws, p.noun].join(" ");
+}
+function moveItem(arr, from, to) {
+  const a = arr.slice();
+  if (from < 0 || from >= a.length) return a;
+  to = Math.max(0, Math.min(a.length - 1, to));
+  const [x] = a.splice(from, 1);
+  a.splice(to, 0, x);
+  return a;
+}
+function swapItems(arr, i, j) { const a = arr.slice(); [a[i], a[j]] = [a[j], a[i]]; return a; }
+// Problems in the data; [] when consistent.
+function validate() {
+  const errs = [];
+  PUZZLES.concat([BALL, QUIZ]).forEach((p) => {
+    if (p.adj.length < 2 || p.adj.length > 4) errs.push(p.noun + ": want 2–4 adjectives");
+    if (p.adj.some((a) => a.c < 0)) errs.push(p.noun + ": unknown category");
+    if (new Set(p.adj.map((a) => a.c)).size !== p.adj.length) errs.push(p.noun + ": two adjectives share a rung");
+    if (p.adj.some((a) => a.c === 2) && p.adj.some((a) => a.c === 3)) errs.push(p.noun + ": age + shape together (grammars differ)");
+    if (p.start) {
+      const s = arrange(p, p.start);
+      if (s.length !== p.adj.length || new Set(p.start).size !== p.start.length) errs.push(p.noun + ": start is not a permutation");
+      if (inversions(s) === 0) errs.push(p.noun + ": start is already in order");
+    }
+  });
+  return errs;
+}
+// ladder: for each category, the words from all puzzles on that rung
+function ladderWords() { return CATS.map((_, c) => [...new Set(PUZZLES.flatMap((p) => p.adj.filter((a) => a.c === c).map((a) => a.w)))]); }
+function totals() {
+  let adj = 0, back = 0, after = 0;
+  PUZZLES.forEach((p) => { adj += p.adj.length; back += inversions(arrange(p, p.start)); after += inversions(usual(p)); });
+  return { n: PUZZLES.length, adj, back, after };
+}
+if (typeof module !== "undefined") module.exports = { CATS, PUZZLES, BALL, QUIZ, article, arrange, usual, inversions, steps, phrase, moveItem, swapItems, validate, ladderWords, totals };
+
+if (typeof document !== "undefined") (function () {
+const P = Play.setup({
+  en: {
+    title: "Which adjective goes first?", eyebrow: "English · Stage 2", h1: "Adjectives before a noun line up in a usual order",
+    intro: "Say “a big red ball” and “a red big ball” aloud. One sounds right. Put adjectives in order and find the ladder English speakers follow without thinking.",
+    reset: "Reset", boardAria: "Adjective board", ballsAria: "A big red ball next to a small blue ball", pickLabel: "Phrase",
+    say: "▶ Hear it", again: "Scramble again", next: "Next phrase →", hearIt: "▶ {p}",
+    s1: "Guess", s2: "Order", s3: "Rule",
+    k1: "Predict first", t1: "Big red or red big?",
+    b1: "Look at the big red ball on the left. Which way would an English speaker say it?",
+    k2: "Hands on", t2: "Put the adjectives in order",
+    b2: "Drag a tile to a new place, or tap one tile and then another to swap them. With the keyboard: Tab to a tile, then ← / → to move it. A red ✗ between two tiles means that pair goes backwards on the ladder. Press ▶ to hear any order — wrong ones sound odd.",
+    k3: "The rule", t3: "Walk down the ladder",
+    b3: "Several adjectives before a noun usually go: opinion → size → age → shape → colour → origin → material → purpose → noun. It is a usual order, not a law:",
+    q: "Which one sounds right to an English speaker?",
+    oRB: "a red big ball", oBR: "a big red ball", oAny: "Either — any order is fine",
+    pRB: "Most English speakers hear “a red big ball” as odd. Size words usually come before colour words. Step 2 tests longer phrases.",
+    pBR: "Yes: “a big red ball”. Size (rung 2) comes before colour (rung 5). Is that a one-off? Step 2 tests longer phrases.",
+    pAny: "Say both aloud. “a red big ball” sounds odd to most English speakers — the order is not free. Step 2 shows the pattern.",
+    after1: "Each adjective has a place on a ladder. Size is rung 2, colour is rung 5, so big comes first.",
+    cat_op: "opinion", cat_size: "size", cat_age: "age", cat_shape: "shape", cat_colour: "colour", cat_origin: "origin", cat_material: "material", cat_purpose: "purpose",
+    now: "Now it reads", allUsual: "Every phrase, in the usual order", tileAria: "{w}, {k}, rung {n}, position {i} of {m}",
+    bad1: "✗ 1 pair is out of the usual order.", badN: "✗ {n} pairs are out of the usual order.",
+    good: "✓ Usual order — every step goes down the ladder. Solved {k} of {m}.",
+    allDone: "All {m} phrases solved. Go to step 3 for the rule.",
+    moved: "{w} moved to position {i}. {s}", picked: "{w} picked — tap another tile to swap.", unpicked: "{w} put down.",
+    quizQ: "Quiz — which sounds natural?", quizOk: "Yes: size (little) → age (old) → material (wooden).",
+    quizNo: "Listen again: “{w}” is {k} (rung {n}), so it cannot come before {w2} ({k2}, rung {n2}).",
+    e1: "Two adjectives of the same kind take a comma or “and”, and their order is free: <i>a kind, clever teacher</i> = <i>a clever, kind teacher</i>.",
+    e2: "In speech a stressed adjective can jump forward to contrast: <i>two big boxes? I want the RED big one</i>. It sounds marked, but people say it.",
+    e3: "Fixed phrases keep their own order: <i>the Big Bad Wolf</i> (size before opinion).",
+    e4: "Two or three adjectives are normal; more than four in a row is rare and heavy.",
+    ladT: "{n} phrases · {a} adjectives · the scrambled starts had {b} backward pairs · the usual order has {z}.",
+    resultTitle: "What we found", resultMain: "opinion → size → age → shape → colour → origin → material → purpose → noun",
+    resultNote: "A usual order, not a law: same-kind adjectives take a comma, stress can move a word for contrast, set phrases keep their own order — and two or three adjectives are plenty.",
+    explainK: "Explain it", explainQ: "A friend says “a wooden old lovely table”. Without just saying “it sounds wrong”, explain which words are in the wrong place and why — using the ladder.",
+    homeK: "Try at home", homeQ: "Pick an object at home and write three adjectives for it on separate slips of paper (e.g. small, old, metal). Shuffle the slips, then lay them out in the usual order in front of the object’s name and read it aloud. Swap objects with someone.",
+    foot: "The order follows common learner grammars (opinion, size, age, shape, colour, origin, material, purpose); some put shape before age, or add a “physical quality” rung (hot, soft) after size — so no puzzle here mixes age with shape. It describes what most speakers do, not a rule they learned. Words such as running, sleeping and sports describe what the thing is for and sit right next to the noun. Audio uses your browser’s speech voice. All phrases are original. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "哪个形容词排前面？", eyebrow: "英语 · 阶段 2", h1: "名词前的几个形容词，按惯常顺序排队",
+    intro: "把 “a big red ball” 和 “a red big ball” 都读出来，一个顺口，一个别扭。动手给形容词排队，找出英语母语者不假思索就遵守的那把「梯子」。",
+    reset: "重置", boardAria: "形容词操作台", ballsAria: "一个大红球，旁边一个小蓝球", pickLabel: "短语",
+    say: "▶ 听一听", again: "重新打乱", next: "下一个短语 →", hearIt: "▶ {p}",
+    s1: "先猜", s2: "排一排", s3: "规律",
+    k1: "先猜一猜", t1: "big red 还是 red big？",
+    b1: "看左边这个又大又红的球。英语母语者会怎么说？",
+    k2: "动手", t2: "给形容词排好顺序",
+    b2: "拖动一块词卡换位置，或者先点一块、再点另一块，两块对调。用键盘：Tab 选中词卡，按 ← / → 移动。两块之间出现红色 ✗，说明这一对在梯子上走反了。按 ▶ 听听任何一种顺序——排错的听着就别扭。",
+    k3: "规律", t3: "顺着梯子往下走",
+    b3: "名词前有几个形容词时，惯常顺序是：观点 → 大小 → 新旧 → 形状 → 颜色 → 来源 → 材料 → 用途 → 名词。这是惯常顺序，不是铁律：",
+    q: "英语母语者听来，哪个顺口？",
+    oRB: "a red big ball", oBR: "a big red ball", oAny: "都行，怎么排都可以",
+    pRB: "大多数英语母语者觉得 “a red big ball” 别扭：表示大小的词通常排在颜色前面。第 2 步用更长的短语试试。",
+    pBR: "对：“a big red ball”。大小（第 2 级）排在颜色（第 5 级）前面。这是碰巧吗？第 2 步用更长的短语试试。",
+    pAny: "把两个都读出来：大多数英语母语者听 “a red big ball” 都觉得别扭，顺序并不随意。第 2 步会看到规律。",
+    after1: "每个形容词在一把梯子上有自己的位置。大小是第 2 级，颜色是第 5 级，所以 big 在前。",
+    cat_op: "观点", cat_size: "大小", cat_age: "新旧", cat_shape: "形状", cat_colour: "颜色", cat_origin: "来源", cat_material: "材料", cat_purpose: "用途",
+    now: "现在读作", allUsual: "每个短语都按惯常顺序", tileAria: "{w}，{k}，第 {n} 级，第 {i} / {m} 个",
+    bad1: "✗ 有 1 对顺序反了。", badN: "✗ 有 {n} 对顺序反了。",
+    good: "✓ 惯常顺序：每一步都顺着梯子往下走。已完成 {k} / {m}。",
+    allDone: "{m} 个短语全部排好。到第 3 步看规律。",
+    moved: "{w} 移到第 {i} 个。{s}", picked: "选中了 {w}，再点另一块就对调。", unpicked: "放下了 {w}。",
+    quizQ: "小测：哪个顺口？", quizOk: "对：大小（little）→ 新旧（old）→ 材料（wooden）。",
+    quizNo: "再听听：“{w}” 是{k}（第 {n} 级），不能排在 {w2}（{k2}，第 {n2} 级）前面。",
+    e1: "同一类的两个形容词之间加逗号或 and，顺序可以互换：<i>a kind, clever teacher</i> = <i>a clever, kind teacher</i>。",
+    e2: "说话时为了对比，重读的形容词可以挪到前面：<i>two big boxes? I want the RED big one</i>（两个大箱子？我要红的那个）。听着特别，但确实有人这样说。",
+    e3: "固定说法有自己的顺序：<i>the Big Bad Wolf</i>（大大的坏狼，大小排在观点前）。",
+    e4: "两三个形容词很常见；一口气连用四个以上就少见，也显得笨重。",
+    ladT: "{n} 个短语 · {a} 个形容词 · 打乱的开头一共有 {b} 对反序 · 惯常顺序是 {z} 对。",
+    resultTitle: "我们发现", resultMain: "观点 → 大小 → 新旧 → 形状 → 颜色 → 来源 → 材料 → 用途 → 名词",
+    resultNote: "惯常顺序，不是铁律：同类形容词用逗号隔开，重读对比时可以挪动，固定说法自有顺序；一般两三个形容词就够了。",
+    explainK: "说一说", explainQ: "同学说成了 “a wooden old lovely table”。不要只说「听着不对」，用这把梯子给他讲清楚：哪几个词放错了位置，为什么。",
+    homeK: "家里做一做", homeQ: "在家里挑一样东西，给它想三个英文形容词，分别写在小纸条上（比如 small、old、metal）。把纸条打乱，再按惯常顺序摆在这样东西的英文名字前面，读出来。和家人交换东西再试。",
+    foot: "顺序采用常见的英语学习语法书的说法（观点、大小、新旧、形状、颜色、来源、材料、用途）；有的书把形状放在新旧前面，或在大小后面加一级「物理性质」（hot、soft），所以本页的练习不把新旧和形状放在一起。它描述的是大多数母语者的习惯，不是他们背过的规则。running、sleeping、sports 这类词说明东西的用途，紧挨着名词。发音用浏览器自带的语音。所有短语均为原创。CC BY 4.0 · Boxi Yu",
+  },
+});
+const $ = (id) => document.getElementById(id);
+const L = P.lang;
+const rowEl = $("row"), readout = $("readout"), fb3 = $("fb3"), liveEl = $("live");
+const catName = (c) => P.t("cat_" + CATS[c]);
+const errs = validate();
+if (errs.length) console.error("adjective-order data:", errs);
+
+let step = 0, pi = 0, guess = -1, sel = -1;
+let orders = PUZZLES.map((p) => p.start.slice());
+let solved = new Set();
+
+function shake(el) { if (!Play.reduced && el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); } }
+
+function tileEl(a, i, m, active) {
+  const b = document.createElement(active ? "button" : "span");
+  if (active) { b.type = "button"; b.dataset.i = i; b.setAttribute("aria-label", P.t("tileAria", { w: a.w, k: catName(a.c), n: a.c + 1, i: i + 1, m })); }
+  b.className = "tile c" + a.c + (active ? "" : " static") + (active && sel === i ? " sel" : "");
+  const w = document.createElement("span"); w.className = "w"; w.textContent = a.w;
+  const k = document.createElement("span"); k.className = "k"; k.lang = L === "zh" ? "zh-CN" : "en";
+  const n = document.createElement("span"); n.className = "n"; n.textContent = a.c + 1;
+  k.append(n, document.createTextNode(catName(a.c)));
+  b.append(w, k);
+  return b;
+}
+// det + tiles (with ✓/✗ marks between them) + noun
+function drawRow(p, list, active) {
+  rowEl.innerHTML = "";
+  const det = document.createElement("span"); det.className = "fixed"; det.textContent = article(p.det, list[0] ? list[0].w : p.noun);
+  rowEl.appendChild(det);
+  const ok = steps(list);
+  list.forEach((a, i) => {
+    if (i > 0) { const mk = document.createElement("span"); mk.className = "mk" + (ok[i - 1] ? "" : " bad"); mk.setAttribute("aria-hidden", "true"); mk.textContent = ok[i - 1] ? "›" : "✗"; rowEl.appendChild(mk); }
+    rowEl.appendChild(tileEl(a, i, list.length, active));
+  });
+  const nn = document.createElement("span"); nn.className = "fixed noun"; nn.textContent = p.noun;
+  rowEl.appendChild(nn);
+}
+function drawLadder(p) {
+  const lad = $("ladder"); lad.innerHTML = "";
+  const used = new Set(p.adj.map((a) => a.c));
+  CATS.forEach((_, c) => { const r = document.createElement("span"); r.className = "rung c" + c + (used.has(c) ? " use" : ""); r.innerHTML = "<b>" + (c + 1) + "</b> "; r.appendChild(document.createTextNode(catName(c))); lad.appendChild(r); });
+}
+function setReadout(text, status, cls, zh, labKey) {
+  readout.innerHTML = "";
+  const lab = document.createElement("div"); lab.className = "lab"; lab.textContent = P.t(labKey || "now");
+  const nw = document.createElement("div"); nw.className = "now"; nw.lang = "en"; nw.textContent = text;
+  const st = document.createElement("div"); st.className = "status " + cls; st.textContent = status;
+  readout.append(lab, nw, st);
+  if (zh) { const z = document.createElement("div"); z.className = "zh"; z.lang = "zh-CN"; z.textContent = zh; readout.appendChild(z); }
+}
+const cur = () => arrange(PUZZLES[pi], orders[pi]);
+function statusText(list) {
+  const n = inversions(list);
+  if (n) return P.t(n === 1 ? "bad1" : "badN", { n });
+  return P.t("good", { k: solved.size, m: PUZZLES.length });
+}
+
+// ---- step 1 ----
+const hear1 = $("hear1");
+[["oBR"], ["oRB"]].forEach(([k]) => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "small"; b.lang = "en";
+  b.textContent = P.t("hearIt", { p: P.t(k) });
+  b.addEventListener("click", () => Play.speak(P.t(k), "en-US"));
+  hear1.appendChild(b);
+});
+$("ballL").textContent = "?";
+function renderGuess() {
+  const list = usual(BALL);
+  $("ballL").textContent = guess < 0 ? "?" : phrase(BALL, list);
+  if (guess >= 0) { drawRow(BALL, list, false); drawLadder(BALL); setReadout(phrase(BALL, list), P.t("after1"), "ok", ""); }
+}
+
+// ---- step 2 ----
+const pick = $("pick");
+const pickBtns = PUZZLES.map((p, i) => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "small"; b.textContent = String(i + 1);
+  b.setAttribute("aria-label", p.noun);
+  b.addEventListener("click", () => { pi = i; sel = -1; fb3.textContent = ""; render(); });
+  pick.appendChild(b);
+  return b;
+});
+function renderEdit() {
+  const p = PUZZLES[pi], list = cur();
+  if (!inversions(list)) solved.add(pi);
+  drawLadder(p);
+  drawRow(p, list, true);
+  const n = inversions(list);
+  setReadout(phrase(p, list), statusText(list), n ? "no" : "ok", !n && L === "zh" ? p.zh : "");
+  if (!n && solved.size === PUZZLES.length) fb3.textContent = P.t("allDone", { m: PUZZLES.length });
+  pickBtns.forEach((b, i) => { b.setAttribute("aria-pressed", i === pi ? "true" : "false"); b.classList.toggle("solved", solved.has(i)); });
+}
+function setOrder(next, focusIdx, msgWord) {
+  const before = inversions(cur());
+  orders[pi] = next;
+  sel = -1;
+  render();
+  const list = cur();
+  if (msgWord) Play.live(liveEl, P.t("moved", { w: msgWord, i: focusIdx + 1, s: statusText(list) }));
+  const el = rowEl.querySelector('[data-i="' + focusIdx + '"]');
+  if (el) { el.focus(); if (inversions(list) > before) shake(el); }
+}
+function tapTile(i) {
+  const w = orders[pi][i];
+  if (sel < 0) { sel = i; render(); Play.live(liveEl, P.t("picked", { w })); }
+  else if (sel === i) { sel = -1; render(); Play.live(liveEl, P.t("unpicked", { w })); }
+  else { setOrder(swapItems(orders[pi], sel, i), i, orders[pi][sel]); return; }
+  const el = rowEl.querySelector('[data-i="' + i + '"]'); if (el) el.focus();
+}
+
+// drag: pointer events on the tiles; a short press without movement counts as a tap
+let drag = null;
+rowEl.addEventListener("pointerdown", (e) => {
+  const t = e.target.closest(".tile[data-i]");
+  if (!t || step !== 1) return;
+  const tiles = [...rowEl.querySelectorAll(".tile[data-i]")];
+  drag = { el: t, i: +t.dataset.i, x: e.clientX, y: e.clientY, moved: false, target: -1,
+    centers: tiles.map((el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }), tiles };
+  t.setPointerCapture(e.pointerId);
+});
+rowEl.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+  drag.moved = true;
+  drag.el.classList.add("drag");
+  drag.el.style.transform = "translate(" + dx + "px," + dy + "px)";
+  let best = drag.i, bd = Infinity;
+  drag.centers.forEach((c, j) => { const d = Math.hypot(e.clientX - c.x, (e.clientY - c.y) * 1.6); if (d < bd) { bd = d; best = j; } });
+  drag.target = best;
+  drag.tiles.forEach((el, j) => el.classList.toggle("target", j === best && j !== drag.i));
+});
+function endDrag(e, cancel) {
+  if (!drag) return;
+  const d = drag; drag = null;
+  d.el.style.transform = ""; d.el.classList.remove("drag");
+  d.tiles.forEach((el) => el.classList.remove("target"));
+  if (cancel) return;
+  if (!d.moved) { tapTile(d.i); return; }
+  if (d.target >= 0 && d.target !== d.i) setOrder(moveItem(orders[pi], d.i, d.target), d.target, orders[pi][d.i]);
+  e.preventDefault();
+}
+rowEl.addEventListener("pointerup", (e) => endDrag(e, false));
+rowEl.addEventListener("pointercancel", (e) => endDrag(e, true));
+// keyboard: Enter/Space = tap (pointer events don't fire for keys), ←/→ = move
+rowEl.addEventListener("click", (e) => { if (e.detail === 0 && step === 1) { const t = e.target.closest(".tile[data-i]"); if (t) tapTile(+t.dataset.i); } });
+rowEl.addEventListener("keydown", (e) => {
+  const t = e.target.closest(".tile[data-i]");
+  if (!t || step !== 1) return;
+  const i = +t.dataset.i;
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    e.preventDefault();
+    const j = Play.clamp(i + (e.key === "ArrowRight" ? 1 : -1), 0, orders[pi].length - 1);
+    if (j !== i) setOrder(moveItem(orders[pi], i, j), j, orders[pi][i]);
+  } else if (e.key === "Escape" && sel >= 0) { sel = -1; render(); const f = rowEl.querySelector('[data-i="' + i + '"]'); if (f) f.focus(); }
+});
+$("say").addEventListener("click", () => Play.speak(phrase(PUZZLES[pi], cur()), "en-US"));
+$("again").addEventListener("click", () => { orders[pi] = PUZZLES[pi].start.slice(); sel = -1; fb3.textContent = ""; render(); });
+$("next").addEventListener("click", () => {
+  const order = PUZZLES.map((_, k) => (pi + 1 + k) % PUZZLES.length);
+  pi = order.find((k) => !solved.has(k)) ?? (pi + 1) % PUZZLES.length;
+  sel = -1; fb3.textContent = ""; render();
+  const f = rowEl.querySelector(".tile[data-i]"); if (f) f.focus();
+});
+
+// ---- step 3 ----
+let quizPick = -1;
+function renderRule() {
+  const vl = $("vlad"); vl.innerHTML = "";
+  ladderWords().forEach((ws, c) => {
+    const li = document.createElement("li"); li.className = "c" + c;
+    const k = document.createElement("span"); k.className = "cat"; k.textContent = (c + 1) + " " + catName(c);
+    const w = document.createElement("span"); w.className = "ws"; w.lang = "en"; w.textContent = ws.join(", ");
+    li.append(k, w); vl.appendChild(li);
+  });
+  const tt = totals();
+  const usualP = PUZZLES.map((p) => phrase(p, usual(p)));
+  setReadout(usualP.join(" · "), P.t("ladT", { n: tt.n, a: tt.adj, b: tt.back, z: tt.after }), "ok", "", "allUsual");
+  const ex = $("exc"); ex.innerHTML = "";
+  ["e1", "e2", "e3", "e4"].forEach((k) => { const li = document.createElement("li"); li.innerHTML = P.t(k); ex.appendChild(li); });
+}
+const quizBox = $("quiz");
+function buildQuiz() {
+  quizBox.innerHTML = "";
+  quizBox.className = "predict";
+  const q = document.createElement("div"); q.className = "q"; q.textContent = P.t("quizQ");
+  const row = document.createElement("div"); row.className = "choices";
+  QUIZ.orders.forEach((o, i) => {
+    const list = arrange(QUIZ, o), right = inversions(list) === 0;
+    const b = document.createElement("button"); b.type = "button"; b.lang = "en"; b.textContent = phrase(QUIZ, list);
+    if (quizPick === i) b.classList.add("on", right ? "right" : "wrong");
+    b.addEventListener("click", () => {
+      quizPick = i;
+      Play.speak(phrase(QUIZ, list), "en-US");
+      if (right) fb3.textContent = P.t("quizOk");
+      else {
+        const s = steps(list), j = s.indexOf(false), a = list[j], b2 = list[j + 1];
+        fb3.textContent = P.t("quizNo", { w: a.w, k: catName(a.c), n: a.c + 1, w2: b2.w, k2: catName(b2.c), n2: b2.c + 1 });
+      }
+      buildQuiz();
+      quizBox.querySelectorAll("button")[i].focus();
+    });
+    row.appendChild(b);
+  });
+  quizBox.append(q, row);
+}
+
+function render() {
+  $("g1").hidden = step !== 0;
+  pick.hidden = step !== 1;
+  $("tools2").hidden = step !== 1;
+  $("g3").hidden = step !== 2;
+  quizBox.hidden = step !== 2;
+  $("exc").hidden = step !== 2;
+  const showRow = step === 1 || (step === 0 && guess >= 0);
+  rowEl.hidden = !showRow;
+  $("ladder").hidden = !showRow;
+  readout.hidden = step === 0 && guess < 0;
+  if (step === 0) renderGuess();
+  else if (step === 1) renderEdit();
+  else renderRule();
+}
+
+const OPTS = ["oRB", "oBR", "oAny"];
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: OPTS.map((k) => ({ label: P.t(k), right: k === "oBR" })),
+  right: P.t("pBR"), wrong: "",
+}, (i) => {
+  guess = i;
+  $("predict").querySelector(".fb").textContent = P.t(i === 1 ? "pBR" : OPTS[i] === "oRB" ? "pRB" : "pAny");
+  render();
+});
+$("predict").querySelectorAll(".choices button").forEach((b, i) => { if (i < 2) b.lang = "en"; });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  fb3.textContent = "";
+  sel = -1;
+  if (i === 2) buildQuiz();
+  render();
+});
+$("reset").addEventListener("click", () => {
+  pi = 0; guess = -1; sel = -1; quizPick = -1;
+  orders = PUZZLES.map((p) => p.start.slice()); solved = new Set();
+  pr.reset(); fb3.textContent = ""; liveEl.textContent = ""; st.go(0);
+});
+})();
+</script>
+</body>
+</html>

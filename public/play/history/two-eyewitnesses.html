@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two people saw it — and told it differently</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main#fig { height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #fig text { font-size: 15px; }
+  @media (max-width: 560px) { #fig text { font-size: 23px; } #fig .opt { display: none; } }
+  #fig .ground { fill: var(--surface); }
+  #fig .bld { fill: var(--line); stroke: var(--muted); stroke-width: 1px; }
+  #fig .tall { fill: var(--soft); stroke: var(--muted); stroke-width: 1.5px; }
+  #fig .low { fill: var(--soft); stroke: var(--muted); stroke-width: 1px; stroke-dasharray: 4 3; }
+  #fig .cart { fill: var(--b); opacity: .55; }
+  #fig .flame { fill: var(--no); }
+  #fig .lab { fill: var(--muted); font-weight: 600; }
+  #fig .lab.fg { fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  #fig .fanA { fill: var(--c); opacity: .14; }
+  #fig .fanB { fill: var(--h); opacity: .12; }
+  #fig .wit { cursor: grab; outline: none; }
+  #fig .wit:focus-visible .ring { stroke: var(--hl); stroke-width: 4px; }
+  #fig .ring { stroke: var(--surface); stroke-width: 2px; }
+  #fig .wtx { fill: var(--surface); font-weight: 800; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  #fig .pin { fill: var(--muted); }
+  #fig .pin.on { fill: var(--hl); stroke: var(--fg); stroke-width: 1.5px; }
+  #fig .sl { stroke-width: 3px; fill: none; stroke-linecap: round; }
+  #fig .sl.dash { stroke-dasharray: 6 6; stroke-width: 2px; }
+  #fig .sl.faint { opacity: .45; }
+  #fig .x { stroke: var(--no); stroke-width: 3.5px; stroke-linecap: round; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+  .seg button.on { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .acct { font-size: 13px; color: var(--muted); background: var(--soft); border-radius: 10px; padding: 8px 12px; margin: 0 0 8px; }
+  .acct b { color: var(--fg); }
+  .row { border-top: 1px solid var(--line); padding: 7px 0; font-size: 14px; }
+  .row.sel { background: var(--soft); margin: 0 -8px; padding: 7px 8px; border-radius: 8px; }
+  .row .qt { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 0; font-family: var(--serif); font-size: 14px; line-height: 1.5; color: var(--fg); }
+  .row .qt:hover { color: var(--a); }
+  .row .meta { font-size: 12px; color: var(--muted); }
+  .row .ch { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 5px; font-size: 13px; }
+  .row .ch button { font-size: 13px; padding: 2px 9px; border-radius: 999px; }
+  .row .ch button.on { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .row .fbk { font-size: 13px; margin-top: 4px; }
+  .row .fbk .ok { color: var(--a); font-weight: 700; } .row .fbk .bad { color: var(--no); font-weight: 700; }
+  .says { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .says .p { color: var(--a); font-weight: 650; } .says .m { color: var(--no); font-weight: 650; }
+  .log { font-size: 13px; background: var(--soft); border-radius: 10px; padding: 8px 12px; margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+  .log div { padding: 1px 0; } .log .tm { font-weight: 700; margin-right: 6px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; font-size: 13px; color: var(--muted); }
+  .rulebox { font-family: var(--serif); font-size: 17px; line-height: 1.5; color: var(--fg); border-left: 4px solid var(--a); padding: 4px 0 4px 12px; margin: 0 0 10px; }
+  .key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); padding: 2px 14px 12px; }
+  .key i { display: inline-block; width: 18px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 4px; }
+  .key i.d { border-top-style: dashed; border-top-width: 2px; }
+  #resMain { white-space: normal; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 400" role="img" data-t-aria="figAria"></svg>
+      <div class="key" id="key"></div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="panel"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+// <logic> — pure geometry and data; extracted and tested in node.
+const W = 600, H = 400, EPS = 1e-6;
+// Obstacles on the plan [x0, y0, x1, y1]. "tall" blocks everyone; "low" blocks only a person standing on the ground.
+// The overturned cart exists only from the crash (minute 40.5 after 10:00) on.
+const OBS = [
+  { id: "houses", k: "tall", r: [0, 0, 600, 50] },
+  { id: "corner", k: "tall", r: [560, 50, 600, 150] },
+  { id: "corner", k: "tall", r: [560, 205, 600, 400] },
+  { id: "houses", k: "tall", r: [0, 365, 560, 400] },
+  { id: "houses", k: "tall", r: [0, 50, 25, 365] },
+  { id: "tower", k: "tall", r: [40, 70, 84, 114] },
+  { id: "well", k: "tall", r: [270, 285, 320, 330] },
+  { id: "stall", k: "low", r: [140, 232, 232, 256] },
+  { id: "stall", k: "low", r: [150, 118, 240, 140] },
+  { id: "stall", k: "low", r: [395, 108, 480, 130] },
+  { id: "stall", k: "low", r: [410, 226, 495, 248] },
+  { id: "cart", k: "low", r: [446, 168, 482, 196], from: 40.5 },
+];
+// Places where things happened.
+const PTS = { L: [586, 178], M: [548, 178], C: [432, 184], D: [502, 182], S: [452, 222] };
+// Observers. from = the minute (after 10:00) they say they started watching.
+const WIT = {
+  A: { home: [186, 214], high: false, from: 40.5 },
+  B: { home: [505, 53], high: true, from: 0, cone: { dir: Math.PI / 2, half: Math.PI / 3 } },
+  T: { home: [62, 92], high: true, from: 40.5, self: "tower" },
+};
+// Statements. w = speaker, at = place, t = minute, m = speaker has a reason to stress it.
+const ST = [
+  { id: "a1", w: "A", at: "L", t: 39.5, m: true },
+  { id: "a2", w: "A", at: "C", t: 40.6, m: false },
+  { id: "a3", w: "A", at: "D", t: 41, m: true },
+  { id: "a4", w: "A", at: "S", t: 47, m: false },
+  { id: "b1", w: "B", at: "M", t: 40, m: true },
+  { id: "b2", w: "B", at: "D", t: 41, m: true },
+  { id: "b3", w: "B", at: "L", t: 39.5, m: true },
+  { id: "b4", w: "B", at: "C", t: 40.6, m: false },
+];
+// Claims and what each source says: 1 says so, -1 says the opposite, 0 silent.
+const CL = [
+  { id: "fire", at: "C", t: 40.6, s: { A: 1, B: 1, T: 1 } },
+  { id: "help", at: "D", t: 41, s: { A: -1, B: 1, T: 1 } },
+  { id: "awning", at: "S", t: 47, s: { A: 1, B: 0, T: 1 } },
+  { id: "dog", at: "M", t: 40, s: { A: 0, B: 1, T: 0 } },
+  { id: "speed", at: "L", t: 39.5, s: { A: 1, B: -1, T: 0 } },
+];
+const LOG = [[41, "l1"], [41, "l2"], [44, "l3"], [47, "l4"], [55, "l5"]];
+
+// Proper crossing of segment p→q with segment a→b; returns the fraction along p→q, or null.
+function cross(p, q, a, b) {
+  const rx = q[0] - p[0], ry = q[1] - p[1], sx = b[0] - a[0], sy = b[1] - a[1];
+  const den = rx * sy - ry * sx;
+  if (Math.abs(den) < EPS) return null;
+  const ax = a[0] - p[0], ay = a[1] - p[1];
+  const t = (ax * sy - ay * sx) / den, u = (ax * ry - ay * rx) / den;
+  return t > EPS && t < 1 - EPS && u >= -EPS && u <= 1 + EPS ? t : null;
+}
+function edges(r) {
+  const [x0, y0, x1, y1] = r;
+  return [[[x0, y0], [x1, y0]], [[x1, y0], [x1, y1]], [[x1, y1], [x0, y1]], [[x0, y1], [x0, y0]]];
+}
+const inRect = (p, r) => p[0] > r[0] && p[0] < r[2] && p[1] > r[1] && p[1] < r[3];
+function blockers(w, t) {
+  return OBS.filter((o) => (o.k === "tall" || !w.high) && (o.from === undefined || t >= o.from) && o.id !== w.self);
+}
+function inCone(w, pos, target) {
+  if (!w.cone) return true;
+  const a = Math.atan2(target[1] - pos[1], target[0] - pos[0]);
+  let d = Math.abs(a - w.cone.dir) % (2 * Math.PI);
+  if (d > Math.PI) d = 2 * Math.PI - d;
+  return d <= w.cone.half + EPS;
+}
+// Can observer w, standing at pos, see target at minute t? Geometry first, then attention.
+function look(w, pos, target, t) {
+  const obs = blockers(w, t);
+  for (const o of obs) if (inRect(target, o.r)) return { ok: false, why: "blocked", by: o.id, hit: target };
+  if (!inCone(w, pos, target)) return { ok: false, why: "cone" };
+  let best = null;
+  for (const o of obs) for (const [a, b] of edges(o.r)) {
+    const f = cross(pos, target, a, b);
+    if (f !== null && (!best || f < best.f)) best = { f, by: o.id };
+  }
+  if (best) {
+    const hit = [pos[0] + (target[0] - pos[0]) * best.f, pos[1] + (target[1] - pos[1]) * best.f];
+    return { ok: false, why: "blocked", by: best.by, hit };
+  }
+  if (t < w.from) return { ok: false, why: "notyet" };
+  return { ok: true, why: "clear" };
+}
+// Visibility fan by ray casting: polygon of everything the observer could see after the crash.
+function fan(w, pos, t, n) {
+  const obs = blockers(w, t);
+  const segs = [];
+  obs.forEach((o) => segs.push(...edges(o.r)));
+  segs.push(...edges([0, 0, W, H]));
+  const pts = [];
+  let a0 = 0, a1 = 2 * Math.PI;
+  if (w.cone) { a0 = w.cone.dir - w.cone.half; a1 = w.cone.dir + w.cone.half; pts.push(pos.slice()); }
+  for (let i = 0; i <= n; i++) {
+    const a = a0 + (a1 - a0) * (i / n);
+    const far = [pos[0] + Math.cos(a) * 2000, pos[1] + Math.sin(a) * 2000];
+    let f = 1;
+    for (const [p, q] of segs) { const c = cross(pos, far, p, q); if (c !== null && c < f) f = c; }
+    pts.push([pos[0] + (far[0] - pos[0]) * f, pos[1] + (far[1] - pos[1]) * f]);
+  }
+  return pts;
+}
+const freeSpot = (p) => p[0] >= 30 && p[0] <= 555 && p[1] >= 55 && p[1] <= 360 && !OBS.some((o) => inRect(p, o.r));
+// A claim is firm when at least two sources who could see it say so and nobody who could see it says otherwise.
+function classify(c, pos) {
+  const able = {}, sup = [], con = [];
+  for (const k of ["A", "B", "T"]) {
+    able[k] = look(WIT[k], pos[k], PTS[c.at], c.t);
+    if (!able[k].ok) continue;
+    if (c.s[k] > 0) sup.push(k);
+    if (c.s[k] < 0) con.push(k);
+  }
+  const cat = sup.length >= 2 && !con.length ? "firm" : sup.length + con.length === 0 ? "none" : "one";
+  return { cat, sup, con, able };
+}
+const clock = (m) => "10:" + String(Math.floor(m)).padStart(2, "0");
+// </logic>
+
+const EN = {
+  title: "Two people saw it — and told it differently", eyebrow: "History · Stage 3",
+  h1: "Two people saw it — and told it differently",
+  intro: "A hay cart overturns and catches fire in a market square. Put each witness on the plan, draw what they could see, then check a third, independent record.",
+  reset: "Reset", figAria: "Plan of an invented market square: houses around the edge, a clock tower, a well-house, market stalls, an overturned cart on fire, and the witnesses A (on the ground) and B (at an upstairs window). Witnesses can be dragged or moved with arrow keys.",
+  s1: "Guess", s2: "Sight lines", s3: "Third record", s4: "Rule",
+  k1: "Predict first", t1: "Fire in the market square",
+  b1: "In an invented market town, on market day just after 10:40, a hay cart turned over and its hay caught fire. Afterwards two people who were there told the council what happened. On one point they flatly disagree:",
+  qA: "Apple seller (A): “Nobody from that cart lifted a finger to help.”",
+  qB: "Neighbour at the window (B): “Bram jumped down at once and dragged people back from the flames.”",
+  q: "They say opposite things. What does that tell you?",
+  o1: "One of them must be lying — I need to find out which", o2: "Maybe neither is lying: check where each stood and what each cared about", o3: "Believe the window: higher up is always right",
+  right: "Yes. Honest people disagree when they stood in different places, looked at different moments or cared about different things. Step 2 checks where each one stood.",
+  wrong: "Not so fast. Disagreeing is not the same as lying, and being higher up does not show everything. Step 2 checks what each could actually see.",
+  k2: "Hands on", t2: "Who could see what?",
+  b2: "Pick a statement: the plan draws a line from each witness to the spot. Solid = in view; red ✕ = blocked; dashed = not in view or not watching yet. Decide whether the speaker could see it, and tick it if they had a reason to stress it. Drag A or B (or use arrow keys) to try other places.",
+  accA: "<b>A · Apple seller</b>, standing at his stall on the west side. Busy serving until he heard the crash. Other stallholders lost goods; he wants the carter to pay.",
+  accB: "<b>B · Neighbour at the window</b> above the bakery, upstairs, watching the market from the start. An old friend of Bram the carter.",
+  st_a1: "“He came down the lane far too fast, like a madman.”",
+  st_a2: "“I heard a crash, looked up, and the cart was on its side with its hay burning.”",
+  st_a3: "“Nobody from that cart lifted a finger to help.”",
+  st_a4: "“The fire spread to the awning of the stall beside the cart.”",
+  st_b1: "“A dog shot out right under the horse's feet.”",
+  st_b2: "“Bram jumped down at once and dragged people back from the flames.”",
+  st_b3: "“He came down the lane at a walking pace, careful as always.”",
+  st_b4: "“The lantern on the cart smashed and the hay went up at once.”",
+  at_L: "inside the lane", at_M: "at the mouth of the lane", at_C: "the hay beside the cart", at_D: "the far (east) side of the cart", at_S: "the stall awning south of the cart",
+  meta: "Where: {at} · when: {time}",
+  saw: "Could see it", cant: "Could not", mot: "Reason to stress it",
+  check: "Check", score2: "Sight: {a} of {n} right · reasons: {b} of {n} right.",
+  ok: "✓", no: "✗",
+  why_clear: "{w}: clear line, and watching then.",
+  why_blocked: "{w}: line blocked by {o}.",
+  why_cone: "{w}: outside what the window shows.",
+  why_notyet: "{w}: the line is clear, but not watching yet at {time}.",
+  motY: "Reason to stress: yes — {r}.", motN: "Reason to stress: no — it helps or hurts nobody.",
+  rA: "it would make the carter pay", rB: "Bram is her friend",
+  wA: "A", wB: "B", wT: "Fire watch",
+  ob_houses: "the houses", ob_corner: "the corner house", ob_tower: "the clock tower", ob_well: "the well-house", ob_stall: "a market stall", ob_cart: "the overturned cart",
+  moved: "You moved a witness: the lines show the view from the new place. Answers are checked from where each one says they stood.",
+  seeN: "From here, A could see {a} of the 5 spots and B {b} (after the crash).",
+  k3: "Corroborate", t3: "A third record: the fire watch",
+  b3: "The watchman on the clock tower keeps a log of every fire, minute by minute. He knows neither witness and only writes down fire matters. For each claim, combine who says what with who could see it.",
+  logH: "Fire-watch log, market day",
+  l1: "Smoke, market square, east side by the lane. Bell rung.",
+  l2: "A cart on its side, hay burning. The carter and two porters pulling people back.",
+  l3: "Bucket line from the well.", l4: "Awning of the stall south of the cart alight.", l5: "Fire out. Two people with light burns.",
+  logSum: "From first smoke to fire out: {m} minutes.",
+  cl_fire: "The overturned cart's hay caught fire.", cl_help: "The carter helped get people away from the fire.",
+  cl_awning: "The fire reached a stall awning.", cl_dog: "A dog ran under the horse.", cl_speed: "The cart came down the lane too fast.",
+  sP: "{w}: says so", sM: "{w}: says not", s0: "{w}: silent",
+  c_firm: "Agreed", c_one: "One witness", c_none: "Nobody saw",
+  score3: "{a} of {n} sorted right.",
+  ex_firm: "Agreed by {sup}, who could all see it{con}.",
+  ex_one: "Only {sup} could see it and says so{con}.",
+  ex_none: "Nobody who could see it said anything: {why}",
+  ex_con: "; {list} disagrees but could not see it",
+  andW: " and ", listSep: ", ",
+  k4: "The rule", t4: "Where honest accounts overlap",
+  rule: "Each witness saw from one place, at one moment, with their own concerns — so honest people can disagree. Trust most what independent sources who could see it all agree on.",
+  b4: "On this plan: A could see {a} of his 4 statements, B {b} of hers. A could not see behind the cart, B could not see into the lane, and the fire watch settles the quarrel about helping. {f} of {n} claims are firm; the dog rests on one witness; nobody who could see the lane said how fast the cart went.",
+  keyA: "A · ground", keyB: "B · window", keyT: "fire watch", keyIn: "in view", keyOut: "not in view / not watching",
+  lab_tower: "Clock tower", lab_well: "Well", lab_lane: "Lane", lab_houses: "Houses · bakery", lab_cart: "Cart",
+  witA: "Witness A, apple seller, on the ground. Drag or use arrow keys.", witB: "Witness B, at an upstairs window. Drag or use left and right arrow keys.",
+  resultTitle: "What the three records settle",
+  resPend: "Sort and check the claims in step 3 to see what holds up.",
+  resRun: "{f} firm · {o} on one witness · {n} seen by nobody",
+  resultNote: "Disagreement is not proof of lying. Ask of every statement: could they see it, were they looking, and why might they stress it?",
+  explainK: "Explain it", explainQ: "A friend says: “The apple seller and the neighbour disagree, so one of them is a liar.” Use the plan to show how both could be honest, and say which record settles who helped.",
+  homeK: "Try at home", homeQ: "Ask two people at home, separately, to describe the same moment (a meal, a trip). Sketch where each sat or stood and what each could see. Which details do both tell? Which only one?",
+  foot: "Everything on this page is invented: the town, the people and the fire. Sight lines are straight lines on the plan tested against the edges of each obstacle; the fans are traced with 360 rays. Simplified: stalls and the overturned cart block a person standing on the ground but not a view from an upstairs window or the tower; the window shows 60° either side of straight ahead; “watching” is what each person says about when they looked. CC BY 4.0 · Boxi Yu",
+};
+const ZH = {
+  title: "两个人都看见了，说法却不一样", eyebrow: "历史 · 阶段 3",
+  h1: "两个人都看见了，说法却不一样",
+  intro: "集市广场上，一辆干草车翻倒起火。把每个目击者放到平面图上，画出各自能看见什么，再拿第三份互不相干的记录来对一对。",
+  reset: "重置", figAria: "一个虚构集市广场的平面图：四周是房子，有钟楼、井亭、货摊、一辆翻倒起火的车，以及目击者 A（站在地上）和 B（在楼上窗口）。目击者可以拖动，也可以用方向键移动。",
+  s1: "先猜", s2: "视线", s3: "第三份记录", s4: "规律",
+  k1: "先猜一猜", t1: "集市广场起火",
+  b1: "在一个虚构的集镇，赶集日上午 10:40 刚过，一辆干草车翻倒，干草烧了起来。事后，两个在场的人向镇议会讲了经过。有一点他们说得完全相反：",
+  qA: "苹果摊主（A）：「那辆车上的人，谁也没伸手帮忙。」",
+  qB: "窗边的邻居（B）：「布拉姆马上跳下车，把人从火边拽开。」",
+  q: "两人说法正好相反。这说明什么？",
+  o1: "一定有一个人在说谎，我要找出是谁", o2: "也许谁都没说谎：先查每人站在哪、关心什么", o3: "信窗口那位：站得高总是对的",
+  right: "对。诚实的人也会说法不同：站的位置不同、看的时刻不同、关心的事不同。第 2 步来查每人站在哪。",
+  wrong: "先别急。说法不同不等于说谎，站得高也不是什么都看得见。第 2 步来查每人实际能看见什么。",
+  k2: "动手", t2: "谁能看见什么？",
+  b2: "点一句证词：图上会从每个目击者画一条线到事发地点。实线＝看得见；红 ✕＝被挡住；虚线＝不在视野里，或那时还没在看。判断说话人能不能看见，有理由强调的就勾上。拖动 A 或 B（或用方向键）试试别的位置。",
+  accA: "<b>A · 苹果摊主</b>，站在广场西侧自己的摊位前。听到撞击声之前一直在招呼顾客。别的摊主有货物被烧，他希望车主赔钱。",
+  accB: "<b>B · 窗边的邻居</b>，在面包店楼上的窗口，从一开始就在看集市。是车夫布拉姆的老朋友。",
+  st_a1: "「他从巷子里冲下来，快得像疯了一样。」",
+  st_a2: "「我听到一声响，抬头一看，车已经翻了，干草在烧。」",
+  st_a3: "「那辆车上的人，谁也没伸手帮忙。」",
+  st_a4: "「火蔓延到了车旁那个货摊的遮篷上。」",
+  st_b1: "「一条狗正好窜到马蹄底下。」",
+  st_b2: "「布拉姆马上跳下车，把人从火边拽开。」",
+  st_b3: "「他在巷子里走得很慢，跟平常一样小心。」",
+  st_b4: "「车上的灯摔碎了，干草一下子就烧起来了。」",
+  at_L: "巷子里面", at_M: "巷口", at_C: "车旁的干草", at_D: "车的另一侧（东边）", at_S: "车南边货摊的遮篷",
+  meta: "地点：{at} · 时间：{time}",
+  saw: "看得见", cant: "看不见", mot: "有理由强调",
+  check: "核对", score2: "能否看见：对 {a}/{n} · 理由：对 {b}/{n}。",
+  ok: "✓", no: "✗",
+  why_clear: "{w}：视线通畅，当时也在看。",
+  why_blocked: "{w}：视线被{o}挡住。",
+  why_cone: "{w}：不在窗口看得到的范围里。",
+  why_notyet: "{w}：视线是通的，但 {time} 时还没在看。",
+  motY: "有理由强调：有——{r}。", motN: "有理由强调：没有——这句对谁都无利无害。",
+  rA: "这样车主就得赔钱", rB: "布拉姆是她的朋友",
+  wA: "A", wB: "B", wT: "瞭望员",
+  ob_houses: "房子", ob_corner: "拐角的房子", ob_tower: "钟楼", ob_well: "井亭", ob_stall: "一个货摊", ob_cart: "翻倒的车",
+  moved: "你移动了目击者：线条显示的是新位置的视野。核对答案时，仍按每人自己说的位置来算。",
+  seeN: "在这里，A 能看见 5 个地点中的 {a} 个，B 能看见 {b} 个（翻车之后）。",
+  k3: "互相印证", t3: "第三份记录：火情瞭望",
+  b3: "钟楼上的瞭望员每逢火情都按分钟记日志。他跟两位目击者都不认识，也只记跟火有关的事。对每条说法，把「谁这么说」和「谁看得见」合起来判断。",
+  logH: "火情瞭望日志，赶集日",
+  l1: "广场东侧巷口冒烟。已敲钟。",
+  l2: "一辆车侧翻，干草在烧。车夫和两名搬运工在把人往外拉。",
+  l3: "从井边排起传水桶的队。", l4: "车南边货摊的遮篷着火。", l5: "火已扑灭。两人轻度烧伤。",
+  logSum: "从冒烟到扑灭：{m} 分钟。",
+  cl_fire: "翻倒的车上的干草着了火。", cl_help: "车夫帮忙把人从火边带开。",
+  cl_awning: "火烧到了一个货摊的遮篷。", cl_dog: "一条狗窜到了马蹄底下。", cl_speed: "车在巷子里走得太快。",
+  sP: "{w}：这么说", sM: "{w}：说不是", s0: "{w}：没提",
+  c_firm: "多方一致", c_one: "只有一人", c_none: "没人看见",
+  score3: "分对了 {a}/{n} 条。",
+  ex_firm: "{sup}都看得见，也都这么说{con}。",
+  ex_one: "只有{sup}看得见并这么说{con}。",
+  ex_none: "没有一个看得见的人说过这件事：{why}",
+  ex_con: "；{list}说法相反，但看不见",
+  andW: "和", listSep: "、",
+  k4: "规律", t4: "诚实的说法在哪里重合",
+  rule: "每个目击者都只在一个位置、一个时刻、带着自己的关心在看——所以诚实的人也会说法不同。几份互不相干、又都看得见的记录都对得上的部分，最站得住。",
+  b4: "在这张图上：A 的 4 句话里他能看见 {a} 句，B 的 4 句里她能看见 {b} 句。A 看不到车的另一侧，B 看不进巷子，「有没有人帮忙」的争执由瞭望日志来定。{n} 条说法中 {f} 条站得住；狗只有一人说；车在巷子里快不快，看得见的人谁也没说。",
+  keyA: "A · 地面", keyB: "B · 窗口", keyT: "瞭望员", keyIn: "看得见", keyOut: "看不见 / 没在看",
+  lab_tower: "钟楼", lab_well: "井亭", lab_lane: "巷子", lab_houses: "房子 · 面包店", lab_cart: "车",
+  witA: "目击者 A，苹果摊主，站在地上。可拖动，或用方向键移动。", witB: "目击者 B，在楼上窗口。可拖动，或用左右方向键移动。",
+  resultTitle: "三份记录能定下什么",
+  resPend: "在第 3 步给说法分类并核对，看看哪些站得住。",
+  resRun: "{f} 条站得住 · {o} 条只有一人 · {n} 条没人看见",
+  resultNote: "说法不同不能证明有人说谎。对每句话都问：他看得见吗？那时在看吗？他为什么可能强调这一点？",
+  explainK: "说一说", explainQ: "朋友说：「苹果摊主和邻居说法不一样，所以有一个是骗子。」用这张平面图说明两人怎么可能都诚实，再说说哪份记录能定下到底有没有人帮忙。",
+  homeK: "家里做一做", homeQ: "请家里两个人分别讲同一个时刻（一顿饭、一次出门）。画个草图，标出每人坐或站在哪、能看见什么。哪些细节两人都讲了？哪些只有一人讲？",
+  foot: "本页一切都是虚构的：小镇、人物和这场火。视线是平面图上的直线，逐一检验是否穿过障碍物的边；视野扇形用 360 条射线描出。简化：货摊和翻倒的车挡得住站在地上的人，挡不住楼上窗口和钟楼的视线；窗口能看到正前方左右各 60°；「在看」以每人自己说的时间为准。CC BY 4.0 · Boxi Yu",
+};
+const P = Play.setup({ en: EN, zh: ZH });
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), panel = $("panel");
+const STEPN = 4;
+let step = 0, sel = null, tabW = "A", checked2 = false, checked3 = false;
+const pos = { A: WIT.A.home.slice(), B: WIT.B.home.slice(), T: WIT.T.home.slice() };
+let pick = {}, cpick = {};
+const COL = { A: "var(--c)", B: "var(--h)", T: "var(--a)" };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const home = { A: WIT.A.home, B: WIT.B.home, T: WIT.T.home };
+const joinW = (ks) => {
+  const n = ks.map((k) => P.t("w" + k));
+  return n.length < 2 ? n.join("") : n.slice(0, -1).join(P.t("listSep")) + P.t("andW") + n[n.length - 1];
+};
+function reason(k, r, t) {
+  return P.t("why_" + r.why, { w: P.t("w" + k), o: r.by ? P.t("ob_" + r.by) : "", time: clock(t) });
+}
+
+function draw() {
+  fig.innerHTML = "";
+  const S = (tag, a, p) => Play.svg(tag, a, p || fig);
+  S("rect", { class: "ground", x: 0, y: 0, width: W, height: H });
+  if (step > 0) {
+    S("polygon", { class: "fanA", points: fan(WIT.A, pos.A, 99, 360).map((p) => p.join(",")).join(" ") });
+    S("polygon", { class: "fanB", points: fan(WIT.B, pos.B, 99, 240).map((p) => p.join(",")).join(" ") });
+  }
+  OBS.forEach((o) => {
+    const [x0, y0, x1, y1] = o.r;
+    const cls = o.id === "cart" ? "cart" : o.id === "houses" || o.id === "corner" ? "bld" : o.k === "tall" ? "tall" : "low";
+    S("rect", { class: cls, x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: o.k === "low" ? 3 : 0 });
+  });
+  const flame = (x, y, s) => S("path", { class: "flame", d: `M${x} ${y + 9 * s}c${-9 * s} 0 ${-10 * s} ${-9 * s} ${-3 * s} ${-19 * s}c0 ${6 * s} ${4 * s} ${7 * s} ${5 * s} ${2 * s}c${3 * s} ${4 * s} ${8 * s} ${17 * s} ${-2 * s} ${17 * s}z` });
+  flame(434, 185, 1.1); flame(470, 238, .9);
+  const lab = (x, y, k, a, cls) => { const t = S("text", { class: "lab " + (cls || ""), x, y, "text-anchor": a || "start" }); t.textContent = P.t(k); return t; };
+  lab(30, 32, "lab_houses");
+  lab(62, 136, "lab_tower", "start", "opt");
+  lab(295, 352, "lab_well", "middle");
+  lab(592, 198, "lab_lane", "end", "opt");
+  lab(464, 160, "lab_cart", "middle", "opt");
+  // places
+  const selItem = sel ? (sel.k === "s" ? ST : CL).find((x) => x.id === sel.id) : null;
+  if (step > 0) Object.keys(PTS).forEach((k) => S("circle", { class: "pin" + (selItem && selItem.at === k ? " on" : ""), cx: PTS[k][0], cy: PTS[k][1], r: selItem && selItem.at === k ? 8 : 4 }));
+  // sight lines for the selected item
+  if (selItem && step > 0) {
+    const who = step >= 2 ? ["A", "B", "T"] : ["A", "B"];
+    const tg = PTS[selItem.at];
+    who.forEach((k) => {
+      const r = look(WIT[k], pos[k], tg, selItem.t);
+      const p0 = pos[k];
+      if (r.ok) S("line", { class: "sl", x1: p0[0], y1: p0[1], x2: tg[0], y2: tg[1], stroke: COL[k] });
+      else if (r.why === "blocked") {
+        S("line", { class: "sl", x1: p0[0], y1: p0[1], x2: r.hit[0], y2: r.hit[1], stroke: COL[k] });
+        S("line", { class: "sl dash faint", x1: r.hit[0], y1: r.hit[1], x2: tg[0], y2: tg[1], stroke: "var(--muted)" });
+        const [hx, hy] = r.hit;
+        S("path", { class: "x", d: `M${hx - 7} ${hy - 7}L${hx + 7} ${hy + 7}M${hx + 7} ${hy - 7}L${hx - 7} ${hy + 7}` });
+      } else S("line", { class: "sl dash" + (r.why === "cone" ? " faint" : ""), x1: p0[0], y1: p0[1], x2: tg[0], y2: tg[1], stroke: r.why === "cone" ? "var(--muted)" : COL[k] });
+    });
+  }
+  // watchman
+  S("circle", { class: "ring", cx: pos.T[0], cy: pos.T[1], r: 11, fill: COL.T });
+  S("text", { class: "wtx", x: pos.T[0], y: pos.T[1] }).textContent = "W";
+  // witnesses
+  ["A", "B"].forEach((k) => {
+    const g = S("g", { class: "wit", tabindex: 0, role: "button", "aria-label": P.t("wit" + k), "data-w": k });
+    if (k === "B") S("rect", { x: pos.B[0] - 15, y: 44, width: 30, height: 8, fill: "var(--surface)", stroke: COL.B }, g);
+    S("circle", { class: "ring", cx: pos[k][0], cy: pos[k][1] + (k === "B" ? 4 : 0), r: 13, fill: COL[k] }, g);
+    S("text", { class: "wtx", x: pos[k][0], y: pos[k][1] + (k === "B" ? 4 : 0) }, g).textContent = k;
+  });
+}
+
+function stRow(s) {
+  const p = pick[s.id] || {};
+  const r = look(WIT[s.w], home[s.w], PTS[s.at], s.t);
+  let fb = "";
+  if (checked2) {
+    const okS = p.see === r.ok, okM = !!p.mot === s.m;
+    fb = `<div class="fbk"><span class="${okS ? "ok" : "bad"}">${P.t(okS ? "ok" : "no")}</span> ${esc(reason(s.w, r, s.t))}<br><span class="${okM ? "ok" : "bad"}">${P.t(okM ? "ok" : "no")}</span> ${esc(s.m ? P.t("motY", { r: P.t("r" + s.w) }) : P.t("motN"))}</div>`;
+  }
+  return `<div class="row${sel && sel.id === s.id ? " sel" : ""}"><button type="button" class="qt" data-sel="s:${s.id}">${esc(P.t("st_" + s.id))}</button>
+    <div class="meta">${esc(P.t("meta", { at: P.t("at_" + s.at), time: clock(s.t) }))}</div>
+    <div class="ch"><button type="button" class="${p.see === true ? "on" : ""}" data-see="${s.id}:1">${P.t("saw")}</button><button type="button" class="${p.see === false ? "on" : ""}" data-see="${s.id}:0">${P.t("cant")}</button>
+    <label class="check"><input type="checkbox" data-mot="${s.id}"${p.mot ? " checked" : ""}> ${P.t("mot")}</label></div>${fb}</div>`;
+}
+function clRow(c) {
+  const v = classify(c, home);
+  const says = ["A", "B", "T"].map((k) => {
+    const s = c.s[k], key = s > 0 ? "sP" : s < 0 ? "sM" : "s0";
+    return `<span class="${s > 0 ? "p" : s < 0 ? "m" : ""}">${esc(P.t(key, { w: P.t("w" + k) }))}</span>`;
+  }).join("");
+  let fb = "";
+  if (checked3) {
+    const ok = cpick[c.id] === v.cat;
+    const blind = ["A", "B", "T"].filter((k) => c.s[k] < 0 && !v.able[k].ok);
+    const con = blind.length ? P.t("ex_con", { list: joinW(blind) }) : "";
+    let ex;
+    if (v.cat === "none") ex = P.t("ex_none", { why: ["A", "B", "T"].filter((k) => c.s[k]).map((k) => reason(k, v.able[k], c.t)).join(" ") });
+    else ex = P.t("ex_" + v.cat, { sup: joinW(v.sup), con });
+    fb = `<div class="fbk"><span class="${ok ? "ok" : "bad"}">${P.t(ok ? "ok" : "no")} ${P.t("c_" + v.cat)}</span> — ${esc(ex)}</div>`;
+  }
+  const btn = (cat) => `<button type="button" class="${cpick[c.id] === cat ? "on" : ""}" data-cat="${c.id}:${cat}">${P.t("c_" + cat)}</button>`;
+  return `<div class="row${sel && sel.id === c.id ? " sel" : ""}"><button type="button" class="qt" data-sel="c:${c.id}">${esc(P.t("cl_" + c.id))}</button>
+    <div class="says">${says}</div><div class="ch">${btn("firm")}${btn("one")}${btn("none")}</div>${fb}</div>`;
+}
+function stats() {
+  const seen = (w) => ST.filter((s) => s.w === w && look(WIT[w], home[w], PTS[s.at], s.t).ok).length;
+  const cats = { firm: 0, one: 0, none: 0 };
+  CL.forEach((c) => cats[classify(c, home).cat]++);
+  return { a: seen("A"), b: seen("B"), cats };
+}
+function renderPanel() {
+  let h = "";
+  if (step === 0) h = `<p><strong>${esc(P.t("qA"))}</strong></p><p><strong>${esc(P.t("qB"))}</strong></p>`;
+  if (step === 1) {
+    h += `<div class="seg" role="group">${["A", "B"].map((k) => `<button type="button" class="${tabW === k ? "on" : ""}" data-tab="${k}">${k}</button>`).join("")}</div>`;
+    h += `<div class="acct">${P.t("acc" + tabW)}</div>`;
+    h += ST.filter((s) => s.w === tabW).map(stRow).join("");
+    let sc = "";
+    if (checked2) {
+      let a = 0, b = 0;
+      ST.forEach((s) => { const p = pick[s.id] || {}; if (p.see === look(WIT[s.w], home[s.w], PTS[s.at], s.t).ok) a++; if (!!p.mot === s.m) b++; });
+      sc = esc(P.t("score2", { a, b, n: ST.length }));
+    }
+    h += `<div class="actions"><button type="button" id="chk2">${P.t("check")}</button><span>${sc}</span></div>`;
+  }
+  if (step === 2) {
+    const first = LOG[0][0], last = LOG[LOG.length - 1][0];
+    h += `<div class="log"><div><b>${esc(P.t("logH"))}</b></div>${LOG.map(([m, k]) => `<div><span class="tm">${clock(m)}</span>${esc(P.t(k))}</div>`).join("")}<div>${esc(P.t("logSum", { m: last - first }))}</div></div>`;
+    h += CL.map(clRow).join("");
+    let sc = "";
+    if (checked3) sc = esc(P.t("score3", { a: CL.filter((c) => cpick[c.id] === classify(c, home).cat).length, n: CL.length }));
+    h += `<div class="actions"><button type="button" id="chk3">${P.t("check")}</button><span>${sc}</span></div>`;
+  }
+  if (step === 3) {
+    const s = stats();
+    h = `<p class="rulebox">${esc(P.t("rule"))}</p><p>${esc(P.t("b4", { a: s.a, b: s.b, f: s.cats.firm, n: CL.length }))}</p>`;
+  }
+  panel.innerHTML = h;
+}
+function renderText() {
+  const s = stats();
+  const k = step + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = step === 3 ? "" : P.t("b" + k);
+  $("stepBody").hidden = step === 3;
+  $("predict").hidden = step !== 0;
+  $("resMain").textContent = step === 3 || checked3 ? P.t("resRun", { f: s.cats.firm, o: s.cats.one, n: s.cats.none }) : P.t("resPend");
+  const movedA = pos.A[0] !== home.A[0] || pos.A[1] !== home.A[1], movedB = pos.B[0] !== home.B[0];
+  let live = "";
+  if (step > 0) {
+    const cnt = (w) => Object.keys(PTS).filter((q) => look(WIT[w], pos[w], PTS[q], 99).ok).length;
+    live = P.t("seeN", { a: cnt("A"), b: cnt("B") }) + ((movedA || movedB) ? " " + P.t("moved") : "");
+  }
+  Play.live($("live"), live);
+  $("key").innerHTML = step === 0 ? "" : [["A", "keyA"], ["B", "keyB"], ["T", "keyT"]].map(([w, kk]) => `<span><i style="border-color:${COL[w]}"></i>${esc(P.t(kk))}</span>`).join("") +
+    `<span><i class="d" style="border-color:var(--muted)"></i>${esc(P.t("keyOut"))}</span>`;
+}
+function render() { draw(); renderPanel(); renderText(); }
+
+panel.addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.sel) { const [k, id] = b.dataset.sel.split(":"); sel = { k, id }; }
+  else if (b.dataset.see) { const [id, v] = b.dataset.see.split(":"); pick[id] = Object.assign({}, pick[id], { see: v === "1" }); }
+  else if (b.dataset.cat) { const [id, v] = b.dataset.cat.split(":"); cpick[id] = v; sel = { k: "c", id }; }
+  else if (b.dataset.tab) { tabW = b.dataset.tab; sel = null; }
+  else if (b.id === "chk2") checked2 = true;
+  else if (b.id === "chk3") checked3 = true;
+  else return;
+  const focusKey = b.dataset.sel || b.dataset.see || b.dataset.cat || b.dataset.tab || b.id;
+  render();
+  const again = [...panel.querySelectorAll("button")].find((x) => (x.dataset.sel || x.dataset.see || x.dataset.cat || x.dataset.tab || x.id) === focusKey);
+  if (again) again.focus();
+});
+panel.addEventListener("change", (e) => {
+  const id = e.target.dataset.mot;
+  if (!id) return;
+  pick[id] = Object.assign({}, pick[id], { mot: e.target.checked });
+  render();
+  const cb = panel.querySelector(`[data-mot="${id}"]`);
+  if (cb) cb.focus();
+});
+
+// Drag and keyboard for the witnesses.
+function moveTo(k, p) {
+  if (k === "B") { pos.B = [Math.round(Play.clamp(p[0], 40, 550)), WIT.B.home[1]]; return true; }
+  const q = [Math.round(Play.clamp(p[0], 30, 555)), Math.round(Play.clamp(p[1], 55, 360))];
+  if (!freeSpot(q)) return false;
+  pos.A = q;
+  return true;
+}
+let drag = null;
+fig.addEventListener("pointerdown", (e) => {
+  const g = e.target.closest(".wit");
+  if (!g || step === 0) return;
+  drag = g.dataset.w;
+  try { fig.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  e.preventDefault();
+});
+fig.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  if (moveTo(drag, (({ x, y }) => [x, y])(Play.pointer(fig, e)))) { draw(); renderText(); }
+});
+const endDrag = () => { if (drag) { const k = drag; drag = null; draw(); renderText(); const g = fig.querySelector(`[data-w="${k}"]`); if (g) g.focus(); } };
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", endDrag);
+fig.addEventListener("keydown", (e) => {
+  const g = e.target.closest && e.target.closest(".wit");
+  if (!g || step === 0) return;
+  const k = g.dataset.w, d = e.shiftKey ? 20 : 6;
+  const dv = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[e.key];
+  if (!dv) return;
+  e.preventDefault();
+  moveTo(k, [pos[k][0] + dv[0], pos[k][1] + dv[1]]);
+  draw(); renderText();
+  const ng = fig.querySelector(`[data-w="${k}"]`);
+  if (ng) ng.focus();
+});
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), Array.from({ length: STEPN }, (_, i) => P.t("s" + (i + 1))), (i) => {
+  step = i;
+  sel = i === 1 ? { k: "s", id: tabW === "A" ? "a3" : "b2" } : i === 2 ? { k: "c", id: "help" } : i === 3 ? { k: "c", id: "help" } : null;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  pos.A = home.A.slice(); pos.B = home.B.slice();
+  pick = {}; cpick = {}; checked2 = checked3 = false; tabW = "A";
+  pr.reset(); st.go(0);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A mole is a number, like a dozen</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .result .math { white-space: normal; }
+  .stand { fill: none; stroke: var(--muted); stroke-width: 6; stroke-linecap: round; }
+  .base { fill: var(--muted); }
+  .beam { stroke: var(--fg); stroke-width: 7; stroke-linecap: round; }
+  .pivot { fill: var(--fg); }
+  .lock { fill: var(--hl); stroke: var(--fg); stroke-width: 1.5; }
+  .lockt { fill: var(--fg); font: 700 24px var(--font); }
+  .str { stroke: var(--muted); stroke-width: 2; }
+  .pan { fill: var(--soft); stroke: var(--fg); stroke-width: 2.5; }
+  .atom { stroke: var(--fg); stroke-width: 1.2; }
+  .sym { fill: var(--fg); font: 700 26px var(--font); }
+  .cnt { fill: var(--fg); font: 650 22px var(--font); }
+  .tick { fill: var(--muted); font: 600 20px var(--font); }
+  .count { padding: 4px 14px 2px; font-size: 14px; }
+  .count .big { font-family: var(--math); font-size: 20px; color: var(--fg); }
+  .count .sub { color: var(--muted); }
+  .ladder { display: flex; gap: 3px; flex-wrap: wrap; padding: 4px 14px 2px; }
+  .ladder button { font-size: 13px; padding: 3px 8px; border-radius: 999px; }
+  .ladder button.mole { border-color: var(--a); color: var(--a); font-weight: 700; }
+  .ladder button.on, .ladder button.mole.on { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .pans { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 4px 14px 14px; font-size: 13px; }
+  .pans > div { background: var(--soft); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+  .pans select { width: 100%; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); margin: 2px 0 4px; font-size: 14px; }
+  .pans .tot { font-family: var(--math); font-size: 17px; color: var(--fg); overflow-wrap: anywhere; }
+  .pans .one { color: var(--muted); overflow-wrap: anywhere; }
+  .pans .lbl { font-weight: 650; color: var(--muted); }
+  .msg { font-size: 14px !important; color: var(--fg) !important; min-height: 1.5em; }
+  table.mt { border-collapse: collapse; width: 100%; font-size: 13px; margin: 2px 0 10px; }
+  table.mt th, table.mt td { text-align: right; padding: 3px 5px; border-bottom: 1px solid var(--line); }
+  table.mt th:first-child, table.mt td:first-child { text-align: left; }
+  table.mt td.g { font-family: var(--math); font-weight: 700; color: var(--a); font-size: 15px; }
+  table.mt td { font-family: var(--math); }
+  .ext { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px !important; color: var(--fg) !important; }
+  @media (max-width: 560px) {
+    .pans { padding: 4px 8px 12px; gap: 6px; }
+    .count, .ladder { padding-left: 8px; padding-right: 8px; }
+    .pans .tot { font-size: 15px; }
+  }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual" id="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img"></svg>
+      <div id="handsOn">
+        <div class="count" id="count" aria-live="polite"></div>
+        <div class="controls">
+          <label for="n" data-t="nLabel"></label>
+          <input type="range" id="n" min="0" max="11" step="1" value="0">
+        </div>
+        <div class="ladder" id="ladder" role="group" data-t-aria="ladderAria"></div>
+      </div>
+      <div class="pans">
+        <div><label class="lbl" for="selL" data-t="panL"></label><select id="selL"></select><div class="one" id="oneL"></div><div class="tot" id="totL"></div></div>
+        <div><label class="lbl" for="selR" data-t="panR"></label><select id="selR"></select><div class="one" id="oneR"></div><div class="tot" id="totR"></div></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="ruleBox">
+        <table class="mt" id="molTable"></table>
+        <p class="ext" id="ext"></p>
+      </div>
+      <p class="msg" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — constants and pure number logic, no DOM (checked in node)
+const NA = 6.02214076e23;            // Avogadro constant, exact since the 2019 SI
+const U_G = 1.66053906892e-24;       // atomic mass constant in grams (CODATA 2022)
+const YEAR_S = 365.25 * 86400;       // Julian year in seconds
+const UNIVERSE_YR = 1.38e10;         // age of the universe, years
+// [symbol, English, Chinese, standard atomic weight rounded to 2 d.p., colour var]
+const ELS = [
+  ["H", "hydrogen", "氢", 1.01, "--c"],
+  ["C", "carbon", "碳", 12.01, "--muted"],
+  ["O", "oxygen", "氧", 16.00, "--no"],
+  ["Mg", "magnesium", "镁", 24.31, "--a"],
+  ["S", "sulfur", "硫", 32.06, "--hl"],
+  ["Fe", "iron", "铁", 55.85, "--b"],
+  ["Cu", "copper", "铜", 63.55, "--h"],
+  ["Au", "gold", "金", 196.97, "--hl"],
+].map(([sym, en, zh, A, col]) => ({ sym, en, zh, A, col }));
+const bySym = (s) => ELS.find((e) => e.sym === s);
+// Count ladder: 1 atom → 1 dozen → powers of ten → 1 mole → 2 moles.
+const STOPS = [1, 12, 1e3, 1e6, 1e9, 1e12, 1e15, 1e18, 1e21, 1e23, NA, 2 * NA];
+const MOLE_IDX = 10;
+const atomGrams = (A) => A * U_G;                         // mass of one atom in g
+const panGrams = (A, count) => count * atomGrams(A);       // mass of `count` atoms in g
+const molarGrams = (A) => NA * atomGrams(A);               // mass of 1 mol in g (= A × 1.000000001)
+// Ratio of the two pans: does not depend on the count.
+const ratio = (AL, AR, count) => panGrams(AR, count) / panGrams(AL, count);
+// Beam angle in degrees (+ = right pan down), saturating at ±22°.
+function tilt(mL, mR) {
+  const s = mL + mR;
+  if (!(s > 0)) return 0;
+  return 22 * Math.tanh(3 * (mR - mL) / s);
+}
+// Split x into mantissa and exponent with `sig` significant figures.
+function sci(x, sig) {
+  if (!isFinite(x) || x === 0) return { m: "0", e: 0 };
+  let e = Math.floor(Math.log10(Math.abs(x)));
+  let m = (x / Math.pow(10, e)).toFixed(sig - 1);
+  if (Math.abs(+m) >= 10) { e += 1; m = (x / Math.pow(10, e)).toFixed(sig - 1); }
+  return { m, e };
+}
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+const sup = (n) => String(n).split("").map((c) => SUP[c]).join("");
+const pow10 = (e) => "10" + sup(e);
+// Human number: plain between 0.001 and 10 000, else "m × 10ⁿ". Never "NaN".
+function num(x, sig) {
+  sig = sig || 3;
+  if (!isFinite(x)) return "–";
+  if (x === 0) return "0";
+  const a = Math.abs(x);
+  if (a >= 1e-3 && a < 1e4) {
+    if (Number.isInteger(x) && a < 1e4) return String(x);
+    let d = Math.max(0, sig - 1 - Math.floor(Math.log10(a)));
+    if (Math.abs(+x.toFixed(d)) >= Math.pow(10, sig - d)) d = Math.max(0, d - 1);  // 9.999 → "10.0", not "10.00"
+    return x.toFixed(d);
+  }
+  const s = sci(x, sig), exact = Math.abs(x / Math.pow(10, s.e) - 1) < 1e-12;
+  return (exact ? "" : s.m + " × ") + pow10(s.e);
+}
+// The water extension: 18 g of water.
+function water(g) {
+  const M = 2 * 1.01 + 16.00;              // g/mol, from the table values
+  const mol = g / M, molecules = mol * NA, atoms = 3 * molecules;
+  const years = molecules / YEAR_S;         // counting one molecule per second
+  return { M, mol, molecules, atoms, years, ages: years / UNIVERSE_YR };
+}
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "A mole is a number, like a dozen", eyebrow: "Chemistry · Stage 3",
+    h1: "A mole is a count, 6.02 × 10²³ particles; a mole of magnesium weighs twice a mole of carbon because each magnesium atom is twice as heavy",
+    intro: "Put the same number of atoms on both pans of a balance and scale the number up from one atom to a mole.",
+    reset: "Reset", nLabel: "Atoms on each pan", ladderAria: "Jump to a count",
+    panL: "Left pan", panR: "Right pan",
+    s1: "Guess", s2: "Scale it up", s3: "Rule",
+    k1: "Predict first", t1: "One mole against one mole",
+    b1: "The balance is held level for now. Pick an answer and it will be let go.",
+    q: "One pan holds 1 mole of carbon atoms, the other 1 mole of magnesium atoms. What happens?",
+    o1: "It balances: a mole is a set amount of mass", o2: "The magnesium side goes down, about twice as heavy",
+    o3: "The carbon side goes down", o4: "It depends on the size of the pans",
+    right: "Yes. Both pans have the same number of atoms, but each magnesium atom is about twice as heavy. In step 2, start from a single atom and scale up.",
+    wrong: "Look at the balance: it is not level. A mole is a number of atoms, not a mass, and a magnesium atom is heavier than a carbon atom. In step 2, start from one atom and scale up.",
+    k2: "Hands on", t2: "Same count on both pans, then scale up",
+    b2: "Drag the slider (or use the arrow keys) from one atom to a dozen, to powers of ten, to a mole. Change the elements. Watch the tilt and the ratio.",
+    k3: "The rule", t3: "1 mole = 6.02214076 × 10²³ particles, and it weighs the atomic mass in grams",
+    b3: "A mole is a count, like a dozen, only much bigger. Equal moles means equal numbers of atoms, so the masses compare exactly as single atoms do. One atom of carbon is 12.01 u; 6.02 × 10²³ of them are 12.01 g. That is why the number was chosen.",
+cntSub: "= {d} dozen = {m} mol",
+    cntMole: "= exactly 1 mole", cntMoles: "= exactly 2 moles", cntDozen: "= 1 dozen = {m} mol",
+    lad: ["1", "dozen", "10³", "10⁶", "10⁹", "10¹²", "10¹⁵", "10¹⁸", "10²¹", "10²³", "1 mol", "2 mol"],
+    vt: ["1 atom", "1 dozen (12)", "1000 atoms", "a million atoms", "a billion atoms", "10¹² atoms", "10¹⁵ atoms", "10¹⁸ atoms", "10²¹ atoms", "10²³ atoms", "1 mole", "2 moles"],
+    one: "1 atom: {u} u = {g} g", tot: "Pan: {m}",
+    elOpt: "{sym} · {name}",
+    g: "{x} g", kg: "{x} kg",
+    mEq: "Same element on both pans, so they balance at every count.",
+    mRat: "{H} pan ÷ {L} pan = {r}. One {H} atom weighs {r} times one {L} atom, so the ratio stays {r} at every count, from 1 atom to 2 moles.",
+    mMole: "This is 1 mole on each pan: {L} {gL}, {R} {gR}. The atomic masses, now in grams. The pans still do not balance.",
+    mLock: "Held level. Make your guess first.",
+    th: ["Element", "1 atom (u)", "1 atom (g)", "1 mol (g)"],
+    ext: "How big is a mole? 18 g of water is {mol} mol, so {molec} molecules ({atoms} atoms). Counting those molecules at one per second would take {yrs} years, about {x} million times the age of the universe.",
+    figAria: "A balance with {n} on each pan: {cL} on the left, {cR} on the right. {state}",
+    aLevel: "The beam is level.", aRight: "The right pan is lower.", aLeft: "The left pan is lower.", aLock: "The beam is held level.",
+    resultTitle: "What we found", resultMain: "1 mol = 6.02214076 × 10²³ particles · mass of 1 mol (g) = atomic mass (u)",
+    resultNote: "Equal moles never means equal grams. 1 mol of C is 12.01 g, of Mg 24.31 g, of Cu 63.55 g, because their atoms weigh that much in u.",
+    explainK: "Explain it", explainQ: "A friend says 1 mol of copper and 1 mol of sulfur must weigh the same because “a mole is a mole.” Explain what is the same and what is different, using the balance.",
+    homeK: "Try at home", homeQ: "On a kitchen scale, weigh 100 grains of rice and then 100 dried beans. Same count, different mass. Use the 100-grain mass to work out how many rice grains are in a 1 kg bag, without counting them. Chemists count atoms the same way.",
+    foot: "Atomic masses: IUPAC standard atomic weights rounded to 2 decimals (H 1.008, C 12.011, O 15.999, Mg 24.305, S 32.06, Fe 55.845, Cu 63.546, Au 196.97; conventional values for H, C, O, Mg, S). Avogadro constant N_A = 6.02214076 × 10²³ per mol, exact by definition since 20 May 2019. Atomic mass constant 1 u = 1.66053906892 × 10⁻²⁴ g (CODATA 2022), so 1 mol of atoms of mass A u weighs A × 1.000000001 g; the difference is one part in a billion. Water 18.02 g/mol from these values; year = 365.25 days; age of the universe 13.8 billion years. The tilt of the drawn balance is a picture of which pan is heavier, not a scale reading. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "摩尔是个数，就像一打", eyebrow: "化学 · 阶段 3",
+    h1: "1 摩尔是固定的颗粒个数 6.02 × 10²³；1 摩尔镁的质量是 1 摩尔碳的两倍，因为每个镁原子就重一倍",
+    intro: "在天平两边放同样多的原子，把个数从 1 个一路放大到 1 摩尔。",
+    reset: "重置", nLabel: "每边的原子个数", ladderAria: "跳到某个个数",
+    panL: "左盘", panR: "右盘",
+    s1: "先猜", s2: "放大", s3: "规律",
+    k1: "先猜一猜", t1: "1 摩尔对 1 摩尔",
+    b1: "天平现在被扶住、保持水平。选一个答案，它就会松开。",
+    q: "一边放 1 摩尔碳原子，另一边放 1 摩尔镁原子。会怎样？",
+    o1: "平衡：摩尔是固定的质量", o2: "镁那边下沉，大约重一倍",
+    o3: "碳那边下沉", o4: "要看盘子有多大",
+    right: "对。两边原子个数一样，但每个镁原子大约是碳原子的两倍重。到第 2 步，从 1 个原子开始往上放大。",
+    wrong: "看天平：它不平。摩尔是原子的个数，不是质量；镁原子比碳原子重。到第 2 步，从 1 个原子开始往上放大。",
+    k2: "动手", t2: "两边个数一样，再一起放大",
+    b2: "拖动滑块（或按方向键），从 1 个原子到一打，到 10 的各次方，再到 1 摩尔。换换元素，看天平怎么倾斜，比值变不变。",
+    k3: "规律", t3: "1 摩尔 = 6.02214076 × 10²³ 个颗粒，质量就是以克为单位的原子质量",
+    b3: "摩尔是个数，和「一打」一样，只是大得多。摩尔数相同就是原子个数相同，所以两边质量之比和单个原子的质量之比一样。1 个碳原子 12.01 u，6.02 × 10²³ 个就是 12.01 g，这个数正是为此选的。",
+cntSub: "= {d} 打 = {m} mol",
+    cntMole: "= 正好 1 摩尔", cntMoles: "= 正好 2 摩尔", cntDozen: "= 1 打 = {m} mol",
+    lad: ["1", "一打", "10³", "10⁶", "10⁹", "10¹²", "10¹⁵", "10¹⁸", "10²¹", "10²³", "1 mol", "2 mol"],
+    vt: ["1 个原子", "一打（12 个）", "一千个", "一百万个", "十亿个", "一万亿个", "10¹⁵ 个", "10¹⁸ 个", "10²¹ 个", "10²³ 个", "1 摩尔", "2 摩尔"],
+    one: "1 个原子：{u} u = {g} g", tot: "这一盘：{m}",
+    elOpt: "{sym} · {name}",
+    g: "{x} g", kg: "{x} kg",
+    mEq: "两边是同一种元素，所以放多少个都平衡。",
+    mRat: "{H} 盘 ÷ {L} 盘 = {r}。每个 {H} 原子是 {L} 原子的 {r} 倍重，所以从 1 个原子到 2 摩尔，比值始终是 {r}。",
+    mMole: "现在每边正好 1 摩尔：{L} {gL}，{R} {gR}。就是原子质量的数值，单位换成了克。天平仍然不平。",
+    mLock: "天平被扶住了。先猜一猜。",
+    th: ["元素", "1 个原子 (u)", "1 个原子 (g)", "1 mol (g)"],
+    ext: "1 摩尔有多大？18 g 水是 {mol} mol，也就是 {molec} 个水分子（{atoms} 个原子）。每秒数一个分子，要数 {yrs} 年，约是宇宙年龄的 {x} 万倍。",
+    figAria: "天平每边各放 {n}：左盘是{cL}，右盘是{cR}。{state}",
+    aLevel: "横梁水平。", aRight: "右盘低。", aLeft: "左盘低。", aLock: "横梁被扶住，保持水平。",
+    resultTitle: "我们发现", resultMain: "1 mol = 6.02214076 × 10²³ 个颗粒 · 1 mol 的质量 (g) = 原子质量 (u)",
+    resultNote: "摩尔数相同，克数不一定相同。1 mol 碳 12.01 g，镁 24.31 g，铜 63.55 g，因为它们的原子分别就有这么多 u 重。",
+    explainK: "说一说", explainQ: "朋友说：1 mol 铜和 1 mol 硫一定一样重，因为「1 摩尔就是 1 摩尔」。用天平说明，哪些相同、哪些不同。",
+    homeK: "家里做一做", homeQ: "用厨房秤称 100 粒米，再称 100 粒干豆子：个数一样，质量不一样。再用 100 粒米的质量算出一袋 1 kg 的米大约有多少粒，不用真的数。化学家数原子也是这样数的。",
+    foot: "相对原子质量取 IUPAC 标准原子量，保留两位小数（H 1.008、C 12.011、O 15.999、Mg 24.305、S 32.06、Fe 55.845、Cu 63.546、Au 196.97；H、C、O、Mg、S 用约定值）。阿伏加德罗常数 N_A = 6.02214076 × 10²³ mol⁻¹，自 2019 年 5 月 20 日起为定义值，严格准确。原子质量常数 1 u = 1.66053906892 × 10⁻²⁴ g（CODATA 2022），所以 1 mol 质量为 A u 的原子重 A × 1.000000001 g，相差十亿分之一。水的摩尔质量 18.02 g/mol 由上表算出；一年按 365.25 天；宇宙年龄 138 亿年。图中天平的倾角只表示哪边更重，不是读数。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const zh = P.lang === "zh";
+const dict = (k) => P.t(k); // arrays come back as-is
+const LAD = dict("lad"), VT = dict("vt"), TH = dict("th");
+const nameOf = (e) => (zh ? e.zh : e.en);
+const fig = $("fig"), slider = $("n");
+const state = { idx: 0, L: "C", R: "Mg", step: 0, revealed: false };
+const shownIdx = () => (state.step === 0 ? MOLE_IDX : state.idx);
+const massStr = (g) => (g >= 1000 ? P.t("kg", { x: num(g / 1000, 4) }) : P.t("g", { x: num(g, 4) }));
+
+// Element pickers
+["L", "R"].forEach((side) => {
+  const sel = $("sel" + side);
+  ELS.forEach((e) => {
+    const o = document.createElement("option");
+    o.value = e.sym;
+    o.textContent = P.t("elOpt", { sym: e.sym, name: nameOf(e), A: e.A.toFixed(2) });
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change", () => { state[side] = sel.value; render(); });
+});
+// Ladder buttons
+const ladBtns = STOPS.map((_, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "small" + (i === MOLE_IDX ? " mole" : "");
+  b.textContent = LAD[i];
+  b.setAttribute("aria-label", VT[i]);
+  b.addEventListener("click", () => { state.idx = i; render(); });
+  $("ladder").appendChild(b);
+  return b;
+});
+slider.addEventListener("input", () => { state.idx = +slider.value; render(); });
+
+// Static parts of the balance
+const NS_ = Play.svg;
+NS_("path", { class: "stand", d: "M300 108 V328" }, fig);
+NS_("rect", { class: "base", x: 220, y: 326, width: 160, height: 14, rx: 7 }, fig);
+const cntText = NS_("text", { class: "cnt", x: 300, y: 34, "text-anchor": "middle" }, fig);
+const beamG = NS_("g", {}, fig);
+NS_("line", { class: "beam", x1: 110, y1: 100, x2: 490, y2: 100 }, beamG);
+NS_("circle", { class: "pivot", cx: 300, cy: 100, r: 9 }, fig);
+const lockG = NS_("g", {}, fig);
+NS_("circle", { class: "lock", cx: 300, cy: 66, r: 17 }, lockG);
+NS_("text", { class: "lockt", x: 300, y: 74.5, "text-anchor": "middle" }, lockG).textContent = "?";
+const panG = { L: NS_("g", {}, fig), R: NS_("g", {}, fig) };
+let curAngle = 0, animId = 0;
+
+function drawPan(side, x, y, e, nDots) {
+  const g = panG[side];
+  g.innerHTML = "";
+  NS_("line", { class: "str", x1: x, y1: y, x2: x - 62, y2: y + 112 }, g);
+  NS_("line", { class: "str", x1: x, y1: y, x2: x + 62, y2: y + 112 }, g);
+  const py = y + 112;
+  // atoms piled on the pan: rows of 5, 4, 3
+  const r = 6 + 3 * Math.cbrt(e.A / 12), rows = [5, 4, 3];
+  let k = 0;
+  for (let row = 0; row < rows.length && k < nDots; row++) {
+    const inRow = Math.min(rows[row], nDots - k);
+    for (let j = 0; j < inRow; j++, k++) {
+      const cx = x + (j - (inRow - 1) / 2) * (2 * r + 1);
+      NS_("circle", { class: "atom", cx, cy: py - r - row * (2 * r - 2), r, style: "fill: color-mix(in srgb, var(" + e.col + ") 70%, var(--surface))" }, g);
+    }
+  }
+  NS_("path", { class: "pan", d: `M${x - 70} ${py} Q${x} ${py + 34} ${x + 70} ${py} Z` }, g);
+  NS_("text", { class: "sym", x, y: py + 58, "text-anchor": "middle" }, g).textContent = e.sym;
+}
+
+function placePans(a) {
+  const rad = (a * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
+  const eL = bySym(state.L), eR = bySym(state.R), n = Math.min(12, STOPS[shownIdx()]);
+  drawPan("L", 300 - 190 * c, 100 - 190 * s, eL, n);
+  drawPan("R", 300 + 190 * c, 100 + 190 * s, eR, n);
+}
+
+function pose(a) { beamG.setAttribute("transform", `rotate(${a} 300 100)`); placePans(a); }
+// Swing the beam to `target` degrees in 0.8 s (a short one-off move, not a loop); instant when reduced motion.
+function setAngle(target) {
+  cancelAnimationFrame(animId);
+  if (Play.reduced || Math.abs(target - curAngle) < 0.01) { curAngle = target; pose(target); return; }
+  const from = curAngle, t0 = performance.now(), dur = 800;
+  const ease = (t) => { const c1 = 1.70158 * 1.3, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+  const stepF = (now) => {
+    const t = Math.min(1, (now - t0) / dur);
+    curAngle = t < 1 ? from + (target - from) * ease(t) : target;
+    pose(curAngle);
+    if (t < 1) animId = requestAnimationFrame(stepF);
+  };
+  animId = requestAnimationFrame(stepF);
+}
+
+function countText(i) {
+  const n = STOPS[i];
+  const big = i === 0 ? "1" : i === 1 ? "12" : i === MOLE_IDX ? "6.02214076 × " + pow10(23) : i === MOLE_IDX + 1 ? "1.20442815 × " + pow10(24) : num(n);
+  let sub;
+  if (i === MOLE_IDX) sub = P.t("cntMole");
+  else if (i === MOLE_IDX + 1) sub = P.t("cntMoles");
+  else if (i === 1) sub = P.t("cntDozen", { m: num(n / NA) });
+  else sub = P.t("cntSub", { d: num(n / 12), m: num(n / NA) });
+  return { big, sub };
+}
+
+function render() {
+  const i = shownIdx(), n = STOPS[i], eL = bySym(state.L), eR = bySym(state.R);
+  const mL = panGrams(eL.A, n), mR = panGrams(eR.A, n);
+  const locked = state.step === 0 && !state.revealed;
+  slider.value = state.idx;
+  slider.setAttribute("aria-valuetext", VT[state.idx]);
+  ladBtns.forEach((b, j) => { b.classList.toggle("on", j === state.idx); b.setAttribute("aria-pressed", j === state.idx ? "true" : "false"); });
+  $("selL").value = state.L; $("selR").value = state.R;
+  const ct = countText(i);
+  $("count").innerHTML = "";
+  const bg = document.createElement("span"); bg.className = "big"; bg.textContent = ct.big;
+  const sb = document.createElement("span"); sb.className = "sub"; sb.textContent = " " + ct.sub;
+  $("count").append(bg, sb);
+  cntText.textContent = VT[i];
+  [["L", eL, mL], ["R", eR, mR]].forEach(([s, e, m]) => {
+    $("one" + s).textContent = P.t("one", { u: e.A.toFixed(2), g: num(atomGrams(e.A), 4) });
+    $("tot" + s).textContent = P.t("tot", { m: massStr(m) });
+  });
+  lockG.style.display = locked ? "" : "none";
+  const a = locked ? 0 : tilt(mL, mR);
+  setAngle(a);
+  const st = locked ? P.t("aLock") : Math.abs(a) < 0.05 ? P.t("aLevel") : a > 0 ? P.t("aRight") : P.t("aLeft");
+  fig.setAttribute("aria-label", P.t("figAria", { n: VT[i], cL: nameOf(eL), cR: nameOf(eR), state: st }));
+  let msg;
+  if (locked) msg = P.t("mLock");
+  else if (eL.sym === eR.sym) msg = P.t("mEq");
+  else if (i === MOLE_IDX) msg = P.t("mMole", { L: eL.sym, R: eR.sym, gL: massStr(mL), gR: massStr(mR) });
+  else { const [lo, hi] = eL.A <= eR.A ? [eL, eR] : [eR, eL]; msg = P.t("mRat", { L: lo.sym, H: hi.sym, r: num(ratio(lo.A, hi.A, n), 3) }); }
+  Play.live($("live"), msg);
+}
+
+function drawRule() {
+  const tb = $("molTable");
+  tb.innerHTML = "";
+  const tr0 = document.createElement("tr");
+  TH.forEach((s) => { const th = document.createElement("th"); th.textContent = s; tr0.appendChild(th); });
+  tb.appendChild(tr0);
+  const show = ["C", "Mg", "S", "Cu"];
+  [state.L, state.R].forEach((s) => { if (!show.includes(s)) show.push(s); });
+  show.map(bySym).forEach((e) => {
+    const tr = document.createElement("tr");
+    [[e.sym + " " + nameOf(e), ""], [e.A.toFixed(2), ""], [num(atomGrams(e.A), 3), ""], [molarGrams(e.A).toFixed(2), "g"]].forEach(([s, cls]) => {
+      const td = document.createElement("td"); td.textContent = s; if (cls) td.className = cls; tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  const w = water(18);
+  $("ext").textContent = P.t("ext", {
+    mol: w.mol.toFixed(3), molec: num(w.molecules, 3), atoms: num(w.atoms, 3), yrs: num(w.years, 2),
+    x: zh ? Math.round(w.ages / 1e4) : Play.fmt(w.ages / 1e6, 1),
+  });
+}
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }, { label: P.t("o4") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { state.revealed = true; $("stepBody").hidden = true; render(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  state.step = i;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("stepBody").hidden = i === 0 && state.revealed;
+  $("handsOn").hidden = i === 0;
+  $("ruleBox").hidden = i !== 2;
+  if (i === 2) state.idx = MOLE_IDX;
+  render();
+  if (i === 2) drawRule();
+});
+["selL", "selR"].forEach((id) => $(id).addEventListener("change", () => { if (state.step === 2) drawRule(); }));
+$("reset").addEventListener("click", () => {
+  Object.assign(state, { idx: 0, L: "C", R: "Mg", revealed: false });
+  pr.reset(); st.go(0);
+});
+</script>
+</body>
+</html>

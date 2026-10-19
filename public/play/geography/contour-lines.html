@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read a hill from its contour lines</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .fig { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; touch-action: none; cursor: ew-resize; }
+  .fig.locked { cursor: default; touch-action: auto; }
+  .lb { font-size: 15px; fill: var(--muted); }
+  .lbf { font-size: 15px; fill: var(--fg); font-weight: 650; }
+  .lbn { font-size: 14px; fill: var(--fg); font-weight: 700; }
+  .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 3.6em; }
+  .read { display: grid; gap: 4px; margin: 0 0 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .read div { border-bottom: 1px solid var(--line); padding: 2px 0 4px; }
+  .read b { color: var(--fg); }
+  table.tbl { border-collapse: collapse; width: 100%; font-size: 14px; margin: 0 0 10px; font-variant-numeric: tabular-nums; }
+  table.tbl th, table.tbl td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+  table.tbl th { color: var(--muted); font-weight: 600; }
+  .pcards { display: grid; gap: 8px; margin: 0 0 10px; }
+  .pcard { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+  .pcard.ok { border-color: var(--a); }
+  .pcard.bad { border-color: var(--no); }
+  .pcard .ph { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+  .pcard .ph b { color: var(--fg); }
+  .pcard svg { width: 100%; max-width: 240px; height: auto; display: block; margin: 4px 0; }
+  .pcard .pb { display: flex; gap: 4px; }
+  .pcard .pb button { min-width: 38px; }
+  .pcard .pf { font-size: 13px; color: var(--muted); min-height: 1.2em; }
+  .score { font-size: 14px; color: var(--fg); font-weight: 650; margin: 0 0 8px; }
+  .result .math { white-space: normal; font-size: 22px; }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="fig" id="fig" viewBox="0 0 400 450" role="slider" tabindex="0" aria-orientation="horizontal" data-t-aria="figAria"></svg>
+      <div class="controls" id="waterRow">
+        <label for="water" data-t="waterLabel"></label>
+        <input type="range" id="water" min="0" max="80" step="1" value="0">
+        <output id="waterVal" for="water"></output>
+        <button type="button" class="small" id="flood"></button>
+      </div>
+      <div class="controls" id="hint"><span data-t="hint"></span></div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="read" id="read" hidden></div>
+      <div class="score" id="score" hidden></div>
+      <div class="pcards" id="pcards" hidden></div>
+      <table class="tbl" id="tbl" hidden></table>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Read a hill from its contour lines", eyebrow: "Geography · Stage 2",
+    h1: "Each contour line joins points of the same height, so lines packed close together mean a steep slope and lines far apart mean gentle ground",
+    intro: "Guess first, then flood an island 10 m at a time, walk a hiker over it, and match maps to the hills they show.",
+    reset: "Reset", figAria: "Contour map of an island with a route from west to east, and a side view of the ground along the route. Drag, or use the left and right arrow keys, to move the hiker.",
+    waterLabel: "Sea level", flood: "▶ Flood", pause: "❚❚ Pause", raise: "Raise 10 m", hint: "Drag the hiker along the route, or focus the picture and press ← →.",
+    s1: "Guess", s2: "Try", s3: "Match", s4: "Rule",
+    k1: "Predict first", t1: "Lines squeezed together: what does the ground look like?",
+    b1: "Pick an answer. Then the side view of the island appears under the map.",
+    b1after: "Under the map is the side view along the dashed route. Where the map lines are close (★), the ground climbs fast. Go to step 2 and walk it yourself.",
+    k2: "Hands on", t2: "Flood the island, then walk across it",
+    b2: "Raise the sea with the slider or ▶ Flood. Each time the water reaches the next 10 m, its shoreline is left behind as a contour line. Then drag the hiker from W to E: the side view shows where you are.",
+    k3: "Hands on", t3: "Which side view belongs to which map?",
+    b3: "Each map has a dashed route from A to B; ▲ marks a summit and the numbers are heights in metres (lines every 20 m). For each side view, tap the number of its map.",
+    k4: "The rule", t4: "Close lines: steep. Far apart: gentle.",
+    b4: "Every line is one height, and the next line is always 10 m higher or lower. So the gap between two lines is how far you walk to climb 10 m. A short walk for 10 m is a steep slope; a long walk is gentle ground. On this island, between {a} and {b} m, the lines on the west side are {gw} m apart (about {dw}°); on the east side they are {ge} m apart (about {de}°). Low ground is told by the numbers on the lines, not by how close they are.",
+    q: "Each line on this island map joins points of the same height; the lines are 10 m apart in height. At ★ the lines are squeezed close together. What is the ground like at ★?",
+    o1: "Low and flat", o2: "Steep", o3: "The top of the hill",
+    right: "Yes. At ★ you climb 10 m in only about {gw} m of walking: a slope of about {dw}°. On the east side (☆), at the same height, 10 m takes {ge} m: about {de}°.",
+    wrong: "Not quite. At ★ you climb 10 m in only about {gw} m of walking: a slope of about {dw}°, steep. On the east side (☆), at the same height, 10 m takes {ge} m: about {de}°. The top is the middle of the smallest ring.",
+    W: "W", E: "E", star: "★", star2: "☆", m: "{v} m", deg: "{v}°",
+    sideView: "Side view W → E (heights stretched ×{ve})", scale: "100 m",
+    rH: "Height", rD: "Walked from W shore", rS: "Slope here", rG: "Gap between lines here", rL: "Contour lines drawn",
+    gFlat: "more than {v} m: nearly flat", gSea: "—",
+    liveRead: "Height {h}, slope about {d}°, gap between lines {g}.", liveHidden: "Pick an answer to see the side view.",
+    liveMatch: "{n} of 4 matched.",
+    score: "Matched: {n} of 4", pLabel: "Side view {k}", pAria: "Side view {k}: {desc}",
+    pRight: "Right: map {n}. {why}", pWrong: "Not map {n}. Compare the route on that map with this side view.",
+    whyCone: "Rings evenly spaced around one summit: the same slope all the way up.",
+    whyCliff: "Lines crowded on one side: a cliff-like wall there, a long gentle slope on the other.",
+    whyTwo: "Two sets of rings, two summits, with a lower saddle between them.",
+    whyValley: "The lines bend into a V that points uphill, toward the high numbers: that is a valley.",
+    dCone: "one even peak", dCliff: "a steep wall then a long gentle slope", dTwo: "two humps", dValley: "a dip between two high sides",
+    tBand: "Height band", tW: "West: gap", tE: "East: gap",
+    lines: "{n} of 8",
+    resultTitle: "What we found", resultMain: "gap between lines = height step ÷ steepness",
+    resultNote: "West side, {a}–{b} m: up 10 m in {gw} m of walking → about {dw}°. East side, same heights: up 10 m in {ge} m → about {de}°. Same heights, different gaps.",
+    explainK: "Explain it", explainQ: "A friend says crowded contour lines must mean low, flat ground. Using the island, explain what the gap between two lines measures, and where on a map you would look to find out whether ground is low or high.",
+    homeK: "Try at home", homeQ: "Make a clay or play-dough hill with one steep side, put it in a clear box and add water 1 cm at a time. After each centimetre, trace the waterline on the hill with a pencil. Then look straight down: where are your lines closest?",
+    foot: "Model island (invented): height = 80 m × (1 − d^1.6), where d is the scaled distance from the summit; the west side is about {sw} m from summit to shore, the east side about {se} m. Contour interval 10 m; map scale 1 px = 2 m; slope angle = arctan(rise ÷ run). The side view stretches heights ×2 so the shape is easy to see; the degrees shown are for the real, unstretched slope. Matching maps are made from simple formulas (a cone, an off-centre cone, two rounded peaks, a sloping V-valley) and drawn with the marching-squares method; their side views are computed along the same dashed route. Contour lines joining equal heights, closeness meaning steepness, and V-shapes pointing upstream in valleys are standard map-reading conventions (e.g. Ordnance Survey and USGS map-reading guides). Real maps use intervals such as 5, 10 or 20 m depending on scale. All numbers on this page are computed. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "从等高线看出山的样子", eyebrow: "地理 · 阶段 2",
+    h1: "每条等高线连起同样高的点，所以线挤在一起是陡坡，线稀疏是缓坡",
+    intro: "先猜一猜，再让海水每次涨 10 米淹一座小岛，拖着登山者走过去，最后把地图和山的侧面配起来。",
+    reset: "重置", figAria: "一座小岛的等高线地图，从西到东有一条路线，下面是沿路线的地面侧视图。拖动或按左右方向键移动登山者。",
+    waterLabel: "海面高度", flood: "▶ 涨水", pause: "❚❚ 暂停", raise: "涨 10 米", hint: "沿路线拖动登山者，或选中图后按 ← →。",
+    s1: "先猜", s2: "动手", s3: "配一配", s4: "规律",
+    k1: "先猜一猜", t1: "线挤在一起，地面是什么样？",
+    b1: "先选一个答案，地图下面才会出现小岛的侧视图。",
+    b1after: "地图下面是沿虚线路线的侧视图。地图上线挤在一起的地方（★），地面升得很快。到第 2 步自己走一走。",
+    k2: "动手", t2: "让海水淹岛，再走过去",
+    b2: "用滑块或「▶ 涨水」抬高海面。海水每涨到下一个 10 米，它的岸线就留下来成为一条等高线。再把登山者从 W 拖到 E，侧视图显示你在哪儿。",
+    k3: "动手", t3: "哪个侧视图属于哪张地图？",
+    b3: "每张图有一条从 A 到 B 的虚线路线；▲ 是山顶，数字是高度（米，每 20 米一条线）。给每个侧视图点出它的地图编号。",
+    k4: "规律", t4: "线密是陡坡，线稀是缓坡",
+    b4: "每条线是一个高度，相邻两条线总是差 10 米。所以两条线之间的距离，就是爬升 10 米要走多远。走一小段就升 10 米是陡坡；要走很远才升 10 米是缓坡。这座岛上，{a}–{b} 米之间，西坡的线相隔 {gw} 米（约 {dw}°），东坡相隔 {ge} 米（约 {de}°）。地面高还是低，看线上的数字，不看线密不密。",
+    q: "这张小岛地图上，每条线连起同样高的点，相邻两条线高度差 10 米。★ 处的线挤在一起。★ 处的地面是什么样？",
+    o1: "又低又平", o2: "很陡", o3: "是山顶",
+    right: "对。在 ★ 处只走约 {gw} 米就升高 10 米：坡度约 {dw}°。东坡（☆）同样的高度，升 10 米要走 {ge} 米：约 {de}°。",
+    wrong: "不对。在 ★ 处只走约 {gw} 米就升高 10 米：坡度约 {dw}°，很陡。东坡（☆）同样的高度，升 10 米要走 {ge} 米：约 {de}°。山顶在最小那一圈的中间。",
+    W: "W", E: "E", star: "★", star2: "☆", m: "{v} 米", deg: "{v}°",
+    sideView: "侧视图 W → E（高度放大 {ve} 倍）", scale: "100 米",
+    rH: "高度", rD: "离西岸走了", rS: "这里的坡度", rG: "这里两线相隔", rL: "已画出的等高线",
+    gFlat: "超过 {v} 米：几乎是平的", gSea: "—",
+    liveRead: "高度 {h}，坡度约 {d}°，两线相隔 {g}。", liveHidden: "选一个答案，看侧视图。",
+    liveMatch: "配对了 {n} / 4。",
+    score: "已配对：{n} / 4", pLabel: "侧视图 {k}", pAria: "侧视图 {k}：{desc}",
+    pRight: "对：地图 {n}。{why}", pWrong: "不是地图 {n}。对照那张图上的路线，再看这个侧视图。",
+    whyCone: "一个山顶，一圈圈间距均匀：一路坡度都一样。",
+    whyCliff: "一侧的线挤成一堆：那边是像悬崖的陡壁，另一边是长长的缓坡。",
+    whyTwo: "两组圈，两个山顶，中间夹着一个较低的鞍部。",
+    whyValley: "线弯成尖朝高处（数字大的一边）的 V 形：这是山谷。",
+    dCone: "一个均匀的山峰", dCliff: "先是陡壁，再是长缓坡", dTwo: "两个驼峰", dValley: "两边高中间低",
+    tBand: "高度段", tW: "西坡：相隔", tE: "东坡：相隔",
+    lines: "{n} / 8",
+    resultTitle: "我们发现", resultMain: "两线相隔 = 高度差 ÷ 陡的程度",
+    resultNote: "西坡 {a}–{b} 米：走 {gw} 米升高 10 米 → 约 {dw}°。东坡同样高度：走 {ge} 米升高 10 米 → 约 {de}°。高度一样，间距不同。",
+    explainK: "说一说", explainQ: "朋友说等高线挤在一起的地方一定又低又平。用这座小岛讲清楚：两条线之间的距离量的是什么？要知道地面高还是低，该看地图上的什么？",
+    homeK: "家里做一做", homeQ: "用黏土或橡皮泥捏一座一边陡、一边缓的小山，放进透明盒子，每次加 1 厘米水。每加一次，用铅笔沿水边在山上画一圈。最后从正上方往下看：哪里的线最密？",
+    foot: "模型小岛（虚构）：高度 = 80 米 × (1 − d^1.6)，d 是到山顶的缩放距离；西坡从山顶到岸约 {sw} 米，东坡约 {se} 米。等高距 10 米；地图比例 1 像素 = 2 米；坡度 = arctan(升高 ÷ 水平距离)。侧视图把高度放大 2 倍，方便看清形状；页面上的度数是真实（未放大）的坡度。配对用的地图由简单公式生成（圆锥、偏心圆锥、两个圆顶、倾斜的 V 形谷），用 marching squares 方法画线；侧视图沿同一条虚线路线算出。等高线连等高点、线密即陡、山谷处等高线弯成尖指向上游的 V 形，都是通行的读图规则（如英国地形测量局、美国地质调查局的读图指南）。真实地图的等高距按比例尺取 5、10、20 米等。页面上的数都由代码算出。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- island model (main map) ---------- */
+const HT = 80, INT = 10, PW = 1.6;       // summit height (m), contour interval (m), shape exponent
+const PKX = 150, PKY = 125;              // summit on the map (px)
+const SXW = 80, SXE = 215, SY = 100;     // half-widths of the island (px) west, east, north-south
+const MPX = 2;                           // metres per map px
+const VPX = 1;                           // side-view px per metre of height
+const VE = VPX * MPX;                    // vertical exaggeration of the side view
+const BAND = [20, 30];                   // the ★ band
+const MAPH = 248, BASE = 436;            // map panel bottom, side-view sea level (y)
+
+/* ---------- pure logic ---------- */
+const dOf = (L) => Math.pow(Play.clamp(1 - L / HT, 0, 1), 1 / PW);       // scaled distance of level L
+function hAt(x, y) {
+  const dx = x - PKX, sx = dx < 0 ? SXW : SXE;
+  const d = Math.hypot(dx / sx, (y - PKY) / SY);
+  return d >= 1 ? 0 : HT * (1 - Math.pow(d, PW));
+}
+function slopeAt(x) {                    // rise per metre along the W–E route (absolute)
+  const dx = x - PKX, sx = dx < 0 ? SXW : SXE, d = Math.abs(dx) / sx;
+  if (d > 1 || d === 0) return 0;
+  return HT * PW * Math.pow(d, PW - 1) / (sx * MPX);
+}
+const xW = (L) => PKX - SXW * dOf(L);
+const xE = (L) => PKX + SXE * dOf(L);
+const gapW = (a, b) => (xW(b) - xW(a)) * MPX;   // metres walked from level a to b, west side
+const gapE = (a, b) => (xE(a) - xE(b)) * MPX;
+const degOf = (rise, run) => (run > 0 ? Math.atan(rise / run) * 180 / Math.PI : 90);
+const degSlope = (s) => Math.atan(s) * 180 / Math.PI;
+const FLAT = 0.05;                       // slopes below this: "nearly flat"
+
+/* ---------- matching maps (u, v in 0..1; heights in m) ---------- */
+const sq = (x) => x * x;
+const MAPS = {
+  cone: { f: (u, v) => 100 * Math.max(0, 1 - Math.hypot(u - 0.5, v - 0.5) / 0.4), peaks: [[0.5, 0.5]], why: "whyCone", desc: "dCone" },
+  cliff: {
+    f: (u, v) => { const dx = u - 0.3; return 100 * Math.max(0, 1 - Math.hypot(dx / (dx < 0 ? 0.07 : 0.6), (v - 0.5) / 0.38)); },
+    peaks: [[0.3, 0.5]], why: "whyCliff", desc: "dCliff",
+  },
+  two: {
+    f: (u, v) => 100 * Math.exp(-(sq(u - 0.3) + sq(v - 0.5)) / (2 * sq(0.12))) + 75 * Math.exp(-(sq(u - 0.72) + sq(v - 0.5)) / (2 * sq(0.11))),
+    peaks: [[0.3, 0.5], [0.72, 0.5]], why: "whyTwo", desc: "dTwo",
+  },
+  valley: { f: (u, v) => 15 + 85 * (1 - v) + 110 * Math.sqrt(sq(u - 0.5) + 0.0016), peaks: [], labelU: 0.1, why: "whyValley", desc: "dValley" },
+};
+const MAP_ORDER = ["cone", "valley", "two", "cliff"];      // maps 1–4
+const PROF_ORDER = ["two", "cliff", "valley", "cone"];     // side views A–D
+const MINI_LEVELS = [20, 40, 60, 80, 100, 120, 140];
+const U0 = 0.05, U1 = 0.95, VR = 0.5;                      // route on the mini maps
+
+function marching(f, L, n) {              // segments [[u1,v1,u2,v2], …] of the level-L line
+  const g = [];
+  for (let i = 0; i <= n; i++) { g.push([]); for (let j = 0; j <= n; j++) g[i].push(f(i / n, j / n)); }
+  const segs = [];
+  const lerp = (a, b) => (a === b ? 0.5 : (L - a) / (b - a));
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const a = g[i][j], b = g[i + 1][j], c = g[i + 1][j + 1], d = g[i][j + 1];   // tl, tr, br, bl
+    const sa = a >= L, sb = b >= L, sc = c >= L, sd = d >= L;
+    const e = [];
+    if (sa !== sb) e.push(["t", (i + lerp(a, b)) / n, j / n]);
+    if (sb !== sc) e.push(["r", (i + 1) / n, (j + lerp(b, c)) / n]);
+    if (sc !== sd) e.push(["b", (i + 1 - lerp(c, d)) / n, (j + 1) / n]);
+    if (sd !== sa) e.push(["l", i / n, (j + 1 - lerp(d, a)) / n]);
+    if (e.length === 2) segs.push([e[0][1], e[0][2], e[1][1], e[1][2]]);
+    else if (e.length === 4) {
+      const [t, r, bo, l] = e, centre = (a + b + c + d) / 4 >= L;
+      const pairs = centre === sa ? [[t, r], [bo, l]] : [[t, l], [r, bo]];
+      pairs.forEach(([p, q]) => segs.push([p[1], p[2], q[1], q[2]]));
+    }
+  }
+  return segs;
+}
+function crossV(f, L, u) {                // v where the level-L line crosses the vertical line u (bisection)
+  let lo = 0.02, hi = 0.98, flo = f(u, lo) - L, fhi = f(u, hi) - L;
+  if (!(flo * fhi < 0)) return null;
+  for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2, fm = f(u, m) - L; if (fm * flo <= 0) { hi = m; } else { lo = m; flo = fm; } }
+  return (lo + hi) / 2;
+}
+function profile(f, k) { const out = []; for (let i = 0; i <= k; i++) { const u = U0 + (U1 - U0) * i / k; out.push([u, f(u, VR)]); } return out; }
+
+/* ---------- formatting ---------- */
+const $ = (id) => document.getElementById(id);
+function group(n) { const r = Math.round(n); return P.lang === "zh" ? String(r) : r.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+const fM = (v) => P.t("m", { v: group(v) });
+const fD = (v) => P.t("deg", { v: Play.fmt(v, 0) });
+function band() {
+  const [a, b] = BAND, gw = gapW(a, b), ge = gapE(a, b);
+  return { a, b, gw: group(gw), ge: group(ge), dw: Play.fmt(degOf(INT, gw), 0), de: Play.fmt(degOf(INT, ge), 0) };
+}
+
+/* ---------- state ---------- */
+const X_MIN = xW(0), X_MAX = xE(0);
+const S = { step: 0, revealed: false, x: X_MIN, water: 0, flooding: false, match: {} };
+
+/* ---------- drawing helpers ---------- */
+const fig = $("fig");
+function txt(x, y, s, cls, anchor, parent) {
+  const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "start" }, parent || fig);
+  t.textContent = s;
+  return t;
+}
+function ringPath(L) {                   // closed level-L line of the island (two half-ellipses)
+  const d = dOf(L);
+  if (d <= 0) return "";
+  const top = PKY - SY * d, bot = PKY + SY * d;
+  return "M" + PKX + " " + top.toFixed(2) + " A" + (SXW * d).toFixed(2) + " " + (SY * d).toFixed(2) + " 0 0 0 " + PKX + " " + bot.toFixed(2) +
+    " A" + (SXE * d).toFixed(2) + " " + (SY * d).toFixed(2) + " 0 0 0 " + PKX + " " + top.toFixed(2) + "Z";
+}
+const yProf = (h) => BASE - h * VPX;
+function hiker(x, y, parent) {
+  const g = Play.svg("g", { transform: "translate(" + x.toFixed(1) + " " + y.toFixed(1) + ")" }, parent || fig);
+  Play.svg("circle", { cx: 0, cy: -20, r: 4.5, fill: "var(--no)" }, g);
+  Play.svg("path", { d: "M0 -15 L0 -6 M0 -6 L-4 0 M0 -6 L4 0 M-5 -12 L5 -10", stroke: "var(--no)", "stroke-width": 2.4, "stroke-linecap": "round", fill: "none" }, g);
+  Play.svg("circle", { cx: 0, cy: -9, r: 15, fill: "transparent" }, g);
+}
+
+/* ---------- main island view ---------- */
+function drawIsland() {
+  const show = S.revealed, st = S.step;
+  // sea and land tints
+  Play.svg("rect", { x: 0, y: 0, width: 400, height: MAPH, fill: "var(--c)", opacity: 0.16 }, fig);
+  Play.svg("path", { d: ringPath(0), fill: "var(--surface)" }, fig);
+  for (let L = 0; L < HT; L += INT) Play.svg("path", { d: ringPath(L), fill: "var(--a)", opacity: 0.09 }, fig);
+  // flood water (step 2)
+  const w = st === 1 ? S.water : 0;
+  if (st === 1 && w > 0) {
+    Play.svg("path", { d: "M0 0H400V" + MAPH + "H0Z " + ringPath(w), fill: "var(--c)", opacity: 0.4, "fill-rule": "evenodd" }, fig);
+  }
+  // contour lines
+  for (let L = 0; L < HT; L += INT) {
+    const drawn = st !== 1 || L <= w;
+    Play.svg("path", {
+      d: ringPath(L), fill: "none", stroke: drawn ? "var(--fg)" : "var(--muted)",
+      "stroke-width": drawn ? (L === 0 ? 1.8 : 1.3) : 1, opacity: drawn ? 0.9 : 0.35, "stroke-dasharray": drawn ? "none" : "3 3",
+    }, fig);
+  }
+  if (st === 1 && w > 0 && w % INT !== 0 && w < HT) Play.svg("path", { d: ringPath(w), fill: "none", stroke: "var(--c)", "stroke-width": 2 }, fig);
+  Play.svg("path", { d: "M" + (PKX - 6) + " " + (PKY + 5) + "L" + PKX + " " + (PKY - 5) + "L" + (PKX + 6) + " " + (PKY + 5) + "Z", fill: "var(--fg)" }, fig);
+  // height labels on the east side of the route
+  [0, 20, 40, 60].forEach((L) => {
+    if (st === 1 && L > w) return;
+    txt(xE(L) - 2, PKY + 19, String(L), "lb halo", "middle");
+  });
+  // route
+  Play.svg("line", { x1: 40, x2: 385, y1: PKY, y2: PKY, stroke: "var(--no)", "stroke-width": 1.6, "stroke-dasharray": "6 4" }, fig);
+  txt(30, PKY + 5, P.t("W"), "lbf", "middle");
+  txt(394, PKY + 5, P.t("E"), "lbf", "middle");
+  // ★ and ☆ in the band
+  const hb = (BAND[0] + BAND[1]) / 2;
+  txt(xW(hb), PKY - 9, P.t("star"), "lbn halo", "middle");
+  txt(xE(hb), PKY - 9, P.t("star2"), "lbn halo", "middle");
+  // scale bar
+  const sb = 100 / MPX;
+  Play.svg("line", { x1: 384 - sb, x2: 384, y1: MAPH - 12, y2: MAPH - 12, stroke: "var(--fg)", "stroke-width": 2.5 }, fig);
+  txt(384 - sb / 2, MAPH - 18, P.t("scale"), "lb halo", "middle");
+  Play.svg("line", { x1: 0, x2: 400, y1: MAPH, y2: MAPH, stroke: "var(--line)" }, fig);
+
+  // side view
+  txt(10, MAPH + 22, P.t("sideView", { ve: VE }), "lb halo");
+  [0, 40, 80].forEach((h) => {
+    Play.svg("line", { x1: 40, x2: 390, y1: yProf(h), y2: yProf(h), stroke: "var(--line)" }, fig);
+    txt(36, yProf(h) + 5, String(h), "lb", "end");
+  });
+  txt(36, yProf(HT) - 14, P.lang === "zh" ? "米" : "m", "lb", "end");
+  if (!show) {
+    txt(215, yProf(40), "?", "lbf", "middle").setAttribute("style", "font-size:40px");
+    return;
+  }
+  // flood water in the side view
+  if (st === 1 && w > 0) Play.svg("rect", { x: 40, y: yProf(w), width: 350, height: w * VPX, fill: "var(--c)", opacity: 0.4 }, fig);
+  const pts = [];
+  for (let x = X_MIN; x <= X_MAX + 1e-9; x += 1) pts.push(x.toFixed(1) + "," + yProf(hAt(x, PKY)).toFixed(1));
+  pts.push(X_MAX.toFixed(1) + "," + BASE);
+  Play.svg("polygon", { points: X_MIN.toFixed(1) + "," + BASE + " " + pts.join(" "), fill: "var(--soft)", stroke: "var(--fg)", "stroke-width": 1.6, "stroke-linejoin": "round" }, fig);
+  Play.svg("line", { x1: 40, x2: 390, y1: BASE, y2: BASE, stroke: "var(--c)", "stroke-width": 2 }, fig);
+  // drop lines: each contour crossing on the route falls to its height in the side view
+  for (let L = INT; L < HT; L += INT) {
+    if (st === 1 && L > w) continue;
+    [xW(L), xE(L)].forEach((x) => {
+      Play.svg("line", { x1: x, x2: x, y1: PKY, y2: yProf(L), stroke: "var(--a)", "stroke-width": 1, opacity: 0.55, "stroke-dasharray": "2 3" }, fig);
+      Play.svg("circle", { cx: x, cy: yProf(L), r: 2.6, fill: "var(--a)" }, fig);
+    });
+  }
+  txt(xW(hb) - 8, yProf(hb) - 4, P.t("star"), "lbn halo", "end");
+  txt(xE(hb) + 4, yProf(hb) - 8, P.t("star2"), "lbn halo", "start");
+  // hiker on map and on side view
+  if (st === 1 || st === 3) {
+    hiker(S.x, PKY);
+    hiker(S.x, yProf(hAt(S.x, PKY)));
+  }
+}
+
+/* ---------- matching view ---------- */
+const CELL = 182, CX = [12, 206], CY = [30, 252];
+function drawMaps() {
+  MAP_ORDER.forEach((id, k) => {
+    const m = MAPS[id], ox = CX[k % 2], oy = CY[k >> 1];
+    const px = (u) => ox + u * CELL, py = (v) => oy + v * CELL;
+    txt(ox, oy - 8, String(k + 1), "lbn");
+    Play.svg("rect", { x: ox, y: oy, width: CELL, height: CELL, fill: "var(--surface)", stroke: "var(--line)", rx: 6 }, fig);
+    MINI_LEVELS.forEach((L) => {
+      const segs = marching(m.f, L, 44);
+      if (!segs.length) return;
+      const d = segs.map((s) => "M" + px(s[0]).toFixed(1) + " " + py(s[1]).toFixed(1) + "L" + px(s[2]).toFixed(1) + " " + py(s[3]).toFixed(1)).join("");
+      Play.svg("path", { d, stroke: "var(--fg)", "stroke-width": 1.2, fill: "none", "stroke-linecap": "round", opacity: 0.85 }, fig);
+    });
+    m.peaks.forEach(([u, v]) => Play.svg("path", { d: "M" + (px(u) - 5) + " " + (py(v) + 5) + "l5 -10 l5 10Z", fill: "var(--fg)" }, fig));
+    if (m.labelU !== undefined) {
+      [80, 120].forEach((L) => { const v = crossV(m.f, L, m.labelU); if (v !== null) txt(px(m.labelU), py(v) + 5, String(L), "lb halo", "middle"); });
+    }
+    Play.svg("line", { x1: px(U0), x2: px(U1), y1: py(VR), y2: py(VR), stroke: "var(--no)", "stroke-width": 1.6, "stroke-dasharray": "5 4" }, fig);
+    txt(px(U0) - 1, py(VR) + 20, "A", "lbf halo", "middle");
+    txt(px(U1) + 1, py(VR) + 20, "B", "lbf halo", "middle");
+  });
+}
+
+function draw() {
+  fig.innerHTML = "";
+  const slider = active();
+  if (S.step === 2) drawMaps(); else drawIsland();
+  if (slider) {
+    fig.setAttribute("role", "slider");
+    fig.setAttribute("tabindex", "0");
+    fig.setAttribute("aria-valuemin", 0);
+    fig.setAttribute("aria-valuemax", Math.round((X_MAX - X_MIN) * MPX));
+    fig.setAttribute("aria-valuenow", Math.round((S.x - X_MIN) * MPX));
+    fig.setAttribute("aria-valuetext", liveText());
+  } else {
+    fig.setAttribute("role", "img");
+    fig.removeAttribute("tabindex");
+    ["aria-valuemin", "aria-valuemax", "aria-valuenow", "aria-valuetext"].forEach((a) => fig.removeAttribute(a));
+  }
+  fig.classList.toggle("locked", !slider);
+}
+
+/* ---------- panels ---------- */
+function gapText(s) { return s < FLAT ? P.t("gFlat", { v: group(INT / FLAT) }) : fM(INT / s); }
+function liveText() {
+  const h = hAt(S.x, PKY), s = slopeAt(S.x);
+  return P.t("liveRead", { h: fM(h), d: Play.fmt(degSlope(s), 0), g: gapText(s) });
+}
+function readPanel() {
+  const h = hAt(S.x, PKY), s = slopeAt(S.x), sep = P.lang === "zh" ? "：" : ": ";
+  const rows = [["rH", fM(h)], ["rD", fM((S.x - X_MIN) * MPX)], ["rS", fD(degSlope(s))], ["rG", gapText(s)]];
+  if (S.step === 1) rows.push(["rL", P.t("lines", { n: Math.min(8, Math.floor(S.water / INT) + 1) })]);
+  $("read").innerHTML = "";
+  rows.forEach(([k, v]) => {
+    const d = document.createElement("div"), b = document.createElement("b");
+    b.textContent = v;
+    d.append(P.t(k) + sep, b);
+    $("read").appendChild(d);
+  });
+}
+function tablePanel() {
+  let html = "<thead><tr><th>" + P.t("tBand") + "</th><th>" + P.t("tW") + "</th><th>" + P.t("tE") + "</th></tr></thead><tbody>";
+  for (let a = 0; a < HT; a += INT) {
+    const b = a + INT, gw = gapW(a, b), ge = gapE(a, b);
+    const mark = a === BAND[0] ? " ★" : "";
+    html += "<tr><td>" + a + "–" + fM(b) + mark + "</td><td>" + fM(gw) + " · " + fD(degOf(INT, gw)) + "</td><td>" + fM(ge) + " · " + fD(degOf(INT, ge)) + "</td></tr>";
+  }
+  $("tbl").innerHTML = html + "</tbody>";
+}
+
+/* side-view cards for matching */
+const cards = PROF_ORDER.map((id, k) => {
+  const letter = "ABCD"[k];
+  const box = document.createElement("div");
+  box.className = "pcard";
+  const head = document.createElement("div");
+  head.className = "ph";
+  const b = document.createElement("b");
+  b.textContent = P.t("pLabel", { k: letter });
+  head.appendChild(b);
+  const btnRow = document.createElement("div");
+  btnRow.className = "pb";
+  const btns = MAP_ORDER.map((mid, j) => {
+    const bt = document.createElement("button");
+    bt.type = "button"; bt.className = "small"; bt.textContent = String(j + 1);
+    bt.addEventListener("click", () => { S.match[id] = j; render(); });
+    btnRow.appendChild(bt);
+    return bt;
+  });
+  head.appendChild(btnRow);
+  const sv = Play.svg("svg", { viewBox: "0 0 240 70", role: "img", "aria-label": P.t("pAria", { k: letter, desc: P.t(MAPS[id].desc) }) });
+  const pr = profile(MAPS[id].f, 90), PH = 160;
+  const X = (u) => 20 + (u - U0) / (U1 - U0) * 200, Y = (h) => 62 - Play.clamp(h, 0, PH) / PH * 56;
+  const pts = pr.map(([u, h]) => X(u).toFixed(1) + "," + Y(h).toFixed(1));
+  Play.svg("polygon", { points: X(U0) + ",62 " + pts.join(" ") + " " + X(U1) + ",62", fill: "var(--soft)", stroke: "var(--fg)", "stroke-width": 1.5, "stroke-linejoin": "round" }, sv);
+  Play.svg("line", { x1: 20, x2: 220, y1: 62, y2: 62, stroke: "var(--line)" }, sv);
+  const tA = Play.svg("text", { x: 2, y: 67, class: "lb" }, sv); tA.textContent = "A";
+  const tB = Play.svg("text", { x: 238, y: 67, class: "lb", "text-anchor": "end" }, sv); tB.textContent = "B";
+  const fb = document.createElement("div");
+  fb.className = "pf";
+  fb.setAttribute("aria-live", "polite");
+  box.append(head, sv, fb);
+  $("pcards").appendChild(box);
+  return { id, box, btns, fb };
+});
+function matchPanel() {
+  let n = 0;
+  cards.forEach((c) => {
+    const j = S.match[c.id], ok = j !== undefined && MAP_ORDER[j] === c.id;
+    if (ok) n++;
+    c.box.classList.toggle("ok", ok);
+    c.box.classList.toggle("bad", j !== undefined && !ok);
+    c.btns.forEach((b, i) => { b.classList.toggle("on", i === j); b.setAttribute("aria-pressed", i === j ? "true" : "false"); });
+    c.fb.textContent = j === undefined ? "" : ok ? P.t("pRight", { n: j + 1, why: P.t(MAPS[c.id].why) }) : P.t("pWrong", { n: j + 1 });
+  });
+  $("score").textContent = P.t("score", { n });
+  return n;
+}
+
+/* ---------- render ---------- */
+function bodyText() {
+  if (S.step === 0) return P.t(S.revealed ? "b1after" : "b1");
+  if (S.step === 1) return P.t("b2");
+  if (S.step === 2) return P.t("b3");
+  return P.t("b4", band());
+}
+function render() {
+  $("water").value = S.water;
+  $("waterVal").textContent = fM(S.water);
+  $("flood").textContent = Play.reduced ? P.t("raise") : P.t(S.flooding ? "pause" : "flood");
+  $("flood").setAttribute("aria-pressed", S.flooding ? "true" : "false");
+  draw();
+  $("stepBody").textContent = bodyText();
+  $("waterRow").hidden = S.step !== 1;
+  $("hint").hidden = !active();
+  $("read").hidden = !(S.step === 1 || S.step === 3);
+  $("pcards").hidden = $("score").hidden = S.step !== 2;
+  $("tbl").hidden = S.step !== 3;
+  if (!$("read").hidden) readPanel();
+  if (S.step === 3) tablePanel();
+  const n = matchPanel();
+  let live;
+  if (S.step === 2) live = P.t("liveMatch", { n });
+  else live = S.revealed ? liveText() : P.t("liveHidden");
+  Play.live($("live"), live);
+}
+
+/* ---------- controls ---------- */
+let raf = 0, last = 0;
+function stopFlood() { S.flooding = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+function tick(t) {
+  const dt = last ? Play.clamp((t - last) / 1000, 0, 0.1) : 0;
+  last = t;
+  S.water = Play.clamp(S.water + 16 * dt, 0, HT);
+  if (S.water >= HT) { S.water = HT; stopFlood(); }
+  S.water = Math.round(S.water * 100) / 100;
+  render();
+  if (S.flooding) raf = requestAnimationFrame(tick);
+}
+$("flood").addEventListener("click", () => {
+  if (Play.reduced) { S.water = S.water >= HT ? 0 : Math.min(HT, (Math.floor(S.water / INT) + 1) * INT); render(); return; }
+  if (S.flooding) { stopFlood(); render(); return; }
+  if (S.water >= HT) S.water = 0;
+  S.flooding = true; last = 0; raf = requestAnimationFrame(tick); render();
+});
+$("water").addEventListener("input", (e) => {
+  stopFlood();
+  const v = +e.target.value;
+  S.water = Number.isFinite(v) ? Play.clamp(v, 0, HT) : 0;
+  render();
+});
+
+function setX(x) {
+  const v = Play.clamp(Number.isFinite(x) ? x : X_MIN, X_MIN, X_MAX);
+  if (v !== S.x) { S.x = v; render(); }
+}
+const active = () => S.step === 1 || S.step === 3;
+let drag = false;
+fig.addEventListener("pointerdown", (e) => {
+  if (!active()) return;
+  drag = true; fig.setPointerCapture(e.pointerId);
+  setX(Play.pointer(fig, e).x);
+  e.preventDefault();
+});
+fig.addEventListener("pointermove", (e) => { if (drag) setX(Play.pointer(fig, e).x); });
+fig.addEventListener("pointerup", () => (drag = false));
+fig.addEventListener("pointercancel", () => (drag = false));
+fig.addEventListener("keydown", (e) => {
+  if (!active()) return;
+  const stepPx = 5 / MPX;
+  const d = { ArrowRight: stepPx, ArrowUp: stepPx, ArrowLeft: -stepPx, ArrowDown: -stepPx, PageUp: 10 * stepPx, PageDown: -10 * stepPx }[e.key];
+  if (d !== undefined) setX(S.x + d);
+  else if (e.key === "Home") setX(X_MIN);
+  else if (e.key === "End") setX(X_MAX);
+  else return;
+  e.preventDefault();
+});
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right", band()), wrong: P.t("wrong", band()),
+}, () => { S.revealed = true; render(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  const k = i + 1;
+  S.step = i;
+  if (i !== 1) stopFlood();
+  if (i > 0) S.revealed = true;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  stopFlood();
+  Object.assign(S, { revealed: false, x: X_MIN, water: 0, match: {} });
+  pr.reset(); st.go(0);
+});
+$("resultNote").textContent = P.t("resultNote", band());
+document.querySelector(".foot").textContent = P.t("foot", { sw: group(SXW * MPX), se: group(SXE * MPX) });
+render();
+</script>
+</body>
+</html>

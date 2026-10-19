@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How hard does water push up?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.fig { width: 100%; height: auto; display: block; }
+  #scene { touch-action: none; cursor: ns-resize; max-height: 560px; }
+  #scene:focus { outline: none; }
+  #scene:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  svg.fig text { font-family: var(--font); paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
+  .table { stroke: var(--fg); stroke-width: 3; }
+  .wall { fill: none; stroke: var(--fg); stroke-width: 5; stroke-linejoin: round; }
+  .water { fill: var(--c); opacity: .3; }
+  .surf { stroke: var(--c); stroke-width: 2.5; }
+  .stream { stroke: var(--c); stroke-width: 4; stroke-linecap: round; opacity: .7; }
+  .string { fill: none; stroke: var(--fg); stroke-width: 2; }
+  .body { fill: var(--surface); stroke: var(--fg); stroke-width: 2.5; }
+  .tick { stroke: var(--muted); stroke-width: 1.5; }
+  .ptr { fill: var(--no); }
+  .bal { fill: var(--soft); stroke: var(--fg); stroke-width: 2.5; }
+  .blk { stroke: var(--fg); stroke-width: 2; }
+  .b-al, .b-al2 { fill: var(--muted); } .b-steel { fill: var(--fg); } .b-wood { fill: var(--b); }
+  .lbl { fill: var(--muted); font-size: 21px; }
+  .lbF { fill: var(--fg); font-size: 24px; font-weight: 700; }
+  .lbA { fill: var(--a); font-size: 24px; font-weight: 700; }
+  .lbC { fill: var(--c); font-size: 24px; font-weight: 700; }
+  .ax { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+  .grid { stroke: var(--line); stroke-width: 1; }
+  .theory { fill: none; stroke: var(--a); stroke-width: 3; stroke-dasharray: 8 6; }
+  .m-al { fill: var(--a); } .m-steel { fill: var(--h); } .m-al2 { fill: var(--hl); } .m-wood { fill: var(--b); }
+  .now { fill: none; stroke: var(--fg); stroke-width: 2.5; }
+  .cap { font-size: 13px; color: var(--muted); padding: 0 14px 6px; }
+  .cap.tagline { color: var(--a); font-weight: 650; padding-top: 2px; }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .controls .val { min-width: 4.6em; font-size: 14px; }
+  .controls button[aria-pressed="true"] { border-color: var(--a); background: var(--soft); font-weight: 650; }
+  .charthead { font-size: 13px; color: var(--muted); padding: 10px 14px 0; border-top: 1px solid var(--line); }
+  .charthead strong { color: var(--fg); }
+  .legend { padding: 0 14px 10px; }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout th, .readout td { padding: 3px 5px; text-align: right; border-bottom: 1px solid var(--line); }
+  .readout th:first-child, .readout td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  .readout tr.key td { color: var(--a); font-weight: 700; }
+  .readout td { white-space: nowrap; } .readout td:first-child { white-space: normal; }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+  .result .math { white-space: normal; }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="fig" id="scene" viewBox="0 0 600 500" role="slider" tabindex="0" aria-orientation="vertical" data-t-aria="figAria"></svg>
+      <div class="cap tagline" id="tag"></div>
+      <div class="controls">
+        <div class="grp">
+          <label for="depth" data-t="depthLabel"></label>
+          <input type="range" id="depth" min="0" max="14" step="0.1">
+          <span class="val" id="depthVal"></span>
+        </div>
+        <div class="grp" role="group" data-t-aria="presetAria" id="presets"></div>
+        <div class="grp" role="group" data-t-aria="blockAria" id="blocks"></div>
+        <div class="grp"><button type="button" class="small" id="refill" data-t="refill"></button><span data-t="refillNote"></span></div>
+      </div>
+      <div class="charthead"><strong data-t="gTitle"></strong></div>
+      <svg class="fig" id="graph" viewBox="0 0 600 300" role="img" data-t-aria="gAria"></svg>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "How hard does water push up?", eyebrow: "Physics · Stage 3", h1: "How hard does water push up?",
+    intro: "Hang a block from a spring scale and lower it into a can filled to the spout. The water it pushes aside runs into a cup on a second scale. Compare the two readings.",
+    reset: "Reset", figAria: "Overflow can full of water to its spout, a block hanging from a spring scale above it, and a cup on a balance catching the overflow. Drag up or down, or use the arrow keys, to lower the block.",
+    gAria: "Graph of the upward push against how deep the bottom of the block is: it rises while the block goes in, then stays flat once it is fully under",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Deeper and deeper",
+    b1: "The 270 g aluminium block is lowered into the water: first half under, then just fully under, then all the way down near the bottom. Pick an answer, then use the three buttons under the picture and watch the spring scale.",
+    k2: "Hands on", t2: "Lower it, read both scales",
+    b2: "Drag the block (or use the slider or ↑/↓ keys). The spring scale shows less than the weight because the water pushes up. Compare that loss with the water in the cup. Try the steel block — same size, three times the mass — and the wood.",
+    k3: "The rule", t3: "Push up = weight of water pushed aside",
+    q: "Once the block is fully under, what does the upward push do as it goes deeper?",
+    o1: "Keeps growing — deeper water pushes harder", o2: "Stays the same", o3: "Gets smaller", o4: "Disappears — the block sinks anyway",
+    right: "Yes. Check it with the buttons: the scale stops changing the moment the top goes under.",
+    wrong: "Check it: use the three buttons and watch the spring scale between “just under” and “deep”.",
+    depthLabel: "Lower by", presetAria: "Positions", blockAria: "Blocks",
+    pHalf: "½ under", pFull: "just under", pDeep: "deep",
+    bal: "Aluminium 100 cm³", bsteel: "Steel 100 cm³", bal2: "Aluminium 200 cm³", bwood: "Pine wood 100 cm³",
+    refill: "↺ Refill can, empty cup", refillNote: "after you lift the block",
+    gTitle: "Upward push vs how deep the block’s bottom is", xAxis: "depth of bottom below surface (cm)", yAxis: "push (N)",
+    legendKey: "dots = your readings", theoryKey: "dashed = ρ·g·V for this block",
+    scaleLbl: "spring scale", cupLbl: "water spilled", unitN: "N",
+    tagFull: "Can full to the spout · spilled water {G} N, push {F} N",
+    tagLow: "Water is {gap} cm below the spout because you lifted the block — press Refill before comparing",
+    tagFloat: "Floating: the string is slack and the scale reads 0 · push = its weight, {W} N",
+    tagOut: "Out of the water: the scale shows the full weight, {W} N",
+    rW: "Weight in air", rT: "Spring scale now", rF: "Upward push = weight − reading", rG: "Water in the cup weighs", rV: "Volume under water", rD: "Bottom face below surface",
+    unitCm3: "cm³", unitCm: "cm",
+    live: "Scale {T} N, push {F} N, water in cup {G} N, bottom {d} cm under.",
+    ruleMain: "<strong>The upward push equals the weight of the water the block pushes aside: F = ρ<sub>water</sub> · g · V<sub>under</sub>.</strong>",
+    ruleNow: "Right now {V} cm³ is under water. That much water has a mass of {m} g, so it weighs 1000 kg/m³ × 9.8 N/kg × {Vm} m³ = {F} N. The spring scale lost {dF} N; the cup holds {G} N.",
+    ruleOut: "Lower the block into the water to see the numbers.",
+    ruleDeep: "Why going deeper does not help: water pressure does grow with depth, but on the top face too. Here the top face feels {pt} Pa, the bottom face {pb} Pa. The difference, {dp} Pa, times the face area {A} m², is {Fp} N — the same at every depth once the block is fully under.",
+    ruleNotYet: "While the block goes in, more of it is under water every centimetre, so the push grows. As soon as the top is under, V stops growing — and so does the push.",
+    ruleFloat: "Wood is lighter than the same volume of water. It sinks only {s} cm, until it has pushed aside its own weight of water ({W} N), and then it floats.",
+    tblH: "Fully under (or floating)", tB: "Block", tW: "Weight", tF: "Push", tFl: "floats",
+    tblNote: "Aluminium and steel: same volume, same push, although the steel is almost three times heavier. Twice the volume, twice the push.",
+    resultTitle: "What we found", resultMain: "F(up) = ρ(water) · g · V(under) = weight of the water pushed aside",
+    resultNote: "Only the volume under water matters — not the depth, not the block’s weight. A floating object pushes aside exactly its own weight of water.",
+    explainK: "Explain it", explainQ: "A friend says “a submarine gets pushed up harder the deeper it dives”. Using the words “water pushed aside” and “volume”, explain what really happens to the push once it is fully under.",
+    homeK: "Try at home", homeQ: "Put a bowl of water on a kitchen scale and note the reading. Hang a stone or a full drink can on a thread and lower it in without touching the bowl. The scale goes up by as many grams as there are cm³ under water — the water pushes up on the can and the can pushes down on the water. Go deeper: does the number change?",
+    foot: "Model: overflow can with 100 cm² cross-section and spout at 14 cm, filled to the spout; blocks have a 5 cm × 5 cm base. Water 1000 kg/m³ (1.00 g/cm³; 998 at 20 °C), aluminium 2.7 g/cm³, steel 7.9 g/cm³, dry pine about 0.5 g/cm³ (varies 0.4–0.6), g = 9.8 N/kg. Pressures are measured above air pressure (air presses equally on everything). Spring scale and balance are ideal, the cup is tared, the string is weightless. When the block is lifted the water level drops and the spilled water stays in the cup, so the two readings only match again after a refill. The rule is Archimedes’ principle, from his book On Floating Bodies (3rd century BC); the story of him jumping out of the bath over a gold crown was written down by Vitruvius about two centuries later and is usually treated as a legend. · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "水往上托的力有多大？", eyebrow: "物理 · 阶段 3", h1: "水往上托的力有多大？",
+    intro: "把一块金属挂在弹簧测力计下，慢慢放进装满水（水面齐溢水口）的溢水杯。被它挤出来的水流进另一台秤上的小杯。比一比两个读数。",
+    reset: "重置", figAria: "装满水到溢水口的溢水杯，上方弹簧测力计挂着一个物块，旁边秤上的小杯接住溢出的水。上下拖动或用方向键让物块下沉。",
+    gAria: "托力随物块底面深度变化的图：物块进水时上升，完全没入后保持水平",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "越沉越深",
+    b1: "把 270 克的铝块放进水里：先没入一半，再刚好全部没入，最后一直放到快碰到杯底。先选一个答案，再用图下面的三个按钮，盯着弹簧测力计看。",
+    k2: "动手", t2: "放下去，读两台秤",
+    b2: "拖动物块（也可以用滑块或 ↑/↓ 键）。弹簧测力计的读数比重量小，是因为水在往上托。把少掉的那部分和小杯里的水比一比。再换钢块试试——一样大，质量是铝块的近三倍——还有木块。",
+    k3: "规律", t3: "托力 = 排开的水的重量",
+    q: "物块完全没入以后，再往深处放，水往上托的力会怎样？",
+    o1: "越来越大——越深的水托得越用力", o2: "保持不变", o3: "变小", o4: "没有了——反正它会沉",
+    right: "对。用按钮验证：物块顶面一没入水，测力计的读数就不再变。",
+    wrong: "验证一下：用三个按钮试试，盯着弹簧测力计，比较「刚好没入」和「沉到深处」。",
+    depthLabel: "下放", presetAria: "位置", blockAria: "物块",
+    pHalf: "没入一半", pFull: "刚好没入", pDeep: "沉到深处",
+    bal: "铝块 100 cm³", bsteel: "钢块 100 cm³", bal2: "铝块 200 cm³", bwood: "松木块 100 cm³",
+    refill: "↺ 加满水、倒空小杯", refillNote: "把物块提起来以后用",
+    gTitle: "托力和物块底面深度的关系", xAxis: "底面在水面下的深度（cm）", yAxis: "托力（N）",
+    legendKey: "圆点 = 你测到的读数", theoryKey: "虚线 = 这个物块的 ρ·g·V",
+    scaleLbl: "弹簧测力计", cupLbl: "溢出的水", unitN: "N",
+    tagFull: "溢水杯是满的 · 溢出的水重 {G} N，托力 {F} N",
+    tagLow: "你把物块提起来了，水面比溢水口低 {gap} cm——先按「加满水」再比较",
+    tagFloat: "漂浮：线松了，测力计读数为 0 · 托力 = 它的重量 {W} N",
+    tagOut: "物块在水外：测力计读的就是它的重量 {W} N",
+    rW: "在空气中的重量", rT: "现在测力计读数", rF: "托力 = 重量 − 读数", rG: "小杯里的水重", rV: "水下部分的体积", rD: "底面在水面下",
+    unitCm3: "cm³", unitCm: "cm",
+    live: "测力计 {T} N，托力 {F} N，小杯里的水 {G} N，底面在水下 {d} cm。",
+    ruleMain: "<strong>水向上的托力等于物块排开的那部分水的重量：F = ρ<sub>水</sub> · g · V<sub>排</sub>。</strong>",
+    ruleNow: "现在有 {V} cm³ 在水下。这么多水的质量是 {m} 克，重 1000 kg/m³ × 9.8 N/kg × {Vm} m³ = {F} N。弹簧测力计少了 {dF} N；小杯里的水重 {G} N。",
+    ruleOut: "先把物块放进水里，才能看到这些数。",
+    ruleDeep: "为什么再往深处沉也没用？水的压强确实随深度增大，可是顶面受到的压强也一起增大。这里顶面受到 {pt} Pa，底面受到 {pb} Pa。两者之差 {dp} Pa，乘以面积 {A} m²，等于 {Fp} N——只要完全没入，在哪个深度都一样。",
+    ruleNotYet: "物块往下进水时，每多一厘米，水下的体积就多一点，托力就变大。顶面一没入，V 不再变大，托力也就不变了。",
+    ruleFloat: "木头比同体积的水轻。它只沉下 {s} cm，排开的水正好等于它自己的重量（{W} N），然后就浮着不动了。",
+    tblH: "完全没入（或漂浮）时", tB: "物块", tW: "重量", tF: "托力", tFl: "漂浮",
+    tblNote: "铝块和钢块：体积一样，托力一样，虽然钢块重了快三倍。体积翻倍，托力也翻倍。",
+    resultTitle: "我们发现", resultMain: "F浮 = ρ水 · g · V排 = 排开的水的重量",
+    resultNote: "只看水下部分的体积——不看深度，也不看物体本身多重。漂浮的物体排开的水，正好和它自己一样重。",
+    explainK: "说一说", explainQ: "朋友说「潜水艇潜得越深，水往上托它的力越大」。用上「排开的水」和「体积」两个词，讲讲潜艇完全没入以后托力到底怎样。",
+    homeK: "家里做一做", homeQ: "在厨房秤上放一碗水，记下读数。用细线吊着一块石头或一罐没开的饮料，慢慢放进水里，不要碰到碗。秤的读数增加多少克，水下就有多少 cm³——水往上托罐子，罐子也往下压水。再往深处放：数字会变吗？",
+    foot: "模型：溢水杯横截面 100 cm²，溢水口高 14 cm，开始时水面齐溢水口；物块底面 5 cm × 5 cm。水 1000 kg/m³（1.00 g/cm³；20 °C 时 998），铝 2.7 g/cm³，钢 7.9 g/cm³，干松木约 0.5 g/cm³（0.4–0.6 不等），g = 9.8 N/kg。压强只算比大气压多出的部分（大气压对各处一样）。弹簧测力计和秤都当作理想的，小杯已去皮，线的重量不计。把物块提起时水面会下降，溢出的水留在小杯里，所以要加满水后两个读数才会重新相等。这条规律叫阿基米德原理，出自他的《论浮体》（公元前 3 世纪）；他在浴盆里想通金冠问题、跳出来大喊的故事，是大约两百年后维特鲁威记下来的，一般当作传说。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure physics, no DOM (tests extract this block). Units: cm, g, N. */
+const G = 9.8, RHO_W = 1.0, AC = 100, AB = 25, HS = 14, YMIN = 1, YMAX = 15;
+const BLOCKS = { al: { rho: 2.7, h: 4 }, steel: { rho: 7.9, h: 4 }, al2: { rho: 2.7, h: 8 }, wood: { rho: 0.5, h: 4 } };
+const fin = (x, d) => (Number.isFinite(x) ? x : d);
+const clampN = (x, a, b) => Math.min(b, Math.max(a, x));
+const weightN = (grams) => grams / 1000 * G;
+function blockInfo(k) {
+  const b = BLOCKS[k] || BLOCKS.al, V = AB * b.h, m = b.rho * V;
+  return { k: BLOCKS[k] ? k : "al", rho: b.rho, h: b.h, V, m, W: weightN(m), Bfull: weightN(RHO_W * V), floats: b.rho < RHO_W, sf: Math.min(b.h, m / (RHO_W * AB)) };
+}
+const subAt = (H, yb, h) => clampN(H - yb, 0, h);
+// Water surface height H (cm above can floor) for water volume Wv with the block bottom at yb.
+function levelFor(Wv, yb, h) {
+  let H = Wv / AC;
+  if (H <= yb) return H;
+  H = (Wv - AB * yb) / (AC - AB);
+  if (H - yb <= h) return H;
+  return (Wv + AB * h) / AC;
+}
+const roomFor = (yb, h) => AC * HS - AB * subAt(HS, yb, h);   // most water the can holds below the spout
+// Hook position yh (bottom of a hanging block, cm above floor), water volume Wv, water already spilled.
+function settle(blk, yh, Wv, spilled) {
+  yh = clampN(fin(yh, YMAX), YMIN, YMAX);
+  Wv = clampN(fin(Wv, AC * HS), 0, AC * HS);
+  spilled = Math.max(0, fin(spilled, 0));
+  let W = Math.min(Wv, roomFor(yh, blk.h)), H = levelFor(W, yh, blk.h), s = subAt(H, yh, blk.h), yb = yh, floating = false;
+  if (RHO_W * AB * s > blk.m + 1e-9) {             // pushed up more than its weight: string goes slack
+    floating = true; s = blk.sf;
+    W = Math.min(Wv, AC * HS - AB * s); H = (W + AB * s) / AC; yb = Math.max(0, H - s);
+  }
+  const out = spilled + (Wv - W), V = AB * s, B = weightN(RHO_W * V);
+  return { yh, yb, H, s, V, B, T: floating ? 0 : Math.max(0, blk.W - B), floating, Wv: W, spilled: out, cup: weightN(RHO_W * out), d: H - yb, full: H >= HS - 1e-6 };
+}
+// Upward push if the can is full, as a function of the depth d of the bottom face below the surface.
+function theory(blk, d) {
+  d = Math.max(0, fin(d, 0));
+  return blk.floats ? weightN(RHO_W * AB * Math.min(d, blk.sf)) : weightN(RHO_W * AB * Math.min(d, blk.h));
+}
+// Pressure (Pa) at depth d cm, and the top/bottom difference times area (N) for a block fully under.
+const pressure = (dcm) => 1000 * G * Math.max(0, dcm) / 100;
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const scene = $("scene"), graph = $("graph");
+const KEYS = ["al", "steel", "al2", "wood"];
+const S = { blk: "al", yh: YMAX, Wv: AC * HS, spilled: 0 };
+let st = null, blk = blockInfo("al"), trail = [], stp = null, tween = 0, streamUntil = 0, streamTimer = 0, lastLive = "";
+const f2 = (x) => Play.fmt(Math.abs(x) < 0.005 ? 0 : x, 2), f1 = (x) => Play.fmt(Math.abs(x) < 0.05 ? 0 : x, 1);
+
+/* ---------- controls ---------- */
+const PRE = { pHalf: (b) => HS - b.h / 2, pFull: (b) => HS - b.h, pDeep: () => YMIN };
+Object.keys(PRE).forEach((k) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(k);
+  b.addEventListener("click", () => moveTo(PRE[k](blk)));
+  $("presets").appendChild(b);
+});
+KEYS.forEach((k) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.id = "b-" + k; b.textContent = P.t("b" + k);
+  b.addEventListener("click", () => chooseBlock(k));
+  $("blocks").appendChild(b);
+});
+$("depth").addEventListener("input", () => { stopTween(); setYh(YMAX - (+$("depth").value || 0)); });
+$("refill").addEventListener("click", () => { stopTween(); S.Wv = AC * HS; S.spilled = 0; update(); });
+function chooseBlock(k) {
+  stopTween();
+  S.blk = k; blk = blockInfo(k); S.yh = YMAX; S.Wv = AC * HS; S.spilled = 0;
+  update();
+}
+function setYh(y) { S.yh = clampN(fin(y, YMAX), YMIN, YMAX); update(); }
+function stopTween() { cancelAnimationFrame(tween); tween = 0; }
+function moveTo(target) {
+  stopTween();
+  target = clampN(target, YMIN, YMAX);
+  if (Play.reduced) { setYh(target); return; }
+  const y0 = S.yh, t0 = performance.now(), dur = 300 + 60 * Math.abs(target - y0);
+  const step = (now) => {
+    const u = Math.min(1, (now - t0) / dur), e = u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u);
+    setYh(y0 + (target - y0) * e);
+    tween = u < 1 ? requestAnimationFrame(step) : 0;
+  };
+  tween = requestAnimationFrame(step);
+}
+
+/* ---------- drag + keyboard on the picture ---------- */
+let drag = null;
+scene.addEventListener("pointerdown", (e) => {
+  stopTween();
+  const p = Play.pointer(scene, e);
+  if (p.x > 300) return;                              // right side is the cup and balance
+  drag = { y0: p.y, yh0: S.yh };
+  scene.setPointerCapture && scene.setPointerCapture(e.pointerId); e.preventDefault();
+});
+scene.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = Play.pointer(scene, e);
+  setYh(Math.round((drag.yh0 - (p.y - drag.y0) / K) * 10) / 10);
+});
+["pointerup", "pointercancel"].forEach((ev) => scene.addEventListener(ev, () => { drag = null; }));
+scene.addEventListener("keydown", (e) => {
+  const d = e.shiftKey ? 0.1 : 0.5;
+  const map = { ArrowDown: -d, ArrowUp: d, PageDown: -2, PageUp: 2 };
+  if (e.key in map) { stopTween(); setYh(Math.round((S.yh + map[e.key]) * 10) / 10); e.preventDefault(); }
+  else if (e.key === "Home") { stopTween(); setYh(YMAX); e.preventDefault(); }
+  else if (e.key === "End") { stopTween(); setYh(YMIN); e.preventDefault(); }
+});
+
+/* ---------- state → everything ---------- */
+function update() {
+  const before = S.spilled;
+  st = settle(blk, S.yh, S.Wv, S.spilled);
+  S.yh = st.yh; S.Wv = st.Wv; S.spilled = st.spilled;
+  if (st.spilled > before + 1e-6) {
+    streamUntil = performance.now() + 350;
+    clearTimeout(streamTimer); streamTimer = setTimeout(drawScene, 400);
+  }
+  if (st.s > 1e-6 && st.d >= 0) {                     // record a reading
+    const key = blk.k + ":" + Math.round(st.d * 4);
+    if (!trail.some((r) => r.key === key)) { trail.push({ key, b: blk.k, d: st.d, F: st.B }); if (trail.length > 400) trail.shift(); }
+  }
+  const dep = YMAX - S.yh;
+  $("depth").value = dep.toFixed(1);
+  $("depthVal").textContent = f1(dep) + " " + P.t("unitCm");
+  scene.setAttribute("aria-valuemin", "0"); scene.setAttribute("aria-valuemax", String(YMAX - YMIN));
+  scene.setAttribute("aria-valuenow", dep.toFixed(1));
+  scene.setAttribute("aria-valuetext", P.t("live", { T: f2(st.T), F: f2(st.B), G: f2(st.cup), d: f1(Math.max(0, st.d)) }));
+  KEYS.forEach((k) => $("b-" + k).setAttribute("aria-pressed", k === blk.k ? "true" : "false"));
+  $("tag").textContent = st.s <= 1e-6 ? P.t("tagOut", { W: f2(blk.W) })
+    : st.floating && st.full ? P.t("tagFloat", { W: f2(blk.W) })
+    : !st.full ? P.t("tagLow", { gap: f1(HS - st.H) })
+    : P.t("tagFull", { G: f2(st.cup), F: f2(st.B) });
+  drawScene(); drawGraph(); drawReadout(); drawRule();
+  const msg = P.t("live", { T: f2(st.T), F: f2(st.B), G: f2(st.cup), d: f1(Math.max(0, st.d)) });
+  if (msg !== lastLive) { lastLive = msg; Play.live($("live"), msg); }
+}
+
+/* ---------- picture ---------- */
+const K = 10, YB = 483, CX = 200, BW = 50, SLEN = 130, SH = 100, ypx = (cm) => YB - cm * K;
+function txt(x, y, cls, s, anchor, parent) {
+  Play.svg("text", { class: cls, x, y, "text-anchor": anchor || "start" }, parent || scene).textContent = s;
+}
+function drawScene() {
+  const sv = Play.svg;
+  scene.innerHTML = "";
+  sv("line", { class: "table", x1: 0, y1: 493, x2: 600, y2: 493 }, scene);
+  // water in the can
+  const wy = ypx(st.H);
+  sv("rect", { class: "water", x: 150, y: wy.toFixed(1), width: 100, height: (YB - wy).toFixed(1) }, scene);
+  // block
+  const bTop = ypx(st.yb + blk.h), bBot = ypx(st.yb);
+  sv("rect", { class: "blk b-" + blk.k, x: CX - BW / 2, y: bTop.toFixed(1), width: BW, height: (bBot - bTop).toFixed(1), rx: 2 }, scene);
+  // water surface drawn over the block so the waterline shows on it
+  sv("line", { class: "surf", x1: 150, y1: wy.toFixed(1), x2: 250, y2: wy.toFixed(1) }, scene);
+  // can walls and spout
+  sv("path", { class: "wall", d: `M147,${ypx(16)} L147,${YB + 3} L253,${YB + 3} L253,${ypx(16)}` }, scene);
+  sv("path", { class: "wall", d: `M253,${ypx(HS)} L308,${ypx(HS) + 18}` }, scene);
+  // catch cup on a balance
+  const cupTop = 395, cupBot = 462, cupH = Math.min(cupBot - cupTop - 4, st.spilled / 220 * (cupBot - cupTop - 4));
+  if (cupH > 0.3) sv("rect", { class: "water", x: 300, y: (cupBot - cupH).toFixed(1), width: 70, height: cupH.toFixed(1) }, scene);
+  if (performance.now() < streamUntil) sv("line", { class: "stream", x1: 308, y1: ypx(HS) + 20, x2: 314, y2: (cupBot - cupH).toFixed(1) }, scene);
+  sv("path", { class: "wall", d: `M298,${cupTop} L298,${cupBot + 2} L372,${cupBot + 2} L372,${cupTop}` }, scene);
+  sv("rect", { class: "bal", x: 282, y: 466, width: 106, height: 26, rx: 4 }, scene);
+  txt(398, 452, "lbl", P.t("cupLbl"));
+  txt(398, 482, "lbC", f2(st.cup) + " " + P.t("unitN"));
+  // spring scale: hangs from the hook; when floating the string goes slack
+  const hookTop = ypx(st.yh + blk.h) - SLEN, sBot = hookTop, sTop = sBot - SH;
+  if (st.floating) {
+    const y0 = sBot + 8, y1 = bTop, mid = (y0 + y1) / 2, slack = Math.min(40, (ypx(st.yh + blk.h) - bTop) * 0.8);
+    sv("path", { class: "string", d: `M${CX},${y0} Q${CX + 10 + slack},${mid.toFixed(1)} ${CX},${y1.toFixed(1)}` }, scene);
+  } else sv("line", { class: "string", x1: CX, y1: sBot + 8, x2: CX, y2: bTop.toFixed(1) }, scene);
+  sv("line", { class: "string", x1: CX, y1: sBot, x2: CX, y2: sBot + 8 }, scene);
+  sv("circle", { class: "string", cx: CX, cy: sTop - 9, r: 8 }, scene);
+  sv("rect", { class: "body", x: CX - 16, y: sTop.toFixed(1), width: 32, height: SH, rx: 6 }, scene);
+  for (let n = 0; n <= 10; n++) {
+    const y = sTop + 10 + n * 8;
+    sv("line", { class: "tick", x1: CX - 10, y1: y.toFixed(1), x2: CX - (n % 5 ? 3 : 0), y2: y.toFixed(1) }, scene);
+  }
+  const py = sTop + 10 + clampN(st.T, 0, 10) * 8;
+  sv("polygon", { class: "ptr", points: `${CX - 12},${py.toFixed(1)} ${CX + 8},${(py - 6).toFixed(1)} ${CX + 8},${(py + 6).toFixed(1)}` }, scene);
+  txt(CX + 26, sTop + 34, "lbl", P.t("scaleLbl"));
+  txt(CX + 26, sTop + 64, "lbA", f2(st.T) + " " + P.t("unitN"));
+}
+
+/* ---------- graph: push against depth ---------- */
+const GX0 = 80, GX1 = 560, GY0 = 240, GY1 = 26, DMAX = 14, FMAX = 2.2;
+const gx = (d) => GX0 + clampN(d, 0, DMAX) / DMAX * (GX1 - GX0), gy = (f) => GY0 - clampN(f, 0, FMAX) / FMAX * (GY0 - GY1);
+function marker(b, x, y, r, parent) {
+  const sv = Play.svg, cls = "m-" + b;
+  if (b === "steel") sv("rect", { class: cls, x: (x - r).toFixed(1), y: (y - r).toFixed(1), width: 2 * r, height: 2 * r }, parent);
+  else if (b === "al2") sv("polygon", { class: cls, points: `${x.toFixed(1)},${(y - r * 1.2).toFixed(1)} ${(x + r * 1.1).toFixed(1)},${(y + r * 0.8).toFixed(1)} ${(x - r * 1.1).toFixed(1)},${(y + r * 0.8).toFixed(1)}` }, parent);
+  else sv("circle", { class: cls, cx: x.toFixed(1), cy: y.toFixed(1), r }, parent);
+}
+function drawGraph() {
+  const sv = Play.svg;
+  graph.innerHTML = "";
+  for (let f = 0; f <= 2; f += 0.5) {
+    sv("line", { class: "grid", x1: GX0, y1: gy(f), x2: GX1, y2: gy(f) }, graph);
+    Play.svg("text", { class: "lbl", x: GX0 - 8, y: gy(f) + 7, "text-anchor": "end" }, graph).textContent = Play.fmt(f, 1);
+  }
+  for (let d = 0; d <= DMAX; d += 2) Play.svg("text", { class: "lbl", x: gx(d), y: GY0 + 26, "text-anchor": "middle" }, graph).textContent = d;
+  sv("line", { class: "ax", x1: GX0, y1: GY0, x2: GX1, y2: GY0 }, graph);
+  sv("line", { class: "ax", x1: GX0, y1: GY0, x2: GX0, y2: GY1 - 8 }, graph);
+  Play.svg("text", { class: "lbl", x: GX1, y: GY0 + 54, "text-anchor": "end" }, graph).textContent = P.t("xAxis");
+  Play.svg("text", { class: "lbl", x: GX0 + 10, y: GY1 + 4 }, graph).textContent = P.t("yAxis");
+  if (stp && stp.i === 2) {                            // the rule line for the current block
+    const pts = [], end = blk.floats ? blk.sf : DMAX;
+    for (let i = 0; i <= 56; i++) { const d = end * i / 56; pts.push(gx(d).toFixed(1) + "," + gy(theory(blk, d)).toFixed(1)); }
+    sv("polyline", { class: "theory", points: pts.join(" ") }, graph);
+  }
+  trail.forEach((r) => marker(r.b, gx(r.d), gy(r.F), 5, graph));
+  if (st.s > 1e-6) sv("circle", { class: "now", cx: gx(st.d), cy: gy(st.B), r: 11 }, graph);
+  // full-under depth marker for the current block
+  if (!blk.floats) {
+    const x = gx(blk.h);
+    sv("line", { class: "grid", x1: x, y1: GY0, x2: x, y2: GY1, "stroke-dasharray": "4 4" }, graph);
+  }
+  const seen = KEYS.filter((k) => trail.some((r) => r.b === k));
+  $("legend").innerHTML = "";
+  const lg = document.createElement("div"); lg.className = "legend";
+  seen.forEach((k) => {
+    const sp = document.createElement("span");
+    const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = `var(--${{ al: "a", steel: "h", al2: "hl", wood: "b" }[k]})`;
+    sp.append(dot, document.createTextNode(P.t("b" + k)));
+    lg.appendChild(sp);
+  });
+  const key = document.createElement("span");
+  key.textContent = P.t("legendKey") + (stp && stp.i === 2 ? " · " + P.t("theoryKey") : "");
+  lg.appendChild(key);
+  $("legend").appendChild(lg);
+}
+
+/* ---------- readout table ---------- */
+function drawReadout() {
+  const N = " " + P.t("unitN"), row = (k, v, cls) => `<tr${cls ? ' class="' + cls + '"' : ""}><td>${P.t(k)}</td><td>${v}</td></tr>`;
+  $("readout").hidden = stp && stp.i === 0;
+  $("readout").innerHTML = row("rW", f2(blk.W) + N) + row("rT", f2(st.T) + N) + row("rF", f2(blk.W - st.T) + N, "key") +
+    row("rG", f2(st.cup) + N, "key") + row("rV", f1(st.V) + " " + P.t("unitCm3")) + row("rD", f1(Math.max(0, st.d)) + " " + P.t("unitCm"));
+}
+
+/* ---------- step 3: the rule with numbers ---------- */
+function drawRule() {
+  const box = $("rule");
+  if (!stp || stp.i !== 2) { box.innerHTML = ""; return; }
+  let h = "<p>" + P.t("ruleMain") + "</p>";
+  if (st.s > 1e-6) {
+    const Vm = st.V / 1e6;
+    h += "<p>" + P.t("ruleNow", { V: f1(st.V), m: f1(RHO_W * st.V), Vm: Vm.toExponential(2).replace("e-", " × 10^-").replace(/\^-(\d+)/, (m, n) => "⁻" + [...n].map((c) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[+c]).join("")), F: f2(st.B), dF: f2(blk.W - st.T), G: f2(st.cup) }) + "</p>";
+  } else h += "<p>" + P.t("ruleOut") + "</p>";
+  if (st.floating) h += "<p>" + P.t("ruleFloat", { s: f1(blk.sf), W: f2(blk.W) }) + "</p>";
+  else if (st.s >= blk.h - 1e-6) {
+    const top = st.d - blk.h, pt = pressure(top), pb = pressure(st.d), A = AB / 1e4;
+    h += "<p>" + P.t("ruleDeep", { pt: Play.fmt(pt, 0), pb: Play.fmt(pb, 0), dp: Play.fmt(pb - pt, 0), A: Play.fmt(A, 4), Fp: f2((pb - pt) * A) }) + "</p>";
+  } else h += "<p>" + P.t("ruleNotYet") + "</p>";
+  h += '<table class="readout"><tr><th>' + P.t("tblH") + "</th><th>" + P.t("tW") + "</th><th>" + P.t("tF") + "</th></tr>";
+  KEYS.forEach((k) => {
+    const b = blockInfo(k), F = b.floats ? b.W : b.Bfull;
+    h += "<tr" + (k === blk.k ? ' class="key"' : "") + "><td>" + P.t("b" + k) + "</td><td>" + f2(b.W) + " N</td><td>" + f2(F) + " N" + (b.floats ? " (" + P.t("tFl") + ")" : "") + "</td></tr>";
+  });
+  h += "</table><p class=\"note\">" + P.t("tblNote") + "</p>";
+  box.innerHTML = h;
+}
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }, { label: P.t("o4") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = i === 2 ? "" : P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  if (st) { drawGraph(); drawReadout(); drawRule(); }
+});
+function resetAll() {
+  stopTween(); trail = []; lastLive = ""; $("live").textContent = "";
+  S.blk = "al"; blk = blockInfo("al"); S.yh = YMAX; S.Wv = AC * HS; S.spilled = 0;
+  pr.reset(); stp.go(0); update();
+}
+$("reset").addEventListener("click", resetAll);
+resetAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What makes a sound?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  #fig { height: auto; aspect-ratio: 600 / 380; max-height: 420px; touch-action: none; }
+  #fig text { fill: var(--fg); }
+  #fig text.mut { fill: var(--muted); }
+  #fig .hot { cursor: pointer; }
+  #fig .hot:focus { outline: none; }
+  #fig .hot:focus-visible .ring { stroke: var(--hl); stroke-width: 3; }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 3.6em; }
+  .btnrow { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btnrow button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+  .live2 { margin: 0 0 6px; }
+  .result .math { white-space: normal; }
+  #snd[aria-pressed=true] { border-color: var(--a); color: var(--a); font-weight: 650; }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="snd" aria-pressed="false"></button>
+      <button type="button" class="small" id="pause" aria-pressed="false"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 380" role="group" data-t-aria="figAria"></svg>
+      <div id="c1" class="controls">
+        <div class="btnrow">
+          <button type="button" id="soft" data-t="softBtn"></button>
+          <button type="button" id="hard" data-t="hardBtn"></button>
+        </div>
+      </div>
+      <div id="c2" hidden>
+        <div class="controls">
+          <label for="len" data-t="lenLabel"></label>
+          <input type="range" id="len" min="8" max="24" step="1" value="20">
+          <output id="lenVal" for="len"></output>
+        </div>
+        <div class="controls">
+          <label for="str" data-t="strLabel"></label>
+          <input type="range" id="str" min="1" max="5" step="1" value="2">
+          <output id="strVal" for="str"></output>
+          <button type="button" id="pluck" data-t="pluckBtn"></button>
+        </div>
+      </div>
+      <div id="c3" hidden>
+        <div class="controls">
+          <label for="air" data-t="airLabel"></label>
+          <input type="range" id="air" min="0" max="100" step="1" value="100">
+          <output id="airVal" for="air"></output>
+        </div>
+        <div class="controls">
+          <div class="btnrow">
+            <button type="button" id="ring" aria-pressed="false"></button>
+            <button type="button" id="pumpBtn" data-t="pumpBtn"></button>
+            <button type="button" id="airIn" data-t="airIn"></button>
+          </div>
+        </div>
+      </div>
+      <div id="c4" class="controls" hidden>
+        <div class="btnrow" id="chips" role="group" data-t-aria="chipsAria"></div>
+        <button type="button" id="hit" data-t="hitBtn"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <div id="predict2"></div>
+      <p id="stepBody"></p>
+      <p class="note live2" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" id="data"></p>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "What makes a sound?", eyebrow: "Science · Stage 1",
+    h1: "Every sound comes from something vibrating",
+    intro: "Guess first, then hit a drum, twang a ruler and pump the air out of a jar. Sound is off until you turn it on; the page works without it.",
+    reset: "Reset", pause: "Pause", play: "Play",
+    sndOff: "Sound: off", sndOn: "Sound: on", sndNone: "No sound here",
+    figAria: "A picture that changes with each step: a drum, a ruler on a table, a bell in a jar, and sound passing through air, water or wood",
+    s1: "Guess", s2: "Ruler", s3: "Bell jar", s4: "Rule",
+    k1: "Predict first", t1: "Hit the drum harder",
+    b1: "A drum skin shakes back and forth when you hit it. That shaking is called vibrating. The boxes on the right draw the sound wave it makes.",
+    b1done: "Count the waves in each box: the same number, so the note is the same. The hard hit made taller waves. Taller waves mean louder, not higher.",
+    q: "You hit the same drum softly, then hard. What changes?",
+    o1: "It sounds higher", o2: "It sounds louder, the note stays the same", o3: "Nothing changes",
+    right: "Yes. Watch the two waves.", wrong: "Watch the two waves.",
+    softBtn: "Soft tap", hardBtn: "Hard hit", soft: "Soft tap", hard: "Hard hit", drum: "drum",
+    live1none: "Hit the drum softly and hard.",
+    live1: "{who}: wave height {a}, {n} waves in the box.",
+    k2: "Hands on", t2: "Twang a ruler",
+    b2: "Drag the tip of the ruler down and let go, or press Twang. Slide the ruler on the table to make the part that sticks out shorter or longer. Keys: ←/→ slide it, ↑/↓ how hard, Enter twangs.",
+    lenLabel: "Sticks out", strLabel: "How hard", pluckBtn: "Twang", lenOut: "{n} cm",
+    rulerAria: "Ruler. Left and right arrows slide it, up and down set how hard, Enter twangs it.",
+    waveLab: "sound wave", pitchLab: "Pitch", loudLab: "Loud", over: "{n} cm",
+    low: "low", mid: "middle", high: "high", soft_: "soft", medium: "medium", loud: "loud",
+    live2: "{L} cm sticks out: it vibrates {r} times as fast as at 24 cm, so the note is {p}. How hard: {s} of 5, so it is {l}.",
+    k3: "Predict, then pump", t3: "A bell in a jar",
+    b3: "An electric bell rings inside a glass jar. A pump can take the air out. Use the slider, tap the pump, or ring the bell and watch.",
+    b3done: "With less air the sound fades, but the bell never stops shaking. With no air there is nothing to carry the shaking to your ear. Sound cannot cross empty space.",
+    q2: "The bell keeps ringing while we pump out all the air. What will you hear?",
+    p1: "The same ring: sound can go through empty space", p2: "Quieter and quieter, but the bell still shakes", p3: "The bell stops shaking",
+    right2: "Yes. Watch the air go.", wrong2: "Watch the air go.",
+    airLabel: "Air in the jar", ringOn: "Ring the bell", ringOff: "Stop the bell", pumpBtn: "Pump once", airIn: "Let air back in",
+    pumpTag: "pump", ear: "ear", airPct: "{n}% air", pumpAria: "Pump. Press to pump out some air.",
+    heardLoud: "loud", heardLess: "quieter", heardFaint: "very faint", heardNone: "nothing",
+    live3: "Air left: {p}%. The bell is shaking. Your ear hears: {h}.",
+    live3quiet: "Air left: {p}%. The bell is not ringing.",
+    k4: "The rule", t4: "Shake, pass it on, hear it",
+    b4: "Every sound starts with something vibrating. The shake is passed from bit to bit through air, water or a solid, all the way to your ear. Faster vibrations sound higher. Bigger vibrations sound louder. With nothing in between, no sound gets through. Tap the drum and pick what the sound goes through.",
+    chipsAria: "What the sound goes through", air_: "Air", water: "Water", wood: "Wood", vac: "Empty space",
+    hitBtn: "Hit the drum",
+    louder: "taller = louder", higher: "closer = higher", heard: "heard!",
+    live4air: "Air: sound goes about {v} m each second, so 1 km takes about {t} s.",
+    live4water: "Water: the bits are packed closer, and sound goes faster than in air.",
+    live4wood: "Wood: a solid. Sound goes faster still.",
+    live4vac: "Empty space: nothing to pass the shake on. The drum shakes, but your ear hears nothing.",
+    resultTitle: "What we found", resultMain: "sound = vibration passed on → faster is higher, bigger is louder",
+    resultNote: "A louder sound is not a higher one. And with no air, water or solid in between, no sound gets through.",
+    explainK: "Explain it", explainQ: "A friend says hitting a drum harder makes the note higher. Use the drum and the ruler to show them what really makes a note higher.",
+    homeK: "Try at home", homeQ: "Hold a ruler on a table with part of it sticking out, and twang it. Make the part shorter: what happens to the note? Twang harder: what changes? Then put your ear on the table while someone scratches the far end softly.",
+    dataNote: "Speed of sound in air ≈ {v} m/s at 20 °C, so 1 km takes ≈ {t} s. In water it is about 1480 m/s and in wood about 3000–4000 m/s along the grain; the dots in step 4 move with these ratios, slowed down a lot. Ruler: a strip held at one end vibrates faster as the free part gets shorter, as 1 ÷ length² (half the length, 4 times as fast). The picture is slowed down, and the tone you hear is raised so it is easy to hear; only the ratios are real. Loudness here is shown by wave height, a simple model. Bell jar: the sound bar is drawn as the share of air left; in a real jar a little sound still leaks out through the base and the bell's wires, so it gets very faint rather than fully silent.",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "声音是怎么来的？", eyebrow: "科学 · 阶段 1",
+    h1: "声音都来自物体的振动",
+    intro: "先猜，再敲鼓、弹尺子、把罐子里的空气抽走。声音默认关着，打开才会响；不开声音也能完整使用。",
+    reset: "重置", pause: "暂停", play: "播放",
+    sndOff: "声音：关", sndOn: "声音：开", sndNone: "这里放不了声音",
+    figAria: "每一步换一幅图：鼓、桌边的尺子、罐子里的铃，以及声音穿过空气、水或木头",
+    s1: "先猜", s2: "尺子", s3: "罩子里的铃", s4: "规律",
+    k1: "先猜一猜", t1: "用力敲鼓",
+    b1: "一敲鼓，鼓面就会来回抖动，这叫振动。右边的框画出了它发出的声波。",
+    b1done: "数一数每个框里的波：一样多，所以音高一样。用力敲的波更高。波更高是更响，不是音更高。",
+    q: "同一面鼓，先轻轻敲，再用力敲。什么会变？",
+    o1: "声音变高了", o2: "声音变响了，音高不变", o3: "什么都不变",
+    right: "对！看看这两个波。", wrong: "看看这两个波。",
+    softBtn: "轻轻敲", hardBtn: "用力敲", soft: "轻轻敲", hard: "用力敲", drum: "鼓",
+    live1none: "轻轻敲一下，再用力敲一下。",
+    live1: "{who}：波高 {a}，框里有 {n} 个波。",
+    k2: "动手", t2: "弹一弹尺子",
+    b2: "把尺子伸出来的那头往下拖再放手，或者按「弹」。在桌上推拉尺子，让伸出来的部分变短或变长。键盘：←/→ 推拉，↑/↓ 用力大小，回车弹。",
+    lenLabel: "伸出来", strLabel: "用力", pluckBtn: "弹", lenOut: "{n} 厘米",
+    rulerAria: "尺子。左右方向键推拉，上下方向键调用力，回车弹一下。",
+    waveLab: "声波", pitchLab: "音高", loudLab: "响度", over: "{n} 厘米",
+    low: "低", mid: "中", high: "高", soft_: "轻", medium: "中等", loud: "响",
+    live2: "伸出 {L} 厘米：振动快慢是伸出 24 厘米时的 {r} 倍，所以音{p}。用力 {s}（满分 5），所以声音{l}。",
+    k3: "先猜，再抽气", t3: "罩子里的铃",
+    b3: "玻璃罩里有一个电铃在响。抽气机能把罩子里的空气抽走。拖滑块、点抽气机，或者让铃响起来看一看。",
+    b3done: "空气越少，声音越小，可铃一直在抖。没有空气，就没有东西把振动传到耳朵。声音不能穿过真空。",
+    q2: "铃一直响着，我们把空气全抽走。你会听到什么？",
+    p1: "一样响：声音在真空里也能传", p2: "越来越小，可铃还在抖", p3: "铃不抖了",
+    right2: "对！看着空气被抽走。", wrong2: "看着空气被抽走。",
+    airLabel: "罩里的空气", ringOn: "让铃响", ringOff: "让铃停", pumpBtn: "抽一下", airIn: "放空气进去",
+    pumpTag: "抽气机", ear: "耳朵", airPct: "空气 {n}%", pumpAria: "抽气机。按一下抽走一些空气。",
+    heardLoud: "响", heardLess: "小一些", heardFaint: "很微弱", heardNone: "听不到",
+    live3: "还剩空气 {p}%。铃在抖。耳朵听到：{h}。",
+    live3quiet: "还剩空气 {p}%。铃没有响。",
+    k4: "规律", t4: "抖动、传过去、听到",
+    b4: "声音都从物体的振动开始。这份抖动靠空气、水或固体一点一点传过去，一直传到耳朵。振得越快，音越高；振得越大，声音越响。中间什么都没有，声音就传不过来。敲一敲鼓，再选声音穿过什么。",
+    chipsAria: "声音穿过什么", air_: "空气", water: "水", wood: "木头", vac: "真空",
+    hitBtn: "敲鼓",
+    louder: "波越高 = 越响", higher: "波越密 = 越高", heard: "听到了！",
+    live4air: "空气：声音每秒大约走 {v} 米，所以走 1 千米大约要 {t} 秒。",
+    live4water: "水：小颗粒挨得更紧，声音比在空气里传得快。",
+    live4wood: "木头：是固体，声音传得更快。",
+    live4vac: "真空：没有东西把抖动传下去。鼓在抖，耳朵却听不到。",
+    resultTitle: "我们发现", resultMain: "声音 = 振动传过来 → 振得快音高，振得大声响",
+    resultNote: "声音响不等于音高。中间没有空气、水或固体，声音就传不过来。",
+    explainK: "说一说", explainQ: "朋友说用力敲鼓，音就会变高。用鼓和尺子给他看看，到底什么才让音变高。",
+    homeK: "家里做一做", homeQ: "把尺子压在桌边，让一部分伸出去，弹一下。把伸出去的部分变短，音怎么变？用力弹，什么变了？再把耳朵贴在桌面上，请别人在桌子另一头轻轻刮。",
+    dataNote: "空气中的声速 ≈ {v} 米/秒（20 °C），走 1 千米约 {t} 秒。水中约 1480 米/秒，木头中顺着纹理约 3000–4000 米/秒；第 4 步小点的快慢按这些比例画，并放慢了很多。尺子：一端压住的细条，伸出部分越短振动越快，与长度的平方成反比（长度减半，快 4 倍）。图里放慢了，听到的音也调高了，好让人听清；只有比例是真的。响度用波的高度表示，是简化的模型。罩子里的铃：声音条按剩下的空气比例画；真的罩子里，声音还会从底座和铃的电线漏出一点，所以只是变得很微弱，不是完全没声。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- pure model ----------
+const V_AIR = 343, V = { air: 343, water: 1480, wood: 3500 }; // m/s; wood: mid of 3000–4000 along the grain
+const LMIN = 8, LMAX = 24, SMAX = 5;
+const rateRatio = (L) => (LMAX / Play.clamp(L, LMIN, LMAX)) ** 2;         // vibration rate vs. 24 cm, ∝ 1/L²
+const pitchWord = (r) => (r < 2 ? "low" : r < 4.5 ? "mid" : "high");
+const loudWord = (s) => (s <= 2 ? "soft_" : s === 3 ? "medium" : "loud");
+const heardWord = (p) => (p >= 70 ? "heardLoud" : p >= 25 ? "heardLess" : p > 0 ? "heardFaint" : "heardNone");
+const kmTime = (v) => 1000 / v;
+const pumpOnce = (a) => { const n = Math.round(a * 0.6); return n < 4 ? 0 : n; };
+const crossTime = (m) => (m === "vac" ? Infinity : (3 * V_AIR) / V[m]); // seconds on screen to cross the box
+
+// ---------- state ----------
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const mv = Play.reduced ? 0 : 1;
+let cur = 0, paused = false, raf = 0, last = 0, clock = 0;
+const DR = { soft: { age: Infinity, A: 14 }, hard: { age: Infinity, A: 42 } }; let queue = null, s1done = false;
+let L = 20, S = 2, rul = { age: Infinity, D0: 0 }, drag = null, tipD = 0;
+let air = 100, ringing = false, pumpAnim = null, handle = 0, strikeT = 0, s3done = false;
+let med = "air", pulses = [], flash = 0;
+
+// ---------- drawing helpers ----------
+const W = 600, H = 380;
+const bg = Play.svg("g", {}, fig), dyn = Play.svg("g", { "pointer-events": "none" }, fig), hot = Play.svg("g", {}, fig), labs = Play.svg("g", { "pointer-events": "none" }, fig);
+// persistent hit areas / focus targets (not redrawn, so focus survives animation)
+function hotArea(tag, attrs, focus) {
+  const g = Play.svg("g", { class: "hot" }, hot);
+  if (focus) { g.setAttribute("tabindex", "0"); g.setAttribute("role", focus); }
+  const el = Play.svg(tag, Object.assign({ class: "ring", fill: "transparent", stroke: "transparent" }, attrs), g);
+  return { g, el, show(on) { g.style.display = on ? "" : "none"; } };
+}
+Play.svg("rect", { x: 0, y: 0, width: W, height: H, fill: "transparent" }, bg);
+let fs = 14;
+function updateFs() {
+  const r = fig.getBoundingClientRect(), sc = Math.min(r.width / W, r.height / H);
+  fs = sc > 0 ? Math.max(14, 13.5 / sc) : 14;
+}
+function txt(x, y, s, attrs, parent) {
+  const t = Play.svg("text", Object.assign({ x, y, "font-size": fs.toFixed(1), "text-anchor": "middle" }, attrs || {}), parent || labs);
+  t.textContent = s;
+  return t;
+}
+function wavePath(x0, x1, yc, A, cycles, phase) {
+  let d = "";
+  for (let i = 0; i <= 160; i++) {
+    const u = i / 160, x = x0 + (x1 - x0) * u, y = yc - A * Math.sin(2 * Math.PI * cycles * u - phase);
+    d += (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+  }
+  return d;
+}
+function wave(x0, x1, yc, A, cycles, phase, attrs) {
+  return Play.svg("path", Object.assign({ d: wavePath(x0, x1, yc, A, cycles, phase), fill: "none", stroke: "var(--a)", "stroke-width": 2.5, "stroke-linejoin": "round" }, attrs || {}), dyn);
+}
+function box(x, y, w, h) { Play.svg("rect", { x, y, width: w, height: h, rx: 10, fill: "var(--soft)", stroke: "var(--line)" }, dyn); }
+function meter(x, y, w, frac, label) {
+  txt(x - 8, y + fs * 0.35, label, { "text-anchor": "end", class: "mut" });
+  Play.svg("rect", { x, y: y - 7, width: w, height: 14, rx: 7, fill: "var(--soft)", stroke: "var(--line)" }, dyn);
+  const f = Play.clamp(frac, 0, 1);
+  if (f > 0) Play.svg("rect", { x, y: y - 7, width: Math.max(14, w * f), height: 14, rx: 7, fill: "var(--a)" }, dyn);
+}
+function clear() { while (dyn.firstChild) dyn.removeChild(dyn.firstChild); while (labs.firstChild) labs.removeChild(labs.firstChild); }
+const shape = (s) => (s * s * (3 - s)) / 2; // bent strip held at one end
+
+// ---------- sound (Web Audio, only after a click, quiet, optional) ----------
+const AC = window.AudioContext || window.webkitAudioContext;
+const Snd = { ctx: null, out: null, on: false };
+const sndBtn = $("snd");
+function setSound(on) {
+  if (on && !Snd.ctx && AC) {
+    try { Snd.ctx = new AC(); Snd.out = Snd.ctx.createGain(); Snd.out.gain.value = 0.5; Snd.out.connect(Snd.ctx.destination); }
+    catch (e) { Snd.ctx = null; }
+  }
+  Snd.on = !!(on && Snd.ctx);
+  try { if (Snd.ctx) { if (Snd.on) Snd.ctx.resume(); else Snd.ctx.suspend(); } } catch (e) { /* ignore */ }
+  sndBtn.textContent = P.t(!AC ? "sndNone" : Snd.on ? "sndOn" : "sndOff");
+  sndBtn.disabled = !AC;
+  sndBtn.setAttribute("aria-pressed", Snd.on ? "true" : "false");
+}
+function tone(freq, amp, dur, type) {
+  if (!Snd.on || !Snd.ctx || !(amp > 0.001) || !Number.isFinite(freq)) return;
+  try {
+    const c = Snd.ctx, t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.12 * Math.min(1, amp)), t + 0.012); // × 0.5 master → ≤ 0.06
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(Snd.out); o.start(t); o.stop(t + dur + 0.05);
+  } catch (e) { /* page works without sound */ }
+}
+sndBtn.addEventListener("click", () => setSound(!Snd.on));
+
+// ---------- step 1: drum ----------
+const DRUM_F = 1.5, LANE_N = 5;
+function hitDrum(kind) {
+  DR[kind].age = 0;
+  tone(150, kind === "hard" ? 1 : 0.33, 0.9);
+  if (DR.soft.age < Infinity && DR.hard.age < Infinity && !s1done) { s1done = true; text(); }
+  wake(); draw();
+}
+function drawDrum() {
+  const cx = 120, top = 215, rx = 88, ry = 22;
+  let dz = 0, stickDown = false;
+  ["soft", "hard"].forEach((k) => {
+    const h = DR[k];
+    if (h.age < 4) { dz += mv * (h.A / 3) * Math.exp(-h.age / 0.6) * Math.sin(2 * Math.PI * 6 * h.age); if (h.age < 0.12) stickDown = true; }
+  });
+  Play.svg("path", { d: `M${cx - rx} ${top}V${top + 95}A${rx} ${ry} 0 0 0 ${cx + rx} ${top + 95}V${top}`, fill: "var(--b)", opacity: 0.35, stroke: "var(--b)", "stroke-width": 2 }, dyn);
+  for (let i = 0; i < 5; i++) { const x = cx - rx + 18 + i * 34; Play.svg("line", { x1: x, y1: top + 14, x2: x + 17, y2: top + 100, stroke: "var(--b)", "stroke-width": 2, opacity: 0.6 }, dyn); }
+  Play.svg("ellipse", { cx, cy: top, rx, ry, fill: "var(--surface)", stroke: "var(--b)", "stroke-width": 3 }, dyn);
+  Play.svg("path", { d: `M${cx - rx + 6} ${top}Q${cx} ${top + 2.2 * dz} ${cx + rx - 6} ${top}`, fill: "none", stroke: "var(--a)", "stroke-width": 3 }, dyn);
+  const sy = stickDown ? top - 6 : top - 70;
+  Play.svg("line", { x1: cx + 10, y1: sy, x2: cx + 110, y2: sy - 70, stroke: "var(--c)", "stroke-width": 7, "stroke-linecap": "round" }, dyn);
+  Play.svg("circle", { cx: cx + 10, cy: sy, r: 9, fill: "var(--c)" }, dyn);
+  const ringAll = ["soft", "hard"].some((k) => DR[k].age < 1.5);
+  if (ringAll) [1, 2].forEach((k) => {
+    Play.svg("path", { d: `M${cx - rx - 10 * k} ${top - 30}q-10 30 0 60`, fill: "none", stroke: "var(--hl)", "stroke-width": 2.5 }, dyn);
+    Play.svg("path", { d: `M${cx + rx + 10 * k} ${top - 30}q10 30 0 60`, fill: "none", stroke: "var(--hl)", "stroke-width": 2.5 }, dyn);
+  });
+  txt(cx, top + 95 + ry + fs * 1.3, P.t("drum"), { class: "mut" });
+}
+function drawLanes() {
+  const x0 = 260, x1 = 584, lanes = [["soft", 108], ["hard", 270]], live = [];
+  lanes.forEach(([k, yc]) => {
+    const h = DR[k];
+    box(x0, yc - 62, x1 - x0, 124);
+    txt(x0 + 10, yc - 62 + fs * 1.15, P.t(k), { "text-anchor": "start", class: "mut" });
+    Play.svg("line", { x1: x0 + 6, x2: x1 - 6, y1: yc + 8, y2: yc + 8, stroke: "var(--line)" }, dyn);
+    if (h.age === Infinity) { wave(x0 + 6, x1 - 6, yc + 8, 0, LANE_N, 0, { stroke: "var(--muted)", "stroke-dasharray": "4 5", "stroke-width": 1.5 }); return; }
+    const env = Math.exp(-h.age / 1.4);
+    wave(x0 + 6, x1 - 6, yc + 8, h.A, LANE_N, 0, { stroke: "var(--muted)", "stroke-dasharray": "4 5", "stroke-width": 1.5 });
+    if (mv) wave(x0 + 6, x1 - 6, yc + 8, h.A * env, LANE_N, 2 * Math.PI * DRUM_F * h.age);
+    else wave(x0 + 6, x1 - 6, yc + 8, h.A, LANE_N, 0);
+    live.push(P.t("live1", { who: P.t(k), a: Play.fmt(h.A / DR.soft.A, 0), n: LANE_N }));
+  });
+  return live.length ? live.join(" ") : P.t("live1none");
+}
+
+// ---------- step 2: ruler ----------
+const EDGE = 330, RY = 238, PX = 10; // table edge x, ruler top y, px per cm
+function rulerTip() {
+  if (drag && drag.mode === "tip") return tipD;
+  if (rul.age === Infinity) return 0;
+  const env = Math.exp(-rul.age / 1.6);
+  return mv * rul.D0 * env * Math.cos(2 * Math.PI * 0.8 * rateRatio(L) * rul.age);
+}
+function pluck(D0) {
+  rul.D0 = D0 || S * 12; rul.age = 0;
+  tone(110 * rateRatio(L), S / SMAX, 1.6, "triangle");
+  wake(); draw();
+}
+const RG = hotArea("circle", { r: 17, "stroke-width": 3 }, "slider");
+RG.g.setAttribute("aria-label", P.t("rulerAria")); RG.g.setAttribute("aria-valuemin", LMIN); RG.g.setAttribute("aria-valuemax", LMAX);
+RG.g.addEventListener("keydown", rulerKey);
+function drawRuler() {
+  const r = rateRatio(L), env = rul.age === Infinity ? 0 : Math.exp(-rul.age / 1.6);
+  // wave panel
+  box(16, 16, 568, 128);
+  txt(28, 16 + fs * 1.15, P.t("waveLab"), { "text-anchor": "start", class: "mut" });
+  const yc = 16 + 64 + 8, cyc = 1.2 * r;
+  Play.svg("line", { x1: 22, x2: 578, y1: yc, y2: yc, stroke: "var(--line)" }, dyn);
+  wave(22, 578, yc, S * 9, cyc, 0, { stroke: "var(--muted)", "stroke-dasharray": "4 5", "stroke-width": 1.5 });
+  if (env > 0.01 && mv) wave(22, 578, yc, S * 9 * env, cyc, 2 * Math.PI * 0.8 * rul.age);
+  else if (env > 0.01) wave(22, 578, yc, S * 9, cyc, 0);
+  // table
+  Play.svg("rect", { x: -10, y: RY + 7, width: EDGE + 10, height: 18, fill: "var(--b)", opacity: 0.55 }, dyn);
+  Play.svg("rect", { x: EDGE - 28, y: RY + 25, width: 16, height: H - RY - 25, fill: "var(--b)", opacity: 0.4 }, dyn);
+  // ruler: held part + free part
+  const xs = EDGE - PX * (30 - L), xe = EDGE + PX * L, kf = Math.min(1, L / 16), tip = rulerTip() * kf; // short strips bend less
+  Play.svg("rect", { x: xs, y: RY, width: EDGE - xs, height: 7, fill: "var(--hl)", stroke: "var(--b)" }, dyn);
+  if (env > 0.03 && rul.age < Infinity && !(drag && drag.mode === "tip")) [1, -1].forEach((sg) => {
+    let d = "";
+    for (let i = 0; i <= 20; i++) { const s = i / 20; d += (i ? "L" : "M") + (EDGE + s * PX * L).toFixed(1) + " " + (RY + 3.5 + sg * rul.D0 * kf * env * shape(s)).toFixed(1); }
+    Play.svg("path", { d, fill: "none", stroke: "var(--hl)", "stroke-width": 7, opacity: 0.3 }, dyn);
+  });
+  let d = "";
+  for (let i = 0; i <= 24; i++) { const s = i / 24; d += (i ? "L" : "M") + (EDGE + s * PX * L).toFixed(1) + " " + (RY + 3.5 + tip * shape(s)).toFixed(1); }
+  Play.svg("path", { d, fill: "none", stroke: "var(--b)", "stroke-width": 9, "stroke-linecap": "butt" }, dyn);
+  Play.svg("path", { d, fill: "none", stroke: "var(--hl)", "stroke-width": 6 }, dyn);
+  // hand pressing the held end
+  const hx = EDGE - 34;
+  Play.svg("rect", { x: hx - 22, y: RY - 30, width: 44, height: 28, rx: 12, fill: "var(--c)" }, dyn);
+  Play.svg("rect", { x: hx - 6, y: RY - 70, width: 16, height: 44, rx: 7, fill: "var(--c)", opacity: 0.8 }, dyn);
+  // overhang dimension
+  const dy = RY + 50;
+  Play.svg("path", { d: `M${EDGE} ${dy - 6}V${dy + 6}M${xe} ${dy - 6}V${dy + 6}M${EDGE} ${dy}H${xe}`, stroke: "var(--muted)", "stroke-width": 1.5, fill: "none" }, dyn);
+  txt((EDGE + xe) / 2, dy + fs * 1.2, P.t("over", { n: L }));
+  // meters
+  const mx = 120, lo = 1, hi = rateRatio(LMIN); // under the table, clear of the dimension label
+  meter(mx, 302, 150, Math.log(r / lo) / Math.log(hi / lo) * 0.85 + 0.15, P.t("pitchLab"));
+  meter(mx, 344, 150, S / SMAX, P.t("loudLab"));
+  // focus / tip handle
+  Play.svg("circle", { cx: xe, cy: RY + 3.5 + tip, r: 12, fill: "var(--hl)", stroke: "var(--b)", "stroke-width": 2 }, dyn);
+  RG.el.setAttribute("cx", xe); RG.el.setAttribute("cy", RY + 3.5 + tip);
+  RG.g.setAttribute("aria-valuenow", L); RG.g.setAttribute("aria-valuetext", P.t("over", { n: L }) + ", " + S + " / " + SMAX);
+  return P.t("live2", { L, r: Play.fmt(r, 1), p: P.t(pitchWord(r)), s: S, l: P.t(loudWord(S)) });
+}
+function setL(v) { if (!Number.isFinite(v)) return; L = Play.clamp(Math.round(v), LMIN, LMAX); $("len").value = L; }
+function setS(v) { if (!Number.isFinite(v)) return; S = Play.clamp(Math.round(v), 1, SMAX); $("str").value = S; }
+function rulerKey(e) {
+  const k = e.key;
+  if (k === "ArrowLeft" || k === "ArrowRight") setL(L + (k === "ArrowRight" ? 1 : -1));
+  else if (k === "ArrowUp" || k === "ArrowDown") setS(S + (k === "ArrowUp" ? 1 : -1));
+  else if (k === "Enter" || k === " ") pluck();
+  else return;
+  e.preventDefault(); draw();
+}
+
+// ---------- step 3: bell jar ----------
+const JX = 250, JB = 322, JR = 112, JT = 168; // jar centre x, base y, radius, where the dome starts
+const dots = (() => { // fixed air dots inside the jar
+  let s = 7; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647), out = [];
+  while (out.length < 64) {
+    const x = JX - JR + 10 + rnd() * (2 * JR - 20), y = JT - JR + 14 + rnd() * (JB - JT + JR - 24);
+    const inDome = y > JT || Math.hypot(x - JX, y - JT) < JR - 10;
+    const inBell = Math.abs(x - JX) < 52 && y > 90 && y < 215;
+    if (inDome && !inBell) out.push([x, y, rnd() * 6.28]);
+  }
+  return out;
+})();
+const PUMP = hotArea("rect", { x: 26, y: 150, width: 64, height: 192, rx: 8, "stroke-width": 3 }, "button");
+PUMP.g.setAttribute("aria-label", P.t("pumpAria"));
+PUMP.g.addEventListener("pointerdown", (e) => { e.preventDefault(); doPump(); });
+PUMP.g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); doPump(); } });
+function drawJar() {
+  const a = air / 100, bellY = 110;
+  Play.svg("rect", { x: JX - JR - 30, y: JB, width: 2 * JR + 60, height: 16, rx: 4, fill: "var(--b)", opacity: 0.55 }, dyn);
+  Play.svg("path", { d: `M${JX - JR} ${JB}V${JT}A${JR} ${JR} 0 0 1 ${JX + JR} ${JT}V${JB}`, fill: "var(--c)", "fill-opacity": 0.07, stroke: "var(--c)", "stroke-width": 3 }, dyn);
+  const n = Math.round(dots.length * a);
+  for (let i = 0; i < n; i++) {
+    const [x, y, ph] = dots[i], j = mv && ringing ? 1.6 * Math.sin(clock * 9 + ph) : 0;
+    Play.svg("circle", { cx: x + j, cy: y, r: 2.6, fill: "var(--c)", opacity: 0.6 }, dyn);
+  }
+  // sound rings: inside (needs air) and outside towards the ear
+  if (ringing && a > 0) for (let k = 0; k < 4; k++) {
+    const r = 50 + ((k * 65 + mv * clock * 90) % 260);
+    const op = a * 0.8 * (1 - r / 320);
+    if (r < JR - 10) Play.svg("circle", { cx: JX, cy: bellY + 40, r, fill: "none", stroke: "var(--a)", "stroke-width": 2.5, opacity: op }, dyn);
+    else { const ang = 0.55; Play.svg("path", { d: `M${JX + r * Math.cos(ang)} ${bellY + 40 - r * Math.sin(ang)}A${r} ${r} 0 0 1 ${JX + r * Math.cos(ang)} ${bellY + 40 + r * Math.sin(ang)}`, fill: "none", stroke: "var(--a)", "stroke-width": 2.5, opacity: op }, dyn); }
+  }
+  // bell + clapper
+  Play.svg("line", { x1: JX, y1: JT - JR, x2: JX, y2: bellY, stroke: "var(--muted)", "stroke-width": 2 }, dyn);
+  const wob = ringing ? mv * 2.5 * Math.sin(clock * 40) : 0;
+  Play.svg("path", { d: `M${JX - 14} ${bellY}Q${JX - 24} ${bellY + 4} ${JX - 28 + wob} ${bellY + 40}L${JX - 40 + wob} ${bellY + 66}H${JX + 40 - wob}L${JX + 28 - wob} ${bellY + 40}Q${JX + 24} ${bellY + 4} ${JX + 14} ${bellY}Z`, fill: "var(--hl)", stroke: "var(--b)", "stroke-width": 2 }, dyn);
+  const sw = ringing ? (mv ? Math.sin(clock * 2 * Math.PI * 5) : 0.6) : 0;
+  Play.svg("line", { x1: JX + 70, y1: bellY + 100, x2: JX + 46 - 6 * sw, y2: bellY + 52, stroke: "var(--muted)", "stroke-width": 2.5 }, dyn);
+  Play.svg("circle", { cx: JX + 46 - 6 * sw, cy: bellY + 52, r: 7, fill: "var(--c)" }, dyn);
+  Play.svg("rect", { x: JX + 58, y: bellY + 98, width: 26, height: 14, rx: 3, fill: "var(--c)", opacity: 0.7 }, dyn);
+  if (ringing) [1, 2].forEach((k) => {
+    Play.svg("path", { d: `M${JX - 44 - 8 * k} ${bellY + 30}q-8 22 0 44`, fill: "none", stroke: "var(--no)", "stroke-width": 2.5 }, dyn);
+    Play.svg("path", { d: `M${JX + 44 + 8 * k} ${bellY + 30}q8 22 0 44`, fill: "none", stroke: "var(--no)", "stroke-width": 2.5 }, dyn);
+  });
+  txt(JX, JB + 16 + fs * 1.25, P.t("airPct", { n: air }));
+  // pump on the left
+  const px = 40, ptop = 210;
+  Play.svg("path", { d: `M${px + 18} ${JB + 8}H${JX - JR - 30}`, stroke: "var(--muted)", "stroke-width": 5 }, dyn);
+  Play.svg("rect", { x: px, y: ptop, width: 36, height: JB + 16 - ptop, rx: 6, fill: "var(--soft)", stroke: "var(--muted)", "stroke-width": 2 }, dyn);
+  const hy = ptop - 46 + 40 * handle;
+  Play.svg("line", { x1: px + 18, y1: hy, x2: px + 18, y2: ptop + 10, stroke: "var(--muted)", "stroke-width": 5 }, dyn);
+  Play.svg("rect", { x: px - 6, y: hy - 8, width: 48, height: 12, rx: 5, fill: "var(--c)" }, dyn);
+  txt(px + 18, JB + 16 + fs * 1.25, P.t("pumpTag"), { class: "mut" });
+  // ear + loudness
+  const ex = 548, ey = 150, heard = ringing ? a : 0;
+  Play.svg("path", { d: `M${ex - 14} ${ey - 26}c22 -18 46 4 34 28c-6 12 -16 14 -16 30c0 14 -16 16 -22 6`, fill: "none", stroke: "var(--c)", "stroke-width": 5, "stroke-linecap": "round" }, dyn);
+  Play.svg("path", { d: `M${ex - 2} ${ey - 8}c8 -6 16 2 10 10`, fill: "none", stroke: "var(--c)", "stroke-width": 3, "stroke-linecap": "round" }, dyn);
+  txt(ex + 4, ey - 40, P.t("ear"), { class: "mut" });
+  Play.svg("rect", { x: ex - 34, y: ey + 72, width: 76, height: 14, rx: 7, fill: "var(--soft)", stroke: "var(--line)" }, dyn);
+  if (heard > 0) Play.svg("rect", { x: ex - 34, y: ey + 72, width: Math.max(14, 76 * heard), height: 14, rx: 7, fill: "var(--a)" }, dyn);
+  return ringing ? P.t("live3", { p: air, h: P.t(heardWord(air)) }) : P.t("live3quiet", { p: air });
+}
+function setAir(v) { if (!Number.isFinite(v)) return; air = Play.clamp(Math.round(v), 0, 100); $("air").value = air; $("airVal").textContent = air + "%"; if (air < 100 && ringing) markS3(); }
+function markS3() { if (air <= 10 && !s3done) { s3done = true; text(); } }
+function doPump() {
+  pumpAnim = null; setAir(pumpOnce(air)); handle = 1;
+  if (!mv) handle = 0;
+  wake(); draw();
+}
+function setRing(on) {
+  ringing = on;
+  const b = $("ring"); b.textContent = P.t(on ? "ringOff" : "ringOn"); b.setAttribute("aria-pressed", on ? "true" : "false");
+  if (on) markS3();
+  wake(); draw();
+}
+
+// ---------- step 4: through what? ----------
+const MX0 = 120, MX1 = 486, MY0 = 168, MY1 = 330, MEDS = ["air", "water", "wood", "vac"];
+const spacing = { air: 26, water: 18, wood: 14 };
+function hitDrum4() {
+  flash = 0;
+  if (med === "vac") { pulses.push({ age: 0, dead: true }); }
+  else if (!mv) { flash = 1.2; tone(150, 0.8, 0.7); }
+  else pulses.push({ age: 0 });
+  wake(); draw();
+}
+function drawRule() {
+  // two mini panels: taller = louder, closer = higher
+  box(16, 14, 278, 118); box(306, 14, 278, 118);
+  txt(155, 14 + fs * 1.2, P.t("louder"));
+  txt(445, 14 + fs * 1.2, P.t("higher"));
+  const yc = 14 + 118 - 44;
+  wave(26, 284, yc, 10, 4, 0, { stroke: "var(--muted)", "stroke-width": 2 });
+  wave(26, 284, yc, 32, 4, 0);
+  wave(316, 574, yc, 22, 3, 0, { stroke: "var(--muted)", "stroke-width": 2 });
+  wave(316, 574, yc, 22, 7, 0);
+  // medium box
+  const fill = { air: "transparent", water: "var(--c)", wood: "var(--b)", vac: "transparent" }[med];
+  Play.svg("rect", { x: MX0, y: MY0, width: MX1 - MX0, height: MY1 - MY0, rx: 8, fill, "fill-opacity": med === "water" ? 0.18 : 0.25, stroke: "var(--line)", "stroke-dasharray": med === "vac" ? "6 6" : "none" }, dyn);
+  const pul = pulses.filter((p) => !p.dead);
+  const xp = pul.map((p) => MX0 + ((MX1 - MX0) * p.age) / crossTime(med));
+  if (med !== "vac") {
+    const g = spacing[med];
+    for (let y = MY0 + g / 2 + 4; y < MY1 - 4; y += g) for (let x = MX0 + g / 2; x < MX1; x += g) {
+      let dx = 0;
+      xp.forEach((q) => { dx += 7 * Math.exp(-(((x - q) / 18) ** 2)); });
+      Play.svg("circle", { cx: x + mv * dx, cy: y, r: dx > 2 ? 4.2 : med === "air" ? 3 : 3.4, fill: dx > 2 ? "var(--a)" : med === "wood" ? "var(--b)" : "var(--c)", opacity: dx > 2 ? 1 : 0.65 }, dyn);
+    }
+  } else txt((MX0 + MX1) / 2, (MY0 + MY1) / 2 + fs * 0.35, P.t("vac"), { class: "mut" });
+  // drum (side view, skin facing right)
+  const dcx = 70, dcy = 250;
+  const shake = pulses.some((p) => p.age < 0.5) ? mv * 5 * Math.sin(clock * 60) : 0;
+  Play.svg("rect", { x: dcx - 50, y: dcy - 50, width: 46, height: 100, fill: "var(--b)", opacity: 0.4, stroke: "var(--b)", "stroke-width": 2 }, dyn);
+  Play.svg("ellipse", { cx: dcx - 4 + shake, cy: dcy, rx: 14, ry: 50, fill: "var(--surface)", stroke: "var(--b)", "stroke-width": 3 }, dyn);
+  // ear
+  const ex = 540, ey = 240;
+  if (flash > 0) Play.svg("circle", { cx: ex, cy: ey, r: 34, fill: "var(--hl)", opacity: 0.35 * Math.min(1, flash) }, dyn);
+  Play.svg("path", { d: `M${ex - 14} ${ey - 26}c22 -18 46 4 34 28c-6 12 -16 14 -16 30c0 14 -16 16 -22 6`, fill: "none", stroke: "var(--c)", "stroke-width": 5, "stroke-linecap": "round" }, dyn);
+  txt(ex + 4, ey - 44, flash > 0 ? P.t("heard") : P.t("ear"), { class: flash > 0 ? "" : "mut" });
+  txt((MX0 + MX1) / 2, MY1 + fs * 1.4, P.t(med === "air" ? "air_" : med), { class: "mut" });
+  return med === "air" ? P.t("live4air", { v: V_AIR, t: Play.fmt(kmTime(V_AIR), 1) }) : P.t("live4" + med);
+}
+const chipBtns = MEDS.map((m) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(m === "air" ? "air_" : m);
+  b.addEventListener("click", () => { med = m; pulses = []; flash = 0; syncChips(); draw(); });
+  $("chips").appendChild(b);
+  return b;
+});
+function syncChips() { chipBtns.forEach((b, i) => b.setAttribute("aria-pressed", MEDS[i] === med ? "true" : "false")); }
+
+const DH1 = hotArea("ellipse", { cx: 120, cy: 255, rx: 94, ry: 82 });
+DH1.g.addEventListener("pointerdown", (e) => { e.preventDefault(); hitDrum("hard"); });
+const DH4 = hotArea("rect", { x: 10, y: 186, width: 92, height: 128 });
+DH4.g.addEventListener("pointerdown", (e) => { e.preventDefault(); hitDrum4(); });
+
+// ---------- draw ----------
+function draw() {
+  updateFs(); clear();
+  DH1.show(cur === 0); RG.show(cur === 1); PUMP.show(cur === 2); DH4.show(cur === 3);
+  let live = "";
+  if (cur === 0) { drawDrum(); live = drawLanes(); }
+  else if (cur === 1) live = drawRuler();
+  else if (cur === 2) live = drawJar();
+  else live = drawRule();
+  Play.live($("live"), live);
+  $("lenVal").textContent = P.t("lenOut", { n: L });
+  $("strVal").textContent = S + " / " + SMAX;
+}
+
+// ---------- pointer on the ruler ----------
+fig.addEventListener("pointerdown", (e) => {
+  if (cur !== 1) return;
+  const p = Play.pointer(fig, e), xe = EDGE + PX * L;
+  if (Math.hypot(p.x - xe, p.y - RY) < 60 || (p.x > EDGE && p.y > 150 && p.y < 330)) {
+    drag = { mode: "tip" }; rul.age = Infinity; tipD = Play.clamp(p.y - RY, -60, 60);
+  } else if (p.x < EDGE && p.y > RY - 80 && p.y < RY + 40) {
+    drag = { mode: "slide", x: p.x, L0: L };
+  } else return;
+  fig.setPointerCapture(e.pointerId); e.preventDefault(); draw();
+});
+fig.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = Play.pointer(fig, e);
+  if (drag.mode === "tip") { tipD = Play.clamp(p.y - RY, -60, 60); setS(Math.max(1, Math.round(Math.abs(tipD) / 12))); }
+  else setL(drag.L0 + (p.x - drag.x) / PX);
+  draw();
+});
+function endDrag() {
+  if (!drag) return;
+  const m = drag.mode; drag = null;
+  if (m === "tip") { const sg = tipD < 0 ? -1 : 1; tipD = 0; pluck(sg * S * 12); } else draw();
+}
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", endDrag);
+
+// ---------- controls ----------
+$("soft").addEventListener("click", () => hitDrum("soft"));
+$("hard").addEventListener("click", () => hitDrum("hard"));
+$("len").addEventListener("input", () => { setL(+$("len").value); draw(); });
+$("str").addEventListener("input", () => { setS(+$("str").value); draw(); });
+$("pluck").addEventListener("click", () => pluck());
+$("air").addEventListener("input", () => { pumpAnim = null; setAir(+$("air").value); draw(); });
+$("ring").addEventListener("click", () => setRing(!ringing));
+$("pumpBtn").addEventListener("click", doPump);
+$("airIn").addEventListener("click", () => { pumpAnim = null; setAir(100); draw(); });
+$("hit").addEventListener("click", hitDrum4);
+
+// ---------- animation ----------
+function anyAnim() {
+  if (cur === 0) return !!queue || DR.soft.age < 4 || DR.hard.age < 4;
+  if (cur === 1) return rul.age < 8;
+  if (cur === 2) return ringing || !!pumpAnim || handle > 0;
+  return pulses.length > 0 || flash > 0;
+}
+function wake() { if (!raf && !paused && anyAnim()) { last = 0; raf = requestAnimationFrame(tick); } }
+function tick(ts) {
+  raf = 0;
+  if (paused) return;
+  const dt = last ? Math.min((ts - last) / 1000, 0.05) : 1 / 60;
+  last = ts; clock += dt;
+  if (cur === 0) {
+    DR.soft.age += dt; DR.hard.age += dt;
+    if (queue && (queue.t -= dt) <= 0) { const k = queue.kind; queue = null; hitDrum(k); }
+  } else if (cur === 1) rul.age += dt;
+  else if (cur === 2) {
+    if (pumpAnim) { pumpAnim.t += dt; setAir(100 * (1 - Math.min(1, pumpAnim.t / 5))); if (pumpAnim.t >= 5) pumpAnim = null; }
+    handle = Math.max(0, handle - dt * 3);
+    if (ringing && (strikeT -= dt) <= 0) { strikeT = 0.2; tone(1100, 0.55 * air / 100, 0.18, "triangle"); }
+  } else {
+    pulses.forEach((p) => {
+      p.age += dt;
+      if (!p.dead && !p.heard && p.age >= crossTime(med)) { p.heard = true; flash = 1.2; tone(150, 0.8, 0.7); }
+    });
+    pulses = pulses.filter((p) => p.age < (p.dead ? 0.6 : crossTime(med) + 0.4));
+    flash = Math.max(0, flash - dt);
+  }
+  draw();
+  if (anyAnim()) raf = requestAnimationFrame(tick);
+}
+const pauseBtn = $("pause");
+function setPause(p) {
+  paused = p; pauseBtn.textContent = P.t(p ? "play" : "pause"); pauseBtn.setAttribute("aria-pressed", p ? "true" : "false");
+  if (!p) wake();
+}
+pauseBtn.addEventListener("click", () => setPause(!paused));
+
+// ---------- text & steps ----------
+function text() {
+  const k = cur + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  let b = P.t("b" + k);
+  if (cur === 0 && s1done) b = P.t("b1done");
+  if (cur === 2 && s3done) b = P.t("b3done");
+  $("stepBody").textContent = b;
+}
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => {
+  DR.soft.age = Infinity; DR.hard.age = Infinity; s1done = false; text();
+  hitDrum("soft");
+  if (mv) queue = { t: 1.6, kind: "hard" }; else hitDrum("hard");
+  wake();
+});
+const pr2 = Play.predict($("predict2"), {
+  q: P.t("q2"),
+  options: [{ label: P.t("p1") }, { label: P.t("p2"), right: true }, { label: P.t("p3") }],
+  right: P.t("right2"), wrong: P.t("wrong2"),
+}, () => {
+  setAir(100); setRing(true);
+  if (mv) pumpAnim = { t: 0 }; else setAir(0);
+  markS3(); wake(); draw();
+});
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  cur = i;
+  $("predict").hidden = i !== 0;
+  $("predict2").hidden = i !== 2;
+  ["c1", "c2", "c3", "c4"].forEach((c, j) => ($(c).hidden = i !== j));
+  queue = null; pumpAnim = null; drag = null;
+  if (i !== 2 && ringing) setRing(false);
+  if (i === 3) { pulses = []; flash = 0; }
+  text(); draw(); wake();
+});
+
+$("reset").addEventListener("click", () => {
+  DR.soft.age = Infinity; DR.hard.age = Infinity; queue = null; s1done = false;
+  setL(20); setS(2); rul.age = Infinity; drag = null; tipD = 0;
+  setAir(100); pumpAnim = null; handle = 0; s3done = false; setRing(false);
+  med = "air"; pulses = []; flash = 0; syncChips();
+  pr.reset(); pr2.reset(); setPause(false); st.go(0);
+});
+$("data").textContent = P.t("dataNote", { v: V_AIR, t: Play.fmt(kmTime(V_AIR), 1) });
+setSound(false); setPause(false); setRing(false); setAir(100); syncChips();
+addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>

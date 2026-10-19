@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New stuff, or the same stuff changed?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 560 / 320; max-height: 400px; }
+  .result .math { white-space: normal; }
+  .atom { stroke-width: 1.2; }
+  .at-H { fill: var(--on-panel); stroke: var(--muted); }
+  .at-C { fill: var(--muted); stroke: var(--fg); }
+  .at-O { fill: var(--no); stroke: var(--fg); }
+  .at-Fe { fill: var(--b); stroke: var(--fg); }
+  .at-Na { fill: var(--hl); stroke: var(--fg); }
+  .at-I { fill: var(--h); stroke: var(--fg); }
+  .box { fill: var(--soft); stroke: var(--line); stroke-width: 1.5; }
+  .liquid { fill: var(--c); }
+  .lbl { fill: var(--fg); font: 600 22px var(--font); }
+  .lbl-m { fill: var(--muted); font: 22px var(--font); }
+  .big { fill: var(--muted); font: 700 64px var(--serif); }
+  .pot { fill: none; stroke: var(--fg); stroke-width: 3; }
+  .water { fill: var(--c); fill-opacity: .35; }
+  .bub { fill: var(--surface); fill-opacity: .7; stroke: var(--c); stroke-width: 2; }
+  .flame1 { fill: var(--hl); } .flame2 { fill: var(--no); }
+  .lens { fill: var(--surface); stroke: var(--fg); stroke-width: 3; }
+  .lensline { stroke: var(--fg); stroke-width: 2; stroke-dasharray: 5 4; }
+  .sq { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+  .sq.on { fill: var(--a); stroke: var(--a); }
+  .grid { stroke: var(--line); stroke-width: 1.5; }
+  .proof { fill: var(--a); font: 700 22px var(--font); }
+  .hint { fill: var(--muted); font: 600 22px var(--font); }
+  .sorter { padding: 0 14px 14px; user-select: none; -webkit-user-select: none; }
+  .tray, .binlist { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; }
+  .tray { padding: 8px; border: 1px dashed var(--line); border-radius: 12px; margin-bottom: 10px; }
+  .bins { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .bin { border: 2px solid var(--line); border-radius: 12px; padding: 8px; background: var(--bg); min-width: 0; }
+  .bin.over { border-color: var(--a); }
+  .bin .binhead { width: 100%; font-size: 14px; font-weight: 650; margin-bottom: 8px; padding: 6px 8px; text-align: left; }
+  .chip { font-size: 14px; padding: 6px 10px; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .chip.sel { border-color: var(--a); box-shadow: 0 0 0 2px var(--a); }
+  .chip.ok { border-color: var(--a); }
+  .chip.bad { border-color: var(--no); color: var(--no); }
+  .ghost { position: fixed; z-index: 20; pointer-events: none; opacity: .92; box-shadow: 0 6px 18px rgba(0,0,0,.2); left: 0; top: 0; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
+  .tag { font-size: 12px; border: 1px solid var(--b); color: var(--b); border-radius: 999px; padding: 1px 9px; }
+  .tag.none { border-color: var(--line); color: var(--muted); }
+  .cardname { font-size: 16px; font-weight: 700; color: var(--fg); margin: 0 0 4px; }
+  .tal { font-size: 14px; color: var(--fg); margin: 0 0 4px; }
+  .tal b { color: var(--muted); font-weight: 600; }
+  .status { font-size: 14px; color: var(--fg); margin: 6px 0 8px; min-height: 1.4em; }
+  .status.win { color: var(--a); font-weight: 700; }
+  .status.bad { color: var(--no); font-weight: 700; }
+  .legend { font-size: 14px; width: 100%; }
+  .dot { width: 11px; height: 11px; border: 1px solid var(--muted); }
+  #keys { font-size: 12px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; }
+  @media (max-width: 560px) { .sorter { padding: 0 10px 12px; } .bin .binhead { font-size: 13px; } }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 560 320" role="img"></svg>
+      <div class="controls" id="animCtl">
+        <button type="button" class="small" id="play"></button>
+        <label for="t" data-t="tLabel"></label>
+        <input type="range" id="t" min="0" max="100" value="0">
+        <span class="val" id="tVal"></span>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="sorter" id="sorter">
+        <div class="tray" id="tray" role="group" data-t-aria="trayAria"></div>
+        <div class="bins">
+          <div class="bin" data-bin="same"><button type="button" class="binhead" data-bin="same" data-t="binSame"></button><div class="binlist" id="binSame"></div></div>
+          <div class="bin" data-bin="new"><button type="button" class="binhead" data-bin="new" data-t="binNew"></button><div class="binlist" id="binNew"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="note" id="keys" data-t="keys"></p>
+      <div id="cardInfo"></div>
+      <p class="status" id="status"></p>
+      <p class="sr" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — pure chemistry and geometry, no DOM (checked in node)
+const RADIUS = { H: 6, C: 9, O: 8.5, Fe: 10, Na: 10, I: 12 };
+const ELS = ["C", "H", "O", "Na", "Fe", "I"];
+const SC = 1.6;                        // drawing scale for molecule shapes
+function ring(cx, cy, r, els, a0) {
+  return els.map((e, k) => [e, +(cx + r * Math.cos(a0 + 2 * Math.PI * k / els.length)).toFixed(2), +(cy + r * Math.sin(a0 + 2 * Math.PI * k / els.length)).toFixed(2)]);
+}
+// shape: [element, x, y]; atoms: full composition (sugar is drawn as its two rings only)
+const SPECIES = {
+  H2O: { f: "H₂O", shape: [["H", -10, 7], ["H", 10, 7], ["O", 0, -1]] },
+  CO2: { f: "CO₂", shape: [["O", -13, 0], ["O", 13, 0], ["C", 0, 0]] },
+  O2: { f: "O₂", shape: [["O", -7, 0], ["O", 7, 0]] },
+  CH4: { f: "CH₄", shape: [["H", -10, -8], ["H", 10, -8], ["H", -10, 8], ["H", 10, 8], ["C", 0, 0]] },
+  H2O2: { f: "H₂O₂", shape: [["H", -17, -9], ["H", 17, 9], ["O", -7, -2], ["O", 7, 2]] },
+  I2: { f: "I₂", shape: [["I", -9, 0], ["I", 9, 0]] },
+  Fe: { f: "Fe", shape: [["Fe", 0, 0]] },
+  Fe2O3: { f: "Fe₂O₃", shape: [["O", -18, 8], ["O", 18, 8], ["O", 0, -11], ["Fe", -9, 1], ["Fe", 9, 1]] },
+  SUC: { f: "C₁₂H₂₂O₁₁", atoms: { C: 12, H: 22, O: 11 },
+    shape: [].concat(ring(-22, 0, 18, ["O", "C", "C", "C", "C", "C"], Math.PI / 6), ring(22, 0, 15, ["C", "C", "C", "O", "C"], Math.PI), [["O", 0, 0]]) },
+  AcOH: { f: "CH₃COOH", shape: [["H", -20, 0], ["H", -15, -10], ["H", -15, 10], ["H", 25, 13], ["C", -8, 0], ["C", 8, 0], ["O", 16, -9], ["O", 16, 9]] },
+  NaHCO3: { f: "NaHCO₃", shape: [["H", 20, 12], ["C", 0, 0], ["O", 0, -12], ["O", -11, 7], ["O", 11, 7], ["Na", -21, 13]] },
+  AcONa: { f: "CH₃COONa", shape: [["H", -20, 0], ["H", -15, -10], ["H", -15, 10], ["C", -8, 0], ["C", 8, 0], ["O", 16, -9], ["O", 16, 9], ["Na", 27, 14]] },
+};
+function comp(sp) {
+  const s = SPECIES[sp];
+  if (s.atoms) return s.atoms;
+  const a = {};
+  s.shape.forEach(([e]) => (a[e] = (a[e] || 0) + 1));
+  return a;
+}
+function halfSize(sp) {
+  const sh = SPECIES[sp].shape;
+  return SC * Math.max(...sh.map(([e, x, y]) => Math.hypot(x, y) + RADIUS[e]));
+}
+function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+// Place molecules in a region without overlap (keeps `avoid` discs clear); deterministic.
+function scatter(list, reg, seed, avoid) {
+  const rnd = seeded(seed), out = [], taken = (avoid || []).slice();
+  list.forEach((sp) => {
+    const r = halfSize(sp);
+    let best = null, bestGap = -Infinity;
+    for (let k = 0; k < 400; k++) {
+      const x = reg[0] + r + rnd() * Math.max(0, reg[1] - reg[0] - 2 * r);
+      const y = reg[2] + r + rnd() * Math.max(0, reg[3] - reg[2] - 2 * r);
+      const gap = taken.reduce((g, q) => Math.min(g, Math.hypot(q[0] - x, q[1] - y) - q[2] - r), 1e9);
+      if (gap > bestGap) { best = [x, y]; bestGap = gap; }
+      if (gap > 10) break;
+    }
+    taken.push([best[0], best[1], r]);
+    out.push([sp, best[0], best[1]]);
+  });
+  return out;
+}
+const rep = (sp, n) => Array(n).fill(sp);
+const FULL = [32, 528, 56, 296], LIQ = [32, 528, 150, 296], TOP = [60, 500, 56, 140];
+const occupied = (mols) => mols.map(([sp, x, y]) => [x, y, halfSize(sp)]);
+function grid(sp, cx, cy, cols, rows, dx, dy, rowShift) {
+  const out = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++)
+    out.push([sp, cx + (c - (cols - 1) / 2) * dx + (r % 2 ? rowShift : 0), cy + (r - (rows - 1) / 2) * dy]);
+  return out;
+}
+// Each card: hints the eye sees (b = bubbles, c = colour change, v = something vanishes), and a particle scene.
+// liq: [liquid top before, liquid top after] (null = no liquid in the picture).
+const CARDS = [
+  { id: "ice", hints: [], liq: [null, 190], make() {
+    return { before: grid("H2O", 280, 228, 4, 2, 72, 60, 20), after: scatter(rep("H2O", 8), [32, 528, 196, 296], 21) }; } },
+  { id: "boil", hints: ["b"], liq: [150, null], make() {
+    return { before: scatter(rep("H2O", 8), LIQ, 2), after: scatter(rep("H2O", 8), FULL, 3) }; } },
+  { id: "sugar", hints: ["v"], liq: [116, 116], make() {
+    const sb = [["SUC", 120, 166], ["SUC", 120, 254]], sa = [["SUC", 140, 190], ["SUC", 420, 250]];
+    return { before: sb.concat(scatter(rep("H2O", 7), [210, 528, 136, 296], 4, occupied(sb))),
+      after: sa.concat(scatter(rep("H2O", 7), [32, 528, 136, 296], 44, occupied(sa))) }; } },
+  { id: "soda", hints: ["b"], liq: [150, 150], make() {
+    const w = scatter(rep("H2O", 6), LIQ, 5), c = scatter(rep("CO2", 3), LIQ, 50, occupied(w));
+    return { before: w.concat(c), after: w.concat(scatter(rep("CO2", 3), TOP, 6)) }; } },
+  { id: "iodine", hints: ["c", "v"], liq: [null, null], make() {
+    return { before: grid("I2", 280, 250, 3, 2, 70, 44, 0), after: scatter(rep("I2", 6), FULL, 7) }; } },
+  { id: "stove", hints: [], liq: [null, null], make() {
+    return { before: scatter(rep("CH4", 2).concat(rep("O2", 4)), FULL, 8), after: scatter(rep("CO2", 2).concat(rep("H2O", 4)), FULL, 9) }; } },
+  { id: "rust", hints: ["c"], liq: [null, null], make() {
+    const fe = [["Fe", 110, 236], ["Fe", 142, 236], ["Fe", 110, 268], ["Fe", 142, 268]];
+    return { before: fe.concat(scatter(rep("O2", 3), [220, 528, 56, 296], 10)), after: [["Fe2O3", 110, 255], ["Fe2O3", 210, 255]] }; } },
+  { id: "fizz", hints: ["b", "v"], liq: [150, 150], make() {
+    const a = scatter(rep("AcONa", 2).concat(rep("H2O", 2)), LIQ, 12);
+    return { before: scatter(rep("AcOH", 2).concat(rep("NaHCO3", 2)), LIQ, 11), after: a.concat(scatter(rep("CO2", 2), TOP, 13)) }; } },
+  { id: "peroxide", hints: ["b"], liq: [150, 150], make() {
+    const a = scatter(rep("H2O", 4), LIQ, 15);
+    return { before: scatter(rep("H2O2", 4), LIQ, 14), after: a.concat(scatter(rep("O2", 2), TOP, 16)) }; } },
+];
+const HINTS = ["b", "c", "v"];
+function count(mols) {
+  const n = {};
+  mols.forEach(([sp]) => (n[sp] = (n[sp] || 0) + 1));
+  return n;
+}
+function atomTotals(mols) {
+  const a = {};
+  mols.forEach(([sp]) => { const c = comp(sp); for (const e in c) a[e] = (a[e] || 0) + c[e]; });
+  return a;
+}
+// Verdict from the molecules alone: new substance <=> a kind of molecule appears that was not there before.
+function analyse(scene) {
+  const nb = count(scene.before), na = count(scene.after);
+  const newKinds = Object.keys(na).filter((sp) => !(sp in nb));
+  const gone = Object.keys(nb).filter((sp) => !(sp in na));
+  const ab = atomTotals(scene.before), aa = atomTotals(scene.after);
+  const els = ELS.filter((e) => e in ab || e in aa);
+  const conserved = els.every((e) => (ab[e] || 0) === (aa[e] || 0));
+  return { nb, na, newKinds, gone, ab, aa, els, conserved, chemical: newKinds.length > 0 };
+}
+// Atom paths: whole molecules of a kind that survives keep their atoms; the rest pair up element by element (nearest first).
+function atomPaths(scene) {
+  const flat = (mols) => {
+    const out = [];
+    mols.forEach(([sp, x, y], m) => SPECIES[sp].shape.forEach(([e, dx, dy], k) => out.push({ e, x: x + dx * SC, y: y + dy * SC, sp, m, k })));
+    return out;
+  };
+  const A = flat(scene.before), B = flat(scene.after), paths = [], usedA = new Set(), usedB = new Set();
+  const molsB = scene.after.map((q, i) => i), takenB = new Set();
+  scene.before.forEach(([sp], mi) => {
+    const mj = molsB.find((j) => !takenB.has(j) && scene.after[j][0] === sp);
+    if (mj === undefined) return;
+    takenB.add(mj);
+    A.forEach((a, i) => { if (a.m !== mi) return;
+      const j = B.findIndex((b) => b.m === mj && b.k === a.k);
+      paths.push([a, B[j]]); usedA.add(i); usedB.add(j); });
+  });
+  const pairs = [];
+  A.forEach((a, i) => { if (usedA.has(i)) return; B.forEach((b, j) => { if (!usedB.has(j) && b.e === a.e) pairs.push([Math.hypot(a.x - b.x, a.y - b.y), i, j]); }); });
+  pairs.sort((p, q) => p[0] - q[0]);
+  pairs.forEach(([, i, j]) => { if (usedA.has(i) || usedB.has(j)) return; usedA.add(i); usedB.add(j); paths.push([A[i], B[j]]); });
+  return { paths, unmatched: A.length - usedA.size + B.length - usedB.size };
+}
+const ease = (t) => { t = Math.min(1, Math.max(0, Number.isFinite(t) ? t : 0)); return t * t * (3 - 2 * t); };
+function frame(paths, t) {
+  const e = ease(t);
+  return paths.map(([a, b]) => ({ e: a.e, x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e }));
+}
+// Evidence ladder: for each clue, how many cards on each side show it.
+function ladder() {
+  const rows = HINTS.map((h) => ({ key: h, same: [], neu: [] }));
+  const proof = { key: "m", same: [], neu: [] };
+  CARDS.forEach((c) => {
+    const A = analyse(c.scene), side = A.chemical ? "neu" : "same";
+    rows.forEach((r) => r[side].push(c.hints.includes(r.key)));
+    proof[side].push(A.newKinds.length > 0);
+  });
+  const all = rows.concat([proof]);
+  all.forEach((r) => { r.inSame = r.same.filter(Boolean).length; r.inNew = r.neu.filter(Boolean).length;
+    r.isProof = r.inSame === 0 && r.inNew === r.neu.length; });
+  return all;
+}
+CARDS.forEach((c) => (c.scene = c.make()));
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "New stuff, or the same stuff changed?", eyebrow: "Chemistry · Stage 3", h1: "New stuff, or the same stuff changed?",
+    intro: "Nine everyday changes. Zoom in on the molecules, then sort them: did a new substance form or not?",
+    reset: "Reset", s1: "Guess", s2: "Sort", s3: "Rule",
+    k1: "Predict first", t1: "What is inside a boiling bubble?",
+    b1: "Pick an answer. The magnifier then shows what is really inside the bubble.",
+    q: "Water boils and big bubbles rise. What are the bubbles made of?",
+    o1: "A new gas: bubbles mean a chemical reaction", o2: "Hydrogen and oxygen split out of the water", o3: "Water vapour: the same H₂O molecules, far apart",
+    right: "Yes. The bubble is water as a gas. Cool the steam on a cold lid and you get liquid water back.",
+    wrong: "Look in the magnifier: the bubble holds H₂O molecules, the same as in the liquid, just far apart. Bubbles alone do not prove a new substance.",
+    figPot: "A pot of boiling water with bubbles, and a magnifier on one bubble", magLbl: "inside a bubble", magAns: "H₂O, still water",
+    k2: "Hands on", t2: "Sort the nine changes",
+    b2: "Tap a card to zoom in and watch its molecules change. Then drag it into a bin, or tap the card and then a bin.",
+    keys: "Keyboard: Tab to a card, Enter to zoom in, ← same substance, → new substance, ↑ back to the tray.",
+    trayAria: "Cards still to sort", binSame: "Same substance", binNew: "New substance",
+    play: "▶ Play", pause: "❚❚ Pause", tLabel: "Before → after", tBefore: "before", tAfter: "after",
+    figScene: "Molecules of {name}, {pct}% of the way from before to after",
+    before: "Before", after: "After", atoms: "Atoms", sees: "You see: {s}", noHint: "no obvious clue",
+    hb: "bubbles", hc: "colour change", hv: "something vanishes",
+    vSame: "Same molecules before and after; only their spacing changed.",
+    vNew: "New kinds of molecule after: {list}. The atoms regrouped.",
+    okSame: "Right: {name} makes no new substance.", okNew: "Right: {name} makes a new substance.",
+    badSame: "Look again at the molecules: “After” has kinds that were not there before.",
+    badNew: "Look again at the molecules: “After” has the same kinds as “Before”. The clues fooled you.",
+    progress: "Sorted {n} of {total} · {c} right", done: "All {total} sorted correctly.",
+    liveCard: "{name}. Before: {b}. After: {a}.",
+    ice: "Ice melting", iceS: "a solid cube turns into a puddle",
+    boil: "Water boiling", boilS: "big bubbles; the water level slowly drops",
+    sugar: "Sugar in water", sugarS: "the grains disappear; the water tastes sweet",
+    soda: "Opening a fizzy drink", sodaS: "a rush of bubbles",
+    iodine: "Warming iodine crystals", iodineS: "dark grey crystals disappear into a violet vapour (a teacher's demo)",
+    stove: "Gas burning on a stove", stoveS: "a blue flame, heat and light",
+    rust: "An iron nail rusting", rustS: "grey metal slowly turns red-brown",
+    fizz: "Vinegar on baking soda", fizzS: "lots of bubbles; the white powder disappears",
+    peroxide: "Hydrogen peroxide on a cut", peroxideS: "white foam bubbles up",
+    n_H2O: "water", n_CO2: "carbon dioxide", n_O2: "oxygen", n_CH4: "methane", n_H2O2: "hydrogen peroxide", n_I2: "iodine",
+    n_Fe: "iron", n_Fe2O3: "rust", n_SUC: "sugar", n_AcOH: "acetic acid", n_NaHCO3: "baking soda", n_AcONa: "sodium acetate",
+    e_H: "H", e_C: "C", e_O: "O", e_Na: "Na", e_Fe: "Fe", e_I: "I",
+    k3: "The rule", t3: "Clues versus proof",
+    b3: "Each square is one card, filled if the card shows that clue. Bubbles, colour change and vanishing turn up on both sides, so they are only clues. New kinds of molecule turn up in every chemical change and in no physical one.",
+    figLadder: "Grid of clues against the two groups of cards",
+    colSame: "same stuff", colNew: "new stuff", rb: "Bubbles", rc: "Colour change", rv: "Vanishes", rm: "New molecules",
+    proof: "proof", hint: "clue", rowLine: "{r}: {s} of {ns} same-stuff cards, {n} of {nn} new-stuff cards.",
+    resultTitle: "What we found", resultMain: "Chemical change ⇔ new kinds of molecules form",
+    resultNote: "Melting, boiling and dissolving keep the same molecules. Bubbles, colour and vanishing are clues to check, not proof. Atoms are never lost; in a chemical change they regroup.",
+    explainK: "Explain it", explainQ: "A friend says: “The sugar disappeared in my tea, so dissolving is a chemical change.” What evidence would you show them?",
+    homeK: "Try at home", homeQ: "Stir a teaspoon of sugar into a little water and leave it on a saucer for a few days. What is left when the water has gone? Now think: could you get baking soda back after pouring vinegar on it?",
+    foot: "Molecules are drawn as overlapping spheres, not to scale; sugar (sucrose, C₁₂H₂₂O₁₁) is drawn as its two rings only, but the atom counts use the full formula. Reactions shown: CH₄ + 2 O₂ → CO₂ + 2 H₂O; 4 Fe + 3 O₂ → 2 Fe₂O₃ (real rust also holds water and needs water to form); CH₃COOH + NaHCO₃ → CH₃COONa + H₂O + CO₂ (in water these are partly ions); 2 H₂O₂ → 2 H₂O + O₂ (sped up by the enzyme catalase in blood). Iodine sublimes when warmed; its vapour is violet. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "变出新物质了吗？", eyebrow: "化学 · 阶段 3", h1: "变出新物质了吗？",
+    intro: "九个生活里的变化。先放大看分子，再分类：有没有生成新物质？",
+    reset: "重置", s1: "先猜", s2: "分类", s3: "规律",
+    k1: "先猜一猜", t1: "沸腾的气泡里是什么？",
+    b1: "先选一个答案，放大镜会显示气泡里到底是什么。",
+    q: "水烧开了，冒出大气泡。气泡里是什么？",
+    o1: "一种新气体：冒泡说明发生了化学反应", o2: "从水里分解出来的氢气和氧气", o3: "水蒸气：还是 H₂O 分子，只是离得远",
+    right: "对。气泡里是气态的水。让蒸汽碰到凉锅盖，又变回液态水。",
+    wrong: "看放大镜：气泡里是 H₂O 分子，和液体里的一样，只是离得远。光冒泡不能证明有新物质。",
+    figPot: "一锅沸腾的水和气泡，放大镜对着其中一个气泡", magLbl: "气泡里面", magAns: "H₂O，还是水",
+    k2: "动手", t2: "给九个变化分类",
+    b2: "点一张卡片放大，看分子怎么变。再把它拖进一个框，或者先点卡片再点框。",
+    keys: "键盘：Tab 选卡片，回车放大，← 没有新物质，→ 有新物质，↑ 放回待分类。",
+    trayAria: "待分类的卡片", binSame: "没有新物质", binNew: "有新物质",
+    play: "▶ 播放", pause: "❚❚ 暂停", tLabel: "变化前 → 变化后", tBefore: "前", tAfter: "后",
+    figScene: "{name}的分子，从变化前到变化后进行到 {pct}%",
+    before: "变化前", after: "变化后", atoms: "原子", sees: "看到的：{s}", noHint: "没有明显线索",
+    hb: "冒泡", hc: "变色", hv: "东西不见了",
+    vSame: "变化前后是同样的分子，只是间距变了。",
+    vNew: "变化后出现了新的分子：{list}。原子重新组合了。",
+    okSame: "对：{name}没有生成新物质。", okNew: "对：{name}生成了新物质。",
+    badSame: "再看分子：“变化后”出现了原来没有的分子。",
+    badNew: "再看分子：“变化后”的分子种类和“变化前”一样。是线索骗了你。",
+    progress: "已分 {n} / {total} · 对 {c} 个", done: "{total} 个全部分对了。",
+    liveCard: "{name}。变化前：{b}。变化后：{a}。",
+    ice: "冰化成水", iceS: "一块冰变成一摊水",
+    boil: "水烧开", boilS: "冒大气泡，水慢慢变少",
+    sugar: "糖放进水里", sugarS: "糖粒不见了，水变甜",
+    soda: "打开汽水", sodaS: "一下子冒出很多气泡",
+    iodine: "加热碘晶体", iodineS: "灰黑色晶体不见了，变成紫色的气（老师演示）",
+    stove: "燃气灶点火", stoveS: "蓝色火焰，发光发热",
+    rust: "铁钉生锈", rustS: "灰色的铁慢慢变成红褐色",
+    fizz: "醋倒在小苏打上", fizzS: "冒出大量气泡，白色粉末不见了",
+    peroxide: "双氧水涂在伤口上", peroxideS: "冒出白色泡沫",
+    n_H2O: "水", n_CO2: "二氧化碳", n_O2: "氧气", n_CH4: "甲烷", n_H2O2: "过氧化氢", n_I2: "碘",
+    n_Fe: "铁", n_Fe2O3: "铁锈", n_SUC: "蔗糖", n_AcOH: "醋酸", n_NaHCO3: "小苏打", n_AcONa: "醋酸钠",
+    e_H: "H", e_C: "C", e_O: "O", e_Na: "Na", e_Fe: "Fe", e_I: "I",
+    k3: "规律", t3: "线索和证据",
+    b3: "每个方格是一张卡片，卡片有这条线索就涂满。冒泡、变色、东西不见了在两边都出现，所以只是线索。新分子在每个化学变化里都有，在物理变化里一个也没有。",
+    figLadder: "线索与两组卡片的对照方格",
+    colSame: "原物质", colNew: "新物质", rb: "冒泡", rc: "变色", rv: "东西不见了", rm: "生成新分子",
+    proof: "证据", hint: "线索", rowLine: "{r}：没有新物质的 {ns} 张里有 {s} 张，有新物质的 {nn} 张里有 {n} 张。",
+    resultTitle: "我们发现", resultMain: "化学变化 ⇔ 生成了新的分子",
+    resultNote: "熔化、沸腾、溶解后还是原来的分子。冒泡、变色、东西不见了只是要去核实的线索，不是证据。原子一个也不少，化学变化里它们重新组合。",
+    explainK: "说一说", explainQ: "朋友说：“糖在茶里不见了，所以溶解是化学变化。”你会拿什么证据说服他？",
+    homeK: "家里做一做", homeQ: "把一小勺糖搅进少量水里，倒在小碟子上放几天。水干了以后剩下什么？再想想：醋倒在小苏打上以后，还能把小苏打变回来吗？",
+    foot: "分子画成相互重叠的小球，不按比例；蔗糖（C₁₂H₂₂O₁₁）只画了两个环，原子数按完整化学式计算。图中的反应：CH₄ + 2 O₂ → CO₂ + 2 H₂O；4 Fe + 3 O₂ → 2 Fe₂O₃（真实铁锈含结晶水，生锈也需要水）；CH₃COOH + NaHCO₃ → CH₃COONa + H₂O + CO₂（在水里部分以离子存在）；2 H₂O₂ → 2 H₂O + O₂（血液里的过氧化氢酶使它变快）。碘受热升华，碘蒸气呈紫色。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent);
+const fig = $("fig"), tIn = $("t"), playBtn = $("play");
+const byId = {};
+CARDS.forEach((c) => { byId[c.id] = c; c.A = analyse(c.scene); c.P = atomPaths(c.scene).paths; });
+const state = { step: 0, sel: "ice", t: 0, playing: false, answered: false, place: {}, last: null };
+let raf = 0, t0 = 0;
+
+function listMols(n) {
+  return Object.keys(n).map((sp) => n[sp] + " " + SPECIES[sp].f + " (" + P.t("n_" + sp) + ")").join(" + ");
+}
+function atomLine(a, els) { return els.map((e) => e + " " + (a[e] || 0)).join(" · "); }
+
+/* ---------- step 1: boiling pot + magnifier ---------- */
+function drawPot() {
+  fig.setAttribute("aria-label", P.t("figPot"));
+  fig.innerHTML = "";
+  S("rect", { class: "water", x: 60, y: 150, width: 220, height: 120 }, fig);
+  S("path", { class: "pot", d: "M50,110 L50,280 L290,280 L290,110" }, fig);
+  [[100, 240, 9], [140, 200, 13], [190, 245, 8], [230, 190, 11], [120, 170, 7], [250, 235, 10], [175, 160, 16]].forEach(([x, y, r]) =>
+    S("circle", { class: "bub", cx: x, cy: y, r }, fig));
+  for (let i = 0; i < 5; i++) {
+    const x = 80 + i * 45;
+    S("path", { class: "flame2", d: `M${x - 14},310 Q${x},266 ${x + 14},310 Z` }, fig);
+    S("path", { class: "flame1", d: `M${x - 7},310 Q${x},286 ${x + 7},310 Z` }, fig);
+  }
+  const L = { x: 430, y: 150, r: 100 };
+  S("line", { class: "lensline", x1: 191, y1: 160, x2: L.x - L.r, y2: L.y }, fig);
+  S("circle", { class: "lens", cx: L.x, cy: L.y, r: L.r }, fig);
+  S("text", { class: "lbl-m", x: L.x, y: 30, "text-anchor": "middle" }, fig).textContent = P.t("magLbl");
+  if (!state.answered) {
+    S("text", { class: "big", x: L.x, y: L.y + 22, "text-anchor": "middle" }, fig).textContent = "?";
+  } else {
+    [[L.x - 40, L.y - 45], [L.x + 45, L.y - 5], [L.x - 25, L.y + 50]].forEach(([x, y]) => molecule("H2O", x, y, fig, 2.2));
+    S("text", { class: "lbl", x: L.x, y: L.y + L.r + 32, "text-anchor": "middle" }, fig).textContent = P.t("magAns");
+  }
+}
+function molecule(sp, cx, cy, parent, k) {
+  SPECIES[sp].shape.slice().sort((a, b) => RADIUS[a[0]] - RADIUS[b[0]]).forEach(([e, x, y]) =>
+    S("circle", { class: "atom at-" + e, cx: cx + x * k, cy: cy + y * k, r: RADIUS[e] * k }, parent));
+}
+
+/* ---------- step 2: particle zoom + sorting ---------- */
+function drawScene() {
+  const c = byId[state.sel], e = ease(state.t);
+  fig.setAttribute("aria-label", P.t("figScene", { name: P.t(c.id), pct: Math.round(state.t * 100) }));
+  fig.innerHTML = "";
+  S("rect", { class: "box", x: 20, y: 20, width: 520, height: 284, rx: 12 }, fig);
+  const [lb, la] = c.liq;
+  [[lb, 1 - e], [la, e]].forEach(([y, op]) => {
+    if (y === null || op <= 0.001) return;
+    S("rect", { class: "liquid", x: 21, y, width: 518, height: 303 - y, "fill-opacity": (0.18 * op).toFixed(3) }, fig);
+  });
+  frame(c.P, state.t).sort((a, b) => RADIUS[a.e] - RADIUS[b.e]).forEach((a) =>
+    S("circle", { class: "atom at-" + a.e, cx: a.x.toFixed(1), cy: a.y.toFixed(1), r: RADIUS[a.e] * SC }, fig));
+  S("text", { class: "lbl", x: 34, y: 48 }, fig).textContent = state.t < 0.5 ? P.t("before") : P.t("after");
+  tIn.value = Math.round(state.t * 100);
+  $("tVal").textContent = state.t < 0.02 ? P.t("tBefore") : state.t > 0.98 ? P.t("tAfter") : Math.round(state.t * 100) + "%";
+  playBtn.textContent = state.playing ? P.t("pause") : P.t("play");
+}
+function buildLegend() {
+  const c = byId[state.sel], els = c.A.els, box = $("legend");
+  const col = { H: "var(--on-panel)", C: "var(--muted)", O: "var(--no)", Fe: "var(--b)", Na: "var(--hl)", I: "var(--h)" };
+  box.innerHTML = els.map((e) => `<span><span class="dot" style="background:${col[e]}"></span>${P.t("e_" + e)}</span>`).join(" ");
+}
+function renderInfo() {
+  const c = byId[state.sel], A = c.A, box = $("cardInfo");
+  box.innerHTML = "";
+  const add = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; n.textContent = text; box.appendChild(n); return n; };
+  add("p", "cardname", P.t(c.id));
+  add("p", "tal", P.t("sees", { s: P.t(c.id + "S") }));
+  const tags = add("div", "tags", "");
+  (c.hints.length ? c.hints.map((h) => ["tag", P.t("h" + h)]) : [["tag none", P.t("noHint")]]).forEach(([cls, txt]) => {
+    const s = document.createElement("span"); s.className = cls; s.textContent = txt; tags.appendChild(s);
+  });
+  const line = (k, v) => { const p = add("p", "tal", ""); const b = document.createElement("b"); b.textContent = P.t(k) + ": "; p.append(b, v); };
+  line("before", listMols(A.nb));
+  line("after", listMols(A.na));
+  line("atoms", atomLine(A.ab, A.els) + (A.conserved ? "  =  " : "  ≠  ") + atomLine(A.aa, A.els));
+  if (state.place[c.id]) add("p", "tal", A.chemical ? P.t("vNew", { list: A.newKinds.map((s) => SPECIES[s].f).join(", ") }) : P.t("vSame"));
+}
+function chip(c) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "chip" + (state.sel === c.id ? " sel" : "");
+  const pl = state.place[c.id];
+  if (pl) b.classList.add((pl === "new") === c.A.chemical ? "ok" : "bad");
+  b.textContent = (pl && (pl === "new") !== c.A.chemical ? "✗ " : "") + P.t(c.id);
+  b.dataset.id = c.id;
+  b.setAttribute("aria-pressed", state.sel === c.id ? "true" : "false");
+  b.addEventListener("click", () => { if (drag.suppress) return; select(c.id); });
+  b.addEventListener("keydown", (e) => {
+    const to = { ArrowLeft: "same", ArrowRight: "new", ArrowUp: null }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    select(c.id, true);
+    place(c.id, to);
+  });
+  b.addEventListener("pointerdown", (e) => startDrag(e, c.id, b));
+  return b;
+}
+function renderSorter(focusId) {
+  const tray = $("tray"), bs = $("binSame"), bn = $("binNew");
+  [tray, bs, bn].forEach((x) => (x.innerHTML = ""));
+  CARDS.forEach((c) => {
+    const pl = state.place[c.id];
+    (pl === "same" ? bs : pl === "new" ? bn : tray).appendChild(chip(c));
+  });
+  if (focusId) { const f = document.querySelector(`.chip[data-id="${focusId}"]`); if (f) f.focus(); }
+  renderStatus();
+}
+function score() {
+  const placed = CARDS.filter((c) => state.place[c.id]);
+  return { n: placed.length, c: placed.filter((c) => (state.place[c.id] === "new") === c.A.chemical).length, total: CARDS.length };
+}
+function renderStatus() {
+  const st = $("status"), s = score();
+  st.className = "status";
+  if (s.c === s.total) { st.textContent = P.t("done", s); st.classList.add("win"); return; }
+  let msg = "";
+  if (state.last) {
+    const c = byId[state.last], pl = state.place[c.id];
+    if (pl) {
+      const ok = (pl === "new") === c.A.chemical;
+      msg = ok ? P.t(c.A.chemical ? "okNew" : "okSame", { name: P.t(c.id) }) : P.t(pl === "new" ? "badNew" : "badSame");
+      if (!ok) st.classList.add("bad");
+    }
+  }
+  st.textContent = (msg ? msg + " " : "") + P.t("progress", s);
+}
+function select(id, quiet) {
+  state.sel = id;
+  stopAnim();
+  state.t = 0;
+  buildLegend();
+  renderInfo();
+  document.querySelectorAll(".chip").forEach((b) => { const on = b.dataset.id === id; b.classList.toggle("sel", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+  drawScene();
+  const c = byId[id];
+  if (!quiet) Play.live($("live"), P.t("liveCard", { name: P.t(id), b: listMols(c.A.nb), a: listMols(c.A.na) }));
+  if (!Play.reduced) startAnim();
+}
+function place(id, bin) {
+  state.place[id] = bin || undefined;
+  if (!bin) delete state.place[id];
+  state.last = id;
+  renderSorter(id);
+  renderInfo();
+  Play.live($("live"), $("status").textContent);
+}
+
+/* drag: pointer events cover mouse, pen and touch */
+const drag = { id: null, el: null, ghost: null, x0: 0, y0: 0, on: false, suppress: false };
+function binAt(x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (!el) return undefined;
+  const b = el.closest(".bin");
+  if (b) return b.dataset.bin;
+  if (el.closest("#tray")) return null;
+  return undefined;
+}
+function startDrag(e, id, el) {
+  if (e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();          // no text selection while dragging with a mouse
+  el.focus();
+  Object.assign(drag, { id, el, x0: e.clientX, y0: e.clientY, on: false, suppress: false });
+  try { el.setPointerCapture(e.pointerId); } catch (err) { /* old browsers */ }
+  el.addEventListener("pointermove", moveDrag);
+  el.addEventListener("pointerup", endDrag);
+  el.addEventListener("pointercancel", cancelDrag);
+}
+function moveDrag(e) {
+  if (!drag.on && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 6) {
+    drag.on = true;
+    drag.ghost = drag.el.cloneNode(true);
+    drag.ghost.classList.add("ghost");
+    document.body.appendChild(drag.ghost);
+  }
+  if (!drag.on) return;
+  const g = drag.ghost;
+  g.style.transform = `translate(${e.clientX - g.offsetWidth / 2}px, ${e.clientY - g.offsetHeight / 2}px)`;
+  const b = binAt(e.clientX, e.clientY);
+  document.querySelectorAll(".bin").forEach((x) => x.classList.toggle("over", x.dataset.bin === b));
+}
+function cleanupDrag() {
+  if (drag.ghost) drag.ghost.remove();
+  drag.ghost = null;
+  document.querySelectorAll(".bin").forEach((x) => x.classList.remove("over"));
+  if (drag.el) { drag.el.removeEventListener("pointermove", moveDrag); drag.el.removeEventListener("pointerup", endDrag); drag.el.removeEventListener("pointercancel", cancelDrag); }
+}
+function endDrag(e) {
+  const was = drag.on, id = drag.id;
+  cleanupDrag();
+  if (!was) return;
+  drag.suppress = true;
+  setTimeout(() => (drag.suppress = false), 0);
+  const b = binAt(e.clientX, e.clientY);
+  if (b === undefined) return;
+  if (state.sel !== id) select(id, true);
+  place(id, b);
+}
+function cancelDrag() { cleanupDrag(); drag.on = false; }
+document.querySelectorAll(".binhead").forEach((h) => h.addEventListener("click", () => place(state.sel, h.dataset.bin)));
+
+/* animation (paused by default when prefers-reduced-motion) */
+function tick(now) {
+  if (!state.playing) return;
+  state.t = Math.min(1, (now - t0) / 2400);
+  drawScene();
+  if (state.t >= 1) { state.playing = false; drawScene(); return; }
+  raf = requestAnimationFrame(tick);
+}
+function startAnim() {
+  if (state.t >= 1) state.t = 0;
+  state.playing = true;
+  t0 = performance.now() - state.t * 2400;
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(tick);
+  drawScene();
+}
+function stopAnim() { state.playing = false; cancelAnimationFrame(raf); }
+playBtn.addEventListener("click", () => { if (state.playing) { stopAnim(); drawScene(); } else startAnim(); });
+tIn.addEventListener("input", () => { stopAnim(); state.t = Play.clamp(+tIn.value / 100, 0, 1); drawScene(); });
+
+/* ---------- step 3: evidence ladder ---------- */
+function drawLadder() {
+  fig.setAttribute("aria-label", P.t("figLadder"));
+  fig.innerHTML = "";
+  const rows = ladder(), x1 = 210, x2 = 370, d = 28, sz = 22;
+  const ns = rows[0].same.length, nn = rows[0].neu.length;
+  S("text", { class: "lbl", x: x1 + (ns * d - 6) / 2, y: 50, "text-anchor": "middle" }, fig).textContent = P.t("colSame");
+  S("text", { class: "lbl", x: x2 + (nn * d - 6) / 2, y: 50, "text-anchor": "middle" }, fig).textContent = P.t("colNew");
+  const label = { b: "rb", c: "rc", v: "rv", m: "rm" };
+  const sameCards = CARDS.filter((c) => !c.A.chemical), newCards = CARDS.filter((c) => c.A.chemical);
+  rows.forEach((r, i) => {
+    const y = 100 + i * 58 + (r.key === "m" ? 20 : 0);
+    if (r.key === "m") S("line", { class: "grid", x1: 20, x2: 540, y1: y - 38, y2: y - 38 }, fig);
+    S("text", { class: "lbl", x: 20, y: y + 8 }, fig).textContent = P.t(label[r.key]);
+    [[r.same, x1, sameCards], [r.neu, x2, newCards]].forEach(([arr, x0, cards]) => arr.forEach((on, j) => {
+      const q = S("rect", { class: "sq" + (on ? " on" : ""), x: x0 + j * d, y: y - sz / 2 - 2, width: sz, height: sz, rx: 4 }, fig);
+      S("title", {}, q).textContent = P.t(cards[j].id);
+    }));
+    S("text", { class: r.isProof ? "proof" : "hint", x: 540, y: y + 8, "text-anchor": "end" }, fig).textContent = P.t(r.isProof ? "proof" : "hint");
+  });
+  const box = $("cardInfo");
+  box.innerHTML = "";
+  rows.forEach((r) => {
+    const p = document.createElement("p");
+    p.className = "tal";
+    p.textContent = P.t("rowLine", { r: P.t(label[r.key]), s: r.inSame, ns, n: r.inNew, nn });
+    box.appendChild(p);
+  });
+}
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { state.answered = true; if (state.step === 0) drawPot(); });
+
+function render() {
+  const i = state.step;
+  $("animCtl").hidden = i !== 1;
+  $("sorter").hidden = i !== 1;
+  $("keys").hidden = i !== 1;
+  $("predict").hidden = i !== 0;
+  $("status").hidden = i === 0;
+  if (i !== 1) stopAnim();
+  if (i === 0) { $("cardInfo").innerHTML = ""; drawPot(); }
+  if (i === 1) { renderSorter(); select(state.sel, true); }
+  if (i === 2) { drawLadder(); renderStatus(); }
+}
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  state.step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  render();
+});
+$("reset").addEventListener("click", () => {
+  stopAnim();
+  Object.assign(state, { sel: "ice", t: 0, answered: false, place: {}, last: null });
+  pr.reset();
+  $("live").textContent = "";
+  st.go(0);
+});
+</script>
+</body>
+</html>

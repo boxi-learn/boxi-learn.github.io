@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why one side of the mountain is dry</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .fig { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; touch-action: none; cursor: ew-resize; }
+  .fig.locked { cursor: default; }
+  .lb { font-size: 17px; fill: var(--muted); }
+  .lbf { font-size: 17px; fill: var(--fg); font-weight: 650; }
+  .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 4.6em; }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 14px; }
+  .read { display: grid; gap: 4px; margin: 0 0 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .read div { border-bottom: 1px solid var(--line); padding: 2px 0 4px; }
+  .read b { color: var(--fg); }
+  .wbar { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+  .wbar .track { position: relative; height: 14px; border-radius: 7px; background: var(--soft); border: 1px solid var(--line); overflow: hidden; margin: 3px 0 2px; }
+  .wbar .cap { position: absolute; top: 0; bottom: 0; left: 0; border-right: 2px dashed var(--fg); }
+  .wbar .fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--a); opacity: .8; }
+  table.tbl { border-collapse: collapse; width: 100%; font-size: 14px; margin: 0 0 10px; font-variant-numeric: tabular-nums; }
+  table.tbl th, table.tbl td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.tbl th { color: var(--muted); font-weight: 600; }
+  .explain a { color: var(--a); }
+  .result .math { white-space: normal; font-size: 20px; }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="fig" id="fig" viewBox="0 0 400 300" role="slider" tabindex="0" aria-orientation="horizontal" data-t-aria="figAria"></svg>
+      <div class="controls">
+        <label for="hgt" data-t="hLabel"></label>
+        <input type="range" id="hgt" min="0" max="3.5" step="0.1" value="2">
+        <output id="hVal" for="hgt"></output>
+      </div>
+      <div class="btnrow">
+        <button type="button" class="small" id="wind"></button>
+        <button type="button" class="small" id="play"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="read" id="read" hidden></div>
+      <div class="wbar" id="wbar" hidden></div>
+      <table class="tbl" id="tbl" hidden></table>
+      <table class="tbl" id="real" hidden></table>
+      <p id="link" hidden></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Why one side of the mountain is dry", eyebrow: "Geography · Stage 2",
+    h1: "Air rains on the way up a mountain, so it comes down the other side dry and warming",
+    intro: "Guess first, then ride a parcel of sea air over an island's mountain range. Change the height and turn the wind around.",
+    reset: "Reset", figAria: "Cross-section of an island with a mountain range and a parcel of air blown across it. Drag left and right, or use the arrow keys, to move the air.",
+    hLabel: "Height of the range", windW: "Wind from the west →", windE: "← Wind from the east", play: "▶ Play", pause: "❚❚ Pause",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Which side of the range gets more rain?",
+    b1: "Pick an answer. Then the cloud, the rain and the numbers appear.",
+    b1after: "Look where the cloud sits: only on the side the wind hits. Go to step 2 and follow the air yourself.",
+    k2: "Hands on", t2: "Follow one parcel of air",
+    b2: "Drag the air (or press play). Going up, it cools. When it is too cool to hold its water, a cloud forms and it rains. Coming down the other side, it warms again. Then change the height and flip the wind.",
+    k3: "The rule", t3: "Rain falls on the side the wind hits; the air that comes down the other side is dry and warming",
+    b3: "Rising air spreads out and cools, {dry} °C per km while it is dry. Cooler air can hold less water, so at {hc} it is full: a cloud forms and the extra water falls as rain. Inside the cloud it cools only about {moist} °C per km, because water turning into drops gives off heat. Over the top the air sinks, gets squeezed and warms {dry} °C per km all the way down: it warms because it sinks. It left {rain} g of water from every kg on the way up, so at the {lee} foot it is {d} °C warmer than where it started and only {rh}% humid. That dry land behind the range is the rain shadow.",
+    b3low: "This range ({H}) is lower than the cloud base ({hc}). The air never gets cool enough to fill up, no cloud forms, and it comes down exactly as it went up: both sides are the same. Raise the range above {hc} to make a rain shadow.",
+    linkTxt: "Compare with <a href=\"mountain-cooling.html?lang=en\" target=\"_blank\">Why is it cold on a mountain top?</a> There, 6.5 °C per km is the average for the air standing over a mountain. Here we follow one parcel of air that moves, so it uses {dry} °C per km when dry and about {moist} °C per km in cloud.",
+    q: "A wind from the sea blows from the west across an island with a {H} high mountain range. Which side of the range gets more rain?",
+    o1: "The west side, where the wind arrives", o2: "Both sides about the same", o3: "The east side: the wind carries the clouds over",
+    right: "Yes. The air rains as it climbs the west side and comes down the east side {d} °C warmer and only {rh}% humid.",
+    wrong: "Many people think so. But the air drops its rain while it climbs the west side, and comes down the east side {d} °C warmer and only {rh}% humid.",
+    west: "West", east: "East", wwd: "windward", lwd: "lee", sideL: "{side} · {role}",
+    sideV: "{t} · {rh}% humid", rainV: "rain {g} g/kg", wind: "wind",
+    m: "{v} m", c: "{v} °C", g: "{v} g",
+    phFlat: "over the sea or flat land, no change", phRise: "rising, no cloud yet", phCloud: "rising in cloud, raining", phSink: "sinking, cloud gone",
+    rWhere: "Doing", rH: "Height", rT: "Temperature", rRate: "Changing by", rW: "Water it carries (per kg of air)", rWs: "Most it could hold", rRH: "Humidity",
+    rate0: "0 °C per km", rateV: "{v} °C per km",
+    wbarL: "Water in the air (bar) and the most it could hold (dashed line)",
+    tPlace: "Place", tT: "Temp.", tW: "Water", tRH: "Humid", pWfoot: "{side} foot (start)", pTop: "Summit {H}", pLfoot: "{side} foot (end)",
+    realH: "Real ranges", realW: "Wet side", realD: "Dry side", rMm: "≈ {v} mm a year",
+    gh: "Western Ghats, India", ghW: "Mahabaleshwar", ghD: "Pune", cs: "Cascades, USA", csW: "Paradise, Mt Rainier", csD: "Yakima",
+    ratio: "{v}× more rain on the wet side",
+    liveRead: "{x}: height {h}, {t}, {rh}% humid, {ph}.", liveHidden: "The air starts over the sea at {t}. Pick an answer to see what happens.",
+    resultTitle: "What we found", resultMain: "Going up: −9.8 °C/km (dry), about −6 °C/km in cloud, and it rains · Coming down: +9.8 °C/km, dry",
+    noteRain: "With a {H} range: the {wind} foot is {tw} and {rhw}% humid; the {lee} foot is {tl} and {rhl}% humid. Each kg of air left {rain} g of water on the {wind} side.",
+    noteLow: "With a {H} range the air never reaches the cloud base ({hc}): no cloud, no rain shadow. Both feet are {tw} and {rhw}% humid.",
+    explainK: "Explain it", explainQ: "A friend says rain falls evenly on both sides of a mountain range. Use the words “rises”, “cools”, “cloud” and “sinks” to explain why the town behind the mountains is dry, and why it is also warmer.",
+    homeK: "Try at home", homeQ: "On a rainfall map of your country (a weather service's climate map or an atlas), find a mountain range. Which side is greener on the map? Check which way the wind usually blows there: is the wet side facing the wind?",
+    foot: "Model: the sea air starts at 20 °C with a dew point of 16 °C (78% humid). It cools 9.8 °C per km while dry (dry adiabatic rate); its dew point falls 1.8 °C per km, so the cloud base is (20 − 16) ÷ (9.8 − 1.8) km = 500 m. In cloud it cools 6 °C per km (a rounded moist adiabatic rate; the real value is about 4–7 °C per km). All water beyond what the air can hold rains out on the way up; going down it warms 9.8 °C per km. How much water air can hold: Magnus formula for saturation vapour pressure, air pressure falling with an 8 km scale height. Real lee sides still get some rain from other weather, and real rates change with temperature and humidity. Rounded yearly rain: Mahabaleshwar about 5,600 mm, Pune about 700 mm; Paradise (Mount Rainier) about 3,000 mm, Yakima about 200 mm. All numbers on this page are computed from these values. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "为什么山的一边是干的", eyebrow: "地理 · 阶段 2",
+    h1: "空气在上山的路上下了雨，所以从另一边下来时又干又在变暖",
+    intro: "先猜一猜，再跟着一团海上来的空气翻过海岛上的山脉。改一改山的高度，把风向倒过来。",
+    reset: "重置", figAria: "海岛的剖面，中间是山脉，一团空气被风吹过山。左右拖动或按方向键，移动这团空气。",
+    hLabel: "山脉高度", windW: "西风 →", windE: "← 东风", play: "▶ 播放", pause: "❚❚ 暂停",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "山脉哪一边下的雨多？",
+    b1: "先选一个答案，云、雨和数字才会出现。",
+    b1after: "看云在哪里：只在风吹来的那一边。到第 2 步，自己跟着这团空气走一遍。",
+    k2: "动手", t2: "跟着一团空气走",
+    b2: "拖动这团空气（或按播放）。往上走，它变冷；冷到装不下原来的水汽时，就成云、下雨。从另一边下来，它又变暖。再改改山的高度，把风向倒过来。",
+    k3: "规律", t3: "雨下在风吹来的那一边；从另一边下来的空气又干、又在变暖",
+    b3: "空气上升时膨胀变冷，没成云时每千米降 {dry} °C。冷空气能装的水汽少，所以到 {hc} 它就装满了：成云，多出来的水变成雨落下。在云里每千米只降约 {moist} °C，因为水汽变成水滴会放出热量。翻过山顶后空气下沉，被压缩，一路每千米升温 {dry} °C：它变暖，是因为它在下沉。上山时每千克空气留下了 {rain} 克水，所以到{lee}山脚时，它比出发时暖 {d} °C，湿度只有 {rh}%。山后这片干燥的地方，就是「雨影」。",
+    b3low: "这座山（{H}）比云底（{hc}）还低。空气一直没冷到装满水汽，不成云，上去怎样、下来还是怎样：两边一样。把山加高到 {hc} 以上，才会有雨影。",
+    linkTxt: "对照<a href=\"mountain-cooling.html?lang=zh\" target=\"_blank\">「山顶为什么冷？」</a>：那里的「每千米 6.5 °C」是山上静止空气的平均值。这里跟着的是一团在移动的空气，没成云时每千米 {dry} °C，在云里约每千米 {moist} °C。",
+    q: "海风从西边吹来，吹过一座海岛，岛上有一道 {H} 高的山脉。山脉哪一边下的雨多？",
+    o1: "西边，风吹来的那一边", o2: "两边差不多", o3: "东边：风会把云吹过去",
+    right: "对。空气爬西坡时就把雨下掉了，从东坡下来时暖了 {d} °C，湿度只有 {rh}%。",
+    wrong: "很多人这样想。但空气爬西坡时就把雨下掉了，从东坡下来时暖了 {d} °C，湿度只有 {rh}%。",
+    west: "西", east: "东", wwd: "迎风坡", lwd: "背风坡", sideL: "{side} · {role}",
+    sideV: "{t} · 湿度 {rh}%", rainV: "雨 {g} 克/千克", wind: "风",
+    m: "{v} 米", c: "{v} °C", g: "{v} 克",
+    phFlat: "在海面或平地上，不升不降", phRise: "上升，还没成云", phCloud: "在云里上升，下雨", phSink: "下沉，云散了",
+    rWhere: "正在", rH: "高度", rT: "气温", rRate: "每千米变化", rW: "携带的水汽（每千克空气）", rWs: "最多能装", rRH: "湿度",
+    rate0: "0 °C", rateV: "{v} °C",
+    wbarL: "空气里的水汽（色条）和最多能装多少（虚线）",
+    tPlace: "位置", tT: "气温", tW: "水汽", tRH: "湿度", pWfoot: "{side}山脚（出发）", pTop: "山顶 {H}", pLfoot: "{side}山脚（终点）",
+    realH: "真实的山脉", realW: "湿的一边", realD: "干的一边", rMm: "每年约 {v} 毫米",
+    gh: "印度西高止山脉", ghW: "马哈巴莱什瓦尔", ghD: "浦那", cs: "美国喀斯喀特山脉", csW: "雷尼尔山天堂站", csD: "亚基马",
+    ratio: "湿的一边雨多 {v} 倍",
+    liveRead: "{x}：高度 {h}，{t}，湿度 {rh}%，{ph}。", liveHidden: "空气从海上出发，{t}。选一个答案，看看会怎样。",
+    resultTitle: "我们发现", resultMain: "上山：没成云每千米 −9.8 °C，在云里约 −6 °C，并下雨 · 下山：每千米 +9.8 °C，干燥",
+    noteRain: "山高 {H}：{wind}山脚 {tw}，湿度 {rhw}%；{lee}山脚 {tl}，湿度 {rhl}%。每千克空气在{wind}坡留下 {rain} 克水。",
+    noteLow: "山高 {H}：空气到不了云底（{hc}），不成云，也没有雨影。两边山脚都是 {tw}，湿度 {rhw}%。",
+    explainK: "说一说", explainQ: "朋友说山脉两边下的雨一样多。用「上升」「变冷」「成云」「下沉」这几个词，解释为什么山后面的小镇很干，而且还更暖和。",
+    homeK: "家里做一做", homeQ: "在一张全国降水分布图上（气象部门的气候图或地图册），找一道山脉。图上哪一边更绿、雨更多？查一查那里平常刮什么方向的风：湿的那一边是不是正对着风？",
+    foot: "模型：海上空气出发时 20 °C，露点 16 °C（湿度 78%）。没成云时每千米降 9.8 °C（干绝热直减率）；露点每千米降 1.8 °C，所以云底高度是 (20 − 16) ÷ (9.8 − 1.8) 千米 = 500 米。在云里每千米降 6 °C（湿绝热直减率的取整值，实际约 4–7 °C）。超出空气容量的水汽在上山时全部变成雨落下；下山时每千米升温 9.8 °C。空气能装多少水汽：饱和水汽压用 Magnus 公式，气压按 8 千米标高随高度减小。真实的背风坡也会有其他天气带来的雨，真实的直减率也随气温和湿度变化。年降水取整：马哈巴莱什瓦尔约 5600 毫米，浦那约 700 毫米；雷尼尔山天堂站约 3000 毫米，亚基马约 200 毫米。页面上的数都由这些值算出。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- constants ---------- */
+const T0 = 20, TD0 = 16;                  // sea air: temperature and dew point (°C)
+const DRY = 9.8, MOIST = 6, DEW = 1.8;    // °C per km: dry adiabatic, rounded moist adiabatic, dew-point fall
+const P0 = 1013.25, SCALE_H = 8;          // hPa at sea level, km scale height
+const REAL = [
+  { k: "gh", w: "ghW", d: "ghD", wet: 5600, dry: 700 },
+  { k: "cs", w: "csW", d: "csD", wet: 3000, dry: 200 },
+];
+
+/* ---------- pure logic ---------- */
+const es = (t) => 6.112 * Math.exp((17.67 * t) / (t + 243.5));              // saturation vapour pressure, hPa
+const pres = (z) => P0 * Math.exp(-z / SCALE_H);
+const wsat = (t, z) => { const e = es(t), p = pres(z); return (622 * e) / Math.max(p - e, 1); }; // g per kg
+const W0 = wsat(TD0, 0);                                                     // water the sea air carries
+const HC = (T0 - TD0) / (DRY - DEW);                                         // cloud base, km
+const tRise = (z) => (z <= HC ? T0 - DRY * z : T0 - DRY * HC - MOIST * (z - HC));
+const wTop = (H) => (H > HC ? Math.min(W0, wsat(tRise(H), H)) : W0);
+const rainOut = (H) => Math.max(0, W0 - wTop(H));
+function rhOf(w, t, z) { const p = pres(z), e = (w * p) / (622 + w); return Math.min(100, (100 * e) / es(t)); }
+function parcel(z, after, H) {                                               // state of the air at height z
+  z = Play.clamp(z, 0, Math.max(H, 0));
+  if (!after) {
+    const t = tRise(z), cloud = H > HC && z > HC;
+    const w = cloud ? Math.min(W0, wsat(t, z)) : W0;
+    return { t, w, ws: wsat(t, z), rh: cloud ? 100 : rhOf(w, t, z), phase: z < 5e-4 ? "flat" : cloud ? "cloud" : "rise" };
+  }
+  const t = tRise(H) + DRY * (H - z), w = wTop(H);
+  return { t, w, ws: wsat(t, z), rh: rhOf(w, t, z), phase: z < 5e-4 ? "flat" : "sink" };
+}
+const RATE = { flat: 0, rise: -DRY, cloud: -MOIST, sink: DRY };
+
+/* ---------- geometry ---------- */
+const BASE = 220, PX = 38, XC = 200, HALF = 100, LAND0 = 30, LAND1 = 370, X0 = 12, X1 = 388, LIFT = 14;
+const yH = (h) => BASE - h * PX;
+function ground(x, H) { const d = Math.abs(x - XC) / HALF; return d < 1 ? H * Math.cos((Math.PI * d) / 2) ** 2 : 0; }
+const pathX = (u, dir) => (dir > 0 ? X0 + (X1 - X0) * u : X1 - (X1 - X0) * u);
+const uOfX = (x, dir) => Play.clamp(dir > 0 ? (x - X0) / (X1 - X0) : (X1 - x) / (X1 - X0), 0, 1);
+const isAfter = (x, dir) => (dir > 0 ? x > XC : x < XC);
+function xAtHeight(h, H, dir) {                                              // windward x where the ground is h
+  if (!(H > 0) || h >= H) return XC;
+  const d = (2 / Math.PI) * Math.acos(Math.sqrt(Play.clamp(h / H, 0, 1)));
+  return XC - dir * d * HALF;
+}
+
+/* ---------- formatting ---------- */
+const $ = (id) => document.getElementById(id);
+const neg = (s) => s.replace(/^-/, "−");
+function fT(t) { const s = Play.fmt(t, 1); return P.t("c", { v: neg(s === "-0.0" ? "0.0" : s) }); }
+function group(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+const fM = (km) => P.t("m", { v: P.lang === "zh" ? String(Math.round(km * 1000)) : group(km * 1000) });
+const f1 = (x) => Play.fmt(x, 1);
+const fRH = (x) => Play.fmt(x, 0);
+const low = (s) => s.toLowerCase();
+const sideName = (s) => P.t(s < 0 ? "west" : "east");                        // s = −1 west, +1 east
+
+/* ---------- state ---------- */
+const S = { step: 0, H: 2, dir: 1, u: 0, revealed: false, playing: false };
+function now() {
+  const x = pathX(S.u, S.dir), z = ground(x, S.H), af = isAfter(x, S.dir);
+  return Object.assign({ x, z }, parcel(z, af, S.H));
+}
+function feet() {
+  return { w: parcel(0, false, S.H), top: parcel(S.H, false, S.H), l: parcel(0, true, S.H), rain: rainOut(S.H) };
+}
+
+/* ---------- drawing ---------- */
+const fig = $("fig");
+function txt(x, y, s, cls, anchor) {
+  const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "start" }, fig);
+  t.textContent = s;
+  return t;
+}
+function draw() {
+  fig.innerHTML = "";
+  const H = S.H, dir = S.dir, show = S.revealed, F = feet();
+  const cloudy = H > HC;
+  // height grid
+  for (let k = 1; k <= 3; k++) {
+    Play.svg("line", { x1: 0, x2: 400, y1: yH(k), y2: yH(k), stroke: "var(--line)", "stroke-width": 1 }, fig);
+    txt(4, yH(k) - 4, k + " km", "lb");
+  }
+  // wind arrow
+  const ax0 = XC - 60 * dir, ax1 = XC + 60 * dir;
+  Play.svg("path", { d: `M${ax0} 34 L${ax1} 34 M${ax1 - 9 * dir} 28 L${ax1} 34 L${ax1 - 9 * dir} 40`, stroke: "var(--fg)", "stroke-width": 2, fill: "none", "stroke-linecap": "round" }, fig);
+  txt(XC, 24, P.t("wind"), "lbf", "middle");
+  // sea and land
+  Play.svg("rect", { x: 0, y: BASE, width: 400, height: 16, fill: "var(--c)", opacity: 0.35 }, fig);
+  const pts = [];
+  for (let x = LAND0; x <= LAND1; x += 5) pts.push([x, yH(ground(x, H))]);
+  const top = pts.map((p) => p[0] + "," + p[1].toFixed(1)).join(" ");
+  Play.svg("polygon", { points: `${LAND0},${BASE + 16} ${top} ${LAND1},${BASE + 16}`, fill: "var(--soft)" }, fig);
+  // wet and dry slopes
+  if (show && cloudy) {
+    [[-dir, "var(--a)", 0.5], [dir, "var(--hl)", 0.55]].forEach(([s, fill, op]) => {
+      const sp = pts.filter((p) => (p[0] - XC) * s >= 0);
+      const xa = sp[0][0], xb = sp[sp.length - 1][0];
+      Play.svg("polygon", { points: `${xa},${BASE} ` + sp.map((p) => p[0] + "," + p[1].toFixed(1)).join(" ") + ` ${xb},${BASE}`, fill, opacity: op }, fig);
+    });
+  }
+  Play.svg("polyline", { points: top, fill: "none", stroke: "var(--fg)", "stroke-width": 1.6, "stroke-linejoin": "round" }, fig);
+  Play.svg("line", { x1: 0, x2: 400, y1: BASE, y2: BASE, stroke: "var(--c)", "stroke-width": 2 }, fig);
+  // path of the air
+  if (show) {
+    const pp = [];
+    for (let x = X0; x <= X1; x += 4) pp.push(x + "," + (yH(ground(x, H)) - LIFT).toFixed(1));
+    Play.svg("polyline", { points: pp.join(" "), fill: "none", stroke: "var(--muted)", "stroke-dasharray": "3 4" }, fig);
+  }
+  // cloud base and cloud + rain on the windward slope
+  if (show && cloudy) {
+    const xb = xAtHeight(HC, H, dir);
+    for (let x = xb; (x - XC) * dir <= 12; x += 7 * dir) {
+      const g = ground(x, H), f = (g - HC) / Math.max(H - HC, 1e-6);
+      const r = 8 + 9 * Play.clamp(f, 0, 1), cy = yH(g) - LIFT - 3;
+      Play.svg("circle", { cx: x, cy, r, fill: "var(--muted)", opacity: 0.28 }, fig);
+    }
+    for (let x = xb + 5 * dir; (x - XC) * dir < -4; x += 10 * dir) {
+      const yg = yH(ground(x, H));
+      Play.svg("line", { x1: x + 2 * dir, y1: yg - LIFT + 4, x2: x, y2: yg - 2, stroke: "var(--c)", "stroke-width": 1.6, "stroke-linecap": "round" }, fig);
+    }
+  }
+  // height of the range, under the summit
+  Play.svg("line", { x1: XC, x2: XC, y1: BASE + 2, y2: BASE + 20, stroke: "var(--muted)", "stroke-dasharray": "2 2" }, fig);
+  txt(XC, BASE + 36, "▲ " + fM(H), "lb", "middle");
+  // side labels
+  [[-1, 85], [1, 315]].forEach(([s, x]) => {
+    const wind = s === -dir;
+    txt(x, BASE + 36, show ? P.t("sideL", { side: sideName(s), role: P.t(wind ? "wwd" : "lwd") }) : sideName(s), "lbf", "middle");
+    if (!show) { txt(x, BASE + 56, "?", "lb", "middle"); return; }
+    const p = wind ? F.w : F.l;
+    txt(x, BASE + 56, P.t("sideV", { t: fT(p.t), rh: fRH(p.rh) }), "lb", "middle");
+    txt(x, BASE + 75, P.t("rainV", { g: f1(wind ? F.rain : 0) }), wind && F.rain > 0.05 ? "lbf" : "lb", "middle");
+  });
+  // the parcel
+  const n = now(), py = yH(n.z) - LIFT;
+  Play.svg("circle", { cx: n.x, cy: py, r: 9, fill: n.phase === "cloud" ? "var(--muted)" : "var(--surface)", stroke: "var(--no)", "stroke-width": 2.5 }, fig);
+  Play.svg("circle", { cx: n.x, cy: py, r: 20, fill: "transparent" }, fig);
+  if (show) {
+    const lx = Play.clamp(n.x, 40, 360);
+    txt(lx, py - 15, fT(n.t), "lbf halo", "middle");
+  }
+  fig.setAttribute("aria-valuemin", 0);
+  fig.setAttribute("aria-valuemax", 100);
+  fig.setAttribute("aria-valuenow", Math.round(S.u * 100));
+  fig.setAttribute("aria-valuetext", show ? liveText(n) : P.t("liveHidden", { t: fT(T0) }));
+  fig.classList.toggle("locked", !show);
+}
+const phaseName = (ph) => P.t({ flat: "phFlat", rise: "phRise", cloud: "phCloud", sink: "phSink" }[ph]);
+function liveText(n) {
+  const side = sideName(n.x < XC ? -1 : 1);
+  return P.t("liveRead", { x: side, h: fM(n.z), t: fT(n.t), rh: fRH(n.rh), ph: phaseName(n.phase) });
+}
+
+/* ---------- side panel ---------- */
+function panel() {
+  const n = now(), sep = P.lang === "zh" ? "：" : ": ", r = RATE[n.phase];
+  const rateTxt = r === 0 ? P.t("rate0") : P.t("rateV", { v: (r > 0 ? "+" : "−") + f1(Math.abs(r)) });
+  $("read").innerHTML = "";
+  [["rWhere", phaseName(n.phase)], ["rH", fM(n.z)], ["rT", fT(n.t)], ["rRate", rateTxt], ["rW", P.t("g", { v: f1(n.w) })], ["rWs", P.t("g", { v: f1(n.ws) })], ["rRH", fRH(n.rh) + "%"]].forEach(([k, v]) => {
+    const d = document.createElement("div"), b = document.createElement("b");
+    b.textContent = v;
+    d.append(P.t(k) + sep, b);
+    $("read").appendChild(d);
+  });
+  const SCALE = 25;                                                          // g/kg at full bar width
+  $("wbar").innerHTML = P.t("wbarL") + '<div class="track"><div class="fill" style="width:' + Play.clamp((100 * n.w) / SCALE, 0, 100).toFixed(1) +
+    '%"></div><div class="cap" style="width:' + Play.clamp((100 * n.ws) / SCALE, 0, 100).toFixed(1) + '%"></div></div>';
+}
+function tables() {
+  const F = feet(), ws = sideName(-S.dir), ls = sideName(S.dir);
+  const row = (a, p) => "<tr><td>" + a + "</td><td>" + fT(p.t) + "</td><td>" + P.t("g", { v: f1(p.w) }) + "</td><td>" + fRH(p.rh) + "%</td></tr>";
+  $("tbl").innerHTML = "<thead><tr><th>" + P.t("tPlace") + "</th><th>" + P.t("tT") + "</th><th>" + P.t("tW") + "</th><th>" + P.t("tRH") + "</th></tr></thead><tbody>" +
+    row(P.t("pWfoot", { side: ws }), F.w) + row(P.t("pTop", { H: fM(S.H) }), F.top) + row(P.t("pLfoot", { side: ls }), F.l) + "</tbody>";
+  const mm = (v) => P.t("rMm", { v: P.lang === "zh" ? String(v) : group(v) });
+  let html = "<thead><tr><th>" + P.t("realH") + "</th><th>" + P.t("realW") + "</th><th>" + P.t("realD") + "</th></tr></thead><tbody>";
+  REAL.forEach((r) => {
+    html += "<tr><td>" + P.t(r.k) + "<br>" + P.t("ratio", { v: Play.fmt(r.wet / r.dry, 0) }) + "</td><td>" + P.t(r.w) + "<br>" + mm(r.wet) + "</td><td>" + P.t(r.d) + "<br>" + mm(r.dry) + "</td></tr>";
+  });
+  $("real").innerHTML = html + "</tbody>";
+  $("link").innerHTML = P.t("linkTxt", { dry: f1(DRY), moist: Play.fmt(MOIST, 0) });
+}
+function bodyText() {
+  if (S.step === 0) return P.t(S.revealed ? "b1after" : "b1");
+  if (S.step === 1) return P.t("b2");
+  const F = feet();
+  if (!(S.H > HC)) return P.t("b3low", { H: fM(S.H), hc: fM(HC) });
+  return P.t("b3", { dry: f1(DRY), moist: Play.fmt(MOIST, 0), hc: fM(HC), rain: f1(F.rain), lee: low(sideName(S.dir)), d: f1(F.l.t - F.w.t), rh: fRH(F.l.rh) });
+}
+function resultNote() {
+  const F = feet(), v = { H: fM(S.H), hc: fM(HC), wind: low(sideName(-S.dir)), lee: low(sideName(S.dir)), tw: fT(F.w.t), rhw: fRH(F.w.rh), tl: fT(F.l.t), rhl: fRH(F.l.rh), rain: f1(F.rain) };
+  return P.t(S.H > HC ? "noteRain" : "noteLow", v);
+}
+
+/* ---------- render ---------- */
+let lastLive = "";
+function render() {
+  $("hgt").value = S.H;
+  $("hVal").textContent = fM(S.H);
+  $("wind").textContent = P.t(S.dir > 0 ? "windW" : "windE");
+  $("play").textContent = P.t(S.playing ? "pause" : "play");
+  $("play").setAttribute("aria-pressed", S.playing ? "true" : "false");
+  $("play").disabled = $("wind").disabled = $("hgt").disabled = !S.revealed;
+  draw();
+  $("stepBody").textContent = bodyText();
+  $("read").hidden = $("wbar").hidden = !(S.revealed && S.step === 1);
+  $("tbl").hidden = $("real").hidden = $("link").hidden = S.step !== 2;
+  if (S.revealed && S.step === 1) panel();
+  if (S.step === 2) tables();
+  $("resultNote").textContent = resultNote();
+  const n = now(), text = S.revealed ? liveText(n) : P.t("liveHidden", { t: fT(T0) });
+  const key = S.playing ? n.phase + (n.x < XC) : text;                       // while playing, announce phase changes only
+  if (key !== lastLive) { lastLive = key; Play.live($("live"), text); }
+}
+
+/* ---------- animation ---------- */
+const LOOP_MS = 9000, HOLD_MS = 1200;
+let last = 0, hold = 0;
+function tick(ts) {
+  if (!S.playing) return;
+  const dt = last ? Math.min(ts - last, 100) : 0;
+  last = ts;
+  if (S.u >= 1) { hold += dt; if (hold > HOLD_MS) { hold = 0; S.u = 0; } }
+  else S.u = Math.min(1, S.u + dt / LOOP_MS);
+  render();
+  requestAnimationFrame(tick);
+}
+function setPlaying(on) {
+  S.playing = on && S.revealed;
+  last = 0; hold = 0;
+  if (S.playing) requestAnimationFrame(tick);
+  render();
+}
+function reveal() {
+  if (S.revealed) return;
+  S.revealed = true; S.u = 0;
+  setPlaying(!Play.reduced);
+}
+
+/* ---------- controls ---------- */
+$("hgt").addEventListener("input", (e) => { const v = +e.target.value; S.H = Number.isFinite(v) ? Play.clamp(v, 0, 3.5) : 2; render(); });
+$("wind").addEventListener("click", () => { S.dir = -S.dir; S.u = 0; hold = 0; render(); });
+$("play").addEventListener("click", () => { if (!S.playing && S.u >= 1) S.u = 0; setPlaying(!S.playing); });
+function setU(u) { const v = Play.clamp(u, 0, 1); if (v !== S.u) { S.u = v; render(); } }
+let drag = false;
+fig.addEventListener("pointerdown", (e) => {
+  if (!S.revealed) return;
+  drag = true; fig.setPointerCapture(e.pointerId);
+  if (S.playing) setPlaying(false);
+  setU(uOfX(Play.pointer(fig, e).x, S.dir));
+  e.preventDefault();
+});
+fig.addEventListener("pointermove", (e) => { if (drag) setU(uOfX(Play.pointer(fig, e).x, S.dir)); });
+fig.addEventListener("pointerup", () => (drag = false));
+fig.addEventListener("pointercancel", () => (drag = false));
+fig.addEventListener("keydown", (e) => {
+  if (!S.revealed) return;
+  const d = { ArrowRight: 0.02 * S.dir, ArrowLeft: -0.02 * S.dir, ArrowUp: 0.02, ArrowDown: -0.02, PageUp: 0.1, PageDown: -0.1 }[e.key];
+  if (d === undefined && e.key !== "Home" && e.key !== "End") return;
+  if (S.playing) setPlaying(false);
+  if (d !== undefined) setU(S.u + d);
+  else setU(e.key === "Home" ? 0 : 1);
+  e.preventDefault();
+});
+
+function predictCfg() {
+  const F = feet(), v = { H: fM(S.H), d: f1(F.l.t - F.w.t), rh: fRH(F.l.rh) };
+  return {
+    q: P.t("q", v),
+    options: [{ label: P.t("o1"), right: true }, { label: P.t("o2") }, { label: P.t("o3") }],
+    right: P.t("right", v), wrong: P.t("wrong", v),
+  };
+}
+const pr = Play.predict($("predict"), predictCfg(), () => reveal());
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  S.step = i;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("predict").hidden = i !== 0;
+  if (i > 0 && !S.revealed) reveal(); else render();
+});
+$("reset").addEventListener("click", () => {
+  S.playing = false;
+  Object.assign(S, { H: 2, dir: 1, u: 0, revealed: false });
+  pr.reset(); st.go(0);
+});
+render();
+</script>
+</body>
+</html>

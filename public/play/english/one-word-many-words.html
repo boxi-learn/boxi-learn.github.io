@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>开 is not always open</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .visual { padding: 14px 12px 12px; }
+  .ico { width: 40px; height: 40px; display: block; margin: 0 auto; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .ico .f { fill: currentColor; stroke: none; }
+  .zh { font-size: 17px; font-weight: 650; line-height: 1.2; }
+  .py { display: block; font-size: 13px; color: var(--muted); font-weight: 400; line-height: 1.2; }
+  /* step 1 */
+  .hero { text-align: center; padding: 18px 8px 8px; }
+  .hero .ico { width: 120px; height: 120px; color: var(--a); }
+  .hero .zh { font-size: 40px; margin-top: 6px; }
+  .hero .py { font-size: 15px; }
+  .say { display: grid; gap: 8px; max-width: 360px; margin: 16px auto 4px; }
+  .say .row { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+  .say .row button { font-family: var(--serif); font-size: 17px; flex: none; }
+  .say .row.no button { text-decoration: line-through; text-decoration-color: var(--no); }
+  .say .mark { font-weight: 700; width: 1.4em; text-align: center; flex: none; }
+  .say .ok .mark { color: var(--a); } .say .no .mark { color: var(--no); }
+  /* step 2 */
+  .hearrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; font-size: 14px; }
+  .score { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .bin { border: 2px dashed var(--line); border-radius: 12px; background: var(--soft); min-height: 92px; display: flex; flex-direction: column; transition: border-color .15s, background .15s; }
+  .bin.ready { border-color: var(--a); }
+  .bin.over { border-style: solid; border-color: var(--a); background: var(--surface); }
+  .bin.bad { border-color: var(--no); border-style: solid; }
+  .binhead { border: 0; border-bottom: 1px solid var(--line); border-radius: 10px 10px 0 0; background: transparent; padding: 5px 4px 3px; width: 100%; text-align: center; }
+  .binhead .v { display: block; font-family: var(--serif); font-size: 20px; line-height: 1.15; color: var(--a); }
+  .binhead .k { display: block; font-size: 13px; color: var(--muted); }
+  .got { display: flex; flex-direction: column; gap: 3px; padding: 5px; }
+  .got button { font-family: var(--serif); font-size: 14px; padding: 2px 6px; border-radius: 8px; line-height: 1.25; text-align: left; }
+  .fb { font-size: 14px; min-height: 2.6em; margin: 8px 2px 6px; color: var(--muted); }
+  .fb.ok { color: var(--a); } .fb.no { color: var(--no); }
+  .deck { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 8px 0 2px; border-top: 1px solid var(--line); min-height: 70px; }
+  .pc { width: 86px; padding: 6px 4px 5px; border-radius: 10px; text-align: center; background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.08); touch-action: none; user-select: none; -webkit-user-select: none; position: relative; }
+  .pc .ico { color: var(--a); }
+  .pc.sel { border-color: var(--a); box-shadow: 0 0 0 3px var(--a); }
+  .pc.drag { z-index: 10; cursor: grabbing; box-shadow: 0 6px 18px rgba(0,0,0,.2); transition: none; }
+  .pc.shake { animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  @media (prefers-reduced-motion: reduce) { .pc.shake { animation: none; } }
+  .done { text-align: center; font-size: 14px; color: var(--muted); padding: 6px; }
+  /* step 3 */
+  .rev { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .ri { border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .ri.ok { border-color: var(--a); background: var(--soft); }
+  .ri .top { display: flex; align-items: center; gap: 8px; }
+  .ri .top .ico { width: 34px; height: 34px; margin: 0; color: var(--b); flex: none; }
+  .ri .top button { font-family: var(--serif); font-size: 16px; padding: 3px 8px; text-align: left; line-height: 1.25; min-width: 0; }
+  .ri .ans { font-size: 15px; min-height: 1.4em; color: var(--muted); }
+  .ri.ok .ans { color: var(--fg); font-weight: 650; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chips button { font-size: 15px; padding: 2px 8px; border-radius: 999px; line-height: 1.3; }
+  .chips button.right { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .chips button.wrong { border-color: var(--no); color: var(--no); }
+  /* step 4 */
+  .venn { width: 100%; height: auto; display: block; max-height: 220px; }
+  .venn text { font-family: var(--font); }
+  .venn .rg { cursor: pointer; }
+  .venn .rg:focus-visible { outline: none; }
+  .venn .rg:focus-visible .ring, .venn .rg.on .ring { stroke: var(--hl); stroke-width: 6; }
+  .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+  .col { border-radius: 10px; padding: 6px; border: 2px solid transparent; min-width: 0; }
+  .col.c0 { background: color-mix(in srgb, var(--a) 14%, transparent); }
+  .col.c1 { background: color-mix(in srgb, var(--a) 12%, color-mix(in srgb, var(--b) 14%, transparent)); }
+  .col.c2 { background: color-mix(in srgb, var(--b) 14%, transparent); }
+  .col.on { border-color: var(--hl); }
+  .col h3 { margin: 0 0 4px; font-size: 13px; color: var(--muted); font-weight: 650; }
+  .col button { display: block; width: 100%; text-align: left; margin: 0 0 4px; padding: 3px 6px; font-size: 14px; line-height: 1.25; border-radius: 8px; overflow-wrap: anywhere; }
+  .col button .e { display: block; font-family: var(--serif); font-size: 13px; color: var(--muted); }
+  .rule { color: var(--fg) !important; font-weight: 650; }
+  .play .note { font-size: 14px !important; }
+  .result .math { font-family: var(--serif); white-space: normal; overflow-wrap: anywhere; font-size: 20px; }
+  .foot { font-size: 13px; }
+  @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 560px) {
+    .binhead .v { font-size: 17px; }
+    .pc { width: 78px; }
+    .rev { gap: 6px; }
+    .ri { padding: 6px; }
+    .ri .top { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .ri .top .ico { width: 28px; height: 28px; }
+    .ri .top button { font-size: 14px; padding: 2px 6px; }
+    .chips button { font-size: 14px; padding: 1px 6px; }
+    .ri .ans { font-size: 14px; }
+    .col button { font-size: 13px; padding: 3px 4px; }
+  }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div id="v1">
+        <div class="hero"><span id="heroIco"></span><div class="zh" lang="zh-CN">开灯</div><span class="py" id="heroPy">kāi dēng</span></div>
+        <div class="say" id="say" hidden></div>
+      </div>
+      <div id="v2" hidden>
+        <div class="hearrow"><span data-t="sortHint"></span><span class="score" id="score"></span></div>
+        <div class="bins" id="bins"></div>
+        <p class="fb" id="fb" aria-live="polite"></p>
+        <div class="deck" id="deck" role="group" data-t-aria="deckAria"></div>
+      </div>
+      <div id="v3" hidden>
+        <div class="hearrow"><span data-t="revHint"></span><span class="score" id="score3"></span></div>
+        <div class="rev" id="rev"></div>
+      </div>
+      <div id="v4" hidden>
+        <svg class="venn" id="venn" viewBox="0 0 600 230" role="group" data-t-aria="vennAria"></svg>
+        <div class="cols" id="cols"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="rule" id="rule" hidden></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "开 is not always open", eyebrow: "English · Stage 1", h1: "开 is not always open",
+    intro: "In Chinese you 开 a door, a light, a car and a meeting. English uses a different verb for most of them. Sort the picture cards and find out which.",
+    reset: "Reset", deckAria: "Picture cards to sort", vennAria: "Two circles: uses of 开 and uses of open. Tap a part to see its phrases.",
+    s1: "Guess", s2: "开 → English", s3: "open → 中文", s4: "Rule",
+    k1: "Predict first", t1: "开灯 in English?",
+    b1: "开 often means open: 开门 is open the door. Does that work for every 开?",
+    q: "How do you say 开灯 in English?",
+    o1: "open the light", o2: "turn on the light", o3: "start the light",
+    right: "Yes! A light is turned on, not opened. 开 is not always open.",
+    wrong: "English says turn on the light. \"Open the light\" is a very common mistake: 开 is not always open.",
+    sayOk: "turn on the light", sayNo: "open the light",
+    k2: "Hands on", t2: "Which English verb goes with each 开?",
+    b2: "Drag a picture card onto an English verb — or tap a card, then tap a verb. Keyboard: Tab to a card, Enter to pick it, then 1–6 to drop it; ← → move between cards. Each card says what you 开 in Chinese.",
+    sortHint: "Every card is a 开 …",
+    k3: "Turn it around", t3: "And English open → Chinese?",
+    b3: "Now start from English. For each open phrase, tap the Chinese verb you would use. Tap the phrase to hear it.",
+    revHint: "Every phrase is open …",
+    k4: "The rule", t4: "Two words, two different patches",
+    b4: "The left circle holds the uses of 开 on this page, the right circle the uses of open. Tap a part of the picture to see its phrases. So learn a word together with the word it goes with: turn on + light, drive + car.",
+    ruleTxt: "开 and open share only {both} uses. {kai} uses of 开 need another English verb, and {open} uses of open need another Chinese verb.",
+    rKai: "开, not open", rBoth: "开 = open", rOpen: "open, not 开",
+    vKai: "开", vOpen: "open",
+    binAria: "{v}: {n} cards", binPut: "Put {zh} on {v}",
+    cardAria: "{zh}, {py}. Enter to pick; 1 to 6 to drop on a verb.",
+    score: "Sorted {n} / {m} · right first time {f}",
+    score3: "Found {n} / {m}",
+    pick: "{zh} picked — now tap an English verb.", pickFirst: "Pick a card first, then tap a verb.",
+    okMsg: "Yes: {zh} → {en}.", noMsg: "Not {v}: \"{bad}\" does not mean {zh}. Try again.",
+    softMsg: "Close — you can say the flowers open, but the usual word is bloom. Try that verb.",
+    alsoMeeting: "You can also say hold a meeting.", alsoShop: "To keep a shop going day after day, say run a shop.",
+    alsoParty: "You can also say throw a party.", alsoLight: "You can also say switch on.",
+    done: "All {m} sorted, {f} right first time. Go to step 3 to turn it around.", doneDeck: "Every card sorted.",
+    revOk: "{en} → {zh}", revNo: "Not {c} here.", revAlso: "also {zh}",
+    liveS: "Sorted {n} of {m}.", live3: "Found {n} of {m}.", live4: "{r}: {n} phrases.",
+    resKai: "开 → open: {a} of {n}", resOpen: "open → 开: {b} of {m}",
+    resultTitle: "Counted from this page",
+    resultNote: "Most 开 phrases are not open, and some open phrases are not 开. Learn the pair: verb + the word it goes with.",
+    explainK: "Explain it", explainQ: "A friend says \"Please open the TV.\" Explain why that sounds wrong in English, and what to say instead. Then think of another Chinese word that has more than one English match.",
+    homeK: "Try at home", homeQ: "Walk around your home and point at things you 开: the door, the fridge, the tap, the lamp, the computer. Say the English for each. Which ones are open and which are turn on?",
+    foot: "Phrases are everyday English; other correct ways: switch on (the light, the TV), hold a meeting, throw a party, tell a joke or just \"I'm joking\", the flowers are out, run a shop (keep it going). In 睁开眼、张开嘴, 开 is added after the verb to mean \"apart\"; the verb itself is 睁 or 张, so those count as \"not 开\". Counts are of the phrases on this page only. Speech uses your browser's built-in voice. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "「开」不总是 open", eyebrow: "英语 · 阶段 1", h1: "「开」不总是 open",
+    intro: "中文里门、灯、车、会都能「开」。英语里大多要换动词。给图片卡分一分，看看各用哪个。",
+    reset: "重置", deckAria: "待分类的图片卡", vennAria: "两个圈：「开」的用法和 open 的用法。点一块看里面的短语。",
+    s1: "先猜", s2: "开 → 英语", s3: "open → 中文", s4: "规律",
+    k1: "先猜一猜", t1: "「开灯」英语怎么说？",
+    b1: "「开」常常就是 open：开门是 open the door。是不是每个「开」都这样？",
+    q: "「开灯」英语怎么说？",
+    o1: "open the light", o2: "turn on the light", o3: "start the light",
+    right: "对！灯是 turn on，不是 open。「开」不总是 open。",
+    wrong: "英语说 turn on the light。\"open the light\" 是很常见的错误：「开」不总是 open。",
+    sayOk: "turn on the light", sayNo: "open the light",
+    k2: "动手", t2: "每个「开」配哪个英语动词？",
+    b2: "把图片卡拖到英语动词上；也可以先点卡片，再点动词。键盘：Tab 到卡片，Enter 选中，再按 1–6 放到对应动词；← → 在卡片间移动。每张卡都是中文里「开」的东西。",
+    sortHint: "每张卡都是「开……」",
+    k3: "反过来", t3: "英语 open → 中文？",
+    b3: "现在从英语出发。每个 open 短语，点一下中文里会用的动词。点短语可以听读。",
+    revHint: "每个短语都是 open……",
+    k4: "规律", t4: "两个词，覆盖的范围不一样",
+    b4: "左圈是本页「开」的用法，右圈是 open 的用法。点图上的一块看里面的短语。所以学词要连着搭配一起学：turn on + light，drive + car。",
+    ruleTxt: "「开」和 open 只有 {both} 个用法重合。另有 {kai} 个「开」要换别的英语动词，{open} 个 open 要换别的中文动词。",
+    rKai: "是「开」，不是 open", rBoth: "开 = open", rOpen: "是 open，不是「开」",
+    vKai: "开", vOpen: "open",
+    binAria: "{v}：{n} 张卡", binPut: "把 {zh} 放到 {v}",
+    cardAria: "{zh}。Enter 选中；按 1 到 6 放到动词上。",
+    score: "已分 {n}/{m} · 一次放对 {f}",
+    score3: "找到 {n}/{m}",
+    pick: "选中了 {zh}——再点一个英语动词。", pickFirst: "先选一张卡片，再点动词。",
+    okMsg: "对：{zh} → {en}。", noMsg: "不是 {v}：\"{bad}\" 不是「{zh}」的意思。再试试。",
+    softMsg: "接近了——说 the flowers open 也可以，但最常用的词是 bloom。试试那个动词。",
+    alsoMeeting: "也可以说 hold a meeting。", alsoShop: "如果是天天经营一家店，说 run a shop。",
+    alsoParty: "也可以说 throw a party。", alsoLight: "也可以说 switch on。",
+    done: "{m} 张全部分好，一次放对 {f} 张。去第 3 步反过来试试。", doneDeck: "卡片都分完了。",
+    revOk: "{en} → {zh}", revNo: "这里不用「{c}」。", revAlso: "也可以说 {zh}",
+    liveS: "已分 {n}/{m}。", live3: "找到 {n}/{m}。", live4: "{r}：{n} 个短语。",
+    resKai: "开 → open：{a}/{n}", resOpen: "open → 开：{b}/{m}",
+    resultTitle: "从本页数出来",
+    resultNote: "大多数「开」不是 open，有些 open 也不是「开」。要成对地学：动词 + 跟它搭配的词。",
+    explainK: "说一说", explainQ: "朋友说 \"Please open the TV.\"。跟他讲讲为什么英语里听着不对，应该怎么说。再想一个中文词，它在英语里不止一个对应。",
+    homeK: "家里做一做", homeQ: "在家里走一圈，指着能「开」的东西：门、冰箱、水龙头、台灯、电脑。每样说出英语。哪些是 open，哪些是 turn on？",
+    foot: "短语都是日常英语；其他也对的说法：switch on（灯、电视）、hold a meeting、throw a party、tell a joke 或直接说 \"I'm joking\"、the flowers are out、run a shop（天天经营）。「睁开眼」「张开嘴」里的「开」是加在动词后面表示「分开」的，动词本身是「睁」「张」，所以算作「不是开」。数字只数本页的短语。发音用浏览器自带的语音。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---- pictures: simple line drawings on a 48×48 grid ----
+const ICON = {
+  door: '<rect x="13" y="5" width="22" height="37" rx="2"/><circle class="f" cx="30" cy="25" r="2"/><path d="M6 43h36"/>',
+  window: '<rect x="8" y="8" width="32" height="30" rx="2"/><path d="M24 8v30M8 23h32M5 41h38"/>',
+  shop: '<path d="M6 18l4-10h28l4 10z"/><path d="M6 18q4 5 9 0q4 5 9 0q5 5 9 0q4 5 9 0"/><path d="M9 21v20h30V21"/><rect x="20" y="28" width="8" height="13"/>',
+  light: '<path d="M18 30a10 10 0 1 1 12 0v5H18z"/><path d="M19 40h10M24 3v3M9 10l2 2M39 10l-2 2M5 20h3M40 20h3"/>',
+  tv: '<rect x="5" y="11" width="38" height="25" rx="3"/><path d="M17 4l7 7 7-7M18 42h12M24 36v6"/>',
+  car: '<path d="M5 31v-7l7-8h22l8 8h1v7z"/><path d="M14 16v8M27 16v8M8 24h34"/><circle cx="14" cy="33" r="4"/><circle cx="34" cy="33" r="4"/>',
+  meeting: '<ellipse cx="24" cy="33" rx="17" ry="6"/><circle cx="10" cy="16" r="4"/><circle cx="24" cy="11" r="4"/><circle cx="38" cy="16" r="4"/><path d="M5 27q5-6 10 0M19 22q5-6 10 0M33 27q5-6 10 0"/>',
+  party: '<ellipse cx="16" cy="15" rx="7" ry="9"/><ellipse cx="32" cy="13" rx="7" ry="9"/><path d="M16 24q3 9 7 19M32 22q-3 10-7 21M14 41l4-3M30 40l4 2"/>',
+  joke: '<circle cx="24" cy="24" r="18"/><path d="M14 19q3-4 6 0M28 19q3-4 6 0M14 27q10 14 20 0z"/>',
+  flower: '<circle cx="24" cy="17" r="4"/><circle cx="24" cy="8" r="5"/><circle cx="33" cy="17" r="5"/><circle cx="24" cy="26" r="5"/><circle cx="15" cy="17" r="5"/><path d="M24 31v13M24 39q-8-1-10-7q7 0 10 7"/>',
+  book: '<path d="M24 13C18 9 11 9 5 11v27c6-2 13-2 19 2c6-4 13-4 19-2V11c-6-2-13-2-19 2z"/><path d="M24 13v27"/>',
+  present: '<rect x="8" y="21" width="32" height="21" rx="1"/><rect x="5" y="14" width="38" height="7" rx="1"/><path d="M24 14v28M24 14c-5-9-13-6-9-1q3 2 9 1c5-9 13-6 9-1q-3 2-9 1"/>',
+  eyes: '<path d="M3 24q21-20 42 0q-21 20-42 0z"/><circle cx="24" cy="24" r="7"/><circle class="f" cx="24" cy="24" r="3"/>',
+  mouth: '<path d="M8 19q16-6 32 0q-3 21-16 21T8 19z"/><path d="M11 22q13 3 26 0"/><path d="M17 33q7-5 14 0"/>',
+};
+function icon(id) {
+  const s = Play.svg("svg", { viewBox: "0 0 48 48", class: "ico", "aria-hidden": "true" });
+  s.innerHTML = ICON[id];
+  return s;
+}
+
+// ---- data (checked collocations; see footnote) ----
+const VERBS = [
+  { id: "open", en: "open" }, { id: "turnon", en: "turn on" }, { id: "drive", en: "drive" },
+  { id: "have", en: "have / hold" }, { id: "make", en: "make" }, { id: "bloom", en: "bloom" },
+];
+// What you 开 in Chinese. v = the English verb; obj = what follows it; soft = also heard, but not the usual verb.
+const CARDS = [
+  { id: "door", zh: "开门", py: "kāi mén", v: "open", en: "open the door" },
+  { id: "window", zh: "开窗", py: "kāi chuāng", v: "open", en: "open the window" },
+  { id: "shop", zh: "开店", py: "kāi diàn", v: "open", en: "open a shop", also: "alsoShop" },
+  { id: "light", zh: "开灯", py: "kāi dēng", v: "turnon", en: "turn on the light", also: "alsoLight" },
+  { id: "tv", zh: "开电视", py: "kāi diànshì", v: "turnon", en: "turn on the TV", also: "alsoLight" },
+  { id: "car", zh: "开车", py: "kāi chē", v: "drive", en: "drive a car" },
+  { id: "meeting", zh: "开会", py: "kāi huì", v: "have", en: "have a meeting", also: "alsoMeeting" },
+  { id: "party", zh: "开派对", py: "kāi pàiduì", v: "have", en: "have a party", also: "alsoParty" },
+  { id: "joke", zh: "开玩笑", py: "kāi wánxiào", v: "make", en: "make a joke" },
+  { id: "flower", zh: "开花", py: "kāi huā", v: "bloom", en: "the flowers bloom", soft: ["open"] },
+];
+// English open → Chinese. ok = Chinese verbs that work; zh = the usual phrase; alt = another usual phrase.
+const CHIPS = [
+  { c: "开", py: "kāi" }, { c: "打开", py: "dǎkāi" }, { c: "睁", py: "zhēng" }, { c: "张", py: "zhāng" }, { c: "拆", py: "chāi" },
+];
+const REV = [
+  { id: "door", en: "open the door", ok: ["开", "打开"], zh: "开门", alt: "打开门" },
+  { id: "window", en: "open the window", ok: ["开", "打开"], zh: "开窗", alt: "打开窗户" },
+  { id: "shop", en: "open a shop", ok: ["开"], zh: "开店" },
+  { id: "book", en: "open a book", ok: ["打开"], zh: "打开书" },
+  { id: "present", en: "open a present", ok: ["拆", "打开"], zh: "拆礼物", alt: "打开礼物" },
+  { id: "eyes", en: "open your eyes", ok: ["睁"], zh: "睁眼", alt: "睁开眼睛" },
+  { id: "mouth", en: "open your mouth", ok: ["张"], zh: "张嘴", alt: "张开嘴" },
+];
+// Wrong-verb phrase, built from the card's object: "open" + "the light".
+function objOf(card) {
+  const v = VERBS.find((x) => x.id === card.v);
+  return card.v === "bloom" ? "" : card.en.slice(v.en.split(" / ")[0].length).trim();
+}
+function badPhrase(card, verbId) {
+  const v = VERBS.find((x) => x.id === verbId).en.split(" / ")[0];
+  if (card.v === "bloom") return "the flowers " + v;
+  return v + " " + objOf(card);
+}
+function judge(card, verbId) {
+  if (card.v === verbId) return "ok";
+  if ((card.soft || []).includes(verbId)) return "soft";
+  return "no";
+}
+const usesKai = (r) => r.ok.some((c) => c.includes("开"));
+// The three parts of the picture, by id: 开 only, both, open only.
+function regions() {
+  const kai = [], both = [], open = [];
+  CARDS.forEach((c) => (c.v === "open" ? null : kai.push(c.id)));
+  REV.forEach((r) => (usesKai(r) ? both : open).push(r.id));
+  CARDS.forEach((c) => { if (c.v === "open" && !both.includes(c.id)) both.push(c.id); });
+  return { kai, both, open };
+}
+function tallies() {
+  const R = regions();
+  return {
+    a: CARDS.filter((c) => c.v === "open").length, n: CARDS.length,
+    b: REV.filter(usesKai).length, m: REV.length,
+    kai: R.kai.length, both: R.both.length, open: R.open.length,
+  };
+}
+if (typeof module !== "undefined") module.exports = { VERBS, CARDS, REV, CHIPS, judge, badPhrase, regions, tallies, usesKai };
+
+// ---- state ----
+const $ = (id) => document.getElementById(id);
+let st, sel = null;
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function fresh() {
+  st = { deck: shuffle(CARDS.map((c) => c.id)), placed: {}, first: 0, missed: new Set(), rev: {}, revWrong: {}, region: -1 };
+  sel = null;
+}
+const card = (id) => CARDS.find((c) => c.id === id);
+const zhLang = P.lang === "zh";
+
+// ---- step 1 ----
+$("heroIco").appendChild(icon("light"));
+if (zhLang) $("heroPy").hidden = true;
+function showSay() {
+  const box = $("say");
+  box.innerHTML = "";
+  [["ok", "sayOk", "✓"], ["no", "sayNo", "✗"]].forEach(([cls, key, m]) => {
+    const row = document.createElement("div"); row.className = "row " + cls;
+    const mk = document.createElement("span"); mk.className = "mark"; mk.textContent = m;
+    const b = document.createElement("button"); b.type = "button"; b.lang = "en"; b.textContent = "▶ " + P.t(key);
+    b.addEventListener("click", () => Play.speak(P.t(key), "en-US"));
+    row.append(mk, b); box.appendChild(row);
+  });
+  box.hidden = false;
+}
+
+// ---- step 2: bins ----
+const binEls = VERBS.map((v, k) => {
+  const bin = document.createElement("div");
+  bin.className = "bin"; bin.dataset.k = k;
+  const head = document.createElement("button");
+  head.type = "button"; head.className = "binhead";
+  head.innerHTML = '<span class="v" lang="en"></span><span class="k"></span>';
+  head.querySelector(".v").textContent = v.en;
+  head.addEventListener("click", () => {
+    if (!sel) { setFb(P.t("pickFirst"), ""); return; }
+    place(sel, k, true);
+  });
+  const got = document.createElement("div"); got.className = "got"; got.lang = "en";
+  bin.append(head, got);
+  $("bins").appendChild(bin);
+  return { bin, head, got };
+});
+
+let drag = null, suppressClick = false;
+function cardEl(id) {
+  const c = card(id);
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "pc"; b.dataset.id = id;
+  b.appendChild(icon(id));
+  const z = document.createElement("span"); z.className = "zh"; z.lang = "zh-CN"; z.textContent = c.zh;
+  b.appendChild(z);
+  if (!zhLang) { const p = document.createElement("span"); p.className = "py"; p.textContent = c.py; b.appendChild(p); }
+  b.setAttribute("aria-pressed", "false");
+  b.setAttribute("aria-label", P.t("cardAria", { zh: c.zh, py: c.py }));
+  b.addEventListener("click", () => { if (suppressClick) { suppressClick = false; return; } pick(id); });
+  b.addEventListener("keydown", (e) => {
+    const k = "123456".indexOf(e.key);
+    if (e.key.length === 1 && k >= 0) { place(id, k, true); e.preventDefault(); return; }
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      const cs = [...$("deck").querySelectorAll(".pc")], i = cs.indexOf(b);
+      cs[Play.clamp(i + (e.key === "ArrowRight" ? 1 : -1), 0, cs.length - 1)].focus(); e.preventDefault();
+    }
+    if (e.key === "Escape") { sel = null; markSel(); }
+  });
+  b.addEventListener("pointerdown", (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    drag = { b, id, x: e.clientX, y: e.clientY, on: false };
+    try { b.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  });
+  b.addEventListener("pointermove", (e) => {
+    if (!drag || drag.b !== b) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.on && Math.hypot(dx, dy) > 8) { drag.on = true; b.classList.add("drag"); }
+    if (!drag.on) return;
+    b.style.transform = "translate(" + dx + "px," + dy + "px)";
+    const k = binAt(e.clientX, e.clientY);
+    binEls.forEach((x, i) => x.bin.classList.toggle("over", i === k));
+  });
+  const end = (e, cancel) => {
+    if (!drag || drag.b !== b) return;
+    const d = drag; drag = null;
+    if (!d.on) return;
+    suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+    b.classList.remove("drag"); b.style.transform = "";
+    binEls.forEach((x) => x.bin.classList.remove("over"));
+    const k = cancel ? -1 : binAt(e.clientX, e.clientY);
+    if (k >= 0) place(d.id, k, false);
+  };
+  b.addEventListener("pointerup", (e) => end(e, false));
+  b.addEventListener("pointercancel", (e) => end(e, true));
+  return b;
+}
+function binAt(x, y) {
+  const els = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [];
+  for (const el of els) { const b = el.closest && el.closest(".bin"); if (b) return +b.dataset.k; }
+  return -1;
+}
+function pick(id) {
+  sel = id;
+  Play.speak(card(id).zh, "zh-CN");
+  markSel();
+  setFb(P.t("pick", { zh: card(id).zh }), "");
+}
+const countIn = (k) => Object.values(st.placed).filter((x) => x === k).length;
+function markSel() {
+  $("deck").querySelectorAll(".pc").forEach((c) => {
+    const on = c.dataset.id === sel;
+    c.classList.toggle("sel", on); c.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  binEls.forEach((b, k) => {
+    b.bin.classList.toggle("ready", !!sel);
+    b.head.setAttribute("aria-label", sel ? P.t("binPut", { zh: card(sel).zh, v: VERBS[k].en }) : P.t("binAria", { v: VERBS[k].en, n: countIn(k) }));
+  });
+}
+function place(id, k, fromKey) {
+  const c = card(id), v = VERBS[k];
+  if (!v || !st.deck.includes(id)) return;
+  const j = judge(c, v.id);
+  if (j === "ok") {
+    const i = st.deck.indexOf(id);
+    st.deck.splice(i, 1);
+    st.placed[id] = k;
+    if (!st.missed.has(id)) st.first++;
+    sel = null;
+    Play.speak(c.en, "en-US");
+    setFb(P.t("okMsg", { zh: c.zh, en: c.en }) + (c.also ? " " + P.t(c.also) : ""), "ok");
+    drawSort();
+    if (fromKey) {
+      const cs = $("deck").querySelectorAll(".pc");
+      if (cs.length) cs[Math.min(i, cs.length - 1)].focus(); else binEls[k].head.focus();
+    }
+    return;
+  }
+  sel = null;
+  if (j === "no") st.missed.add(id);
+  setFb(j === "soft" ? P.t("softMsg") : P.t("noMsg", { v: v.en, bad: badPhrase(c, v.id), zh: c.zh }), "no");
+  const bin = binEls[k].bin;
+  bin.classList.add("bad"); setTimeout(() => bin.classList.remove("bad"), 600);
+  const el = $("deck").querySelector('.pc[data-id="' + id + '"]');
+  if (el && !Play.reduced) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
+  if (el && fromKey) el.focus();
+  markSel(); score();
+}
+function setFb(text, cls) { const f = $("fb"); f.textContent = text; f.className = "fb" + (cls ? " " + cls : ""); }
+function score() {
+  const n = Object.keys(st.placed).length, m = CARDS.length;
+  $("score").textContent = P.t("score", { n, m, f: st.first });
+  if (stp && stp.i === 1) Play.live($("live"), P.t("liveS", { n, m }));
+}
+function drawSort() {
+  binEls.forEach((b, k) => {
+    b.got.innerHTML = "";
+    CARDS.filter((c) => st.placed[c.id] === k).forEach((c) => {
+      const x = document.createElement("button"); x.type = "button"; x.textContent = c.en;
+      x.addEventListener("click", () => Play.speak(c.en, "en-US"));
+      b.got.appendChild(x);
+    });
+    b.head.querySelector(".k").textContent = countIn(k) ? "× " + countIn(k) : "";
+  });
+  const deck = $("deck");
+  deck.innerHTML = "";
+  st.deck.forEach((id) => deck.appendChild(cardEl(id)));
+  if (!st.deck.length) {
+    const d = document.createElement("div"); d.className = "done"; d.textContent = P.t("doneDeck"); deck.appendChild(d);
+    setFb(P.t("done", { m: CARDS.length, f: st.first }), "ok");
+  }
+  markSel(); score();
+}
+
+// ---- step 3: English open → Chinese verb ----
+const revEls = REV.map((r) => {
+  const box = document.createElement("div"); box.className = "ri";
+  const top = document.createElement("div"); top.className = "top";
+  top.appendChild(icon(r.id));
+  const say = document.createElement("button"); say.type = "button"; say.lang = "en"; say.textContent = "▶ " + r.en;
+  say.addEventListener("click", () => Play.speak(r.en, "en-US"));
+  top.appendChild(say);
+  const chips = document.createElement("div"); chips.className = "chips"; chips.setAttribute("role", "group"); chips.setAttribute("aria-label", r.en);
+  const btns = CHIPS.map((ch) => {
+    const b = document.createElement("button"); b.type = "button"; b.lang = "zh-CN";
+    b.textContent = zhLang ? ch.c : ch.c + " " + ch.py;
+    b.addEventListener("click", () => choose(r, ch.c));
+    chips.appendChild(b);
+    return b;
+  });
+  const ans = document.createElement("div"); ans.className = "ans"; ans.setAttribute("aria-live", "polite");
+  box.append(top, chips, ans);
+  $("rev").appendChild(box);
+  return { r, box, btns, ans };
+});
+function choose(r, c) {
+  if (st.rev[r.id]) return;
+  if (r.ok.includes(c)) { st.rev[r.id] = c; Play.speak(r.zh, "zh-CN"); }
+  else { (st.revWrong[r.id] = st.revWrong[r.id] || new Set()).add(c); }
+  drawRev(r.id, c);
+}
+function drawRev(lastId, lastC) {
+  revEls.forEach((e) => {
+    const done = st.rev[e.r.id], wrong = st.revWrong[e.r.id] || new Set();
+    e.box.classList.toggle("ok", !!done);
+    e.btns.forEach((b, i) => {
+      const c = CHIPS[i].c;
+      b.classList.toggle("right", !!done && e.r.ok.includes(c));
+      b.classList.toggle("wrong", wrong.has(c) && !done);
+    });
+    if (done) e.ans.textContent = P.t("revOk", { en: e.r.en, zh: e.r.zh }) + (e.r.alt ? " · " + P.t("revAlso", { zh: e.r.alt }) : "");
+    else if (e.r.id === lastId) e.ans.textContent = P.t("revNo", { c: lastC });
+    else e.ans.textContent = "";
+  });
+  const n = Object.keys(st.rev).length, m = REV.length;
+  $("score3").textContent = P.t("score3", { n, m });
+  if (stp && stp.i === 2) Play.live($("live"), P.t("live3", { n, m }));
+}
+
+// ---- step 4: two circles ----
+const RKEYS = ["kai", "both", "open"], RLAB = ["rKai", "rBoth", "rOpen"];
+function phraseOf(id, where) {
+  const c = CARDS.find((x) => x.id === id), r = REV.find((x) => x.id === id);
+  if (where === "open") return { zh: r.zh, en: r.en };
+  if (c) return { zh: c.zh, en: c.en };
+  return { zh: r.zh.includes("开") ? r.zh : r.alt, en: r.en };
+}
+function drawVenn() {
+  const R = regions(), T = tallies(), svg = $("venn");
+  svg.innerHTML = "";
+  const cx = [230, 370], rr = 110, cy = 115;
+  Play.svg("circle", { cx: cx[0], cy, r: rr, fill: "var(--a)", "fill-opacity": .16, stroke: "var(--a)", "stroke-width": 3 }, svg);
+  Play.svg("circle", { cx: cx[1], cy, r: rr, fill: "var(--b)", "fill-opacity": .16, stroke: "var(--b)", "stroke-width": 3 }, svg);
+  const xs = [185, 300, 415];
+  RKEYS.forEach((key, i) => {
+    const g = Play.svg("g", { class: "rg" + (st.region === i ? " on" : ""), tabindex: 0, role: "button", "aria-label": P.t(RLAB[i]) + ": " + R[key].length }, svg);
+    Play.svg("circle", { class: "ring", cx: xs[i], cy, r: 34, fill: "var(--surface)", stroke: "var(--line)", "stroke-width": 2 }, g);
+    const t = Play.svg("text", { x: xs[i], y: cy + 14, "text-anchor": "middle", "font-size": 40, "font-weight": 700, fill: "var(--fg)" }, g);
+    t.textContent = R[key].length;
+    g.addEventListener("click", () => setRegion(i));
+    g.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { setRegion(i); e.preventDefault(); }
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        const j = Play.clamp(i + (e.key === "ArrowRight" ? 1 : -1), 0, 2);
+        setRegion(j); svg.querySelectorAll(".rg")[j].focus(); e.preventDefault();
+      }
+    });
+  });
+  [[62, "vKai", "var(--a)"], [538, "vOpen", "var(--b)"]].forEach(([x, k, col]) => {
+    const t = Play.svg("text", { x, y: cy + 11, "text-anchor": "middle", "font-size": 30, "font-weight": 700, fill: col }, svg);
+    t.textContent = P.t(k);
+  });
+  const cols = $("cols");
+  cols.innerHTML = "";
+  RKEYS.forEach((key, i) => {
+    const col = document.createElement("div"); col.className = "col c" + i + (st.region === i ? " on" : "");
+    const h = document.createElement("h3"); h.textContent = P.t(RLAB[i]) + " · " + R[key].length;
+    col.appendChild(h);
+    R[key].forEach((id) => {
+      const ph = phraseOf(id, key);
+      const b = document.createElement("button"); b.type = "button";
+      b.innerHTML = '<span lang="zh-CN"></span><span class="e" lang="en"></span>';
+      b.firstChild.textContent = ph.zh; b.lastChild.textContent = ph.en;
+      b.addEventListener("click", () => Play.speak(ph.en, "en-US"));
+      col.appendChild(b);
+    });
+    cols.appendChild(col);
+  });
+  $("rule").textContent = P.t("ruleTxt", T);
+  $("resultMain").textContent = P.t("resKai", T) + "  ·  " + P.t("resOpen", T);
+}
+function setRegion(i) {
+  st.region = i;
+  const R = regions();
+  document.querySelectorAll("#venn .rg").forEach((g, j) => g.classList.toggle("on", j === i));
+  document.querySelectorAll("#cols .col").forEach((c, j) => c.classList.toggle("on", j === i));
+  Play.live($("live"), P.t("live4", { r: P.t(RLAB[i]), n: R[RKEYS[i]].length }));
+}
+
+// ---- steps ----
+let stp = null;
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { showSay(); Play.speak(P.t("sayOk"), "en-US"); });
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("rule").hidden = i !== 3;
+  ["v1", "v2", "v3", "v4"].forEach((v, j) => { $(v).hidden = j !== i; });
+  $("live").textContent = "";
+  if (i === 1) score();
+  if (i === 2) drawRev();
+});
+$("reset").addEventListener("click", () => {
+  if ("speechSynthesis" in window) { try { speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+  fresh(); pr.reset(); $("say").hidden = true; setFb("", "");
+  drawSort(); drawRev(); drawVenn(); stp.go(0);
+});
+fresh();
+drawSort(); drawRev(); drawVenn();
+</script>
+</body>
+</html>

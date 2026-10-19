@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Light the bulb: why it needs a loop</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  #fig { height: auto; aspect-ratio: 600 / 380; max-height: 440px; touch-action: none; }
+  #fig text { fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 5px; stroke-linejoin: round; }
+  #fig text.mut { fill: var(--muted); }
+  #fig text.warn { fill: var(--no); font-weight: 700; }
+  #fig text.ok { fill: var(--a); font-weight: 700; }
+  #fig .end, #fig .sw { outline: none; }
+  #fig .end { cursor: grab; }
+  #fig .end.drag { cursor: grabbing; }
+  #fig .sw { cursor: pointer; }
+  #fig .end:focus-visible .ring, #fig .end.drag .ring, #fig .sw:focus-visible .ring { stroke: var(--hl); }
+  .objs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .objs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .tally { font-size: 13px !important; line-height: 1.7; }
+  .tally b { color: var(--fg); }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+  .result .math { white-space: normal; }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="pause" aria-pressed="false"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 380" role="group" data-t-aria="figAria"></svg>
+      <div id="cSw" class="controls" hidden>
+        <button type="button" class="small" id="swBtn" aria-pressed="false"></button>
+        <button type="button" class="small" id="wiresBack" data-t="wiresBack"></button>
+      </div>
+      <div id="cObj" class="controls" hidden>
+        <span data-t="objLabel"></span>
+        <div class="objs" id="objs"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="note" id="live"></p>
+      <p class="tally" id="tally" hidden></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" id="data"></p>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Light the bulb: why it needs a loop", eyebrow: "Science · Stage 1",
+    h1: "A bulb lights only when the wires make a full loop: from the battery, through the bulb, and back",
+    intro: "Guess which bulb lights, then wire it up yourself and test things from around the house.",
+    reset: "Reset", pause: "Pause", play: "Play",
+    figAria: "A battery, a bulb and wires. Wire ends can be dragged onto the metal spots.",
+    s1: "Guess", s2: "Wire it", s3: "Test things", s4: "Rule",
+    k1: "Predict first", t1: "Which bulb will light?",
+    b1: "Four children hooked up a battery and a bulb in four ways. Look closely at where each wire touches.",
+    b1done: "Only C lights. A: the electricity has a way into the bulb but no way back. B: both wires touch the same metal side, so the electricity goes from + to − through that metal and skips the thin wire inside the bulb. That is a short circuit too: the battery gets hot. C: one wire on the side, one on the tip: a full loop. D: the wire joins + straight to −. There is no bulb in that loop, and the battery gets hot. Never do that.",
+    q: "Which bulb will light?",
+    oA: "A: one wire is enough", oB: "B: two wires, both on the side", oC: "C: side and tip, back to the battery", oD: "D: one wire from + to −",
+    right: "Yes! Watch the electricity go round.", wrong: "Look which one really lights.",
+    k2: "Hands on", t2: "Make the bulb light",
+    b2: "One wire is already on. Drag the wire ends onto the metal spots, or tab to an end and press the arrow keys. Use the switch too.",
+    k3: "Hands on", t3: "What lets electricity through?",
+    b3: "The loop now has a gap. Put each thing into the gap. If the bulb lights, electricity can go through that thing.",
+    k4: "The rule", t4: "Follow the loop with your finger",
+    b4: "Start at +. Go along the wire, through the switch, into the bulb’s tip, along the thin wire inside, out of its side, and back to −. If the loop breaks anywhere, everything stops at once.",
+    objLabel: "Put in the gap:",
+    coin: "coin", clip: "paper clip", lead: "pencil lead", eraser: "eraser", plastic: "plastic ruler", wood: "wooden stick", none: "nothing",
+    wiresBack: "Wires back to start", swOn: "Switch: on", swOff: "Switch: off",
+    wireName0: "red", wireName1: "blue", wireName2: "green",
+    endAria: "The {c} wire, end {n}: {where}. Arrow keys move it to the next metal spot.",
+    swAria: "Switch, now {s}. Press Enter to flip it.", on: "on", off: "off",
+    whereLoose: "not touching anything",
+    "tB+": "battery +", "tB-": "battery −", tLs: "bulb side", tLt: "bulb tip", tS1: "switch, left", tS2: "switch, right",
+    labSide: "metal side", labTip: "metal tip", labSwitch: "switch", labGap: "gap", hot: "Hot!",
+    stLit: "It lights! There is a full loop: from +, through the bulb, back to −.",
+    stDim: "It lights a little: the loop is closed, but something in it lets only a little electricity through.",
+    stShort: "Short circuit! A wire joins + straight to −, so the electricity skips the bulb. About {I} A rushes round, {k} times what lights the bulb. The battery gets hot and runs flat. Take that wire off!",
+    stSwitch: "Almost! The loop is broken at the switch. Flip the switch to close it.",
+    stBypass: "Both bulb wires meet the same piece of metal, so the electricity skips the thin wire inside the bulb. Put one wire on the side and the other on the tip.",
+    stOne: "Only one end of the bulb is joined to the battery. Electricity has a way in but no way back. Join the bulb’s other metal spot to the other end of the battery.",
+    stNone: "The bulb is not joined to the battery yet. Drag the wire ends onto the metal spots.",
+    stGap: "{o} in the gap: the bulb {s}.", stGapEmpty: "The gap is empty, so the loop is broken: the bulb is dark.",
+    sBright: "lights up", sDim: "glows a little", sDark: "stays dark",
+    tallyLit: "Lets electricity through:", tallyDim: "Lets a little through:", tallyDark: "Stops it:", tallyNone: "Nothing tested yet.",
+    ruleOn: "Loop closed. Current: {I} A all the way round, the same in every part. The bulb gets {Vb} V of the battery’s {E} V.",
+    ruleOff: "Switch off: the loop has a gap at the switch. Current: 0 A everywhere, so the bulb is dark. A switch is just a gap you can open and close.",
+    markYes: "✓ lights", markNo: "✗ dark",
+    resultTitle: "What we found", resultMain: "+ → bulb → − : one unbroken loop",
+    resultNote: "One wire is not enough: the electricity needs a way back. A bulb has two metal spots, the side and the tip. Metals let electricity through; rubber, plastic and wood stop it.",
+    explainK: "Explain it", explainQ: "A friend says one wire from the battery should light the bulb. Use your finger to trace the path and show them where it stops.",
+    homeK: "Try at home", homeQ: "With a grown-up, use one 1.5 V battery, a small torch bulb and two wires with bare ends. Light it, then add a gap and test a spoon, foil, a pencil lead and a rubber band. Only small batteries: never wall sockets.",
+    dataNote: "How the page works it out: one {E} V battery with about {r} Ω inside it; a bulb of about {R} Ω when lit (a {E} V, {In} A torch bulb); each wire {w} Ω; the switch and the metal things {m} Ω or less; pencil lead (graphite) about {g} Ω (real leads vary with hardness and length, from a few ohms to tens of ohms). The page finds the current in every part with Ohm’s law at every joint. Brightness is the bulb’s power compared with the plain loop. A short circuit is drawn when the battery current is over {s} A; the plain loop draws {In} A. The moving dots show the direction of current, from + round to −. Inside the metal, the tiny electrons drift the other way, very slowly. The belief that one wire is enough is one of the commonest children’s ideas about circuits (Osborne 1983; Shipstone 1984).",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "点亮小灯泡：为什么要接成一圈", eyebrow: "科学 · 阶段 1",
+    h1: "只有电线接成完整的一圈：从电池出发、穿过灯泡、再回到电池，灯泡才会亮",
+    intro: "先猜哪个灯泡会亮，再自己接一接，还可以试试家里的各种东西。",
+    reset: "重置", pause: "暂停", play: "播放",
+    figAria: "一节电池、一个小灯泡和几根电线。可以把电线头拖到金属点上。",
+    s1: "先猜", s2: "接一接", s3: "试东西", s4: "规律",
+    k1: "先猜一猜", t1: "哪个灯泡会亮？",
+    b1: "四个小朋友用四种办法把电池和灯泡接起来。仔细看每根电线碰在哪里。",
+    b1done: "只有 C 会亮。A：电有路进灯泡，却没有路回去。B：两根线都碰在同一块金属侧面上，电从 + 经过这块金属直接回到 −，不走灯泡里那根细细的灯丝。这也是短路，电池会发烫。C：一根线接侧面，一根接底部的尖：连成了完整的一圈。D：电线把 + 直接接到 −，这一圈里没有灯泡，电池还会发烫。千万别这样接。",
+    q: "哪个灯泡会亮？",
+    oA: "A：一根线就够了", oB: "B：两根线，都接在侧面", oC: "C：侧面和尖都接，回到电池", oD: "D：一根线从 + 接到 −",
+    right: "对！看电绕着圈跑。", wrong: "看看到底哪个亮了。",
+    k2: "动手", t2: "让灯泡亮起来",
+    b2: "已经接好了一根线。把电线头拖到金属点上；也可以用 Tab 选中一个线头，再按方向键。开关也用上。",
+    k3: "动手", t3: "什么东西能让电通过？",
+    b3: "现在这一圈留了个缺口。把东西一样一样放进缺口。灯泡亮了，就说明电能从这样东西里通过。",
+    k4: "规律", t4: "用手指沿着这一圈走一遍",
+    b4: "从 + 出发，沿着电线走，经过开关，进灯泡底部的尖，走过里面细细的灯丝，从侧面出来，回到 −。这一圈哪里断了，整圈马上都停。",
+    objLabel: "放进缺口：",
+    coin: "硬币", clip: "回形针", lead: "铅笔芯", eraser: "橡皮", plastic: "塑料尺", wood: "木棍", none: "空着",
+    wiresBack: "电线放回原处", swOn: "开关：合上", swOff: "开关：断开",
+    wireName0: "红", wireName1: "蓝", wireName2: "绿",
+    endAria: "{c}色电线的第 {n} 个头：{where}。按方向键移到下一个金属点。",
+    swAria: "开关，现在{s}。按回车键扳动。", on: "合上", off: "断开",
+    whereLoose: "什么也没碰",
+    "tB+": "电池 +", "tB-": "电池 −", tLs: "灯泡侧面", tLt: "灯泡底部的尖", tS1: "开关左边", tS2: "开关右边",
+    labSide: "金属侧面", labTip: "金属尖", labSwitch: "开关", labGap: "缺口", hot: "发烫！",
+    stLit: "亮了！连成了完整的一圈：从 + 出发，穿过灯泡，回到 −。",
+    stDim: "亮了一点点：这一圈是通的，但里面有样东西只让很少的电通过。",
+    stShort: "短路！一根线把 + 直接接到了 −，电绕过了灯泡。大约 {I} 安的电流在跑，是点亮灯泡那么多的 {k} 倍。电池会发烫，很快就没电了。快把这根线拿掉！",
+    stSwitch: "差一点！这一圈在开关那里断开了。扳一下开关，把它合上。",
+    stBypass: "灯泡的两根线碰在同一块金属上，电就绕过了灯泡里的细灯丝。一根接侧面，一根接底部的尖。",
+    stOne: "灯泡只有一头接到了电池。电有路进去，却没有路回来。把灯泡的另一个金属点接到电池的另一头。",
+    stNone: "灯泡还没和电池接上。把电线头拖到金属点上。",
+    stGap: "缺口里放{o}：灯泡{s}。", stGapEmpty: "缺口空着，这一圈是断的：灯泡不亮。",
+    sBright: "亮了", sDim: "微微发亮", sDark: "不亮",
+    tallyLit: "能让电通过：", tallyDim: "只让一点点电通过：", tallyDark: "不让电通过：", tallyNone: "还没试过。",
+    ruleOn: "这一圈是通的。电流 {I} 安，绕一圈每处都一样。电池的 {E} 伏里，灯泡分到 {Vb} 伏。",
+    ruleOff: "开关断开：这一圈在开关处有个缺口。各处电流都是 0 安，灯泡不亮。开关就是一个可以打开、合上的缺口。",
+    markYes: "✓ 亮", markNo: "✗ 不亮",
+    resultTitle: "我们发现", resultMain: "+ → 灯泡 → −：连成不断的一圈",
+    resultNote: "一根线不够：电还要有路回去。灯泡有两个金属点：侧面和底部的尖。金属能让电通过；橡皮、塑料和木头不能。",
+    explainK: "说一说", explainQ: "朋友说从电池拉一根线到灯泡就能亮。用手指沿着电走的路画一画，让他看看电在哪里走不下去。",
+    homeK: "家里做一做", homeQ: "请大人陪着，用一节 1.5 伏电池、一个手电筒小灯泡和两根两头露铜的电线。先点亮它，再留个缺口，试试勺子、锡纸、铅笔芯和橡皮筋。只用小电池，千万不要碰墙上的插座。",
+    dataNote: "页面怎么算：一节 {E} 伏电池，内部大约 {r} 欧；灯泡亮着时大约 {R} 欧（{E} 伏、{In} 安的手电筒小灯泡）；每根电线 {w} 欧；开关和金属物品不超过 {m} 欧；铅笔芯（石墨）大约 {g} 欧（真的铅笔芯随软硬和长短变化，从几欧到几十欧）。页面在每个接点用欧姆定律算出每一段的电流。亮度是灯泡的功率和普通一圈时相比。电池电流超过 {s} 安时画成短路；普通一圈只有 {In} 安。跑动的小点表示电流的方向：从 + 绕到 −。金属里那些极小的电子其实朝反方向慢慢挪动。“一根线就够”是孩子们对电路最常见的想法之一（Osborne 1983；Shipstone 1984）。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- circuit model (pure) ----------
+const E = 1.5, R_INT = 0.3, R_BULB = 5, R_WIRE = 0.02, R_SW = 0.02, SHORT_A = 1;
+const OBJ = { coin: { R: 0.01 }, clip: { R: 0.05 }, lead: { R: 5 }, eraser: { R: Infinity }, plastic: { R: Infinity }, wood: { R: Infinity } };
+const OBJ_ORDER = ["coin", "clip", "lead", "eraser", "plastic", "wood"];
+const I_NOM = E / (R_INT + R_BULB + 2 * R_WIRE);   // the plain loop: two wires and the bulb
+
+const T = { "B-": { x: 190, y: 310 }, "B+": { x: 378, y: 310 }, Ls: { x: 279, y: 164 }, Lt: { x: 300, y: 195 },
+  S1: { x: 450, y: 205 }, S2: { x: 545, y: 205 }, G1: { x: 80, y: 205 }, G2: { x: 136, y: 205 } };
+const pos = (e) => (e.t ? T[e.t] : e);
+function wirePath(a, b) {
+  const len = Math.hypot(b.x - a.x, b.y - a.y);
+  const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2 + 24 + 0.28 * len, pts = [];
+  for (let i = 0; i <= 20; i++) {
+    const u = i / 20, v = 1 - u;
+    pts.push({ x: v * v * a.x + 2 * u * v * cx + u * u * b.x, y: v * v * a.y + 2 * u * v * cy + u * u * b.y });
+  }
+  return pts;
+}
+const FIL = [];
+for (let i = 0; i <= 8; i++) FIL.push({ x: 284 + i * 4, y: 102 + (i % 2 ? -5 : 5) });
+const BULB_PATH = [T.Ls, { x: 287, y: 154 }, { x: 291, y: 146 }, { x: 284, y: 106 }, ...FIL, { x: 316, y: 106 }, { x: 309, y: 146 }, { x: 300, y: 170 }, T.Lt];
+const BAT_PATH = [T["B-"], { x: 284, y: 310 }, T["B+"]];
+
+// Gaussian elimination with partial pivoting; A is m rows of m+1 numbers.
+function gauss(A) {
+  const m = A.length;
+  for (let c = 0; c < m; c++) {
+    let p = c;
+    for (let r = c + 1; r < m; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]];
+    const d = A[c][c] || 1e-30;
+    for (let r = 0; r < m; r++) {
+      if (r === c) continue;
+      const f = A[r][c] / d;
+      if (f) for (let k = c; k <= m; k++) A[r][k] -= f * A[c][k];
+    }
+  }
+  return A.map((row, i) => row[m] / (row[i] || 1e-30));
+}
+// c = { wires: [{a, b}], sw: null|true|false, gap: undefined|null|objId }; ends are {t} or {x, y}
+function solve(c) {
+  const idx = {}, names = [];
+  const node = (k) => (k in idx ? idx[k] : (idx[k] = names.push(k) - 1));
+  ["B-", "B+", "Ls", "Lt"].forEach(node);
+  const el = [];
+  c.wires.forEach((w, i) => {
+    const a = node(w.a.t || "w" + i + "a"), b = node(w.b.t || "w" + i + "b");
+    el.push({ kind: "wire", i, a, b, R: R_WIRE, path: wirePath(pos(w.a), pos(w.b)) });
+  });
+  el.push({ kind: "bulb", a: idx.Ls, b: idx.Lt, R: R_BULB, path: BULB_PATH });
+  if (c.sw === true) el.push({ kind: "sw", a: node("S1"), b: node("S2"), R: R_SW, path: [T.S1, T.S2] });
+  if (c.gap && OBJ[c.gap].R < Infinity) el.push({ kind: "gap", a: node("G1"), b: node("G2"), R: OBJ[c.gap].R, path: [T.G1, T.G2] });
+  const n = names.length, m = n - 1, p = idx["B+"];   // node 0 (B−) is the reference, 0 V
+  const A = Array.from({ length: m }, () => new Array(m + 1).fill(0));
+  const stamp = (a, b, g) => {
+    if (a) A[a - 1][a - 1] += g;
+    if (b) A[b - 1][b - 1] += g;
+    if (a && b) { A[a - 1][b - 1] -= g; A[b - 1][a - 1] -= g; }
+  };
+  el.forEach((e) => stamp(e.a, e.b, 1 / e.R));
+  stamp(p, 0, 1 / R_INT);
+  A[p - 1][m] += E / R_INT;                              // battery as E behind its inner resistance
+  for (let k = 0; k < m; k++) A[k][k] += 1e-9;           // loose ends: tiny leak keeps the system solvable
+  const V = [0, ...gauss(A)].map((v) => (Number.isFinite(v) ? v : 0));
+  el.forEach((e) => (e.I = (V[e.a] - V[e.b]) / e.R));
+  const Ibat = (E - V[p]) / R_INT;
+  el.push({ kind: "bat", path: BAT_PATH, I: Ibat });
+  const bulb = el.find((e) => e.kind === "bulb");
+  const bright = Math.min(1.5, (bulb.I / I_NOM) ** 2);
+  return { el, idx, V, Ibat, Ib: bulb.I, Vb: bulb.I * R_BULB, bright, short: Ibat > SHORT_A };
+}
+// Plain-words reason for what the bulb does (connection only, the bulb itself left out).
+function status(c) {
+  const r = solve(c);
+  if (r.short) return { r, key: "stShort" };
+  if (r.bright >= 0.6) return { r, key: "stLit" };
+  if (r.bright >= 0.05) return { r, key: "stDim" };
+  if (c.sw === false && solve({ ...c, sw: true }).bright >= 0.05) return { r, key: "stSwitch" };
+  const par = {};
+  const find = (k) => { while (par[k] && par[k] !== k) k = par[k]; return k; };
+  const join = (a, b) => { const x = find(a), y = find(b); if (x !== y) par[x] = y; };
+  c.wires.forEach((w, i) => join(w.a.t || "w" + i + "a", w.b.t || "w" + i + "b"));
+  if (c.sw === true) join("S1", "S2");
+  if (c.gap && OBJ[c.gap].R < Infinity) join("G1", "G2");
+  const s = find("Ls"), t = find("Lt"), bat = [find("B+"), find("B-")];
+  if (s === t && (bat.includes(s))) return { r, key: "stBypass" };
+  if (bat.includes(s) || bat.includes(t)) return { r, key: "stOne" };
+  if (s === t) return { r, key: "stBypass" };
+  return { r, key: "stNone" };
+}
+const level = (b) => (b >= 0.6 ? "bright" : b >= 0.05 ? "dim" : "dark");
+
+// ---------- scenes ----------
+const W = (a, b) => ({ a: typeof a === "string" ? { t: a } : a, b: typeof b === "string" ? { t: b } : b });
+const PANELS = [
+  { wires: [W("B+", "Lt")], sw: null },
+  { wires: [W("B-", "Ls"), W("B+", "Ls")], sw: null },
+  { wires: [W("B-", "Ls"), W("Lt", "B+")], sw: null },
+  { wires: [W("B+", "B-")], sw: null },
+];
+const HOME = [[{ x: 378, y: 310 }, { x: 300, y: 195 }], [{ x: 40, y: 280 }, { x: 125, y: 350 }], [{ x: 440, y: 350 }, { x: 560, y: 290 }]];
+const freshBuild = () => ({ wires: [W("B+", "Lt"), W({ ...HOME[1][0] }, { ...HOME[1][1] }), W({ ...HOME[2][0] }, { ...HOME[2][1] })], sw: false });
+const GAP_SCENE = { wires: [W("Ls", "G2"), W("G1", "B-"), W("Lt", "B+")], sw: null };
+const RULE_SCENE = { wires: [W("B+", "S2"), W("S1", "Lt"), W("Ls", "B-")], sw: true };
+const WIRE_COL = ["var(--no)", "var(--c)", "var(--a)"];
+const TARGETS = ["B-", "B+", "Ls", "Lt", "S1", "S2"];
+
+// ---------- state ----------
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+let cur = 0, revealed = false, build = freshBuild(), gapObj = null, ruleSw = true, tested = {};
+let paused = false, raf = 0, last = 0, clock = 0, drag = null, nearT = null;
+const fmt2 = (v) => Play.fmt(v, 2);
+
+const dyn = Play.svg("g", { "pointer-events": "none" }, fig);
+const labs = Play.svg("g", { "pointer-events": "none" }, fig);
+const hand = Play.svg("g", {}, fig);
+let fs = 14;
+function updateFs() {
+  const r = fig.getBoundingClientRect();
+  const sc = Math.min(r.width / 600, r.height / 380);
+  fs = sc > 0 ? Math.max(14, 13.5 / sc) : 14;
+}
+function txt(x, y, s, attrs) {
+  const t = Play.svg("text", Object.assign({ x, y, "font-size": fs.toFixed(1), "text-anchor": "middle" }, attrs || {}), labs);
+  t.textContent = s;
+  return t;
+}
+
+// path helpers for the moving dots
+function measure(path) {
+  const cum = [0];
+  for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y));
+  return cum;
+}
+function at(path, cum, s) {
+  const L = cum[cum.length - 1];
+  s = Play.clamp(s, 0, L);
+  let i = 1;
+  while (i < cum.length - 1 && cum[i] < s) i++;
+  const seg = cum[i] - cum[i - 1] || 1, u = (s - cum[i - 1]) / seg;
+  return { x: path[i - 1].x + (path[i].x - path[i - 1].x) * u, y: path[i - 1].y + (path[i].y - path[i - 1].y) * u, dx: path[i].x - path[i - 1].x, dy: path[i].y - path[i - 1].y };
+}
+function flow(par, res) {
+  res.el.forEach((e) => {
+    if (!(Math.abs(e.I) > 0.004)) return;
+    const cum = measure(e.path), L = cum[cum.length - 1];
+    if (L < 1) return;
+    const sp = 26, v = 60 * Math.min(Math.abs(e.I) / I_NOM, 3), off = (clock * v) % sp, dir = e.I > 0 ? 1 : -1;
+    for (let s = off; s < L; s += sp) {
+      const q = at(e.path, cum, dir > 0 ? s : L - s);
+      Play.svg("circle", { cx: q.x, cy: q.y, r: 3.6, fill: "var(--hl)", stroke: "var(--fg)", "stroke-width": 0.8 }, par);
+    }
+    if (paused) { // still picture: show the direction with an arrowhead
+      const q = at(e.path, cum, L / 2), a = Math.atan2(q.dy, q.dx) + (dir > 0 ? 0 : Math.PI), c = Math.cos(a), si = Math.sin(a);
+      const pt = (x, y) => (q.x + x * c - y * si).toFixed(1) + "," + (q.y + x * si + y * c).toFixed(1);
+      Play.svg("polygon", { points: [pt(9, 0), pt(-6, -7), pt(-6, 7)].join(" "), fill: "var(--hl)", stroke: "var(--fg)", "stroke-width": 1 }, par);
+    }
+  });
+}
+
+function plus(par, x, y, k, col) {
+  Play.svg("path", { d: `M${x - k} ${y}H${x + k}M${x} ${y - k}V${y + k}`, stroke: col, "stroke-width": 3.5, "stroke-linecap": "round" }, par);
+}
+function minus(par, x, y, k, col) {
+  Play.svg("path", { d: `M${x - k} ${y}H${x + k}`, stroke: col, "stroke-width": 3.5, "stroke-linecap": "round" }, par);
+}
+function drawBattery(par, hot) {
+  Play.svg("rect", { x: 186, y: 300, width: 8, height: 20, rx: 2, fill: "var(--muted)" }, par);
+  Play.svg("rect", { x: 366, y: 300, width: 14, height: 20, rx: 3, fill: "var(--muted)" }, par);
+  Play.svg("rect", { x: 194, y: 288, width: 174, height: 44, rx: 7, fill: "var(--c)", stroke: hot ? "var(--no)" : "none", "stroke-width": 4 }, par);
+  Play.svg("rect", { x: 326, y: 288, width: 42, height: 44, rx: 7, fill: "var(--b)" }, par);
+  plus(par, 347, 310, 9, "var(--surface)");
+  minus(par, 214, 310, 9, "var(--surface)");
+  if (hot) for (let i = 0; i < 3; i++) {
+    const x = 240 + i * 45;
+    Play.svg("path", { d: `M${x} 282q-7 -8 0 -16t0 -16`, stroke: "var(--no)", "stroke-width": 3, fill: "none", "stroke-linecap": "round" }, par);
+  }
+}
+function drawBulb(par, b) {
+  const lit = b >= 0.05, k = Math.min(b, 1);
+  if (lit) {
+    Play.svg("circle", { cx: 300, cy: 100, r: 46 + 26 * k, fill: "var(--hl)", opacity: (0.15 + 0.4 * k).toFixed(2) }, par);
+    if (k > 0.3) for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * 2 * Math.PI - Math.PI / 2;
+      if (Math.sin(a) > 0.55) continue;
+      Play.svg("line", { x1: 300 + 58 * Math.cos(a), y1: 100 + 58 * Math.sin(a), x2: 300 + (64 + 14 * k) * Math.cos(a), y2: 100 + (64 + 14 * k) * Math.sin(a), stroke: "var(--hl)", "stroke-width": 3, "stroke-linecap": "round" }, par);
+    }
+  }
+  Play.svg("path", { d: "M288 146 C288 134 256 124 256 98 A44 44 0 1 1 344 98 C344 124 312 134 312 146 Z", fill: lit ? "var(--hl)" : "var(--surface)", "fill-opacity": lit ? (0.25 + 0.5 * k).toFixed(2) : 0.5, stroke: "var(--muted)", "stroke-width": 2 }, par);
+  Play.svg("rect", { x: 282, y: 146, width: 36, height: 40, rx: 4, fill: "var(--muted)", opacity: 0.85 }, par);
+  for (let y = 152; y < 184; y += 8) Play.svg("line", { x1: 282, y1: y, x2: 318, y2: y + 4, stroke: "var(--surface)", "stroke-width": 1.5, opacity: 0.6 }, par);
+  Play.svg("rect", { x: 288, y: 184, width: 24, height: 6, fill: "var(--fg)", opacity: 0.7 }, par);
+  Play.svg("circle", { cx: 300, cy: 193, r: 6, fill: "var(--muted)", stroke: "var(--fg)", "stroke-width": 1 }, par);
+  const wire = { stroke: "var(--fg)", "stroke-width": 1.6, fill: "none", opacity: 0.75 };
+  Play.svg("path", Object.assign({ d: "M286 152L291 146L284 106" }, wire), par);
+  Play.svg("path", Object.assign({ d: "M316 106L309 146L300 170L300 188" }, wire, { "stroke-dasharray": "3 2" }), par);
+  Play.svg("polyline", { points: FIL.map((q) => q.x + "," + q.y).join(" "), fill: "none", stroke: lit ? "var(--hl)" : "var(--muted)", "stroke-width": lit ? 3 : 2, "stroke-linejoin": "round" }, par);
+}
+function drawSwitch(par, on) {
+  Play.svg("rect", { x: 436, y: 210, width: 124, height: 14, rx: 4, fill: "var(--soft)", stroke: "var(--line)" }, par);
+  const a = on ? 0 : -0.6, ex = T.S1.x + 95 * Math.cos(a), ey = T.S1.y + 95 * Math.sin(a);
+  Play.svg("line", { x1: T.S1.x, y1: T.S1.y, x2: ex, y2: ey, stroke: "var(--muted)", "stroke-width": 7, "stroke-linecap": "round" }, par);
+  Play.svg("circle", { cx: ex - 18 * Math.cos(a), cy: ey - 18 * Math.sin(a) - 9, r: 7, fill: "var(--b)" }, par);
+}
+function drawGap(par, obj) {
+  const cx = (T.G1.x + T.G2.x) / 2, y = T.G1.y;
+  if (obj === "coin") { Play.svg("circle", { cx, cy: y, r: 27, fill: "var(--b)", stroke: "var(--fg)", "stroke-width": 1 }, par); Play.svg("circle", { cx, cy: y, r: 19, fill: "none", stroke: "var(--hl)", "stroke-width": 2 }, par); }
+  if (obj === "clip") Play.svg("path", { d: `M${cx - 36} ${y + 6}H${cx + 30}a7 7 0 0 0 0 -14H${cx - 28}a5 5 0 0 0 0 10H${cx + 22}`, fill: "none", stroke: "var(--muted)", "stroke-width": 3.5, "stroke-linecap": "round" }, par);
+  if (obj === "lead") Play.svg("rect", { x: cx - 40, y: y - 3, width: 80, height: 6, rx: 3, fill: "var(--fg)", opacity: 0.75 }, par);
+  if (obj === "eraser") Play.svg("rect", { x: cx - 38, y: y - 13, width: 76, height: 26, rx: 6, fill: "var(--h)" }, par);
+  if (obj === "plastic") { Play.svg("rect", { x: cx - 42, y: y - 11, width: 84, height: 22, rx: 2, fill: "var(--c)", opacity: 0.55 }, par); for (let i = -36; i <= 36; i += 8) Play.svg("line", { x1: cx + i, y1: y - 11, x2: cx + i, y2: y - (i % 16 ? 5 : 1), stroke: "var(--fg)", "stroke-width": 1 }, par); }
+  if (obj === "wood") { Play.svg("rect", { x: cx - 42, y: y - 8, width: 84, height: 16, rx: 8, fill: "var(--b)", opacity: 0.8 }, par); Play.svg("path", { d: `M${cx - 30} ${y - 2}h50M${cx - 20} ${y + 3}h46`, stroke: "var(--fg)", "stroke-width": 1, opacity: 0.4 }, par); }
+  [T.G1, T.G2].forEach((g, i) => Play.svg("path", { d: `M${g.x + (i ? 10 : -10)} ${y - 9}L${g.x} ${y}L${g.x + (i ? 10 : -10)} ${y + 9}`, stroke: "var(--muted)", "stroke-width": 5, fill: "none", "stroke-linejoin": "round" }, par));
+}
+function drawTerminal(par, t, hiT) {
+  Play.svg("circle", { cx: T[t].x, cy: T[t].y, r: 7, fill: "var(--surface)", stroke: hiT === t ? "var(--hl)" : "var(--muted)", "stroke-width": hiT === t ? 4 : 2.5 }, par);
+}
+// Draws a whole circuit c (with its solved result res) into par.
+function drawScene(par, c, res, hiT) {
+  drawBattery(par, res.short);
+  drawBulb(par, res.bright);
+  if (c.sw !== null && c.sw !== undefined) drawSwitch(par, c.sw);
+  if (c.gap !== undefined) drawGap(par, c.gap);
+  const ts = ["B-", "B+", "Ls", "Lt"].concat(c.sw !== null && c.sw !== undefined ? ["S1", "S2"] : []).concat(c.gap !== undefined ? ["G1", "G2"] : []);
+  ts.forEach((t) => drawTerminal(par, t, hiT));
+  c.wires.forEach((w, i) => {
+    const pts = wirePath(pos(w.a), pos(w.b));
+    Play.svg("polyline", { points: pts.map((q) => q.x.toFixed(1) + "," + q.y.toFixed(1)).join(" "), fill: "none", stroke: WIRE_COL[i % 3], "stroke-width": 5, "stroke-linecap": "round", "stroke-linejoin": "round" }, par);
+    [w.a, w.b].forEach((e) => { const q = pos(e); Play.svg("circle", { cx: q.x, cy: q.y, r: 6, fill: WIRE_COL[i % 3], stroke: "var(--surface)", "stroke-width": 2 }, par); });
+  });
+  flow(par, res);
+}
+
+// ---------- persistent handles (focusable) ----------
+const ends = [];
+for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
+  const g = Play.svg("g", { class: "end", tabindex: "0", role: "button" }, hand);
+  Play.svg("circle", { r: 22, fill: "transparent" }, g);
+  Play.svg("circle", { class: "ring", r: 12, fill: "none", stroke: "transparent", "stroke-width": 3 }, g);
+  const h = { g, w: i, k: j ? "b" : "a" };
+  g.addEventListener("keydown", (e) => {
+    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!d || cur !== 1) return;
+    e.preventDefault();
+    const end = build.wires[h.w][h.k], list = [null].concat(TARGETS);
+    const at0 = list.indexOf(end.t || null), nx = list[(at0 + d + list.length) % list.length];
+    build.wires[h.w][h.k] = nx ? { t: nx } : { ...HOME[h.w][j] };
+    draw(); say();
+  });
+  ends.push(h);
+}
+const swG = Play.svg("g", { class: "sw", tabindex: "0", role: "button" }, hand);
+Play.svg("rect", { class: "ring", x: 428, y: 140, width: 140, height: 92, rx: 10, fill: "transparent", stroke: "transparent", "stroke-width": 3 }, swG);
+function flipSwitch() {
+  if (cur === 1) build.sw = !build.sw;
+  else if (cur === 3) ruleSw = !ruleSw;
+  else return;
+  draw(); say();
+}
+swG.addEventListener("click", flipSwitch);
+swG.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flipSwitch(); } });
+$("swBtn").addEventListener("click", flipSwitch);
+
+// ---------- drawing ----------
+function scene() {
+  if (cur === 1) return build;
+  if (cur === 2) return Object.assign({}, GAP_SCENE, { gap: gapObj });
+  if (cur === 3) return Object.assign({}, RULE_SCENE, { sw: ruleSw });
+  return null;
+}
+let lastRes = null;
+function draw() {
+  updateFs();
+  while (dyn.firstChild) dyn.removeChild(dyn.firstChild);
+  while (labs.firstChild) labs.removeChild(labs.firstChild);
+  let anyFlow = false;
+  if (cur === 0) {
+    const s = 0.56;
+    PANELS.forEach((c, i) => {
+      const px = (i % 2) * 300, py = Math.floor(i / 2) * 190;
+      Play.svg("rect", { x: px + 4, y: py + 4, width: 292, height: 182, rx: 12, fill: "none", stroke: "var(--line)", "stroke-width": 1.5 }, dyn);
+      const g = Play.svg("g", { transform: `translate(${(px + 158 - 284 * s).toFixed(1)} ${(py + 100 - 196 * s).toFixed(1)}) scale(${s})` }, dyn);
+      const res = solve(c);
+      const shown = revealed ? res : Object.assign({}, res, { bright: 0, short: false, el: [] });
+      drawScene(g, c, shown, null);
+      if (revealed && res.el.some((e) => Math.abs(e.I) > 0.004)) anyFlow = true;
+      txt(px + 16, py + 10 + fs, "ABCD"[i], { "text-anchor": "start", "font-weight": 700 });
+      if (revealed) {
+        txt(px + 288, py + 10 + fs, P.t(res.bright >= 0.05 ? "markYes" : "markNo"), { "text-anchor": "end", class: res.bright >= 0.05 ? "ok" : "mut" });
+        if (res.short) txt(px + 288, py + 14 + fs * 2.2, P.t("hot"), { "text-anchor": "end", class: "warn" });
+      }
+    });
+    lastRes = null;
+  } else {
+    const c = scene(), res = solve(c);
+    drawScene(dyn, c, res, nearT);
+    anyFlow = res.el.some((e) => Math.abs(e.I) > 0.004);
+    lastRes = res;
+    // labels
+    txt(266, T.Ls.y + fs * 0.35, P.t("labSide"), { "text-anchor": "end", class: "mut" });
+    txt(T.Lt.x + 14, T.Lt.y + fs * 1.15, P.t("labTip"), { "text-anchor": "start", class: "mut" });
+    if (c.sw !== null && c.sw !== undefined) txt(497, 132, P.t("labSwitch") + " · " + P.t(c.sw ? "on" : "off"), { class: "mut" });
+    if (c.gap !== undefined) txt((T.G1.x + T.G2.x) / 2, T.G1.y - 30, P.t("labGap"), { class: "mut" });
+    if (res.short) txt(284, 258, P.t("hot"), { class: "warn" });
+  }
+  // handles
+  ends.forEach((h) => {
+    const show = cur === 1;
+    h.g.style.display = show ? "" : "none";
+    if (!show) return;
+    const e = build.wires[h.w][h.k], q = pos(e);
+    h.g.setAttribute("transform", `translate(${q.x} ${q.y})`);
+    h.g.classList.toggle("drag", !!drag && drag.h === h);
+    h.g.setAttribute("aria-label", P.t("endAria", { c: P.t("wireName" + h.w), n: h.k === "a" ? 1 : 2, where: e.t ? P.t("t" + e.t) : P.t("whereLoose") }));
+  });
+  const swShow = cur === 1 || cur === 3, swOn = cur === 1 ? build.sw : ruleSw;
+  swG.style.display = swShow ? "" : "none";
+  swG.setAttribute("aria-label", P.t("swAria", { s: P.t(swOn ? "on" : "off") }));
+  $("swBtn").textContent = P.t(swOn ? "swOn" : "swOff");
+  $("swBtn").setAttribute("aria-pressed", swOn ? "true" : "false");
+  flowing = anyFlow;
+  wake();
+}
+let flowing = false;
+function wake() { if (!raf && !paused && flowing) raf = requestAnimationFrame(tick); }
+function tick(ts) {
+  raf = 0;
+  if (paused || !flowing) return;
+  const dt = last && ts - last < 200 ? Math.min((ts - last) / 1000, 0.05) : 1 / 60;
+  last = ts;
+  clock += dt;
+  draw();
+}
+
+// ---------- words ----------
+function say() {
+  let s = "";
+  if (cur === 0) s = "";
+  else if (cur === 1) {
+    const st = status(build);
+    s = P.t(st.key, { I: Play.fmt(st.r.Ibat, 1), k: Math.round(st.r.Ibat / I_NOM) });
+  } else if (cur === 2) {
+    if (!gapObj) s = P.t("stGapEmpty");
+    else {
+      const lv = level(solve(Object.assign({}, GAP_SCENE, { gap: gapObj })).bright);
+      s = P.t("stGap", { o: P.t(gapObj), s: P.t(lv === "bright" ? "sBright" : lv === "dim" ? "sDim" : "sDark") });
+    }
+  } else {
+    const r = solve(Object.assign({}, RULE_SCENE, { sw: ruleSw }));
+    s = ruleSw ? P.t("ruleOn", { I: fmt2(Math.abs(r.Ib)), Vb: fmt2(Math.abs(r.Vb)), E: Play.fmt(E, 1) }) : P.t("ruleOff");
+  }
+  Play.live($("live"), s);
+  // tally
+  const groups = { bright: [], dim: [], dark: [] };
+  OBJ_ORDER.forEach((o) => { if (tested[o]) groups[tested[o]].push(P.t(o)); });
+  const sep = P.lang === "zh" ? "、" : ", ";
+  const tl = $("tally");
+  tl.innerHTML = "";
+  if (!Object.keys(tested).length) tl.textContent = P.t("tallyNone");
+  [["bright", "tallyLit"], ["dim", "tallyDim"], ["dark", "tallyDark"]].forEach(([k, lab]) => {
+    if (!groups[k].length) return;
+    const line = document.createElement("div"), b = document.createElement("b");
+    b.textContent = P.t(lab) + " ";
+    line.append(b, document.createTextNode(groups[k].join(sep)));
+    tl.appendChild(line);
+  });
+}
+function text() {
+  const k = cur + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t(cur === 0 && revealed ? "b1done" : "b" + k);
+}
+
+// ---------- step 3 objects ----------
+const objBtns = ["none"].concat(OBJ_ORDER).map((o) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(o);
+  b.addEventListener("click", () => {
+    gapObj = o === "none" ? null : o;
+    if (gapObj) tested[gapObj] = level(solve(Object.assign({}, GAP_SCENE, { gap: gapObj })).bright);
+    syncObj(); draw(); say();
+  });
+  $("objs").appendChild(b);
+  return { o, b };
+});
+function syncObj() { objBtns.forEach(({ o, b }) => b.setAttribute("aria-pressed", (o === "none" ? !gapObj : gapObj === o) ? "true" : "false")); }
+
+// ---------- dragging wire ends ----------
+function nearest(p, max) {
+  let best = null, bd = max;
+  TARGETS.forEach((t) => { const d = Math.hypot(T[t].x - p.x, T[t].y - p.y); if (d < bd) { bd = d; best = t; } });
+  return best;
+}
+fig.addEventListener("pointerdown", (e) => {
+  if (cur !== 1) return;
+  const p = Play.pointer(fig, e);
+  let best = null, bd = 28;
+  ends.forEach((h) => { const q = pos(build.wires[h.w][h.k]), d = Math.hypot(q.x - p.x, q.y - p.y); if (d < bd) { bd = d; best = h; } });
+  if (!best) return;
+  drag = { h: best };
+  fig.setPointerCapture(e.pointerId);
+  e.preventDefault();
+  best.g.focus({ preventScroll: true });
+  draw();
+});
+fig.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = Play.pointer(fig, e);
+  build.wires[drag.h.w][drag.h.k] = { x: Play.clamp(p.x, 12, 588), y: Play.clamp(p.y, 12, 368) };
+  nearT = nearest(p, 34);
+  draw();
+});
+function endDrag() {
+  if (!drag) return;
+  const end = build.wires[drag.h.w][drag.h.k], t = nearest(end, 34);
+  if (t) build.wires[drag.h.w][drag.h.k] = { t };
+  drag = null; nearT = null;
+  draw(); say();
+}
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", endDrag);
+
+// ---------- steps, pause, reset ----------
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("oA") }, { label: P.t("oB") }, { label: P.t("oC"), right: true }, { label: P.t("oD") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { revealed = true; text(); draw(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  cur = i;
+  drag = null; nearT = null;
+  $("predict").hidden = i !== 0;
+  $("cSw").hidden = !(i === 1 || i === 3);
+  $("wiresBack").hidden = i !== 1;
+  $("cObj").hidden = i !== 2;
+  $("tally").hidden = i !== 2;
+  text(); draw(); say();
+});
+$("wiresBack").addEventListener("click", () => { build = freshBuild(); draw(); say(); });
+const pauseBtn = $("pause");
+function setPause(p) {
+  paused = p;
+  pauseBtn.textContent = P.t(p ? "play" : "pause");
+  pauseBtn.setAttribute("aria-pressed", p ? "true" : "false");
+  draw();
+}
+pauseBtn.addEventListener("click", () => setPause(!paused));
+$("reset").addEventListener("click", () => {
+  revealed = false; build = freshBuild(); gapObj = null; ruleSw = true; tested = {}; clock = 0;
+  pr.reset(); syncObj(); setPause(!!Play.reduced); st.go(0);
+});
+$("data").textContent = P.t("dataNote", { E: Play.fmt(E, 1), r: Play.fmt(R_INT, 1), R: Play.fmt(R_BULB, 0), w: Play.fmt(R_WIRE, 2), m: Play.fmt(OBJ.clip.R, 2), g: Play.fmt(OBJ.lead.R, 0), s: Play.fmt(SHORT_A, 0), In: fmt2(I_NOM) });
+syncObj();
+setPause(!!Play.reduced);
+addEventListener("resize", draw);
+</script>
+</body>
+</html>

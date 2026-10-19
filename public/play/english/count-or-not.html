@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can you count it in English?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .visual { padding: 14px 12px 10px; }
+  .w { font-family: var(--serif); color: var(--fg); font-size: 1.07em; }
+  .ok { color: var(--a); font-weight: 700; }
+  .bad { color: var(--no); font-weight: 700; }
+  .x { text-decoration: line-through; text-decoration-color: var(--no); color: var(--muted); }
+  /* picture + phrases */
+  .picnav { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 4px; flex-wrap: wrap; }
+  .picnav .pn { font-family: var(--serif); font-size: 20px; min-width: 10em; text-align: center; }
+  svg.pic { width: 100%; height: auto; max-height: 200px; display: block; }
+  svg.pic text.ic { font-size: 46px; text-anchor: middle; dominant-baseline: central; }
+  .lines { display: grid; gap: 4px; justify-items: center; margin: 4px 0 6px; font-size: 18px; text-align: center; }
+  .lines .w { font-size: 20px; }
+  .lines .hide { color: var(--muted); font-size: 14px; }
+  .controls { padding: 4px 6px 8px; }
+  .qtab { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 4px; table-layout: fixed; }
+  .qtab th { font-size: 13px; color: var(--muted); font-weight: 650; text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .qtab td { padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .qtab button { width: 100%; text-align: left; padding: 4px 6px; border: 0; background: transparent; border-radius: 6px; line-height: 1.4; overflow-wrap: anywhere; }
+  .qtab button:hover { background: var(--soft); }
+  .qtab .fix { display: block; font-size: 13px; color: var(--muted); }
+  .qtab .fix .w { font-size: 14px; }
+  /* sorter */
+  .pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 48px; padding: 4px 0 10px; }
+  .card { font-family: var(--serif); font-size: 19px; padding: 5px 13px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); touch-action: none; user-select: none; -webkit-user-select: none; position: relative; }
+  .card.sel { border-color: var(--a); outline: 2px solid var(--a); }
+  .card.drag { z-index: 5; box-shadow: 0 6px 18px rgba(0,0,0,.2); }
+  .card.missed::after { content: "•"; color: var(--no); position: absolute; top: -6px; right: 2px; font-size: 18px; }
+  .card.shake { animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .pooldone { color: var(--muted); font-size: 14px; align-self: center; }
+  .bins { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bin { border: 2px dashed var(--line); border-radius: 12px; padding: 6px 6px 8px; min-width: 0; transition: border-color .15s, background .15s; }
+  .bin.ready { border-color: var(--a); }
+  .bin.over { background: var(--soft); border-color: var(--a); border-style: solid; }
+  .bin .bh { width: 100%; font-weight: 700; font-size: 14px; padding: 6px 4px; line-height: 1.3; }
+  .bin .bh small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+  .bin ol { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+  .bin li { min-height: 30px; border-radius: 8px; padding: 2px 8px; font-size: 14px; color: var(--muted); background: var(--soft); display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; }
+  .bin li.empty { background: transparent; border: 1px dotted var(--line); }
+  .bin li .w { font-size: 17px; overflow-wrap: normal; }
+  .bin li > span:last-child:not(.w) { font-size: 13px; }
+  .sfb { min-height: 3.2em; font-size: 14px; margin: 8px 2px 0; }
+  .sfb.ok { color: var(--fg); } .sfb.no { color: var(--fg); }
+  .both { display: grid; gap: 6px; margin: 4px 0 10px; }
+  .both .row { display: flex; gap: 10px; align-items: baseline; font-size: 14px; color: var(--muted); }
+  .both button { font-family: var(--serif); font-size: 16px; min-width: 76px; flex: none; }
+  .rule { color: var(--fg) !important; font-size: 15px !important; }
+  .play .note { font-size: 14px !important; }
+  .result .math { font-family: var(--serif); white-space: normal; overflow-wrap: anywhere; }
+  .foot { font-size: 13px; }
+  @media (max-width: 560px) {
+    .card { font-size: 17px; padding: 4px 10px; }
+    .bin li { min-height: 50px; align-content: center; }
+    svg.pic text.ic { font-size: 40px; }
+    .lines, .lines .w { font-size: 17px; }
+    .both .row { flex-direction: column; gap: 2px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .card.shake { animation: none; } .bin { transition: none; } }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div id="picBox">
+        <div class="picnav" id="picNav">
+          <button type="button" id="pPrev" data-t-aria="pPrev">◀</button>
+          <span class="pn" id="pName" lang="en"></span>
+          <button type="button" id="pNext" data-t-aria="pNext">▶</button>
+        </div>
+        <svg class="pic" id="pic" viewBox="0 0 600 200" role="img"></svg>
+        <div class="lines" id="lines" lang="en"></div>
+        <div class="controls" id="nRow">
+          <label for="n" data-t="nLabel"></label>
+          <input type="range" id="n" min="1" max="10" value="3">
+          <span class="val" id="nVal"></span>
+          <button type="button" class="small" id="say" data-t="say"></button>
+        </div>
+        <table class="qtab" id="qtab"></table>
+      </div>
+      <div id="sortBox" hidden>
+        <div class="pool" id="pool" role="group" data-t-aria="poolAria"></div>
+        <div class="bins" id="bins"></div>
+        <p class="sfb" id="sfb" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="ruleBox" hidden>
+        <p class="rule" id="ruleLine"></p>
+        <p><strong data-t="bothT"></strong></p>
+        <div class="both" id="bothList"></div>
+      </div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain" lang="en"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Can you count it in English?", eyebrow: "English · Stage 2", h1: "Countable is a label on the word, not a fact about the thing",
+    intro: "Chairs and furniture can be the very same objects. English still treats the two words differently. Sort the words, then build phrases.",
+    reset: "Reset", s1: "Guess", s2: "Sort", s3: "Rule",
+    k1: "Predict first", t1: "Three chairs — and furniture?",
+    b1: "Pick an answer. The lines under the picture will show what English says.",
+    q: "The picture shows {n} chairs. Chairs are furniture. Which is correct English?",
+    o1: "{n3} furnitures — you can count them, so add -s",
+    o2: "{n3} pieces of furniture — furniture takes no -s",
+    o3: "Both are fine",
+    right: "Yes! You can count the chairs, but the word furniture is uncountable: no a, no -s. Count it with a piece of.",
+    wrong: "Not quite. Real chairs can be counted, but the word furniture is uncountable: “furnitures” is not English. Say {n3} chairs, or {n3} pieces of furniture.",
+    hidden: "Answer the question first.",
+    k2: "Hands on", t2: "Sort {m} nouns",
+    b2: "Drag each word into a bin, or tap a word and then a bin. Keyboard: Tab to a word, then ← countable, → uncountable. Test each one: can you say two ___s?",
+    k3: "The rule", t3: "Learn the label with the word",
+    b3: "Pick a pair with ◀ ▶ and move the slider. The picture stays the same; only the words around the noun change.",
+    rule: "Countable or uncountable is a grammar label: chair takes a, -s, many and a few; furniture takes much, a little, some, or a piece of — even when both name the same {n} things.",
+    bothT: "Careful: some nouns are both, with a change in meaning:",
+    bCoffee: "coffee (the drink) — but a coffee = a cup of coffee.",
+    bPaper: "paper (the material) — but a paper = a newspaper or an essay.",
+    bHair: "hair (all of it) — but a hair = one single hair.",
+    nLabel: "How many", say: "▶ Say it", pPrev: "Previous noun", pNext: "Next noun",
+    colC: "countable", colU: "uncountable",
+    fixT: "say:", or: "or",
+    binC: "Countable", binCs: "a chair · two chairs · many", binU: "Uncountable", binUs: "furniture · much · a piece of",
+    poolAria: "Words to sort", binAria: "{bin} bin: {n} of {m} words. Activate to put the chosen word here.",
+    cardAria: "{w}. Left arrow: countable. Right arrow: uncountable.",
+    pick: "{w} — now tap a bin.",
+    okC: "{w} is countable: a {w1}, two {w2}.",
+    okU: "{w} is uncountable: no “a {w}”, no “two {w2}”. Say {fix}.",
+    noC: "Not that bin. {w} is countable — you can say two {w2}.",
+    noU: "Not that bin. You can count the things, but the word {w} is uncountable: “two {w2}” is not English. Its partner {p} is countable.",
+    allDone: "All {m} sorted. Every row is one pair: the same kind of thing, one countable word and one uncountable word.",
+    poolDone: "All sorted ✓",
+    sortNote: "Sorted {k} of {m}. Uncountable words first put in the countable bin: {e}.",
+    sortNone: "Sorted 0 of {m}.",
+    liveN: "{n}: {line}",
+    resultTitle: "The same things, two kinds of word",
+    rnote: "{p} pairs in this page: in each, the countable word and the uncountable word can name the same things.",
+    explainK: "Explain it", explainQ: "A friend writes “I need some advices and two furnitures.” Explain why it is wrong — real advice can be counted, so what decides it? — and fix both.",
+    homeK: "Try at home", homeQ: "Pick six things at home (spoons, rice, books, water, shoes, sugar). Guess countable or not, then check a learner's dictionary for [C] or [U]. Which guesses were wrong?",
+    foot: "Labels follow the [C] / [U] marks in the Cambridge and Oxford learner's dictionaries for these senses (money has a rare legal plural, monies). Containers: a piece of (furniture, advice, information, homework, luggage, music, equipment), a slice of bread, a bowl of rice, a glass of milk; money has no common container, so count the coins or notes, or use some / a lot of. In everyday statements much often sounds formal; a lot of is more usual, but much is the right pair for uncountable nouns in questions and negatives (not much furniture). In cafés, a coffee, two teas, two milks mean cups or portions, and breads can mean kinds of bread — dictionaries mark those senses [C]. Plurals and a / an are made by code. Speech uses your browser's built-in voice. {p} pairs + {f} food nouns. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "英语里这个能数吗？", eyebrow: "英语 · 阶段 2", h1: "可数是贴在词上的标签，不是东西本身的性质",
+    intro: "chairs 和 furniture 可以是同一批东西，英语却把这两个词当成两类。先给词分类，再拼短语。",
+    reset: "重置", s1: "先猜", s2: "分类", s3: "规律",
+    k1: "先猜一猜", t1: "三把椅子——那 furniture 呢？",
+    b1: "先选一个答案。图下面几行会告诉你英语怎么说。",
+    q: "图上有 {n} 把椅子，椅子属于家具。哪个是正确的英语？",
+    o1: "{n3} furnitures——能一件件数，所以加 -s",
+    o2: "{n3} pieces of furniture——furniture 不加 -s",
+    o3: "两个都对",
+    right: "对！椅子能数，但 furniture 这个词是不可数名词：不加 a，不加 -s，要用 a piece of 来数。",
+    wrong: "不对。椅子确实能一把把数，但 furniture 这个词不可数，英语里没有 furnitures。要说 {n3} chairs，或 {n3} pieces of furniture。",
+    hidden: "先回答问题。",
+    k2: "动手", t2: "给 {m} 个名词分类",
+    b2: "把词拖进桶里，或先点词再点桶。键盘：Tab 到一个词，← 放进可数，→ 放进不可数。每个词都试一试：能说 two ___s 吗？",
+    k3: "规律", t3: "记词的时候连标签一起记",
+    b3: "用 ◀ ▶ 换一组词，拖滑块改数量。图不变，变的只是名词前后的词。",
+    rule: "可数还是不可数是语法标签：chair 能接 a、加 -s、用 many 和 a few；furniture 用 much、a little、some 或 a piece of——哪怕两个词说的是同样 {n} 件东西。",
+    bothT: "小心：有些名词两种都行，意思会变：",
+    bCoffee: "coffee 指咖啡这种饮料；a coffee 是「一杯咖啡」。",
+    bPaper: "paper 指纸这种材料；a paper 是「一份报纸」或「一篇论文」。",
+    bHair: "hair 指（全部的）头发；a hair 是「一根头发」。",
+    nLabel: "数量", say: "▶ 读出来", pPrev: "上一个名词", pNext: "下一个名词",
+    colC: "可数", colU: "不可数",
+    fixT: "应说：", or: "或",
+    binC: "可数", binCs: "a chair · two chairs · many", binU: "不可数", binUs: "furniture · much · a piece of",
+    poolAria: "待分类的词", binAria: "{bin}桶：{n}/{m} 个词。按下把选中的词放进来。",
+    cardAria: "{w}。左方向键：可数；右方向键：不可数。",
+    pick: "{w}——再点一个桶。",
+    okC: "{w} 可数：a {w1}，two {w2}。",
+    okU: "{w} 不可数：不说 a {w}，也不说 two {w2}。要说 {fix}。",
+    noC: "放错了。{w} 可数——可以说 two {w2}。",
+    noU: "放错了。东西能数，但 {w} 这个词不可数：英语里没有 two {w2}。和它配对的 {p} 才可数。",
+    allDone: "{m} 个全部分好。每一行是一对：同一类东西，一个词可数，一个词不可数。",
+    poolDone: "全部分好 ✓",
+    sortNote: "已分 {k}/{m} 个。不可数词先被放进可数桶的：{e} 个。",
+    sortNone: "已分 0/{m} 个。",
+    liveN: "{n}：{line}",
+    resultTitle: "同样的东西，两类词",
+    rnote: "本页 {p} 组词：每组里的可数词和不可数词都可以指同样的东西。",
+    explainK: "说一说", explainQ: "朋友写了 “I need some advices and two furnitures.” 说说错在哪——建议明明能一条条数，那到底由什么决定？——再把两处都改对。",
+    homeK: "家里做一做", homeQ: "在家里找六样东西（勺子、米、书、水、鞋、糖），先猜英语里可数不可数，再查学习词典里标的 [C] 还是 [U]。哪些猜错了？",
+    foot: "可数 / 不可数按剑桥和牛津学习词典对这些义项的 [C] / [U] 标注（money 有个少见的法律用复数 monies）。量词：a piece of（furniture、advice、information、homework、luggage、music、equipment），a slice of bread，a bowl of rice，a glass of milk；money 没有常用量词，就数硬币、纸币，或用 some / a lot of。日常肯定句里 much 常显得正式，多用 a lot of；但在疑问句、否定句里 much 正是配不可数名词的词（not much furniture）。咖啡馆里的 a coffee、two teas、two milks 指几杯、几份，breads 可以指几种面包，词典把这些义项标 [C]。复数和 a / an 由代码生成。发音用浏览器自带的语音。共 {p} 组词 + {f} 个食物名词。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---- logic (pure) ----
+// Pairs: a countable noun and an uncountable noun that can name the same things. unit = container word, or "" if none.
+const PAIRS = [
+  { c: "chair", u: "furniture", unit: "piece", ic: "🪑" },
+  { c: "suggestion", u: "advice", unit: "piece", ic: "💬" },
+  { c: "coin", u: "money", unit: "", ic: "🪙" },
+  { c: "fact", u: "information", unit: "piece", ic: "📌" },
+  { c: "assignment", u: "homework", unit: "piece", ic: "📝" },
+  { c: "bag", u: "luggage", unit: "piece", ic: "🧳" },
+  { c: "song", u: "music", unit: "piece", ic: "🎵" },
+  { c: "tool", u: "equipment", unit: "piece", ic: "🔧" },
+];
+// Uncountable food nouns with their usual container (no countable partner).
+const FOOD = [
+  { c: "", u: "bread", unit: "slice", ic: "🍞" },
+  { c: "", u: "rice", unit: "bowl", ic: "🍚" },
+  { c: "", u: "milk", unit: "glass", ic: "🥛" },
+];
+const ITEMS = PAIRS.concat(FOOD);
+const NUM = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+function plural(w) {
+  if (/(s|x|z|ch|sh)$/.test(w)) return w + "es";
+  if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + "ies";
+  return w + "s";
+}
+const art = (w) => (/^[aeiou]/.test(w) ? "an " : "a ") + w;
+const numw = (n) => NUM[Math.max(0, Math.min(10, Math.round(n)))] || String(n);
+// Counted phrase for n things (n ≥ 1): "a chair", "three chairs".
+const countC = (c, n) => (n === 1 ? art(c) : numw(n) + " " + plural(c));
+// Uncountable counted through its container: "a piece of furniture", "three pieces of furniture".
+const countU = (it, n) => (it.unit ? (n === 1 ? art(it.unit) : numw(n) + " " + plural(it.unit)) + " of " + it.u : "");
+// The quantity-word table: rows of [phrase, ok, fix] for the countable and uncountable noun.
+const DETS = ["a", "num", "many", "a few", "much", "a little", "some"];
+function qRow(it, d, n) {
+  const c = it.c, u = it.u, unitPl = it.unit ? plural(it.unit) + " of " + u : "";
+  let C = null, U;
+  if (c) {
+    if (d === "a") C = [art(c), true];
+    else if (d === "num") C = [countC(c, n), true];
+    else if (d === "much") C = ["much " + plural(c), false, "many " + plural(c)];
+    else if (d === "a little") C = ["a little " + plural(c), false, "a few " + plural(c)];
+    else C = [d + " " + plural(c), true];
+  }
+  if (d === "a") U = [art(u), false, it.unit ? countU(it, 1) : "some " + u];
+  else if (d === "num") U = [n === 1 ? "one " + u : numw(n) + " " + plural(u), false, it.unit ? countU(it, n) : c ? countC(c, n) : "some " + u];
+  else if (d === "many") U = ["many " + plural(u), false, "much " + u + (it.unit ? " / many " + unitPl : "")];
+  else if (d === "a few") U = ["a few " + plural(u), false, "a little " + u + (it.unit ? " / a few " + unitPl : "")];
+  else U = [d + " " + u, true];
+  return { C, U };
+}
+// Sorting deck: every noun of every pair, in a fixed order where partners are never next to each other.
+const DECK = ("chair advice coin information bag equipment suggestion money assignment furniture song luggage fact music tool homework")
+  .split(" ").map((w) => { const pair = PAIRS.findIndex((p) => p.c === w || p.u === w); return { w, kind: PAIRS[pair].c === w ? "C" : "U", pair }; });
+const N_U = DECK.filter((d) => d.kind === "U").length;
+
+// ---- ui ----
+const $ = (id) => document.getElementById(id);
+const START_N = 3;
+let cur = 0, n = START_N, answered = false, stepI = 0;
+let placed = {}, missed = new Set(), errU = 0, sel = null, drag = null, suppressClick = false;
+
+// Insert English words as spans into a translated template; keys in plain stay as plain text.
+function frag(key, vars, plain) {
+  const f = document.createDocumentFragment();
+  P.t(key).split(/(\{\w+\})/).forEach((piece) => {
+    const m = piece.match(/^\{(\w+)\}$/);
+    if (m && m[1] in vars) {
+      if (plain && plain.includes(m[1])) { f.append(String(vars[m[1]])); return; }
+      const s = document.createElement("span");
+      s.className = "w"; s.lang = "en"; s.textContent = vars[m[1]];
+      f.append(s);
+    } else if (piece) f.append(piece);
+  });
+  return f;
+}
+function mark(ok) { const s = document.createElement("span"); s.className = ok ? "ok" : "bad"; s.textContent = ok ? " ✓" : " ✗"; return s; }
+function wspan(t, cls) { const s = document.createElement("span"); s.className = "w" + (cls ? " " + cls : ""); s.lang = "en"; s.textContent = t; return s; }
+// Correct phrases for the current item and n.
+function goodLines(it, k) {
+  const out = [];
+  if (it.c) out.push(countC(it.c, k));
+  if (it.unit) out.push(countU(it, k));
+  return out;
+}
+const badLine = (it, k) => (k === 1 ? art(it.u) : numw(k) + " " + plural(it.u));
+
+function drawPic() {
+  const it = ITEMS[cur], svg = $("pic");
+  svg.innerHTML = "";
+  const perRow = 5, rows = Math.ceil(n / perRow);
+  for (let i = 0; i < n; i++) {
+    const r = Math.floor(i / perRow), inRow = Math.min(perRow, n - r * perRow), col = i % perRow;
+    const x = 300 + (col - (inRow - 1) / 2) * 92, y = rows === 1 ? 100 : 55 + r * 90;
+    Play.svg("text", { class: "ic", x, y, "aria-hidden": "true" }, svg).textContent = it.ic;
+  }
+  svg.setAttribute("aria-label", n + " × " + (it.c || it.u));
+  $("pName").textContent = it.c ? it.c + " / " + it.u : it.u;
+  $("nVal").textContent = n;
+  $("n").value = n;
+  // phrase lines
+  const L = $("lines");
+  L.innerHTML = "";
+  if (stepI === 0 && !answered) {
+    const d = document.createElement("div"); d.className = "hide"; d.lang = P.lang === "zh" ? "zh-CN" : "en";
+    d.textContent = P.t("hidden"); L.append(d);
+  } else {
+    goodLines(it, n).forEach((g) => { const d = document.createElement("div"); d.append(wspan(g), mark(true)); L.append(d); });
+    const d = document.createElement("div"); d.append(wspan(badLine(it, n), "x"), mark(false)); L.append(d);
+  }
+  // quantity table
+  const T = $("qtab");
+  T.innerHTML = "";
+  if (stepI === 2) {
+    const hr = document.createElement("tr");
+    if (it.c) { const th = document.createElement("th"); th.textContent = P.t("colC"); hr.append(th); }
+    const th2 = document.createElement("th"); th2.textContent = P.t("colU"); hr.append(th2);
+    T.append(hr);
+    DETS.forEach((d) => {
+      const row = qRow(it, d, n), tr = document.createElement("tr");
+      [row.C, row.U].forEach((cell) => {
+        if (!cell) return;
+        const td = document.createElement("td"), b = document.createElement("button");
+        b.type = "button";
+        b.append(wspan(cell[0], cell[1] ? "" : "x"), mark(cell[1]));
+        if (!cell[1]) {
+          const f = document.createElement("span"); f.className = "fix";
+          f.append(P.t("fixT") + " ", wspan(cell[2]));
+          b.append(f);
+        }
+        b.addEventListener("click", () => Play.speak(cell[1] ? cell[0] : cell[2].split(" / ")[0], "en-US"));
+        td.append(b); tr.append(td);
+      });
+      T.append(tr);
+    });
+  }
+  if (stepI === 0 && !answered) { $("resultMain").textContent = "?"; Play.live($("live"), ""); }
+  else if (stepI !== 1) {
+    const lines = goodLines(it, n);
+    $("resultMain").textContent = lines.join(" = ") + (answered || stepI ? "  ·  " + badLine(it, n) + " ✗" : "");
+    Play.live($("live"), P.t("liveN", { n, line: lines.join(", ") }));
+  }
+  if (stepI === 2) { $("ruleLine").textContent = P.t("rule", { n: numw(n) }); }
+}
+
+// ---- sorter ----
+const BINS = [{ k: "C", name: "binC", sub: "binCs" }, { k: "U", name: "binU", sub: "binUs" }];
+const binEls = BINS.map((B, bi) => {
+  const box = document.createElement("div"); box.className = "bin"; box.dataset.k = B.k;
+  const h = document.createElement("button"); h.type = "button"; h.className = "bh";
+  h.append(P.t(B.name));
+  const sm = document.createElement("small"); sm.lang = "en"; sm.textContent = P.t(B.sub); h.append(sm);
+  h.addEventListener("click", () => { if (sel) place(sel, B.k, true); });
+  const ol = document.createElement("ol");
+  box.append(h, ol);
+  $("bins").append(box);
+  return { box, h, ol, bi };
+});
+function cardEl(d) {
+  const c = document.createElement("button");
+  c.type = "button"; c.className = "card" + (missed.has(d.w) ? " missed" : "") + (sel === d.w ? " sel" : "");
+  c.lang = "en"; c.textContent = d.w; c.dataset.w = d.w;
+  c.setAttribute("aria-label", P.t("cardAria", { w: d.w }));
+  c.setAttribute("aria-pressed", sel === d.w ? "true" : "false");
+  c.addEventListener("click", () => {
+    if (suppressClick) { suppressClick = false; return; }
+    sel = sel === d.w ? null : d.w; Play.speak(d.w, "en-US");
+    if (sel) setFb(frag("pick", { w: d.w })); drawSort();
+    const again = $("pool").querySelector('[data-w="' + d.w + '"]'); if (again) again.focus();
+  });
+  c.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") { place(d.w, "C", true); e.preventDefault(); }
+    else if (e.key === "ArrowRight") { place(d.w, "U", true); e.preventDefault(); }
+    else if (e.key === "Escape") { sel = null; drawSort(); }
+  });
+  c.addEventListener("pointerdown", (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    drag = { c, w: d.w, x: e.clientX, y: e.clientY, on: false };
+    try { c.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  });
+  c.addEventListener("pointermove", (e) => {
+    if (!drag || drag.c !== c) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.on && Math.hypot(dx, dy) > 8) { drag.on = true; c.classList.add("drag"); }
+    if (!drag.on) return;
+    c.style.transform = "translate(" + dx + "px," + dy + "px)";
+    const k = binAt(e.clientX, e.clientY);
+    binEls.forEach((b) => b.box.classList.toggle("over", b.box.dataset.k === k));
+  });
+  const end = (e, cancel) => {
+    if (!drag || drag.c !== c) return;
+    const dd = drag; drag = null;
+    if (!dd.on) return;
+    suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+    c.classList.remove("drag"); c.style.transform = "";
+    binEls.forEach((b) => b.box.classList.remove("over"));
+    const k = cancel ? null : binAt(e.clientX, e.clientY);
+    if (k) place(dd.w, k, false);
+  };
+  c.addEventListener("pointerup", (e) => end(e, false));
+  c.addEventListener("pointercancel", (e) => end(e, true));
+  return c;
+}
+function binAt(x, y) {
+  const els = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [];
+  for (const el of els) { const b = el.closest && el.closest(".bin"); if (b) return b.dataset.k; }
+  return null;
+}
+function setFb(content, cls) {
+  const f = $("sfb"); f.className = "sfb" + (cls ? " " + cls : ""); f.innerHTML = ""; f.append(content);
+}
+function place(w, k, fromKey) {
+  const d = DECK.find((x) => x.w === w);
+  if (!d || placed[w]) return;
+  const pr = PAIRS[d.pair];
+  if (d.kind === k) {
+    placed[w] = k; sel = null;
+    if (k === "C") setFb(frag("okC", { w, w1: w, w2: plural(w) }), "ok");
+    else setFb(frag("okU", { w, w2: plural(w), fix: pr.unit ? countU(pr, 2) : "some " + w }), "ok");
+    Play.speak(w, "en-US");
+  } else {
+    if (!missed.has(w) && d.kind === "U") errU++;
+    missed.add(w);
+    if (d.kind === "C") setFb(frag("noC", { w, w2: plural(w) }), "no");
+    else setFb(frag("noU", { w, w2: plural(w), p: pr.c }), "no");
+  }
+  const left = DECK.filter((x) => !placed[x.w]);
+  if (!left.length) setFb(document.createTextNode(P.t("allDone", { m: DECK.length })), "ok");
+  drawSort();
+  if (!placed[w] && !Play.reduced) {
+    const c = $("pool").querySelector('[data-w="' + w + '"]');
+    if (c) { c.classList.add("shake"); setTimeout(() => c.classList.remove("shake"), 400); }
+  }
+  if (fromKey) {
+    const next = $("pool").querySelector(placed[w] ? ".card" : '[data-w="' + w + '"]');
+    if (next) next.focus(); else binEls[0].h.focus();
+  }
+}
+function drawSort() {
+  const pool = $("pool");
+  pool.innerHTML = "";
+  const left = DECK.filter((d) => !placed[d.w]);
+  left.forEach((d) => pool.append(cardEl(d)));
+  if (!left.length) { const s = document.createElement("span"); s.className = "pooldone"; s.textContent = P.t("poolDone"); pool.append(s); }
+  binEls.forEach((b) => {
+    b.ol.innerHTML = "";
+    let cnt = 0;
+    PAIRS.forEach((p) => {
+      const w = b.box.dataset.k === "C" ? p.c : p.u, li = document.createElement("li");
+      if (placed[w]) {
+        cnt++;
+        li.append(wspan(w));
+        const ex = document.createElement("span"); ex.lang = "en";
+        ex.textContent = b.box.dataset.k === "C" ? plural(w) : p.unit ? plural(p.unit) + " of …" : "some …";
+        li.append(ex);
+      } else li.className = "empty";
+      b.ol.append(li);
+    });
+    b.box.classList.toggle("ready", !!sel);
+    b.h.setAttribute("aria-label", P.t("binAria", { bin: P.t(BINS[b.bi].name), n: cnt, m: PAIRS.length }));
+  });
+  const k = Object.keys(placed).length;
+  const note = k ? P.t("sortNote", { k, m: DECK.length, e: errU }) : P.t("sortNone", { m: DECK.length });
+  if (stepI === 1) {
+    $("resultMain").textContent = binEls.map((b) => PAIRS.filter((p) => placed[b.box.dataset.k === "C" ? p.c : p.u]).map((p) => (b.box.dataset.k === "C" ? p.c : p.u)).join(", ") || "…").join("  |  ");
+    Play.live($("live"), note);
+  }
+  $("resultNote").textContent = note + " " + P.t("rnote", { p: PAIRS.length });
+}
+
+// ---- wiring ----
+$("pPrev").addEventListener("click", () => { cur = (cur - 1 + ITEMS.length) % ITEMS.length; drawPic(); });
+$("pNext").addEventListener("click", () => { cur = (cur + 1) % ITEMS.length; drawPic(); });
+$("n").addEventListener("input", (e) => { n = Play.clamp(Math.round(+e.target.value) || 1, 1, 10); drawPic(); });
+$("say").addEventListener("click", () => Play.speak(goodLines(ITEMS[cur], n).join(", or "), "en-US"));
+[["coffee", "bCoffee"], ["paper", "bPaper"], ["hair", "bHair"]].forEach(([w, key]) => {
+  const row = document.createElement("div"); row.className = "row";
+  const bt = document.createElement("button"); bt.type = "button"; bt.textContent = w; bt.lang = "en";
+  bt.addEventListener("click", () => Play.speak(w + ". a " + w, "en-US"));
+  const sp = document.createElement("span"); sp.textContent = P.t(key);
+  row.append(bt, sp); $("bothList").append(row);
+});
+$("foot").textContent = P.t("foot", { p: PAIRS.length, f: FOOD.length });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q", { n: START_N }),
+  options: [{ label: P.t("o1", { n3: numw(START_N) }) }, { label: P.t("o2", { n3: numw(START_N) }), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong", { n3: numw(START_N) }),
+}, () => { answered = true; cur = 0; n = START_N; drawPic(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  stepI = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k, { m: DECK.length });
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("ruleBox").hidden = i !== 2;
+  $("picBox").hidden = i === 1;
+  $("sortBox").hidden = i !== 1;
+  $("picNav").hidden = i !== 2;
+  $("nRow").hidden = i !== 2;
+  if (i === 0) { cur = 0; n = START_N; }
+  if (i === 1) drawSort(); else drawPic();
+});
+$("reset").addEventListener("click", () => {
+  if ("speechSynthesis" in window) { try { speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+  cur = 0; n = START_N; answered = false; placed = {}; missed = new Set(); errU = 0; sel = null;
+  setFb(document.createTextNode(""), ""); pr.reset(); st.go(0); drawSort(); drawPic();
+});
+drawSort();
+drawPic();
+</script>
+</body>
+</html>

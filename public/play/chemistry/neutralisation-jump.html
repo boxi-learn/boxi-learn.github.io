@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adding base: the pH jump at the end</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 560 / 460; max-height: 500px; }
+  .result .math { white-space: normal; }
+  .lbl { fill: var(--fg); font: 600 22px var(--font); }
+  .lbl-m { fill: var(--muted); font: 22px var(--font); }
+  .big { fill: var(--fg); font: 700 28px var(--math); }
+  .num { fill: var(--fg); font: 600 22px var(--math); }
+  .qmark { fill: var(--muted); font: 700 56px var(--serif); }
+  .axis { stroke: var(--fg); stroke-width: 1.5; fill: none; }
+  .grid { stroke: var(--line); stroke-width: 1; }
+  .seven { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 5; }
+  .curve { stroke: var(--a); stroke-width: 3.5; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .curve-hl { stroke: var(--c); stroke-width: 7; fill: none; stroke-linecap: round; }
+  .guess { stroke: var(--no); stroke-width: 2.5; stroke-dasharray: 8 6; fill: none; }
+  .guess-t { fill: var(--no); font: 600 22px var(--font); }
+  .pt { fill: var(--a); stroke: var(--surface); stroke-width: 2.5; }
+  .glass { fill: none; stroke: var(--fg); stroke-width: 2.5; stroke-linejoin: round; }
+  .base { fill: var(--c); fill-opacity: .3; }
+  .tickm { stroke: var(--fg); stroke-width: 1; }
+  .hp { fill: var(--no); }
+  .oh { fill: var(--c); }
+  .pair { fill: none; stroke: var(--muted); stroke-width: 1.2; }
+  .slot { fill: none; stroke: var(--line); stroke-width: 1; }
+  .band { fill: #d6288c; fill-opacity: .12; }
+  .hit { fill: transparent; cursor: ew-resize; }
+  .row { cursor: pointer; }
+  .row:focus { outline: none; }
+  .row:focus-visible .rowlbl { text-decoration: underline; }
+  .rowbar { fill: var(--soft); stroke: var(--muted); stroke-width: 1; }
+  .row.on .rowbar { fill: var(--c); stroke: var(--c); }
+  .rowlbl { fill: var(--fg); font: 22px var(--math); }
+  .row.on .rowlbl { font-weight: 700; }
+  .controls select { border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 5px 8px; max-width: 100%; }
+  table.hist { border-collapse: collapse; width: 100%; font-size: 13px; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  table.hist th, table.hist td { text-align: right; padding: 3px 5px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table.hist th:first-child, table.hist td:first-child { text-align: left; }
+  table.hist tr.cur td { color: var(--fg); font-weight: 700; }
+  table.hist td { color: var(--muted); }
+  table.hist td.jump { color: var(--a); font-weight: 700; }
+  .livebox { font-size: 14px !important; color: var(--fg) !important; }
+  .safety { border-left: 3px solid var(--no); padding-left: 10px; }
+  .legend { padding: 0 14px 12px; }
+  @media (max-width: 560px) { table.hist { font-size: 12px; } table.hist th, table.hist td { padding: 3px 3px; } }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 560 460" role="img"></svg>
+      <div class="legend" id="legend">
+        <span><span class="dot" style="background:var(--no)"></span><span data-t="legH"></span></span>
+        <span><span class="dot" style="border:1.5px solid var(--muted)"></span><span data-t="legPair"></span></span>
+        <span><span class="dot" style="background:var(--c)"></span><span data-t="legOH"></span></span>
+        <span data-t="oneDot"></span>
+      </div>
+      <div class="controls" id="addCtl">
+        <button type="button" id="add5" data-t="add5"></button>
+        <button type="button" id="add1" data-t="add1"></button>
+        <button type="button" id="addDrop" data-t="addDrop"></button>
+        <label for="v" data-t="vLabel"></label>
+        <input type="range" id="v" min="0" max="1000" step="1" value="0">
+        <span class="val" id="vVal"></span>
+        <select id="ind" data-t-aria="indAria"></select>
+        <button type="button" class="small" id="empty" data-t="empty"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="histBox"></div>
+      <p class="livebox" id="live"></p>
+      <p class="note" id="extra"></p>
+      <p class="note safety" id="safety" data-t="safety"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — pure chemistry, no DOM (checked in node)
+const KW = 1.0e-14;     // ion product of water at 25 °C, (mol/L)²
+const CA = 0.100;       // HCl in the flask, mol/L
+const VA = 25.0;        // its volume, mL
+const CB = 0.100;       // NaOH in the burette, mol/L
+const DPM = 20;         // drops per mL (one drop ≈ 0.05 mL)
+const DMAX = 1000;      // burette holds 50.00 mL = 1000 drops
+const NA_MMOL = CA * VA;             // H⁺ at the start, mmol (= 2.50)
+const VEQ = NA_MMOL / CB;            // base needed to pair every H⁺, mL (= 25.00)
+const SLOT = 0.05;                   // one dot = 0.05 mmol (2 % of the starting H⁺)
+const clampD = (d) => Math.round(Math.min(DMAX, Math.max(0, Number.isFinite(d) ? d : 0)));
+// Flask after V mL of base. Charge balance: [H⁺] − [OH⁻] = e, with e the leftover strong acid
+// (negative when base is left over) over the total volume; [H⁺][OH⁻] = Kw.
+function mix(V) {
+  V = Math.min(DMAX / DPM, Math.max(0, Number.isFinite(V) ? V : 0));
+  const nB = CB * V, Vt = VA + V, e = (NA_MMOL - nB) / Vt;   // mmol/mL = mol/L
+  const r = Math.sqrt(e * e / 4 + KW);
+  let h, oh;
+  if (e >= 0) { h = e / 2 + r; oh = KW / h; } else { oh = -e / 2 + r; h = KW / oh; }
+  return { V, nB, Vt, h, oh, pH: -Math.log10(h),
+    left: Math.max(0, NA_MMOL - nB), paired: Math.min(NA_MMOL, nB), extra: Math.max(0, nB - NA_MMOL) };
+}
+const mixD = (d) => mix(clampD(d) / DPM);
+// Base volume (mL) at which the flask reaches pH p (inverse of mix, exact for this model).
+function volumeAt(p) {
+  if (!Number.isFinite(p)) return NaN;
+  const h = Math.pow(10, -p), x = h - KW / h;       // = e
+  if (x <= -CB) return Infinity;                     // never reached: the base itself is not that strong
+  return Math.max(0, (NA_MMOL - x * VA) / (CB + x));
+}
+// Points along the curve from 0 to V mL: coarse far away, fine near the equivalence point.
+function curvePts(V) {
+  const vs = [];
+  for (let i = 0; i <= 200; i++) vs.push(i * 0.25);
+  for (let i = 0; i <= 400; i++) vs.push(24 + i * 0.005);
+  return [...new Set(vs.map((v) => +v.toFixed(4)))].sort((a, b) => a - b).filter((v) => v <= V + 1e-9).concat([V])
+    .map((v) => [v, mix(v).pH]);
+}
+// The "steady climb" guess: a straight line from the start to pH 7 at the equivalence volume.
+const steadyGuess = (V) => mix(0).pH + (7 - mix(0).pH) * V / VEQ;
+// Base needed for each pH step.
+const STEPS = [[1, 2], [2, 3], [3, 4], [4, 7], [7, 10], [10, 11], [11, 12]];
+const stepRows = () => STEPS.map(([a, b]) => { const ml = volumeAt(b) - volumeAt(a); return { a, b, ml, drops: ml * DPM }; });
+// Phenolphthalein: colourless below ≈ 8.2, pink → magenta up to ≈ 10 (approximate).
+function phth(p) {
+  p = Number.isFinite(p) ? p : 7;
+  const t = Math.min(1, Math.max(0, (p - 8.2) / 1.8));
+  return t <= 0 ? null : { col: "#d6288c", op: 0.12 + 0.78 * t };
+}
+// Universal indicator, approximate colours at pH 0…14 (brands differ) — same as the pH page.
+const UI = ["#d0213a", "#e0352b", "#ea4f24", "#f07a22", "#f6a623", "#f5cf1f", "#c8d628", "#5db84a",
+  "#2fa66a", "#1f9a9a", "#2a6fb5", "#3b4fa8", "#5b3d9a", "#6e2f8a", "#6b2370"];
+function universal(p) {
+  p = Math.min(14, Math.max(0, Number.isFinite(p) ? p : 7));
+  const i = Math.min(13, Math.floor(p)), t = p - i;
+  const rgb = (h) => [1, 3, 5].map((j) => parseInt(h.slice(j, j + 2), 16));
+  const a = rgb(UI[i]), b = rgb(UI[i + 1]);
+  return "rgb(" + a.map((v, j) => Math.round(v + (b[j] - v) * t)).join(",") + ")";
+}
+// mmol with sensible digits: 1.25, 0.10, 0.0050, 0
+function mmol(x) {
+  if (!Number.isFinite(x) || x <= 1e-12) return "0";
+  if (x >= 0.1) return x.toFixed(2);
+  return x.toPrecision(2);
+}
+function pct(x) {
+  if (!Number.isFinite(x) || x <= 1e-12) return "0";
+  if (x >= 10) return x.toFixed(0);
+  if (x >= 1) return x.toFixed(1);
+  return x.toPrecision(1);
+}
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "Adding base: the pH jump at the end", eyebrow: "Chemistry · Stage 4", h1: "Adding base: the pH barely moves, then one drop makes it jump",
+    intro: "Guess first, then run base into acid from a burette, a millilitre or a single drop at a time, and watch the pH curve and the leftover hydrogen ions.",
+    reset: "Reset", s1: "Guess", s2: "Titrate", s3: "Rule",
+    figGuess: "A flask of hydrochloric acid under a burette of sodium hydroxide, and an empty pH graph with a question mark at half the base",
+    figLab: "A burette dripping sodium hydroxide into hydrochloric acid, the pH plotted against the volume added, and dots for hydrogen ions left, pairs made into water and extra hydroxide ions",
+    figRule: "The full pH curve, with bars showing how much base each step of pH needs",
+    k1: "Predict first", t1: "At half the base, is the pH halfway to 7?",
+    b1: "The flask holds 25.0 mL of hydrochloric acid, 0.100 mol/L, at pH 1.00. The burette holds sodium hydroxide of the same strength, so 25.0 mL of it pairs with every H⁺.",
+    q: "We run in 12.5 mL of base: half of what is needed. What is the pH now?",
+    o1: "About 4: halfway from 1 to 7", o2: "About 1.5: it has hardly moved", o3: "About 2.5",
+    right: "Yes. Half the H⁺ is gone, but pH counts powers of ten: here the pH has risen by only {dp}.",
+    wrong: "That is the steady-climb picture. Look at the graph: half the H⁺ is paired into water, yet the pH has only reached {p}.",
+    k2: "Hands on", t2: "Add base, then add it a drop at a time",
+    b2: "Use the buttons or the slider, or drag on the graph. Add 1 mL at a time up to about 24 mL, then switch to single drops (0.05 mL) and watch what one drop does near 25 mL.",
+    k3: "The rule", t3: "pH follows the leftover H⁺ by powers of ten",
+    b3: "H⁺ and OH⁻ pair into water one for one. The pH depends on how much H⁺ is left per litre, and each +1 in pH means cutting that to a tenth. Going from pH 1 to 2 takes {big} mL of base; but once only {pc}% of the H⁺ is left, a single drop pairs all of it and the pH leaps past 7. Tap a bar.",
+    add5: "+5 mL", add1: "+1 mL", addDrop: "+1 drop", vLabel: "Base added", empty: "Refill flask",
+    indAria: "Indicator in the flask", phth: "Phenolphthalein", univ: "Universal indicator",
+    legH: "H⁺ left", legPair: "H⁺ + OH⁻ → water", legOH: "extra OH⁻", oneDot: "each dot = 0.05 mmol",
+    burette: "NaOH", flask: "HCl", vAxis: "base added (mL)", phAxis: "pH", guessLbl: "steady climb?",
+    mlTxt: "{v} mL", phTxt: "pH {p}",
+    rowTxt: "{ml} mL", dropsTxt: "{n} drops", dropTxt: "1 drop",
+    hAdd: "Added", hV: "Total mL", hP: "pH", hD: "pH change",
+    liveGuess0: "Pick an answer to see the real pH at 12.5 mL.",
+    liveGuess: "At 12.5 mL, {l} mmol of the {n} mmol H⁺ is left: half. The pH is {p}, not {g} as a steady climb would give.",
+    liveLab0: "Nothing added yet: {n} mmol H⁺ in 25.0 mL, pH {p}. Add some base.",
+    liveLab: "Added {v} mL. H⁺ left: {l} mmol ({pc} % of the start). pH {p}. The last addition (+{dv} mL) moved the pH by {dp}.",
+    liveEq: "Added {v} mL: every H⁺ from the acid is paired. pH {p}. The last addition (+{dv} mL) moved the pH by {dp}.",
+    liveOH: "Added {v} mL. No acid H⁺ left; extra OH⁻: {x} mmol. pH {p}. The last addition (+{dv} mL) moved the pH by {dp}.",
+    eqNote: "Exactly neutral: the only H⁺ now is water's own, 1.0 × 10⁻⁷ mol/L.",
+    pinkNote: "Phenolphthalein turns pink at about pH 8.2, not 7. It does not matter: pH 8.2 comes {d} mL after the equivalence point, much less than one drop.",
+    nearNote: "Only {k} more drops until every H⁺ is paired. Watch the next ones.", nearNote1: "One more drop pairs the last H⁺.",
+    liveRule: "From pH {a} to pH {b} takes {ml} mL of base ({dr}). From pH 1 to 2 took {big} mL.", liveRule1: "From pH 1 to pH 2 takes {ml} mL of base ({dr}): most of the burette work moves the pH by just 1.",
+    safety: "Safety: hydrochloric acid and sodium hydroxide are corrosive, even at 0.1 mol/L. Titrations are done in a lab with goggles and a teacher, never at home.",
+    resultTitle: "What we found", resultMain: "pH = −log₁₀[H⁺ left]   ·   each +1 means the leftover H⁺ per litre cut to a tenth",
+    resultNote: "At half the base the pH is still only {p}. It goes from {a} to {b} in just two drops around {v} mL, so an indicator's colour change marks the end to within a drop.",
+    explainK: "Explain it", explainQ: "A friend adds 20 mL of base, sees the pH go only from 1.0 to about 2, and decides the base is too weak. Explain what is really happening, using the H⁺ that is left.",
+    homeK: "Try at home", homeQ: "Count out 1000 grains of rice as H⁺. Take away 900 (now 100 left: one pH step), then 90 (10 left: another step), then 9 (1 left: another). Each step removes less than the last; the next step would need you to remove a fraction of one grain. That last tiny amount is the single drop.",
+    foot: "Model: strong acid + strong base at 25 °C, all volumes add. [H⁺] − [OH⁻] = e, [H⁺][OH⁻] = K_w = 1.0 × 10⁻¹⁴ (mol/L)², e = (2.50 mmol − 0.100 mol/L × V) ÷ (25.0 mL + V). One burette drop is taken as 0.05 mL (real drops are about 0.03–0.05 mL). pH strictly uses activity, which is close to concentration only in dilute solutions. Phenolphthalein changes at about pH 8.2–10; universal-indicator colours are approximate and differ between brands. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "加碱：最后那一下 pH 突跃", eyebrow: "化学 · 阶段 4", h1: "加碱：pH 起初几乎不动，最后一滴让它猛跳",
+    intro: "先猜一猜，再用滴定管把碱滴进酸里，一次 1 毫升或一次 1 滴，看 pH 曲线和剩下的氢离子怎么变。",
+    reset: "重置", s1: "先猜", s2: "滴定", s3: "规律",
+    figGuess: "滴定管里是氢氧化钠，下面锥形瓶里是盐酸；旁边是空的 pH 图，加一半碱的位置有个问号",
+    figLab: "滴定管把氢氧化钠滴进盐酸，pH 随加入体积画成曲线，下面用小点表示剩下的氢离子、结合成水的离子对和多出来的氢氧根",
+    figRule: "完整的 pH 曲线，下面的条表示 pH 每升一段需要多少碱",
+    k1: "先猜一猜", t1: "碱加到一半，pH 也走到 7 的一半了吗？",
+    b1: "锥形瓶里是 25.0 毫升盐酸，0.100 mol/L，pH 1.00。滴定管里是同样浓度的氢氧化钠，所以 25.0 毫升正好把所有 H⁺ 配对。",
+    q: "先放进 12.5 毫升碱，也就是需要量的一半。现在 pH 是多少？",
+    o1: "约 4：从 1 到 7 走了一半", o2: "约 1.5：几乎没动", o3: "约 2.5",
+    right: "对。H⁺ 少了一半，但 pH 数的是 10 的几次方：这里 pH 只升了 {dp}。",
+    wrong: "这是「匀速上升」的想法。看图：一半的 H⁺ 已经结合成水，pH 却才到 {p}。",
+    k2: "动手", t2: "加碱，最后一滴一滴地加",
+    b2: "用按钮、滑块，或者在图上拖。先一次 1 毫升加到 24 毫升左右，再改成一次一滴（0.05 毫升），看 25 毫升附近一滴碱能做什么。",
+    k3: "规律", t3: "pH 跟着剩下的 H⁺ 走，按 10 倍算",
+    b3: "H⁺ 和 OH⁻ 一对一结合成水。pH 取决于每升里还剩多少 H⁺，pH 每升 1，就要把它减到十分之一。从 pH 1 到 2 要加 {big} 毫升碱；可一旦 H⁺ 只剩 {pc}%，一滴碱就把它们全部配对，pH 一下越过 7。点一点下面的条。",
+    add5: "+5 毫升", add1: "+1 毫升", addDrop: "+1 滴", vLabel: "已加碱", empty: "换一瓶新酸",
+    indAria: "瓶里的指示剂", phth: "酚酞", univ: "通用指示剂",
+    legH: "剩下的 H⁺", legPair: "H⁺ + OH⁻ → 水", legOH: "多出的 OH⁻", oneDot: "每点 = 0.05 毫摩尔",
+    burette: "NaOH", flask: "HCl", vAxis: "已加碱（毫升）", phAxis: "pH", guessLbl: "匀速上升？",
+    mlTxt: "{v} 毫升", phTxt: "pH {p}",
+    rowTxt: "{ml} 毫升", dropsTxt: "{n} 滴", dropTxt: "1 滴",
+    hAdd: "这次加", hV: "累计毫升", hP: "pH", hD: "pH 变化",
+    liveGuess0: "先选一个答案，再看 12.5 毫升时真正的 pH。",
+    liveGuess: "加到 12.5 毫升时，{n} 毫摩尔 H⁺ 还剩 {l} 毫摩尔：一半。pH 是 {p}，不是匀速上升给出的 {g}。",
+    liveLab0: "还没加碱：25.0 毫升里有 {n} 毫摩尔 H⁺，pH {p}。加点碱试试。",
+    liveLab: "已加 {v} 毫升。剩下的 H⁺：{l} 毫摩尔（开始时的 {pc}%）。pH {p}。刚才这次（+{dv} 毫升）让 pH 变了 {dp}。",
+    liveEq: "已加 {v} 毫升：酸里的 H⁺ 全部配对。pH {p}。刚才这次（+{dv} 毫升）让 pH 变了 {dp}。",
+    liveOH: "已加 {v} 毫升。酸的 H⁺ 已经没有了，多出的 OH⁻：{x} 毫摩尔。pH {p}。刚才这次（+{dv} 毫升）让 pH 变了 {dp}。",
+    eqNote: "正好中性：现在的 H⁺ 只是水自己电离出来的，1.0 × 10⁻⁷ mol/L。",
+    pinkNote: "酚酞在 pH 约 8.2 变粉，不是 7。这没关系：pH 8.2 只比等当点多 {d} 毫升，远不到一滴。",
+    nearNote: "再加 {k} 滴，H⁺ 就全部配对了。接下来仔细看。", nearNote1: "再加 1 滴，最后的 H⁺ 就配对了。",
+    liveRule: "从 pH {a} 到 pH {b} 需要 {ml} 毫升碱（{dr}）。而从 pH 1 到 2 用了 {big} 毫升。", liveRule1: "从 pH 1 到 pH 2 需要 {ml} 毫升碱（{dr}）：滴定管里大半的碱只让 pH 升了 1。",
+    safety: "安全：盐酸和氢氧化钠即使只有 0.1 mol/L 也有腐蚀性。滴定要在实验室里戴护目镜、在老师指导下做，不要在家做。",
+    resultTitle: "我们发现", resultMain: "pH = −log₁₀[剩下的 H⁺]   ·   pH 每升 1，每升里剩下的 H⁺ 要减到十分之一",
+    resultNote: "碱加到一半，pH 还只有 {p}。从 {a} 跳到 {b}，只发生在 {v} 毫升前后的两滴里，所以指示剂一变色，终点就能准到一滴之内。",
+    explainK: "说一说", explainQ: "朋友加了 20 毫升碱，pH 只从 1.0 升到 2 左右，就说这碱太弱了。用「剩下的 H⁺」跟他讲讲到底发生了什么。",
+    homeK: "家里做一做", homeQ: "数出 1000 粒米当作 H⁺。先拿走 900 粒（剩 100：pH 升一级），再拿走 90 粒（剩 10：又一级），再拿走 9 粒（剩 1：又一级）。每一级要拿的越来越少；再下一级就得拿走不到一粒米。那最后一点点，就是那一滴。",
+    foot: "模型：25 °C 下强酸加强碱，体积直接相加。[H⁺] − [OH⁻] = e，[H⁺][OH⁻] = K_w = 1.0 × 10⁻¹⁴ (mol/L)²，e = (2.50 毫摩尔 − 0.100 mol/L × V) ÷ (25.0 毫升 + V)。滴定管一滴按 0.05 毫升计（实际约 0.03–0.05 毫升）。严格说 pH 用的是活度，只在稀溶液里才和浓度很接近。酚酞变色范围约 pH 8.2–10；通用指示剂颜色是近似色，不同品牌略有差别。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+{ const dq = clampD(VEQ * DPM); $("resultNote").textContent = P.t("resultNote", { p: Play.fmt(mix(VEQ / 2).pH, 2), a: Play.fmt(mixD(dq - 1).pH, 2), b: Play.fmt(mixD(dq + 1).pH, 2), v: VEQ.toFixed(2) }); }
+const fig = $("fig");
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent || fig);
+const T = (tag, attrs, text, parent) => { const e = S(tag, attrs, parent); e.textContent = text; return e; };
+const f2 = (x) => Play.fmt(x, 2);
+const mlFmt = (d) => (clampD(d) / DPM).toFixed(2);
+const state = { step: 0, revealed: false, d: 0, hist: [], ind: "phth", row: 3 };
+
+/* ---------- shared drawing ---------- */
+function apparatus(m) {
+  // burette: 50 mL scale, liquid level drops as base runs out
+  const bx = 44, by0 = 14, by1 = 174, frac = Math.min(1, m.V / 50);
+  S("rect", { class: "base", x: bx, y: by0 + (by1 - by0) * frac, width: 22, height: (by1 - by0) * (1 - frac) }, fig);
+  S("path", { class: "glass", d: `M${bx},${by0} L${bx},${by1} L${bx + 8},${by1 + 8} L${bx + 8},${by1 + 18} M${bx + 22},${by0} L${bx + 22},${by1} L${bx + 14},${by1 + 8} L${bx + 14},${by1 + 18}` }, fig);
+  for (let i = 0; i <= 5; i++) S("line", { class: "tickm", x1: bx, x2: bx + 7, y1: by0 + i * (by1 - by0) / 5, y2: by0 + i * (by1 - by0) / 5 }, fig);
+  T("text", { class: "lbl-m", x: bx + 30, y: by0 + 22 }, P.t("burette"));
+  // flask with indicator colour
+  const fy = 300, top = 206;
+  let fill = "var(--c)", op = 0.12;
+  if (state.ind === "univ") { fill = universal(m.pH); op = 0.85; }
+  else { const c = phth(m.pH); if (c) { fill = c.col; op = c.op; } }
+  S("path", { d: `M18,252 L102,252 L114,${fy - 4} Q116,${fy} 110,${fy} L10,${fy} Q4,${fy} 6,${fy - 4} Z`, fill, "fill-opacity": op }, fig);
+  S("path", { class: "glass", d: `M46,${top} L46,236 L6,${fy - 4} Q4,${fy} 10,${fy} L110,${fy} Q116,${fy} 114,${fy - 4} L74,236 L74,${top}` }, fig);
+  T("text", { class: "lbl-m", x: 82, y: 232 }, P.t("flask"));
+  T("text", { class: "big", x: 60, y: 342, "text-anchor": "middle" }, P.t("mlTxt", { v: m.V.toFixed(2) }));
+  T("text", { class: "big", x: 60, y: 380, "text-anchor": "middle" }, P.t("phTxt", { p: f2(m.pH) }));
+}
+const PX0 = 190, PX1 = 540, PY0 = 30, PY1 = 300;
+const px = (v) => PX0 + (PX1 - PX0) * v / 50;
+const py = (p) => PY1 - (PY1 - PY0) * Math.min(14, Math.max(0, p)) / 14;
+function axes() {
+  for (let p = 0; p <= 14; p += 2) S("line", { class: "grid", x1: PX0, x2: PX1, y1: py(p), y2: py(p) }, fig);
+  S("rect", { class: "band", x: PX0, y: py(10), width: PX1 - PX0, height: py(8.2) - py(10) }, fig);
+  S("line", { class: "seven", x1: PX0, x2: PX1, y1: py(7), y2: py(7) }, fig);
+  S("path", { class: "axis", d: `M${PX0},${PY0 - 6} L${PX0},${PY1} L${PX1},${PY1}` }, fig);
+  [0, 7, 14].forEach((p) => T("text", { class: "num", x: PX0 - 8, y: py(p) + 8, "text-anchor": "end" }, String(p)));
+  T("text", { class: "lbl-m", x: PX0 + 8, y: PY0 - 8 }, P.t("phAxis"));
+  [0, 25, 50].forEach((v) => T("text", { class: "num", x: px(v), y: PY1 + 26, "text-anchor": v === 0 ? "start" : v === 50 ? "end" : "middle" }, String(v)));
+  T("text", { class: "lbl-m", x: (PX0 + PX1) / 2, y: PY1 + 52, "text-anchor": "middle" }, P.t("vAxis"));
+}
+const pathOf = (pts) => pts.map(([v, p], i) => (i ? "L" : "M") + px(v).toFixed(1) + "," + py(p).toFixed(1)).join(" ");
+function dots(m) {
+  const x0 = 64, step = (540 - x0) / 49, y1 = 418, y2 = 446;
+  T("text", { class: "lbl-m", x: 6, y: y1 + 7 }, "H⁺");
+  T("text", { class: "lbl-m", x: 6, y: y2 + 7 }, "OH⁻");
+  const nLeftDots = m.left / SLOT, nExtra = m.extra / SLOT;
+  for (let i = 0; i < 50; i++) {
+    const x = x0 + i * step;
+    // dot i is H⁺ while more than i slots remain; partially used dots shrink
+    const rem = Math.min(1, Math.max(0, nLeftDots - i));
+    if (rem >= 0.999) S("circle", { class: "hp", cx: x, cy: y1, r: 4.2 }, fig);
+    else if (rem > 0) { S("circle", { class: "pair", cx: x, cy: y1, r: 4.2 }, fig); S("circle", { class: "hp", cx: x, cy: y1, r: Math.max(1.2, 4.2 * Math.sqrt(rem)) }, fig); }
+    else S("circle", { class: "pair", cx: x, cy: y1, r: 4.2 }, fig);
+    const ex = Math.min(1, Math.max(0, nExtra - i));
+    if (ex > 0) S("circle", { class: "oh", cx: x, cy: y2, r: Math.max(1.2, 4.2 * Math.sqrt(ex)) }, fig);
+    else S("circle", { class: "slot", cx: x, cy: y2, r: 3 }, fig);
+  }
+}
+
+/* ---------- step 1 ---------- */
+function drawGuess() {
+  fig.setAttribute("aria-label", P.t("figGuess"));
+  fig.innerHTML = "";
+  const m = state.revealed ? mix(VEQ / 2) : mix(0);
+  apparatus(m);
+  axes();
+  const g0 = mix(0).pH;
+  S("path", { class: "guess", d: `M${px(0)},${py(g0)} L${px(VEQ)},${py(7)}` }, fig);
+  T("text", { class: "guess-t", x: px(VEQ) - 6, y: py(7) - 12, "text-anchor": "end" }, P.t("guessLbl"));
+  if (!state.revealed) {
+    T("text", { class: "qmark", x: px(VEQ / 2), y: py(4) + 20, "text-anchor": "middle" }, "?");
+    S("circle", { class: "pt", cx: px(0), cy: py(g0), r: 7 }, fig);
+  } else {
+    S("path", { class: "curve", d: pathOf(curvePts(VEQ / 2)) }, fig);
+    S("circle", { class: "pt", cx: px(VEQ / 2), cy: py(m.pH), r: 7 }, fig);
+    T("text", { class: "num", x: px(VEQ / 2) + 10, y: py(m.pH) + 30 }, f2(m.pH));
+    S("circle", { cx: px(VEQ / 2), cy: py(steadyGuess(VEQ / 2)), r: 6, fill: "var(--no)" }, fig);
+    T("text", { class: "guess-t", x: px(VEQ / 2) - 12, y: py(steadyGuess(VEQ / 2)) - 10, "text-anchor": "end" }, f2(steadyGuess(VEQ / 2)));
+  }
+  dots(m);
+  Play.live($("live"), state.revealed
+    ? P.t("liveGuess", { l: mmol(m.left), n: mmol(NA_MMOL), p: f2(m.pH), g: f2(steadyGuess(VEQ / 2)) })
+    : P.t("liveGuess0"));
+}
+
+/* ---------- step 2 ---------- */
+function drawLab() {
+  fig.setAttribute("aria-label", P.t("figLab"));
+  fig.innerHTML = "";
+  const m = mixD(state.d);
+  apparatus(m);
+  axes();
+  S("path", { class: "guess", d: `M${px(0)},${py(mix(0).pH)} L${px(VEQ)},${py(7)}`, "stroke-opacity": 0.45 }, fig);
+  S("path", { class: "curve", d: pathOf(curvePts(m.V)) }, fig);
+  S("circle", { class: "pt", cx: px(m.V), cy: py(m.pH), r: 7 }, fig);
+  // drag strip over the plot
+  const hit = S("rect", { class: "hit", x: PX0 - 10, y: PY0 - 10, width: PX1 - PX0 + 20, height: PY1 - PY0 + 40 }, fig);
+  hit.addEventListener("pointerdown", dragStart);
+  dots(m);
+  // history table
+  const box = $("histBox");
+  box.innerHTML = "";
+  if (state.hist.length) {
+    const tb = document.createElement("table");
+    tb.className = "hist";
+    const tr0 = tb.insertRow();
+    ["hAdd", "hV", "hP", "hD"].forEach((k) => { const th = document.createElement("th"); th.textContent = P.t(k); tr0.appendChild(th); });
+    state.hist.slice(-5).forEach((h, i, arr) => {
+      const tr = tb.insertRow();
+      if (i === arr.length - 1) tr.className = "cur";
+      const dp = h.p1 - h.p0;
+      [(h.d1 >= h.d0 ? "+" : "−") + mlFmt(Math.abs(h.d1 - h.d0)), mlFmt(h.d1), f2(h.p1), (dp >= 0 ? "+" : "−") + f2(Math.abs(dp))]
+        .forEach((v, j) => { const c = tr.insertCell(); c.textContent = v; if (j === 3 && Math.abs(dp) >= 1) c.className = "jump"; });
+    });
+    box.appendChild(tb);
+  }
+  $("v").value = state.d;
+  $("vVal").textContent = P.t("mlTxt", { v: m.V.toFixed(2) });
+  $("add5").disabled = $("add1").disabled = $("addDrop").disabled = state.d >= DMAX;
+  const last = state.hist[state.hist.length - 1];
+  const dv = last ? mlFmt(Math.abs(last.d1 - last.d0)) : "0", dp = last ? f2(last.p1 - last.p0) : "0";
+  const deq = clampD(VEQ * DPM);
+  let txt;
+  if (state.d === 0) txt = P.t("liveLab0", { n: mmol(NA_MMOL), p: f2(m.pH) });
+  else if (state.d < deq) txt = P.t("liveLab", { v: m.V.toFixed(2), l: mmol(m.left), pc: pct(100 * m.left / NA_MMOL), p: f2(m.pH), dv, dp });
+  else if (state.d === deq) txt = P.t("liveEq", { v: m.V.toFixed(2), p: f2(m.pH), dv, dp });
+  else txt = P.t("liveOH", { v: m.V.toFixed(2), x: mmol(m.extra), p: f2(m.pH), dv, dp });
+  Play.live($("live"), txt);
+  let extra = "";
+  if (state.d === deq) extra = P.t("eqNote");
+  else if (state.d > deq && state.ind === "phth" && m.pH >= 8.2 && state.d <= deq + 4) extra = P.t("pinkNote", { d: (volumeAt(8.2) - VEQ).toFixed(4) });
+  else if (state.d < deq && deq - state.d <= 10) extra = deq - state.d === 1 ? P.t("nearNote1") : P.t("nearNote", { k: deq - state.d });
+  $("extra").textContent = extra;
+  $("extra").hidden = !extra;
+}
+function setD(d) {
+  d = clampD(d);
+  if (d === state.d) return;
+  state.hist.push({ d0: state.d, d1: d, p0: mixD(state.d).pH, p1: mixD(d).pH });
+  if (state.hist.length > 50) state.hist.shift();
+  state.d = d;
+  render();
+}
+// drag on the graph: x → volume, snapped to whole drops
+let dragging = false;
+function dragTo(e) {
+  const pt = Play.pointer(fig, e);
+  const v = Math.min(50, Math.max(0, (pt.x - PX0) / (PX1 - PX0) * 50));
+  state.dragD = clampD(v * DPM);
+  // during the drag, move without logging each pixel
+  const prev = state.d; state.d = state.dragD;
+  render(); state.d = prev;
+  state.dPending = state.dragD;
+}
+function dragStart(e) {
+  dragging = true;
+  fig.setPointerCapture && fig.setPointerCapture(e.pointerId);
+  dragTo(e); e.preventDefault();
+}
+fig.addEventListener("pointermove", (e) => { if (dragging) dragTo(e); });
+function dragEnd() {
+  if (!dragging) return;
+  dragging = false;
+  if (state.dPending !== undefined) { const d = state.dPending; state.dPending = undefined; setD(d); }
+}
+fig.addEventListener("pointerup", dragEnd);
+fig.addEventListener("pointercancel", dragEnd);
+
+/* ---------- step 3 ---------- */
+function drawRule() {
+  fig.setAttribute("aria-label", P.t("figRule"));
+  fig.innerHTML = "";
+  const X0 = 64, X1 = 540, Y0 = 26, Y1 = 196;
+  const qx = (v) => X0 + (X1 - X0) * v / 50, qy = (p) => Y1 - (Y1 - Y0) * p / 14;
+  for (let p = 0; p <= 14; p += 7) S("line", { class: "grid", x1: X0, x2: X1, y1: qy(p), y2: qy(p) }, fig);
+  S("path", { class: "axis", d: `M${X0},${Y0 - 4} L${X0},${Y1} L${X1},${Y1}` }, fig);
+  [0, 7, 14].forEach((p) => T("text", { class: "num", x: X0 - 8, y: qy(p) + 8, "text-anchor": "end" }, String(p)));
+  [0, 25, 50].forEach((v) => T("text", { class: "num", x: qx(v), y: Y1 + 26, "text-anchor": v === 0 ? "start" : v === 50 ? "end" : "middle" }, v === 50 ? "50 mL" : String(v)));
+  const all = curvePts(50);
+  S("path", { class: "curve", d: all.map(([v, p], i) => (i ? "L" : "M") + qx(v).toFixed(1) + "," + qy(p).toFixed(1)).join(" ") }, fig);
+  const rows = stepRows(), sel = rows[state.row];
+  const va = volumeAt(sel.a), vb = volumeAt(sel.b);
+  const seg = all.filter(([v]) => v >= va - 1e-9 && v <= vb + 1e-9);
+  const segPts = [[va, sel.a]].concat(seg).concat([[vb, sel.b]]);
+  S("path", { class: "curve-hl", d: segPts.map(([v, p], i) => (i ? "L" : "M") + qx(v).toFixed(1) + "," + qy(p).toFixed(1)).join(" ") }, fig);
+  // bars: base needed per pH step, same mL scale for all
+  const B0 = 132, B1 = 400, maxMl = Math.max(...rows.map((r) => r.ml)), RY = 242, RH = 30;
+  rows.forEach((r, i) => {
+    const y = RY + i * RH;
+    const g = S("g", { class: "row" + (i === state.row ? " on" : ""), tabindex: i === state.row ? 0 : -1, role: "button",
+      "aria-label": "pH " + r.a + " → " + r.b + ": " + P.t("rowTxt", { ml: r.ml.toFixed(2) }) }, fig);
+    S("rect", { x: 0, y: y - 4, width: 560, height: RH - 2, fill: "transparent" }, g);
+    T("text", { class: "rowlbl", x: 8, y: y + 18 }, r.a + " → " + r.b, g);
+    S("rect", { class: "rowbar", x: B0, y: y, width: Math.max(3, (B1 - B0) * r.ml / maxMl), height: RH - 10, rx: 3 }, g);
+    const drops = Math.round(r.drops);
+    T("text", { class: "rowlbl", x: 552, y: y + 18, "text-anchor": "end" },
+      r.ml < 1 ? (drops === 1 ? P.t("dropTxt") : P.t("dropsTxt", { n: drops })) : P.t("rowTxt", { ml: r.ml.toFixed(2) }), g);
+    g.addEventListener("click", () => { state.row = i; render(); focusRow(); });
+    g.addEventListener("keydown", (e) => {
+      let k = null;
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") k = Math.min(rows.length - 1, state.row + 1);
+      if (e.key === "ArrowUp" || e.key === "ArrowLeft") k = Math.max(0, state.row - 1);
+      if (k !== null) { e.preventDefault(); state.row = k; render(); focusRow(); }
+    });
+  });
+  const dr = Math.round(sel.drops);
+  Play.live($("live"), P.t(state.row === 0 ? "liveRule1" : "liveRule", { a: sel.a, b: sel.b, ml: sel.ml.toFixed(2), dr: dr === 1 ? P.t("dropTxt") : P.t("dropsTxt", { n: dr }), big: rows[0].ml.toFixed(2) }));
+}
+function focusRow() { const el = fig.querySelectorAll(".row")[state.row]; if (el) el.focus(); }
+
+function render() {
+  $("addCtl").hidden = state.step !== 1;
+  $("legend").hidden = state.step === 2;
+  $("histBox").hidden = state.step !== 1;
+  $("safety").hidden = state.step !== 1;
+  if (state.step !== 1) { $("extra").textContent = ""; $("extra").hidden = true; }
+  if (state.step === 0) drawGuess(); else if (state.step === 1) drawLab(); else drawRule();
+}
+
+[["phth", "phth"], ["univ", "univ"]].forEach(([v, k]) => { const o = document.createElement("option"); o.value = v; o.textContent = P.t(k); $("ind").appendChild(o); });
+$("ind").addEventListener("change", (e) => { state.ind = e.target.value === "univ" ? "univ" : "phth"; render(); });
+$("add5").addEventListener("click", () => setD(state.d + 5 * DPM));
+$("add1").addEventListener("click", () => setD(state.d + DPM));
+$("addDrop").addEventListener("click", () => { setD(state.d + 1); if ($("addDrop").disabled) $("v").focus(); });
+$("empty").addEventListener("click", () => { state.d = 0; state.hist = []; render(); });
+$("v").addEventListener("input", (e) => { const d = clampD(+e.target.value); const prev = state.d; state.d = d; render(); state.d = prev; state.dPending = d; });
+$("v").addEventListener("change", () => { if (state.dPending !== undefined) { const d = state.dPending; state.dPending = undefined; setD(d); } });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right", { dp: f2(mix(VEQ / 2).pH - mix(0).pH) }), wrong: P.t("wrong", { p: f2(mix(VEQ / 2).pH) }),
+}, () => { state.revealed = true; render(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  state.step = i;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k, k === 3 ? { big: stepRows()[0].ml.toFixed(2), pc: pct(100 * CB / DPM / NA_MMOL) } : undefined);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  Object.assign(state, { revealed: false, d: 0, hist: [], ind: "phth", row: 3, dPending: undefined });
+  $("ind").value = "phth";
+  pr.reset(); st.go(0);
+});
+</script>
+</body>
+</html>

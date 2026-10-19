@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variables are labelled boxes</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 420 / 240; max-height: 380px; }
+  @media (max-width: 560px) { .stage svg.main { height: auto; max-height: none; } }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+  .boxfill { fill: var(--soft); }
+  .boxfill.hi { fill: var(--hl); opacity: .35; }
+  .boxedge { fill: none; stroke: var(--fg); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+  .tag { fill: var(--a); }
+  .tagtx { fill: var(--surface); font: 700 18px ui-monospace, "SF Mono", Menlo, Consolas, monospace; text-anchor: middle; dominant-baseline: central; }
+  .valtx { fill: var(--fg); font: 700 32px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .emptytx { fill: var(--muted); font: 15px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .wanttx { fill: var(--muted); font: 15px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .wanttx.ok { fill: var(--a); font-weight: 700; }
+  .gonelbl { fill: var(--muted); font: 15px var(--font); dominant-baseline: central; }
+  .gonetx { fill: var(--no); font: 700 18px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .gonex { stroke: var(--no); stroke-width: 2; }
+  .bubble { fill: var(--surface); stroke: var(--c); stroke-width: 2; }
+  .bubtx { fill: var(--fg); font: 600 16px ui-monospace, "SF Mono", Menlo, Consolas, monospace; text-anchor: middle; dominant-baseline: central; }
+  .fly { fill: var(--a); font: 700 32px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .iter { fill: var(--muted); font: 15px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .pane { padding: 10px 14px 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 13px; color: var(--muted); font-weight: 650; margin-right: 2px; }
+  .code { display: grid; gap: 3px; padding: 8px; border: 1px dashed var(--line); border-radius: 10px; background: var(--bg); min-height: 44px; }
+  .code .empty { font-size: 13px; color: var(--muted); padding: 4px 2px; }
+  .ln { display: flex; align-items: center; gap: 8px; text-align: left; font-size: 15px; padding: 4px 10px; border-radius: 7px; border: 1px solid transparent; background: transparent; width: 100%; }
+  button.ln { border-color: var(--line); background: var(--surface); }
+  .ln .n { font-size: 12px; color: var(--muted); min-width: 1.4em; font-variant-numeric: tabular-nums; font-family: var(--font); }
+  .ln .lock { font-size: 11px; color: var(--muted); margin-left: auto; font-family: var(--font); }
+  .ln.sel { border-color: var(--a); box-shadow: 0 0 0 2px var(--a) inset; }
+  .ln.cur { background: var(--hl); color: #1a2822; border-color: var(--hl); }
+  .ln.cur .n, .ln.cur .lock { color: #1a2822; }
+  .ln.bad { background: var(--no); color: #fff; border-color: var(--no); }
+  .ln.bad .n, .ln.bad .lock { color: #fff; }
+  .blk { font-size: 15px; padding: 5px 10px; }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+  .msg.ok { font-weight: 650; }
+  .msg.ok::before { content: "✓ "; color: var(--a); font-weight: 800; }
+  .msg.no { color: var(--no); font-weight: 650; }
+  .msg.no::before { content: "! "; font-weight: 800; }
+  button.primary { background: var(--a); color: var(--surface); border-color: var(--a); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .lvl button.done::after { content: " ✓"; color: var(--a); }
+  .lvl button.on.done::after { color: var(--bg); }
+  .facts { margin: 0 0 12px; padding-left: 1.3em; font-size: 14px; }
+  .facts li { margin: 4px 0; }
+  .facts code, .explain code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .95em; color: var(--fg); }
+  .rule { background: var(--soft); border-radius: 10px; padding: 10px 12px; margin: 0 0 10px; font-size: 15px; color: var(--fg); }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 420 240" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="pane">
+        <div class="row lvl" id="lvlRow"></div>
+        <div class="code mono" id="code" aria-label="program"></div>
+        <div class="row" id="palRow"><span class="lbl" id="palLbl"></span></div>
+        <div class="row" id="editRow">
+          <button type="button" class="small" id="up" data-t="up"></button>
+          <button type="button" class="small" id="down" data-t="down"></button>
+          <button type="button" class="small" id="del" data-t="del"></button>
+          <button type="button" class="small" id="clear" data-t="clear"></button>
+        </div>
+        <div class="row">
+          <button type="button" class="primary" id="stepBtn" data-t="stepBtn"></button>
+          <button type="button" id="run"></button>
+          <button type="button" id="back" data-t="back"></button>
+        </div>
+        <p class="msg" id="live"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="rule" id="rule" hidden data-t-html="rule"></p>
+      <ul class="facts" id="facts" hidden></ul>
+      <p class="note" id="keys" data-t="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math mono" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure logic (no DOM), testable in node. A tiny interpreter for programs like
+     a = 3          (put a number in a box)
+     a = b          (copy what is in b into a; b keeps it)
+     score = score + 1
+     repeat 3:      (the indented lines below run 3 times)
+       score = score + 1
+   A box holds one value. Assigning throws the old value away. Reading an empty box is an error. */
+const NAME = /^[a-z][a-z0-9_]*$/;
+const MAXOPS = 200;
+function parseLine(src) {
+  const indent = src.match(/^ */)[0].length, s = src.trim(), bad = { indent, kind: "bad" };
+  let m = s.match(/^repeat\s+(\d+)\s*:$/);
+  if (m) return { indent, kind: "repeat", n: +m[1] };
+  m = s.match(/^([a-z][a-z0-9_]*)\s*=\s*(.+)$/);
+  if (!m) return bad;
+  const toks = m[2].match(/[a-z][a-z0-9_]*|\d+|\S/g) || [], terms = [], ops = [];
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i];
+    if (i % 2 === 0) {
+      if (/^\d+$/.test(t)) terms.push({ num: +t });
+      else if (NAME.test(t)) terms.push({ v: t });
+      else return bad;
+    } else if (t === "+" || t === "-") ops.push(t);
+    else return bad;
+  }
+  if (!terms.length || terms.length !== ops.length + 1) return bad;
+  return { indent, kind: "set", target: m[1], terms, ops };
+}
+/* Flatten into the list of assignments actually executed, unrolling repeat blocks. */
+function compile(lines) {
+  const L = lines.map(parseLine), out = [];
+  function block(from, to, loop) {
+    for (let i = from; i < to && out.length < MAXOPS;) {
+      const p = L[i];
+      if (p.kind === "repeat") {
+        let j = i + 1;
+        while (j < to && L[j].indent > p.indent) j++;
+        for (let r = 0; r < p.n && out.length < MAXOPS; r++) block(i + 1, j, { line: i, k: r + 1, n: p.n });
+        i = j;
+      } else { out.push(Object.assign({ line: i, loop }, p)); i++; }
+    }
+  }
+  block(0, L.length, null);
+  return out;
+}
+/* Value of the right-hand side, or the name of the empty box it tried to read. */
+function evalExpr(op, env) {
+  let v = 0;
+  for (let k = 0; k < op.terms.length; k++) {
+    const t = op.terms[k];
+    let x;
+    if ("num" in t) x = t.num;
+    else { if (env[t.v] == null) return { err: "empty", name: t.v }; x = env[t.v]; }
+    v = k === 0 ? x : op.ops[k - 1] === "+" ? v + x : v - x;
+  }
+  return { v };
+}
+const isCopy = (op) => op.terms.length === 1 && "v" in op.terms[0];
+/* One entry per executed line: { op, value, old, env (after), gone (all thrown-away values so far) }.
+   An error adds one entry { op, err, name } and stops. */
+function trace(lines, init) {
+  let env = Object.assign({}, init || {}), gone = [];
+  const out = [];
+  for (const op of compile(lines)) {
+    if (op.kind === "bad") { out.push({ op, err: "syntax", env, gone }); break; }
+    const r = evalExpr(op, env);
+    if (r.err) { out.push({ op, err: r.err, name: r.name, env, gone }); break; }
+    const old = env[op.target];
+    env = Object.assign({}, env, { [op.target]: r.v });
+    if (old != null) gone = gone.concat([{ v: old, from: op.target, line: op.line }]);
+    out.push({ op, value: r.v, old, env, gone });
+  }
+  return out;
+}
+function finalEnv(lines, init) {
+  const t = trace(lines, init), last = t[t.length - 1];
+  return { env: last ? last.env : Object.assign({}, init || {}), err: last && last.err ? last : null };
+}
+const meets = (env, goal) => Object.keys(goal).every((k) => env[k] === goal[k]);
+/* First executed line (from index `from` on) after which some needed value is no longer in any box. */
+function lostAt(states, needed, from) {
+  for (let k = from || 0; k < states.length; k++) {
+    if (states[k].err) return null;
+    const have = Object.values(states[k].env);
+    const v = needed.find((x) => !have.includes(x));
+    if (v !== undefined) return { k, v, line: states[k].op.line };
+  }
+  return null;
+}
+/* Every arrangement reachable with copy lines "x = y" between the given boxes (breadth first).
+   Returns [{ env, dist, prog }]; reading an empty box is not allowed. */
+function reach(vars, start) {
+  const key = (e) => vars.map((v) => (e[v] == null ? "_" : e[v])).join(",");
+  const seen = new Map([[key(start), { env: start, dist: 0, prog: [] }]]), queue = [start];
+  while (queue.length) {
+    const e = queue.shift(), node = seen.get(key(e));
+    for (const t of vars) for (const s of vars) {
+      if (t === s || e[s] == null) continue;
+      const n = Object.assign({}, e, { [t]: e[s] }), kk = key(n);
+      if (!seen.has(kk)) { seen.set(kk, { env: n, dist: node.dist + 1, prog: node.prog.concat([t + " = " + s]) }); queue.push(n); }
+    }
+  }
+  return [...seen.values()];
+}
+function shortest(vars, start, goal) {
+  const hits = reach(vars, start).filter((r) => meets(r.env, goal));
+  return hits.length ? hits.reduce((a, b) => (b.dist < a.dist ? b : a)) : null;
+}
+const DEMO = ["a = 3", "b = 5", "a = b", "b = a"];
+const SCORE = ["score = 0", "repeat 3:", "  score = score + 1"];
+const LEVELS = [
+  { key: "swap", vars: ["a", "b", "temp"], init: { a: 3, b: 5 } },
+  { key: "rotate", vars: ["a", "b", "c", "temp"], init: { a: 4, b: 7, c: 2 } },
+];
+LEVELS[0].goal = { a: LEVELS[0].init.b, b: LEVELS[0].init.a };
+LEVELS[1].goal = { a: LEVELS[1].init.b, b: LEVELS[1].init.c, c: LEVELS[1].init.a };
+LEVELS.forEach((l) => { l.locked = Object.keys(l.init).map((k) => k + " = " + l.init[k]); });
+const MAXUSER = 8;
+if (typeof module !== "undefined") module.exports = { parseLine, compile, evalExpr, trace, finalEnv, meets, lostAt, reach, shortest, DEMO, SCORE, LEVELS, MAXUSER, isCopy };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Variables are labelled boxes", eyebrow: "Computing · Stage 3",
+    h1: "A variable is a box with a name — and it holds one thing",
+    intro: "Step through tiny programs and watch the values move. Then build a swap yourself.",
+    reset: "Reset", figAria: "Boxes with names on them; each box shows the value inside it",
+    s1: "Guess", s2: "Build", s3: "Rule",
+    k1: "Predict first", t1: "Does this swap a and b?",
+    b1: "Read a = b as “put a copy of b into a”. Pick an answer, then press Step to run one line at a time.",
+    k2: "Hands on", t2: "Build it from blocks",
+    b2: "Tap a block to add it to your program. Tap a line to pick it, then move or remove it. Press Run and check the boxes against “want”.",
+    k3: "The rule", t3: "Right side first, then into the box",
+    b3: "Watch score = score + 1 run three times. It is not an equation (no number equals itself plus one). It is an instruction.",
+    rule: "<b>Work out the right side, then put the result into the box on the left.</b> The box keeps only the new value; the old one is thrown away. So to swap two boxes, first save one value in a third box.",
+    q: "a = 3, b = 5, then a = b, then b = a. What is in the boxes at the end?",
+    o1: "a is 5, b is 3 — they swapped", o2: "a is 5, b is 5", o3: "a is 3, b is 3",
+    right: "Yes. After a = b, the 3 is gone. So b = a can only copy the 5 back. Step through to see it.",
+    wrong: "Step through and watch the 3. When a = b runs, box a gets 5 and the 3 is thrown away.",
+    pickFirst: "Pick an answer first.",
+    lv_swap: "Swap a and b", lv_rotate: "Rotate a, b, c",
+    task_swap: "Goal: swap the boxes — a gets {ga}, b gets {gb}. Box temp is free to use.",
+    task_rotate: "Goal: move each value one box to the left — a gets {ga}, b gets {gb}, c gets {gc}.",
+    palLbl: "Blocks:", up: "↑ Up", down: "↓ Down", del: "Remove", clear: "Clear",
+    stepBtn: "Step", run: "▶ Run", pause: "❚❚ Pause", back: "⟲ Back to start",
+    locked: "start", empty: "empty", want: "want {v}", gone: "thrown away:",
+    noLines: "Your program is empty — tap a block.", full: "That is enough lines ({n}).",
+    times: "time {k} of {n}",
+    mNum: "Line {l}: put {v} into box {t}.",
+    mCopy: "Line {l}: copy what is in {s} ({v}) into {t}. Box {s} still has {v}.",
+    mExpr: "Line {l}: first work out {e} = {v}, then put {v} into {t}.",
+    mOld: "The old {o} in {t} is thrown away.",
+    mEmpty: "Line {l}: box {n} is empty — there is nothing to copy. Put something in it first.",
+    mSyntax: "Line {l}: I cannot read this line.",
+    demoEnd: "Done: a is {a} and b is {b}. When a = b ran, the {o} was thrown away, so it could not come back.",
+    win: "Done! {list}. You used {n} line(s){extra}",
+    winShort: " — the fewest possible.",
+    winLong: ". It can be done in {m}.",
+    miss: "Not yet: {list}.",
+    lost: "At line {l} the last copy of {v} was thrown away — no box holds it any more. Save it in another box before you overwrite it.",
+    scoreEnd: "score went {seq}. Each time: read score, add 1, put the result back.",
+    allDone: "Both done. Go to step 3.",
+    f1: "With only boxes a and b, copying lines can reach just {n} arrangements: {list}. The swap (a, b) = ({b}, {a}) is never one of them.",
+    f2: "With a third box temp, the shortest swap is {n} lines: {prog}.",
+    f3: "Rotating three values needs {n} lines with temp ({prog}). Without temp it cannot be done: {m} arrangements are reachable, none of them the rotation.",
+    f4: "As an equation, score = score + 1 has no solution. As an instruction it gives {seq}.",
+    keys: "Keyboard: Tab to a block or a line and press Enter. On the boxes: Space = Step, Enter = Run.",
+    resultTitle: "What we found", resultMain: "temp = a;  a = b;  b = temp",
+    resultNote: "A variable holds one value. Putting a new value in throws the old one away — so to swap two boxes, save one value in a third box first.",
+    explainK: "Explain it",
+    explainQ: "Your friend wrote a = b and then b = a to swap two numbers, and both came out the same. Explain what happened to the first number, and how a third box fixes it.",
+    homeK: "Try at home",
+    homeQ: "Two cups: one with water, one with juice. Swap what is in them. What did you need? Write down each move as a line like “empty cup = water cup”.",
+    foot: "CC BY 4.0 · Boxi Yu · Programs here use “=” as in Python and many other languages: it means “store”, not “equals” (some languages write := or ←). Reading an empty box is an error here; many real languages (Python, for example) also give an error for a variable that has never been set, while some (like C) just hand back whatever junk is there. The counts in step 3 are found by trying every program of copy lines (breadth-first search). Misconceptions about variables (a box holding two values, “=” read as an equation, a = b; b = a as a swap) are described by du Boulay (1986), “Some difficulties of learning to program”, Journal of Educational Computing Research 2(1).",
+  },
+  zh: {
+    title: "变量是贴了名字的盒子", eyebrow: "信息科技 · 阶段 3",
+    h1: "变量是贴了名字的盒子，一次只装一样东西",
+    intro: "一行一行运行小程序，看值怎样移动。然后自己拼一个交换程序。",
+    reset: "重置", figAria: "贴着名字的盒子，每个盒子里显示它装的值",
+    s1: "先猜", s2: "拼程序", s3: "规律",
+    k1: "先猜一猜", t1: "这样能交换 a 和 b 吗？",
+    b1: "把 a = b 读成「把 b 里的值复制一份放进 a」。先选一个答案，再按「单步」一次运行一行。",
+    k2: "动手", t2: "用积木拼程序",
+    b2: "点一块积木，把它加进程序。点一行可以选中它，再上移、下移或删除。按「运行」，看盒子里的值和「要」对不对得上。",
+    k3: "规律", t3: "先算右边，再放进盒子",
+    b3: "看 score = score + 1 运行三次。它不是方程（没有哪个数等于它自己加一），它是一条指令。",
+    rule: "<b>先算出等号右边，再把结果放进左边的盒子。</b>盒子只留下新值，旧值被扔掉。所以要交换两个盒子，得先把一个值存进第三个盒子。",
+    q: "a = 3，b = 5，然后 a = b，再 b = a。最后盒子里是什么？",
+    o1: "a 是 5，b 是 3——交换了", o2: "a 是 5，b 是 5", o3: "a 是 3，b 是 3",
+    right: "对。a = b 之后，3 就没了。所以 b = a 只能把 5 复制回去。单步走一遍看看。",
+    wrong: "单步走一遍，盯住那个 3。运行 a = b 时，盒子 a 放进了 5，3 就被扔掉了。",
+    pickFirst: "先选一个答案。",
+    lv_swap: "交换 a 和 b", lv_rotate: "a、b、c 轮换",
+    task_swap: "目标：交换两个盒子——a 要 {ga}，b 要 {gb}。盒子 temp 可以随便用。",
+    task_rotate: "目标：每个值往左挪一个盒子——a 要 {ga}，b 要 {gb}，c 要 {gc}。",
+    palLbl: "积木：", up: "↑ 上移", down: "↓ 下移", del: "删除", clear: "清空",
+    stepBtn: "单步", run: "▶ 运行", pause: "❚❚ 暂停", back: "⟲ 回到开头",
+    locked: "开头", empty: "空", want: "要 {v}", gone: "扔掉了：",
+    noLines: "程序是空的——点一块积木。", full: "最多 {n} 行。",
+    times: "第 {k} 次，共 {n} 次",
+    mNum: "第 {l} 行：把 {v} 放进盒子 {t}。",
+    mCopy: "第 {l} 行：把 {s} 里的值（{v}）复制一份放进 {t}。盒子 {s} 里还是 {v}。",
+    mExpr: "第 {l} 行：先算 {e} = {v}，再把 {v} 放进 {t}。",
+    mOld: "{t} 里原来的 {o} 被扔掉了。",
+    mEmpty: "第 {l} 行：盒子 {n} 是空的，没有东西可复制。先往里放点什么。",
+    mSyntax: "第 {l} 行：这一行看不懂。",
+    demoEnd: "运行完了：a 是 {a}，b 是 {b}。运行 a = b 时，{o} 被扔掉了，所以回不来了。",
+    win: "完成！{list}。你用了 {n} 行{extra}",
+    winShort: "——已经是最少。",
+    winLong: "。最少 {m} 行就够。",
+    miss: "还不对：{list}。",
+    lost: "第 {l} 行把 {v} 的最后一份扔掉了——没有哪个盒子还装着它。覆盖之前，先把它存进别的盒子。",
+    scoreEnd: "score 依次变成 {seq}。每次都是：读出 score，加 1，再放回去。",
+    allDone: "两个都完成了。去第 3 步。",
+    f1: "只有 a、b 两个盒子时，用复制的行只能得到 {n} 种局面：{list}。交换后的 (a, b) = ({b}, {a}) 永远不在其中。",
+    f2: "多一个盒子 temp，最短的交换是 {n} 行：{prog}。",
+    f3: "三个值轮换，有 temp 要 {n} 行（{prog}）。没有 temp 做不到：能得到 {m} 种局面，没有一种是轮换后的。",
+    f4: "当方程看，score = score + 1 无解。当指令看，它得到 {seq}。",
+    keys: "键盘：用 Tab 走到积木或某一行，按回车。在盒子图上：空格 = 单步，回车 = 运行。",
+    resultTitle: "我们发现", resultMain: "temp = a;  a = b;  b = temp",
+    resultNote: "变量一次只装一个值。放进新值，旧值就被扔掉——所以要交换两个盒子，得先把一个值存进第三个盒子。",
+    explainK: "说一说",
+    explainQ: "朋友想交换两个数，写了 a = b 再写 b = a，结果两个数一样了。跟他讲讲第一个数去哪了，第三个盒子为什么能解决问题。",
+    homeK: "家里做一做",
+    homeQ: "两个杯子，一杯水，一杯果汁。把两杯里的东西对调。你需要什么？把每一步写成一行，比如「空杯 = 水杯」。",
+    foot: "CC BY 4.0 · Boxi Yu · 这里的程序像 Python 等很多语言一样用「=」，意思是「存进去」，不是「相等」（有的语言写成 := 或 ←）。这里读空盒子会出错；很多真实的语言（比如 Python）用一个从没赋过值的变量也会报错，也有的语言（比如 C）不报错，只拿出里面留下的随机值。第 3 步的数字是把所有只含复制行的程序都试一遍（广度优先搜索）得出的。关于变量的常见误解（一个盒子装两个值、把「=」当方程、以为 a = b; b = a 能交换）见 du Boulay（1986）《Some difficulties of learning to program》，Journal of Educational Computing Research 第 2 卷第 1 期。",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), codeEl = $("code"), msg = $("live");
+const SP = P.lang === "zh" ? "" : " ", LS = P.lang === "zh" ? "，" : ", ";
+const W = 420, BW = 80, BH = 78, BY = 52;
+
+/* ---------- state ---------- */
+let step = 0, lvIdx = 0, picked = false, sel = null;
+let user = {}, solved = {};
+let ex = null, running = false, timer = null, anim = null;
+
+function fresh() { user = { swap: [], rotate: [] }; solved = {}; sel = null; }
+const lv = () => LEVELS[lvIdx];
+function program() {
+  if (step === 0) return { lines: DEMO, locked: 0, vars: ["a", "b"] };
+  if (step === 2) return { lines: SCORE, locked: 0, vars: ["score"] };
+  return { lines: lv().locked.concat(user[lv().key]), locked: lv().locked.length, vars: lv().vars };
+}
+
+/* ---------- execution ---------- */
+function prepare() {
+  const pg = program(), states = trace(pg.lines, {});
+  let i0 = 0;
+  while (i0 < states.length && states[i0].op.line < pg.locked && !states[i0].err) i0++;
+  ex = { pg, states, i: i0, i0 };
+}
+const envAt = (i) => (i > 0 ? ex.states[i - 1].env : {});
+const goneAt = (i) => (i > 0 ? ex.states[i - 1].gone : []);
+
+/* ---------- drawing ---------- */
+function boxX(k, n) { const gap = (W - n * BW) / (n + 1); return gap + k * (BW + gap); }
+function centre(name) {
+  const vars = ex.pg.vars, k = vars.indexOf(name);
+  return { x: boxX(k, vars.length) + BW / 2, y: BY + BH / 2 + 4 };
+}
+let gVals = {};
+function draw(i, hiName, hideName) {
+  fig.innerHTML = "";
+  const vars = ex.pg.vars, env = envAt(i), goal = step === 1 ? lv().goal : null;
+  gVals = {};
+  vars.forEach((name, k) => {
+    const x = boxX(k, vars.length);
+    Play.svg("rect", { class: "boxfill" + (name === hiName ? " hi" : ""), x, y: BY, width: BW, height: BH, rx: 4 }, fig);
+    Play.svg("path", { class: "boxedge", d: `M${x} ${BY - 6}V${BY + BH}H${x + BW}V${BY - 6}` }, fig);
+    const tw = Math.max(46, 12 * name.length + 18);
+    Play.svg("rect", { class: "tag", x: x + BW / 2 - tw / 2, y: BY + BH + 8, width: tw, height: 26, rx: 6 }, fig);
+    Play.svg("text", { class: "tagtx", x: x + BW / 2, y: BY + BH + 21 }, fig).textContent = name;
+    const v = env[name], c = centre(name);
+    if (name !== hideName) {
+      const t = Play.svg("text", { class: v == null ? "emptytx" : "valtx", x: c.x, y: c.y }, fig);
+      t.textContent = v == null ? P.t("empty") : v;
+      gVals[name] = t;
+    }
+    if (goal && name in goal) {
+      Play.svg("text", { class: "wanttx" + (env[name] === goal[name] ? " ok" : ""), x: c.x, y: BY + BH + 52 }, fig)
+        .textContent = P.t("want", { v: goal[name] }) + (env[name] === goal[name] ? " ✓" : "");
+    }
+  });
+  const gone = goneAt(i);
+  Play.svg("text", { class: "gonelbl", x: 14, y: 222 }, fig).textContent = P.t("gone");
+  const show = gone.slice(-7), x0 = P.lang === "zh" ? 92 : 128;
+  show.forEach((g, k) => {
+    const x = x0 + k * 40;
+    Play.svg("text", { class: "gonetx", x, y: 222 }, fig).textContent = g.v;
+    Play.svg("line", { class: "gonex", x1: x - 13, y1: 230, x2: x + 13, y2: 214 }, fig);
+  });
+  const cur = i > 0 ? ex.states[i - 1] : null;
+  if (cur && cur.op.loop) Play.svg("text", { class: "iter", x: W / 2, y: 20 }, fig).textContent = P.t("times", { k: cur.op.loop.k, n: cur.op.loop.n });
+}
+function exprText(op, env) {
+  return op.terms.map((t, k) => (k ? op.ops[k - 1] + " " : "") + ("num" in t ? t.num : env[t.v])).join(" ");
+}
+function cancelAnim() { if (anim) { cancelAnimationFrame(anim); anim = null; } }
+/* Animate state i-1 → i: the new value flies into the target box, the old value drops to the "thrown away" row. */
+function animate(i, ms, done) {
+  cancelAnim();
+  const s = ex.states[i - 1];
+  if (ms <= 0 || s.err) { draw(i, s.err ? null : s.op.target); done(); return; }
+  const op = s.op, before = envAt(i - 1), to = centre(op.target);
+  draw(i - 1, op.target, op.target);
+  let from;
+  if (isCopy(op)) from = centre(op.terms[0].v);
+  else {
+    from = { x: Play.clamp(to.x, 70, W - 70), y: 24 };
+    const txt = op.terms.length > 1 ? exprText(op, before) + " = " + s.value : String(s.value), w = 10 * txt.length + 20;
+    Play.svg("rect", { class: "bubble", x: from.x - w / 2, y: from.y - 15, width: w, height: 30, rx: 15 }, fig);
+    Play.svg("text", { class: "bubtx", x: from.x, y: from.y }, fig).textContent = txt;
+    from = { x: from.x, y: from.y + 22 };
+  }
+  let oldT = null;
+  if (s.old != null) { oldT = Play.svg("text", { class: "valtx", x: to.x, y: to.y }, fig); oldT.textContent = s.old; }
+  const fly = Play.svg("text", { class: "fly", x: from.x, y: from.y }, fig);
+  fly.textContent = s.value;
+  const t0 = performance.now();
+  const f = (t) => {
+    const k = Math.min(1, (t - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    const lift = isCopy(op) ? -70 * Math.sin(Math.PI * e) : 0;
+    fly.setAttribute("x", from.x + (to.x - from.x) * e);
+    fly.setAttribute("y", from.y + (to.y - from.y) * e + lift);
+    if (oldT) { oldT.setAttribute("y", to.y + (222 - to.y) * e); oldT.setAttribute("opacity", 1 - .7 * e); }
+    if (k < 1) anim = requestAnimationFrame(f);
+    else { anim = null; draw(i, op.target); done(); }
+  };
+  anim = requestAnimationFrame(f);
+}
+
+/* ---------- messages ---------- */
+function setMsg(t, cls) { msg.className = "msg" + (cls ? " " + cls : ""); Play.live(msg, t); }
+function lineMsg(s) {
+  const l = s.op.line + 1;
+  if (s.err === "syntax") return P.t("mSyntax", { l });
+  if (s.err) return P.t("mEmpty", { l, n: s.name });
+  const op = s.op, t = op.target, before = Object.assign({}, s.env, { [t]: s.old });
+  let m = isCopy(op) ? P.t("mCopy", { l, s: op.terms[0].v, v: s.value, t })
+    : op.terms.length > 1 ? P.t("mExpr", { l, e: op.terms.map((x, k) => (k ? op.ops[k - 1] + " " : "") + ("num" in x ? x.num : x.v)).join(" ") + " = " + exprText(op, before), v: s.value, t })
+    : P.t("mNum", { l, v: s.value, t });
+  if (s.old != null) m += SP + P.t("mOld", { o: s.old, t });
+  return m;
+}
+function goalList(env) {
+  const g = lv().goal;
+  return Object.keys(g).map((k) => k + " = " + (env[k] == null ? P.t("empty") : env[k])).join(LS);
+}
+function finish() {
+  const last = ex.states[ex.states.length - 1];
+  if (!last || last.err) return;
+  const env = last.env;
+  if (step === 0) {
+    const g = last.gone.find((x) => !Object.values(env).includes(x.v)) || last.gone[0];
+    setMsg(P.t("demoEnd", { a: env.a, b: env.b, o: g ? g.v : "" }), env.a === env.b ? "no" : "");
+  } else if (step === 2) {
+    setMsg(P.t("scoreEnd", { seq: scoreSeq() }), "ok");
+  } else {
+    const L = lv(), n = user[L.key].length;
+    if (meets(env, L.goal)) {
+      const m = shortest(L.vars, L.init, L.goal).dist;
+      solved[L.key] = true;
+      const all = LEVELS.every((x) => solved[x.key]);
+      setMsg(P.t("win", { list: goalList(env), n, extra: n <= m ? P.t("winShort") : P.t("winLong", { m }) }) + (all ? SP + P.t("allDone") : ""), "ok");
+      renderLevels();
+    } else {
+      const lost = lostAt(ex.states, Object.values(L.goal), ex.i0);
+      setMsg(P.t("miss", { list: goalList(env) }) + (lost ? SP + P.t("lost", { l: lost.line + 1, v: lost.v }) : ""), "no");
+    }
+  }
+}
+function scoreSeq() { return trace(SCORE, {}).map((s) => s.value).join(" → "); }
+
+/* ---------- running ---------- */
+function canRun() {
+  if (step === 0 && !picked) { setMsg(P.t("pickFirst"), "no"); return false; }
+  if (step === 1 && !user[lv().key].length) { setMsg(P.t("noLines"), "no"); return false; }
+  return true;
+}
+function doOne(ms, after) {
+  if (ex.i >= ex.states.length) { ex.i = ex.i0; draw(ex.i); }
+  ex.i++;
+  const s = ex.states[ex.i - 1];
+  renderCode();
+  setMsg(lineMsg(s), s.err ? "no" : "");
+  animate(ex.i, ms, () => {
+    if (s.err) { stopRun(); return; }
+    if (ex.i >= ex.states.length) { stopRun(); setTimeout(finish, 0); return; }
+    if (after) after();
+  });
+}
+function loop() { if (!running) return; doOne(Play.reduced ? 0 : 520, () => { timer = setTimeout(loop, Play.reduced ? 500 : 260); }); }
+function runAll() {
+  if (running) { stopRun(); return; }
+  if (anim || !canRun()) return;
+  if (ex.i >= ex.states.length) { ex.i = ex.i0; draw(ex.i); renderCode(); }
+  running = true;
+  $("run").textContent = P.t("pause");
+  loop();
+}
+function stopRun() { running = false; clearTimeout(timer); $("run").textContent = P.t("run"); }
+function stepOnce() { if (running) stopRun(); if (anim || !canRun()) return; doOne(Play.reduced ? 0 : 360); }
+function backToStart() { stopRun(); cancelAnim(); prepare(); draw(ex.i); renderCode(); setMsg(""); }
+
+/* ---------- program listing + editor ---------- */
+function renderCode() {
+  codeEl.innerHTML = "";
+  const pg = ex.pg, edit = step === 1;
+  const cur = ex.i > ex.i0 ? ex.states[ex.i - 1] : null;
+  pg.lines.forEach((src, li) => {
+    const mine = edit && li >= pg.locked, b = document.createElement(mine ? "button" : "div");
+    b.className = "ln";
+    if (mine) {
+      b.type = "button";
+      const ui = li - pg.locked;
+      if (sel === ui) b.classList.add("sel");
+      b.setAttribute("aria-pressed", sel === ui ? "true" : "false");
+      b.addEventListener("click", () => { sel = sel === ui ? null : ui; renderCode(); focusLine(ui); });
+    }
+    if (cur && cur.op.line === li) b.classList.add(cur.err ? "bad" : "cur");
+    const n = document.createElement("span"); n.className = "n"; n.textContent = li + 1;
+    const c = document.createElement("span"); c.textContent = src; c.style.whiteSpace = "pre";
+    b.append(n, c);
+    if (edit && li < pg.locked) { const k = document.createElement("span"); k.className = "lock"; k.textContent = P.t("locked"); b.appendChild(k); }
+    codeEl.appendChild(b);
+  });
+  if (edit && !user[lv().key].length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = P.t("noLines"); codeEl.appendChild(e); }
+  const u = edit ? user[lv().key] : [];
+  if (sel != null && sel >= u.length) sel = u.length ? u.length - 1 : null;
+  $("up").disabled = sel == null || sel === 0;
+  $("down").disabled = sel == null || sel >= u.length - 1;
+  $("del").disabled = sel == null;
+  $("clear").disabled = !u.length;
+  document.querySelectorAll("#palRow .blk").forEach((b) => (b.disabled = u.length >= MAXUSER));
+}
+function focusLine(ui) { const bs = codeEl.querySelectorAll("button.ln"); if (bs[ui]) bs[ui].focus(); }
+function edited() { stopRun(); cancelAnim(); prepare(); draw(ex.i); renderCode(); setMsg(""); }
+function addLine(src) {
+  const u = user[lv().key];
+  if (u.length >= MAXUSER) { setMsg(P.t("full", { n: MAXUSER }), "no"); return; }
+  if (sel == null) u.push(src); else { u.splice(sel + 1, 0, src); sel++; }
+  edited();
+}
+function moveSel(d) {
+  const u = user[lv().key], j = sel + d;
+  if (sel == null || j < 0 || j >= u.length) return;
+  [u[sel], u[j]] = [u[j], u[sel]];
+  sel = j; edited(); focusLine(sel);
+}
+function renderPalette() {
+  const row = $("palRow");
+  row.querySelectorAll(".blk").forEach((b) => b.remove());
+  $("palLbl").textContent = P.t("palLbl");
+  if (step !== 1) return;
+  const vars = lv().vars;
+  vars.forEach((t) => vars.forEach((s) => {
+    if (t === s) return;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "blk mono";
+    b.textContent = t + " = " + s;
+    b.addEventListener("click", () => addLine(t + " = " + s));
+    row.appendChild(b);
+  }));
+}
+function renderLevels() {
+  const row = $("lvlRow");
+  row.innerHTML = "";
+  row.hidden = step !== 1;
+  if (step !== 1) return;
+  LEVELS.forEach((l, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small";
+    b.textContent = P.t("lv_" + l.key);
+    b.classList.toggle("on", i === lvIdx);
+    b.classList.toggle("done", !!solved[l.key]);
+    b.setAttribute("aria-pressed", i === lvIdx ? "true" : "false");
+    b.addEventListener("click", () => { lvIdx = i; sel = null; setScene(); });
+    row.appendChild(b);
+  });
+}
+
+/* ---------- step 3 facts (all computed) ---------- */
+function renderFacts() {
+  const ul = $("facts");
+  ul.innerHTML = "";
+  const S = LEVELS[0], R = LEVELS[1];
+  const two = reach(["a", "b"], S.init);
+  const list = two.map((r) => "(" + r.env.a + ", " + r.env.b + ")").join(LS);
+  const sw = shortest(S.vars, S.init, S.goal), ro = shortest(R.vars, R.init, R.goal);
+  const roNo = reach(["a", "b", "c"], R.init), roNoHit = roNo.some((r) => meets(r.env, R.goal));
+  const items = [
+    P.t("f1", { n: two.length, list, a: S.init.a, b: S.init.b }),
+    P.t("f2", { n: sw.dist, prog: sw.prog.join("; ") }),
+    roNoHit ? null : P.t("f3", { n: ro.dist, prog: ro.prog.join("; "), m: roNo.length }),
+    P.t("f4", { seq: scoreSeq() }),
+  ];
+  items.filter(Boolean).forEach((t) => { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+}
+
+/* ---------- steps ---------- */
+function setScene() {
+  stopRun(); cancelAnim();
+  prepare(); draw(ex.i); renderCode(); renderPalette(); renderLevels();
+  $("palRow").hidden = $("editRow").hidden = step !== 1;
+  let body = P.t("b" + (step + 1));
+  if (step === 1) { const g = lv().goal; body += SP + P.t("task_" + lv().key, { ga: g.a, gb: g.b, gc: g.c }); }
+  $("stepBody").textContent = body;
+  setMsg("");
+}
+fresh();
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { picked = true; if (msg.textContent === P.t("pickFirst")) setMsg(""); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  $("kicker").textContent = P.t("k" + (i + 1));
+  $("stepTitle").textContent = P.t("t" + (i + 1));
+  $("predict").hidden = i !== 0;
+  $("rule").hidden = $("facts").hidden = i !== 2;
+  if (i === 2) renderFacts();
+  sel = null;
+  setScene();
+});
+
+/* ---------- wiring ---------- */
+$("stepBtn").addEventListener("click", stepOnce);
+$("run").addEventListener("click", runAll);
+$("back").addEventListener("click", backToStart);
+$("up").addEventListener("click", () => moveSel(-1));
+$("down").addEventListener("click", () => moveSel(1));
+$("del").addEventListener("click", () => { if (sel == null) return; user[lv().key].splice(sel, 1); edited(); });
+$("clear").addEventListener("click", () => { user[lv().key] = []; sel = null; edited(); });
+fig.addEventListener("keydown", (e) => {
+  if (e.key === " ") stepOnce();
+  else if (e.key === "Enter") runAll();
+  else return;
+  e.preventDefault();
+});
+codeEl.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+  const bs = [...codeEl.querySelectorAll("button.ln")], i = bs.indexOf(document.activeElement);
+  if (i < 0) return;
+  bs[Play.clamp(i + (e.key === "ArrowDown" ? 1 : -1), 0, bs.length - 1)].focus();
+  e.preventDefault();
+});
+$("reset").addEventListener("click", () => { stopRun(); fresh(); picked = false; lvIdx = 0; pr.reset(); st.go(0); });
+$("run").textContent = P.t("run");
+</script>
+</body>
+</html>

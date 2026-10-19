@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The heart is two pumps</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .lbl { fill: var(--fg); font-size: 13px; }
+  .lbl.m { fill: var(--muted); }
+  .lbl.b { font-weight: 700; }
+  .lbl.q { fill: var(--a); font-size: 30px; font-weight: 750; }
+  .organ { fill: var(--soft); stroke: var(--line); stroke-width: 1.5; }
+  .heartbox { fill: var(--h); fill-opacity: .1; stroke: var(--h); stroke-opacity: .55; stroke-width: 1.5; }
+  .chamber { stroke: var(--h); }
+  .under { fill: none; stroke: var(--muted); stroke-opacity: .45; stroke-linecap: round; stroke-linejoin: round; }
+  .chev { fill: var(--surface); opacity: .85; pointer-events: none; }
+  .valve { fill: none; stroke: var(--fg); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .cell { stroke: var(--fg); stroke-width: 2; cursor: grab; }
+  .cell:active { cursor: grabbing; }
+  .dimple { fill: #fff; fill-opacity: .22; pointer-events: none; }
+  .skin { fill: var(--soft); stroke: var(--line); stroke-width: 1.5; }
+  .skinband { fill: var(--line); }
+  .veinlook { fill: none; stroke: var(--c); stroke-opacity: .5; stroke-width: 6; stroke-linecap: round; }
+  .rayB { fill: none; stroke: var(--c); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .rayR { fill: none; stroke: #d42a2a; stroke-width: 3; stroke-linecap: round; }
+  .ask { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 5 4; }
+  #fig { touch-action: none; }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  #extra { font-size: 14px; color: var(--fg); }
+  #extra strong { color: var(--a); }
+  .readout { font-family: var(--math); color: var(--fg); font-size: 15px; }
+  .controls label { white-space: nowrap; }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 400" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctl2">
+        <button type="button" class="small" id="play2"></button>
+        <button type="button" class="small" id="next" data-t="next"></button>
+        <span data-t="hint2"></span>
+      </div>
+      <div class="controls" id="ctl3a">
+        <label for="hr" data-t="hrLabel"></label>
+        <input type="range" id="hr" min="40" max="200" step="1" value="70">
+        <span class="val" id="hrVal"></span>
+      </div>
+      <div class="controls" id="ctl3b">
+        <label for="sv" data-t="svLabel"></label>
+        <input type="range" id="sv" min="40" max="130" step="1" value="70">
+        <span class="val" id="svVal"></span>
+      </div>
+      <div class="controls" id="ctl3c">
+        <button type="button" class="small" id="rest" data-t="rest"></button>
+        <button type="button" class="small" id="exer" data-t="exer"></button>
+        <button type="button" class="small" id="play3"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="extra"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "The heart is two pumps", eyebrow: "Biology · Stage 3", h1: "Blood passes through the heart twice per lap, and it is always red",
+    intro: "Guess the colour of blood that has given up its oxygen. Then drag one blood cell round the whole circuit, and finally set the heart rate and the volume per beat.",
+    reset: "Reset", figAria: "Labelled schematic of the heart, lungs and body with blood vessels; a blood cell you can move along them",
+    s1: "Guess", s2: "Follow a cell", s3: "Two pumps",
+    k1: "Predict first", t1: "What colour is blood with little oxygen?",
+    b1: "The veins on the inside of your wrist carry blood that has given up much of its oxygen. They look bluish. Pick an answer, then look under the skin.",
+    q: "Blood that has given up its oxygen, in the veins of your wrist, is…",
+    o1: "bright red, like a cut", o2: "dark red", o3: "blue: that's why veins look blue",
+    right: "Yes: dark red. Blood with less oxygen is still red, just darker.",
+    wrong: "Look under the skin on the left: the blood in the vein is dark red.",
+    fb1: "Close, but blood from a vein is darker than blood from an artery. Bright red means lots of oxygen; it has already given much of it away.",
+    fb2: "Right. A blood sample from a vein (that is where blood tests take it) is dark red, before and after it touches air.",
+    fb3: "It is the most common belief, but blood is never blue. Blood in a vein is dark red. A sample taken from a vein is dark red the moment it enters the tube.",
+    whyBlue: "Why do veins look bluish? Skin sends blue light back out near the surface. Red light goes deeper, and where a vein lies the blood absorbs much of it, so a little less red comes back from that spot. Next to the skin around it, the spot looks bluish.",
+    fSee: "What you see: inside of a wrist", fLook: "veins look bluish", fCut: "Under the skin (schematic)",
+    fPick: "Pick an answer to look inside", fBlue: "blue light", fRed: "red light", fVein: "vein: dark red blood", fTube: "blood from\na vein",
+    k2: "Hands on", t2: "Drag one blood cell round a full lap",
+    b2: "Drag the cell forward along the vessels (or press → and Space). Watch its colour and count how many times it passes through the heart.",
+    play: "▶ Play", pause: "❚❚ Pause", next: "Next part →", hint2: "Drag the cell, or → / Space.",
+    back: "Blocked: valves let blood flow only one way. Move it forward.",
+    stat2: "O₂ saturation: {s}% · through the heart this lap: {v} of 2 · laps done: {l}",
+    live2: "{r}. Oxygen saturation {s}%.",
+    nra: "Right atrium", nrv: "Right ventricle", npa: "Pulmonary artery", nlungs: "Lung capillaries", npv: "Pulmonary vein",
+    nla: "Left atrium", nlv: "Left ventricle", nao: "Aorta", nbody: "Body capillaries", nvc: "Vena cava",
+    xra: "collects oxygen-poor blood coming back from the body. First pass through the heart.",
+    xrv: "pumps the blood a short way, to the lungs only. Its wall is thinner; peak pressure about 25 mmHg.",
+    xpa: "an artery that carries oxygen-poor, dark red blood. \"Artery\" means \"away from the heart\", not \"full of oxygen\".",
+    xlungs: "oxygen moves in from the air sacs, carbon dioxide moves out. The blood turns bright red.",
+    xpv: "a vein that carries oxygen-rich, bright red blood back to the heart.",
+    xla: "collects oxygen-rich blood from the lungs. Second pass through the heart.",
+    xlv: "has the thickest wall: it pumps blood round the whole body, with peak pressure about 120 mmHg.",
+    xao: "the largest artery, carrying oxygen-rich blood out to the body.",
+    xbody: "cells take oxygen out. The blood turns dark red — still red, never blue.",
+    xvc: "the large vein bringing dark red blood back to the right atrium.",
+    lra: "right\natrium", lrv: "right\nventricle", lla: "left\natrium", llv: "left\nventricle\nthick wall",
+    lpa: "pulmonary\nartery", lpv: "pulmonary\nvein", lao: "aorta", lvc: "vena\ncava", lLungs: "lungs", lBody: "body (all other organs)",
+    front: "front view: the heart's\nright side is on your left",
+    k3: "The rule", t3: "Two pumps side by side, one after the other",
+    b3: "Pump 1 (right side) sends blood to the lungs; pump 2 (left side) sends it to the body. Every beat both push out the same volume, so each side pumps the same output: heart rate × stroke volume.",
+    hrLabel: "Heart rate", svLabel: "Per beat", bpm: "{n} /min", ml: "{n} mL",
+    rest: "At rest", exer: "Hard exercise (example)",
+    x3: "{hr} beats/min × {sv} mL = {co} L/min from each side. About {b} L of blood in an adult, so an average lap takes about {lap} s.",
+    cap3: "each side: {co} L/min\ndots: real average speed",
+    live3: "{co} litres per minute, lap about {lap} seconds.",
+    resMain: "cardiac output = {hr} × {sv} mL ≈ {co} L/min",
+    resultTitle: "What we found",
+    resultNote: "One lap: right side → lungs → left side → body. Blood is always red: bright with oxygen (about 98% saturated), dark red after the body uses some (about 75% at rest).",
+    explainK: "Explain it", explainQ: "A friend says blood in your veins is blue until it touches air. Explain why that is wrong, and why the pulmonary artery carries dark red blood even though it is an artery.",
+    homeK: "Try at home", homeQ: "Find the pulse on your wrist; count the beats for 15 s and multiply by 4. Do 30 jumping jacks and count again. Taking about 70 mL per beat, how many litres a minute did your heart pump each time?",
+    foot: "Schematic, not to scale; front view, so the heart's right side is drawn on the left. Values for a healthy adult at rest (textbook figures, e.g. OpenStax Anatomy & Physiology 2e, ch. 19–20; Guyton & Hall, Medical Physiology): arterial O₂ saturation about 97–98%, mixed venous about 75%; peak pressure about 120 mmHg in the left ventricle and about 25 mmHg in the right; left ventricle wall about 8–12 mm, right about 3–5 mm; stroke volume about 70 mL; heart rate 60–100 /min; blood volume about 5 L (about 7% of body mass). The exercise preset is an example. Lap time = blood volume ÷ output, an average: short routes take seconds, long ones over a minute. Why veins look blue: Kienle et al., Applied Optics 35 (1996) 1151–1160. The light rays in step 1 are a sketch. · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "心脏是两台泵", eyebrow: "生物 · 阶段 3", h1: "血液绕一圈要经过心脏两次，而且一直是红的",
+    intro: "先猜放掉氧气的血是什么颜色。再拖一个血细胞绕全身走一圈，最后调心率和每搏的血量。",
+    reset: "重置", figAria: "心脏、肺和全身血管的标注示意图，可以沿血管移动一个血细胞",
+    s1: "先猜", s2: "跟着血细胞", s3: "两台泵",
+    k1: "先猜一猜", t1: "含氧少的血是什么颜色？",
+    b1: "手腕内侧的静脉里，是已经放掉不少氧气的血。它们看起来发蓝。先选一个答案，再看看皮肤下面。",
+    q: "放掉氧气以后的血（比如手腕静脉里的血）是……",
+    o1: "鲜红色，像伤口流的血", o2: "暗红色", o3: "蓝色：所以静脉看起来是蓝的",
+    right: "对：暗红色。含氧少的血仍然是红的，只是颜色更暗。",
+    wrong: "看左边皮肤下面：静脉里的血是暗红色的。",
+    fb1: "接近了，但静脉血比动脉血更暗。鲜红表示含氧多，而它已经放掉了不少氧。",
+    fb2: "对。从静脉抽的血（验血就是从静脉抽）是暗红色的，碰到空气之前和之后都是。",
+    fb3: "这是最常见的说法，但血从来不是蓝的。静脉里的血是暗红色的，从静脉抽出来，一进试管就是暗红色。",
+    whyBlue: "那静脉为什么看起来发蓝？皮肤会在浅层把蓝光送回来；红光钻得更深，碰到静脉时被血吸收掉不少，所以那里反射回来的红光少一些。和周围的皮肤一比，那一处就显得发蓝。",
+    fSee: "你看到的：手腕内侧", fLook: "静脉看起来发蓝", fCut: "皮肤下面（示意图）",
+    fPick: "先选一个答案，再看里面", fBlue: "蓝光", fRed: "红光", fVein: "静脉：暗红色的血", fTube: "静脉抽的血",
+    k2: "动手", t2: "拖一个血细胞走完一圈",
+    b2: "沿着血管往前拖血细胞（或按 → 和空格）。看它的颜色怎么变，数一数它经过心脏几次。",
+    play: "▶ 播放", pause: "❚❚ 暂停", next: "下一段 →", hint2: "拖动血细胞，或按 → / 空格。",
+    back: "过不去：瓣膜只让血往一个方向流。往前拖。",
+    stat2: "血氧饱和度：{s}% · 这一圈经过心脏：{v}/2 次 · 已走完：{l} 圈",
+    live2: "{r}。血氧饱和度 {s}%。",
+    nra: "右心房", nrv: "右心室", npa: "肺动脉", nlungs: "肺部毛细血管", npv: "肺静脉",
+    nla: "左心房", nlv: "左心室", nao: "主动脉", nbody: "全身毛细血管", nvc: "腔静脉",
+    xra: "收集从全身回来的含氧少的血。第一次经过心脏。",
+    xrv: "把血泵到不远的肺。它的壁比较薄，最高压力约 25 mmHg。",
+    xpa: "这条动脉里流的是含氧少的暗红色血。「动脉」的意思是「离开心脏」，不是「含氧多」。",
+    xlungs: "氧气从肺泡进来，二氧化碳出去，血变成鲜红色。",
+    xpv: "这条静脉里流的是含氧多的鲜红色血，流回心脏。",
+    xla: "收集从肺回来的含氧多的血。第二次经过心脏。",
+    xlv: "壁最厚：它要把血泵到全身，最高压力约 120 mmHg。",
+    xao: "最粗的动脉，把含氧多的血送往全身。",
+    xbody: "细胞取走氧气，血变成暗红色——仍然是红的，不是蓝的。",
+    xvc: "把暗红色的血送回右心房的大静脉。",
+    lra: "右心房", lrv: "右心室", lla: "左心房", llv: "左心室\n壁最厚",
+    lpa: "肺动脉", lpv: "肺静脉", lao: "主动脉", lvc: "腔静脉", lLungs: "肺", lBody: "全身（其他器官）",
+    front: "正面看：心脏的右侧\n画在你的左边",
+    k3: "规律", t3: "两台泵并排，一前一后接力",
+    b3: "泵 1（右侧）把血送到肺，泵 2（左侧）把血送到全身。每跳一次，两边泵出的血一样多，所以两边的输出量相同：心率 × 每搏输出量。",
+    hrLabel: "心率", svLabel: "每搏", bpm: "{n} 次/分", ml: "{n} mL",
+    rest: "安静时", exer: "剧烈运动（举例）",
+    x3: "每分钟 {hr} 次 × {sv} mL = 每侧每分钟 {co} 升。成人约有 {b} 升血，所以平均绕一圈约 {lap} 秒。",
+    cap3: "每侧每分钟 {co} 升\n圆点按真实平均速度走",
+    live3: "每分钟 {co} 升，一圈约 {lap} 秒。",
+    resMain: "心输出量 = {hr} × {sv} mL ≈ {co} L/min",
+    resultTitle: "我们发现",
+    resultNote: "一圈：右侧 → 肺 → 左侧 → 全身。血一直是红的：含氧多时鲜红（饱和度约 98%），身体用掉一部分后暗红（安静时约 75%）。",
+    explainK: "说一说", explainQ: "朋友说静脉里的血是蓝的，碰到空气才变红。说说这为什么不对，再说说肺动脉明明是动脉，为什么流的是暗红色的血。",
+    homeK: "家里做一做", homeQ: "在手腕上摸到脉搏，数 15 秒的跳动次数再乘 4。做 30 个开合跳后再数一次。按每跳约 70 mL 算，两次你的心脏每分钟各泵了多少升血？",
+    foot: "示意图，不按比例；正面看，所以心脏的右侧画在左边。数值是健康成人安静时的教科书数据（如 OpenStax《Anatomy & Physiology》第 2 版第 19–20 章；Guyton & Hall《医学生理学》）：动脉血氧饱和度约 97–98%，混合静脉血约 75%；左心室最高压力约 120 mmHg，右心室约 25 mmHg；左心室壁厚约 8–12 mm，右心室约 3–5 mm；每搏输出量约 70 mL；心率每分钟 60–100 次；血量约 5 升（约占体重 7%）。运动预设只是举例。一圈的时间 = 血量 ÷ 输出量，是平均值：短的路线只要几秒，长的超过一分钟。静脉为什么看起来发蓝：Kienle 等，Applied Optics 35 (1996) 1151–1160。第 1 步的光线是示意。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// LOGIC-START
+const SAT_V = 75, SAT_A = 98;   // % haemoglobin O2 saturation: mixed venous at rest, arterial
+const BLOOD_L = 5;              // adult blood volume, litres
+const DARK = [112, 18, 30], BRIGHT = [216, 34, 40];
+const OXY = { ra: 0, rv: 0, pa: 0, pv: 1, la: 1, lv: 1, ao: 1, vc: 0 };
+const REGIONS = ["ra", "rv", "pa", "lungs", "pv", "la", "lv", "ao", "body", "vc"];
+const clampN = (x, a, b) => Math.min(b, Math.max(a, x));
+const mod = (a, n) => ((a % n) + n) % n;
+function geo(W, H) {
+  const cx = W / 2, cw = clampN(W * 0.17, 72, 118), g = clampN(W * 0.08, 22, 60);
+  const hx0 = cx - g / 2 - cw, hx1 = cx + g / 2 + cw;
+  const yA0 = H * 0.35, yA1 = H * 0.49, yV0 = H * 0.505, yV1 = H * 0.70;
+  return {
+    W, H, cx, cw, g, hx0, hx1, xR: hx0 + cw / 2, xL: hx1 - cw / 2, xl: hx0 - 24, xr: hx1 + 24,
+    yLt: H * 0.025, yLb: H * 0.21, yLc: H * 0.14, yL1: H * 0.235,
+    yA0, yA1, yV0, yV1, yAc: yA0 + (yA1 - yA0) * 0.72, yAV: (yA1 + yV0) / 2, yVc: yV0 + (yV1 - yV0) * 0.25, yP: yV0 + 12,
+    yBt: H * 0.81, yBb: H * 0.975, yBc: H * 0.895,
+  };
+}
+// The loop as a closed polyline; each node carries the region of the segment that starts at it.
+function buildPath(G) {
+  const n = [];
+  const add = (x, y, r) => n.push([x, y, r]);
+  const wig = (x0, x1, y, amp, r) => {
+    const waves = Math.max(2, Math.round(Math.abs(x1 - x0) / 40)), N = Math.max(12, Math.round(Math.abs(x1 - x0) / 4));
+    for (let i = 0; i < N; i++) { const t = i / N; add(x0 + (x1 - x0) * t, y + amp * Math.sin(t * waves * 2 * Math.PI), r); }
+  };
+  add(G.hx0, G.yAc, "ra"); add(G.xR, G.yAc, "ra"); add(G.xR, G.yAV, "rv"); add(G.xR, G.yVc, "rv");
+  add(G.cx - G.g / 2, G.yP, "pa"); add(G.cx, G.yP, "pa"); add(G.cx, G.yL1, "pa"); add(G.xl, G.yL1, "pa");
+  wig(G.xl, G.xr, G.yLc, (G.yLb - G.yLt) * 0.26, "lungs");
+  add(G.xr, G.yLc, "pv"); add(G.xr, G.yAc, "pv"); add(G.hx1, G.yAc, "la"); add(G.xL, G.yAc, "la");
+  add(G.xL, G.yAV, "lv"); add(G.xL, G.yVc, "lv"); add(G.hx1, G.yVc, "ao"); add(G.xr, G.yVc, "ao");
+  wig(G.xr, G.xl, G.yBc, (G.yBb - G.yBt) * 0.2, "body");
+  add(G.xl, G.yBc, "vc"); add(G.xl, G.yAc, "vc");
+  const cum = [0];
+  for (let i = 0; i < n.length; i++) {
+    const a = n[i], b = n[(i + 1) % n.length];
+    cum.push(cum[i] + Math.hypot(b[0] - a[0], b[1] - a[1]));
+  }
+  const L = cum[n.length], spans = {};
+  n.forEach((p, i) => {
+    const s = spans[p[2]] || (spans[p[2]] = [cum[i], cum[i]]);
+    s[1] = Math.max(s[1], cum[i + 1]);
+  });
+  return { n, cum, L, spans };
+}
+function segAt(path, s) {
+  let lo = 0, hi = path.n.length - 1;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (path.cum[m] <= s) lo = m; else hi = m - 1; }
+  return lo;
+}
+function pointAt(path, s) {
+  s = mod(s, path.L);
+  const i = segAt(path, s), a = path.n[i], b = path.n[(i + 1) % path.n.length];
+  const len = path.cum[i + 1] - path.cum[i], t = len > 0 ? (s - path.cum[i]) / len : 0;
+  return { x: a[0] + (b[0] - a[0]) * t, y: a[1] + (b[1] - a[1]) * t, reg: a[2], ang: Math.atan2(b[1] - a[1], b[0] - a[0]) };
+}
+function satAt(path, s) {
+  s = mod(s, path.L);
+  const reg = pointAt(path, s).reg, sp = path.spans[reg];
+  const f = sp && sp[1] > sp[0] ? clampN((s - sp[0]) / (sp[1] - sp[0]), 0, 1) : 0;
+  if (reg === "lungs") { const u = Math.min(1, f / 0.35); return SAT_V + (SAT_A - SAT_V) * u * (2 - u); } // loads within the first third
+  if (reg === "body") return SAT_A - (SAT_A - SAT_V) * f;
+  return OXY[reg] ? SAT_A : SAT_V;
+}
+function colourOf(sat) {
+  const t = Number.isFinite(sat) ? clampN((sat - SAT_V) / (SAT_A - SAT_V), 0, 1) : 0;
+  return "rgb(" + DARK.map((d, k) => Math.round(d + (BRIGHT[k] - d) * t)).join(",") + ")";
+}
+// Nearest point on the path ahead of s (within win); also says whether the pointer is closer to a point behind.
+function project(path, px, py, s, win) {
+  let fwd = null, all = null;
+  for (let i = 0; i < path.n.length; i++) {
+    const a = path.n[i], b = path.n[(i + 1) % path.n.length], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+    const t = l2 > 0 ? clampN(((px - a[0]) * dx + (py - a[1]) * dy) / l2, 0, 1) : 0;
+    const d = Math.hypot(a[0] + dx * t - px, a[1] + dy * t - py), sc = path.cum[i] + t * Math.sqrt(l2), f = mod(sc - s, path.L);
+    if (f <= win && (!fwd || d < fwd.d)) fwd = { d, s: sc, f };
+    if (!all || d < all.d) all = { d, f };
+  }
+  const back = !!all && all.f > path.L / 2 && all.d + 10 < (fwd ? fwd.d : Infinity);
+  return { fwd, back };
+}
+// Regions entered while moving forward from s0 by d (in order).
+function entered(path, s0, d) {
+  const out = [];
+  REGIONS.forEach((r) => {
+    const sp = path.spans[r];
+    if (!sp) return;
+    const f = mod(sp[0] - s0, path.L);
+    if (f > 0 && f <= d) out.push([f, r]);
+  });
+  if (d >= path.L) out.push([path.L, "ra"]);
+  return out.sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+}
+const cardiacOutput = (hr, sv) => (hr * sv) / 1000;           // L/min
+const lapSeconds = (hr, sv) => { const c = cardiacOutput(hr, sv); return c > 0 ? (BLOOD_L / c) * 60 : Infinity; };
+// LOGIC-END
+
+const L = P.lang, fig = document.getElementById("fig"), extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+const hrIn = document.getElementById("hr"), svIn = document.getElementById("sv");
+const play2 = document.getElementById("play2"), play3 = document.getElementById("play3");
+const S = (tag, a, p) => Play.svg(tag, a, p || fig);
+function text(x, y, s, cls, anchor, p) {
+  const lines = String(s).split("\n"), t = S("text", { x, y, class: "lbl " + (cls || ""), "text-anchor": anchor || "start" }, p);
+  lines.forEach((ln, i) => { const sp = Play.svg("tspan", { x, dy: i ? 15 : 0 }, t); sp.textContent = ln; });
+  return t;
+}
+
+let step = 0, answered = -1, G = null, path = null, s = 0, visits = 1, laps = 0, msg = "";
+let playing2 = false, playing3 = false, raf = 0, last = 0, flow = 0, beat = 0, H = {};
+
+function size() {
+  const W = Math.max(280, Math.round(fig.getBoundingClientRect().width || 600)), Ht = W < 520 ? 440 : 400;
+  if (fig.style.height !== Ht + "px") fig.style.height = Ht + "px";
+  fig.setAttribute("viewBox", `0 0 ${W} ${Ht}`);
+  return [W, Ht];
+}
+
+// ---------- step 1: under the skin ----------
+function drawGuess() {
+  const [W, Ht] = size(), narrow = W < 520;
+  fig.innerHTML = "";
+  const A = narrow ? { x: 12, y: 8, w: W - 24, h: Ht * 0.34 } : { x: 14, y: 16, w: W * 0.4 - 14, h: Ht - 32 };
+  const B = narrow ? { x: 12, y: Ht * 0.38, w: W - 24, h: Ht * 0.6 } : { x: W * 0.45, y: 16, w: W * 0.55 - 14, h: Ht - 32 };
+  // what you see
+  text(A.x, A.y + 14, P.t("fSee"), "b");
+  S("rect", { x: A.x, y: A.y + 24, width: A.w, height: A.h - 24, rx: 18, class: "skin" });
+  const vy = [0.42, 0.62, 0.8];
+  vy.forEach((f, k) => {
+    let d = "";
+    const y0 = A.y + 24 + (A.h - 24) * f;
+    for (let i = 0; i <= 24; i++) {
+      const x = A.x + 16 + (A.w - 32) * (i / 24), y = y0 + 6 * Math.sin(i / 3 + k * 2);
+      d += (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    S("path", { d, class: "veinlook" });
+  });
+  text(A.x + 16, A.y + 24 + (A.h - 24) * 0.22, P.t("fLook"), "m");
+  // under the skin
+  text(B.x, B.y + 14, P.t("fCut"), "b");
+  const tubeW = 30, sw = B.w - tubeW - 44, y0 = B.y + 62, band = B.h * 0.14, bottom = B.y + B.h - 4;
+  S("rect", { x: B.x, y: y0, width: sw, height: bottom - y0, rx: 8, class: "skin" });
+  S("rect", { x: B.x, y: y0, width: sw, height: band, class: "skinband" });
+  const r = Math.min(30, B.h * 0.11), vx = B.x + sw * 0.55, vyc = y0 + band + r + 18;
+  const tx = B.x + B.w - tubeW - 10, ty = y0, th = Math.min(120, B.h * 0.42);
+  if (answered < 0) {
+    S("circle", { cx: vx, cy: vyc, r, class: "ask" });
+    text(vx, vyc + 10, "?", "q", "middle");
+    S("rect", { x: tx, y: ty, width: tubeW, height: th, rx: 10, class: "ask" });
+    text(B.x + sw / 2, bottom - 14, P.t("fPick"), "m", "middle");
+    return;
+  }
+  const dark = colourOf(SAT_V);
+  S("circle", { cx: vx, cy: vyc, r, fill: dark, stroke: "var(--fg)", "stroke-width": 1.5 });
+  text(vx, vyc + r + 20, P.t("fVein"), "b", "middle");
+  // light: blue comes back from the skin, red reaches the vein and is absorbed (sketch)
+  const top = B.y + 34;
+  S("path", { d: `M${vx - 70} ${top + 8} L${vx - 46} ${y0 + band * 0.6} L${vx - 26} ${top + 8}`, class: "rayB" });
+  S("path", { d: `M${vx - 30} ${top + 14} l4 -7 l4 8`, class: "rayB" });
+  text(vx - 74, top + 4, P.t("fBlue"), "m", "end");
+  S("path", { d: `M${vx + 44} ${top + 8} L${vx + r * 0.35} ${vyc - r + 2}`, class: "rayR" });
+  text(vx + 48, top + 4, P.t("fRed"), "m");
+  S("rect", { x: tx, y: ty, width: tubeW, height: th, rx: 10, fill: "none", stroke: "var(--fg)", "stroke-width": 1.5 });
+  S("rect", { x: tx + 3, y: ty + th * 0.25, width: tubeW - 6, height: th * 0.75 - 3, rx: 8, fill: dark });
+  text(tx + tubeW / 2, ty + th + 18, P.t("fTube"), "m", "middle");
+}
+
+// ---------- steps 2–3: the circuit ----------
+function drawCircuit() {
+  const [W, Ht] = size();
+  G = geo(W, Ht); path = buildPath(G);
+  fig.innerHTML = "";
+  H = {};
+  // lungs and body
+  S("rect", { x: G.xl - 18, y: G.yLt, width: G.cx - G.xl + 10, height: G.yLb - G.yLt, rx: 26, class: "organ" });
+  S("rect", { x: G.cx + 8, y: G.yLt, width: G.xr - G.cx + 10, height: G.yLb - G.yLt, rx: 26, class: "organ" });
+  text(G.xl - 24, G.yLc + 5, P.t("lLungs"), "b", "end");
+  S("rect", { x: G.xl - 18, y: G.yBt, width: G.xr - G.xl + 36, height: G.yBb - G.yBt, rx: 16, class: "organ" });
+  text(G.xl + 10, G.yBt + 15, P.t("lBody"), "b");
+  // heart
+  S("rect", { x: G.hx0 - 8, y: G.yA0 - 8, width: G.hx1 - G.hx0 + 16, height: G.yV1 - G.yA0 + 16, rx: 22, class: "heartbox" });
+  const ch = (x, y0, y1, oxy, wall) => S("rect", {
+    x: x + wall / 2, y: y0 + wall / 2, width: G.cw - wall, height: y1 - y0 - wall, rx: 12, class: "chamber",
+    fill: colourOf(oxy ? SAT_A : SAT_V), "fill-opacity": 0.32, "stroke-width": wall,
+  });
+  ch(G.hx0, G.yA0, G.yA1, 0, 2); ch(G.hx1 - G.cw, G.yA0, G.yA1, 1, 2);
+  H.rv = ch(G.hx0, G.yV0, G.yV1, 0, 4); H.lv = ch(G.hx1 - G.cw, G.yV0, G.yV1, 1, 10);
+  // vessels: grey underlay, then blood coloured by its oxygen
+  const vessel = (r) => r !== "ra" && r !== "rv" && r !== "la" && r !== "lv";
+  const segs = S("g", {});
+  path.n.forEach((a, i) => {
+    if (!vessel(a[2])) return;
+    const b = path.n[(i + 1) % path.n.length];
+    S("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: "under", "stroke-width": 14 }, segs);
+  });
+  path.n.forEach((a, i) => {
+    if (!vessel(a[2])) return;
+    const b = path.n[(i + 1) % path.n.length], c = colourOf(satAt(path, (path.cum[i] + path.cum[i + 1]) / 2));
+    S("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: c, "stroke-width": 9, "stroke-linecap": "round" }, segs);
+  });
+  // direction chevrons
+  for (let d = 30; d < path.L; d += 64) {
+    const p = pointAt(path, d);
+    if (!vessel(p.reg) || p.reg === "lungs" || p.reg === "body") continue;
+    const c = Math.cos(p.ang), sn = Math.sin(p.ang);
+    S("path", { d: `M${p.x + c * 4} ${p.y + sn * 4} L${p.x - c * 3 - sn * 3.5} ${p.y - sn * 3 + c * 3.5} L${p.x - c * 3 + sn * 3.5} ${p.y - sn * 3 - c * 3.5}Z`, class: "chev" });
+  }
+  // one-way valves (chevrons pointing downstream)
+  const valve = (x, y, dir) => {
+    const k = 8;
+    const d = dir === "d" ? `M${x - k} ${y - 4} L${x} ${y + 4} L${x + k} ${y - 4}` : `M${x - 4} ${y - k} L${x + 4} ${y} L${x - 4} ${y + k}`;
+    S("path", { d, class: "valve" });
+  };
+  valve(G.xR, G.yAV, "d"); valve(G.xL, G.yAV, "d"); valve(G.cx - G.g / 2 + 2, G.yP, "r"); valve(G.hx1 + 1, G.yVc, "r");
+  // labels
+  text(G.xR, G.yA0 + 17, P.t("lra"), "b", "middle");
+  text(G.xL, G.yA0 + 17, P.t("lla"), "b", "middle");
+  const vl = (x, k) => { const n = P.t(k).split("\n").length; text(x, G.yV1 - 10 - (n - 1) * 15, P.t(k), "b", "middle"); };
+  vl(G.xR, "lrv"); vl(G.xL, "llv");
+  text(G.cx - 8, G.yL1 + 18, P.t("lpa"), "m", "end");
+  text(G.xr - 8, G.yL1 + 18, P.t("lpv"), "m", "end");
+  text(G.xr + 10, G.yVc + 22, P.t("lao"), "m");
+  text(G.xl - 10, G.yAc + 22, P.t("lvc"), "m", "end");
+  H.capG = S("g", {});
+  caption(P.t("front"));
+  // moving things
+  H.dots = S("g", {});
+  H.cell = S("g", { class: "cellg" });
+  S("circle", { r: 24, fill: "transparent" }, H.cell);
+  H.cellC = S("circle", { r: 12, class: "cell" }, H.cell);
+  S("ellipse", { rx: 5.5, ry: 3.5, class: "dimple" }, H.cell);
+  H.cell.addEventListener("pointerdown", startDrag);
+  if (step === 1) { H.dots.style.display = "none"; placeCell(); }
+  else { H.cell.style.display = "none"; makeDots(); }
+}
+function caption(str) {
+  H.capG.innerHTML = "";
+  text(G.cx, G.yV1 + 23, str, "m", "middle", H.capG);
+}
+function placeCell() {
+  if (!H.cell) return;
+  const p = pointAt(path, s);
+  H.cell.setAttribute("transform", `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`);
+  H.cellC.setAttribute("fill", colourOf(satAt(path, s)));
+}
+function makeDots() {
+  H.dots.innerHTML = "";
+  H.dotEls = [];
+  for (let i = 0; i < 26; i++) H.dotEls.push(S("circle", { r: 5.5, stroke: "var(--fg)", "stroke-width": 1 }, H.dots));
+  placeDots();
+}
+function placeDots() {
+  if (!H.dotEls || !path) return;
+  H.dotEls.forEach((c, i) => {
+    const d = flow * path.L + (i / H.dotEls.length) * path.L, p = pointAt(path, d);
+    c.setAttribute("cx", p.x.toFixed(1)); c.setAttribute("cy", p.y.toFixed(1));
+    c.setAttribute("fill", colourOf(satAt(path, d)));
+  });
+  const ph = beat % 1, sq = ph < 0.3;
+  if (H.rv) { H.rv.setAttribute("fill-opacity", sq ? 0.55 : 0.32); H.lv.setAttribute("fill-opacity", sq ? 0.55 : 0.32); }
+}
+
+// ---------- step 2 interaction ----------
+function regionName(r) { return P.t("n" + r); }
+function show2() {
+  const p = pointAt(path, s), sat = satAt(path, s);
+  extra.innerHTML = "";
+  if (msg) { const m = document.createElement("span"); m.className = "tag-no"; m.textContent = msg; extra.append(m, document.createElement("br")); }
+  const b = document.createElement("strong");
+  b.textContent = regionName(p.reg) + (L === "zh" ? "：" : ": ");
+  extra.append(b, document.createTextNode(P.t("x" + p.reg)));
+  Play.live(liveEl, P.t("stat2", { s: Play.fmt(sat, 0), v: visits, l: laps }));
+}
+function moveBy(d) {
+  if (!(d > 0)) return;
+  entered(path, s, d).forEach((r) => {
+    if (r === "ra") { laps++; visits = 1; } else if (r === "la") visits = 2;
+  });
+  s = mod(s + d, path.L);
+  placeCell();
+}
+let dragging = false;
+function startDrag(e) {
+  if (step !== 1) return;
+  dragging = true; stopAnim();
+  try { fig.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
+  e.preventDefault();
+}
+fig.addEventListener("pointermove", (e) => {
+  if (!dragging || step !== 1) return;
+  const q = Play.pointer(fig, e), pr = project(path, q.x, q.y, s, path.L * 0.2);
+  if (pr.back) { msg = P.t("back"); show2(); return; }
+  if (pr.fwd && pr.fwd.d < 60 && pr.fwd.f > 0.5) {
+    msg = ""; moveBy(pr.fwd.f); show2();
+  }
+});
+const endDrag = () => { dragging = false; };
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", endDrag);
+fig.addEventListener("keydown", (e) => {
+  if (step !== 1) return;
+  if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === "ArrowUp") { msg = ""; moveBy(path.L / 60); show2(); e.preventDefault(); }
+  else if (e.key === "ArrowLeft") { msg = P.t("back"); show2(); e.preventDefault(); }
+  else if (e.key === " " || e.key === "Enter") { toggle2(); e.preventDefault(); }
+});
+document.getElementById("next").addEventListener("click", () => {
+  stopAnim();
+  const cur = pointAt(path, s).reg, i = REGIONS.indexOf(cur), nx = REGIONS[(i + 1) % REGIONS.length];
+  const target = path.spans[nx][0] + 0.01;
+  msg = ""; moveBy(mod(target - s, path.L)); show2();
+});
+
+// ---------- step 3 ----------
+function show3() {
+  const hr = +hrIn.value, sv = +svIn.value, co = cardiacOutput(hr, sv), lap = lapSeconds(hr, sv);
+  document.getElementById("hrVal").textContent = P.t("bpm", { n: hr });
+  document.getElementById("svVal").textContent = P.t("ml", { n: sv });
+  const v = { hr, sv, co: Play.fmt(co, 1), lap: Play.fmt(lap, 0), b: BLOOD_L };
+  document.getElementById("resultMain").textContent = P.t("resMain", v);
+  if (step !== 2) return;
+  extra.textContent = P.t("x3", v);
+  if (H.capG) caption(P.t("cap3", v));
+  Play.live(liveEl, P.t("live3", v));
+}
+[hrIn, svIn].forEach((el) => el.addEventListener("input", show3));
+const preset = (hr, sv) => { hrIn.value = hr; svIn.value = sv; show3(); };
+document.getElementById("rest").addEventListener("click", () => preset(70, 70));
+document.getElementById("exer").addEventListener("click", () => preset(150, 110));
+
+// ---------- animation ----------
+function setBtns() {
+  play2.textContent = P.t(playing2 ? "pause" : "play");
+  play3.textContent = P.t(playing3 ? "pause" : "play");
+}
+function tick(t) {
+  const dt = last ? Math.min(0.1, (t - last) / 1000) : 0;
+  last = t;
+  if (step === 1 && playing2) { moveBy((path.L / 24) * dt); show2(); }
+  if (step === 2 && playing3) {
+    const hr = +hrIn.value, sv = +svIn.value;
+    flow = mod(flow + dt / lapSeconds(hr, sv), 1);
+    beat += (dt * hr) / 60;
+    placeDots();
+  }
+  raf = (playing2 || playing3) ? requestAnimationFrame(tick) : 0;
+}
+function startAnim() { last = 0; if (!raf) raf = requestAnimationFrame(tick); setBtns(); }
+function stopAnim() { playing2 = playing3 = false; if (raf) cancelAnimationFrame(raf); raf = 0; setBtns(); }
+function toggle2() { if (playing2) stopAnim(); else { playing2 = true; msg = ""; startAnim(); } }
+play2.addEventListener("click", toggle2);
+play3.addEventListener("click", () => { if (playing3) stopAnim(); else { playing3 = true; startAnim(); } });
+
+// ---------- steps ----------
+const FB = ["fb1", "fb2", "fb3"];
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { answered = i; draw(); });
+function draw() {
+  if (step === 0) {
+    drawGuess();
+    extra.textContent = answered < 0 ? "" : P.t(FB[answered]) + " " + P.t("whyBlue");
+    liveEl.textContent = "";
+  } else {
+    drawCircuit();
+    if (step === 1) show2(); else show3();
+  }
+}
+const vis = (id, on) => (document.getElementById(id).hidden = !on);
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  stopAnim();
+  step = i;
+  const k = i + 1;
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  vis("predict", i === 0); vis("ctl2", i === 1); vis("ctl3a", i === 2); vis("ctl3b", i === 2); vis("ctl3c", i === 2);
+  msg = "";
+  draw();
+  if (i === 2 && !Play.reduced) { playing3 = true; startAnim(); }
+});
+document.getElementById("reset").addEventListener("click", () => {
+  stopAnim();
+  answered = -1; s = 0; visits = 1; laps = 0; flow = 0; beat = 0; msg = "";
+  hrIn.value = 70; svIn.value = 70;
+  pr.reset(); show3(); st.go(0);
+});
+let lastW = 0;
+function onResize() {
+  const w = Math.round(fig.getBoundingClientRect().width);
+  if (!w || w === lastW) return;
+  lastW = w;
+  const f = path ? s / path.L : 0;
+  draw();
+  if (path) { s = f * path.L; if (step === 1) { placeCell(); show2(); } }
+}
+if ("ResizeObserver" in window) new ResizeObserver(onResize).observe(fig);
+else window.addEventListener("resize", onResize);
+setBtns(); show3();
+</script>
+</body>
+</html>

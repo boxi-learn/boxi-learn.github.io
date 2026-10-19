@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Does the water travel with the wave?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.fig { width: 100%; height: auto; display: block; }
+  #scene { touch-action: none; cursor: pointer; }
+  .ax { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .tick { stroke: var(--muted); stroke-width: 1.5; }
+  .rope { fill: none; stroke: var(--fg); stroke-width: 2.5; stroke-linejoin: round; }
+  .pt { fill: var(--c); }
+  .coil { stroke: var(--c); stroke-width: 3; stroke-linecap: round; }
+  .sea { fill: var(--c); fill-opacity: .14; }
+  .surf { fill: none; stroke: var(--c); stroke-width: 2.5; }
+  .mark { fill: var(--no); stroke: var(--surface); stroke-width: 2; }
+  .markL { stroke: var(--no); stroke-width: 5; stroke-linecap: round; }
+  .home { stroke: var(--fg); stroke-width: 2; }
+  .trail { fill: none; stroke: var(--no); stroke-width: 2.5; stroke-opacity: .8; }
+  .front { stroke: var(--b); stroke-width: 2; stroke-dasharray: 6 5; }
+  .crest { fill: var(--a); }
+  .brk { stroke: var(--a); stroke-width: 2; fill: none; }
+  .lbl { fill: var(--muted); font-size: 22px; font-family: var(--font); }
+  .lblF { fill: var(--fg); font-size: 22px; font-weight: 700; font-family: var(--font); }
+  .lblA { fill: var(--a); font-size: 22px; font-weight: 700; font-family: var(--font); }
+  .lblB { fill: var(--b); font-size: 22px; font-weight: 700; font-family: var(--font); }
+  #scene text { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
+  .modes { display: flex; gap: 4px; flex-wrap: wrap; flex: 1 1 100%; }
+  .modes button { font-size: 13px; padding: 5px 10px; }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .controls select { font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .pair { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 0; }
+  .pair label { min-width: 4.6em; }
+  .pair input[type=range] { flex: 1 1 80px; min-width: 0; }
+  .controls .val { min-width: 4.6em; font-size: 14px; }
+  .cap { font-size: 13px; color: var(--muted); padding: 2px 14px 6px; }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+  .readout td:first-child { text-align: left; color: var(--muted); }
+  .readout tr.key td { color: var(--fg); font-weight: 700; }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+  #rule h3 { font-size: 14px; margin: 12px 0 4px; border-top: 1px solid var(--line); padding-top: 8px; }
+  #rule .pair { margin: 4px 0; }
+  .result .math { white-space: normal; }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="fig" id="scene" viewBox="0 0 600 330" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="cap" id="cap"></div>
+      <div class="controls">
+        <div class="modes" id="modes" role="group" data-t-aria="modeAria"></div>
+        <div class="grp">
+          <button type="button" id="play"></button>
+          <button type="button" class="small" id="restart" data-t="restart"></button>
+          <label for="speed" data-t="speedLabel"></label>
+          <select id="speed"><option value="1" selected>1×</option><option value="0.5">½×</option><option value="0.25">¼×</option></select>
+        </div>
+        <span class="pair"><label for="fS" data-t="fLabel"></label><input type="range" id="fS"><span class="val" id="fV"></span></span>
+        <span class="pair"><label for="lS" data-t="lLabel"></label><input type="range" id="lS" min="5" max="40" step="1"><span class="val" id="lV"></span></span>
+        <label class="check" id="lockBox"><input type="checkbox" id="lock"><span data-t="lockLabel"></span></label>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Does the water travel with the wave?", eyebrow: "Physics · Stage 4", h1: "Does the water travel with the wave?",
+    intro: "A wave runs from left to right. One bit of the water (or rope, or spring) is marked in red. Watch where it goes, and where the wave goes.",
+    reset: "Reset", figAria: "A wave moving from left to right through water, a rope or a spring. The red bit is the one being tracked; its path is drawn as a red line. Arrow keys pick another bit, Space plays or pauses.",
+    modeAria: "Choose the medium",
+    mRope: "Rope (up-down wave)", mSpring: "Spring (push-pull wave)", mWater: "Deep sea (cork)",
+    capRope: "Rope: each bit moves up and down, across the direction the wave travels (a transverse wave). Tap any dot to track it.",
+    capSpring: "Spring (a slinky): each coil moves back and forth along the direction the wave travels (a longitudinal wave), like air in a sound wave. Tap any coil to track it.",
+    capWater: "Deep sea, seen from the side: each bit of water goes round a loop, and the loops shrink with depth. Drawn steeper than real swell so the loops are easy to see. Tap any dot to track it.",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Does the cork ride the wave?",
+    b1: "A cork floats on the deep sea (red dot). A wave passes under it from left to right. Pick an answer, then press Play and watch the red path.",
+    k2: "Hands on", t2: "Track one bit, then the wave",
+    b2: "Switch between rope, spring and sea. Press Restart: on the rope and spring the wave starts from rest at the left, and the marked bit does not move until the front (dashed line) reaches it; that is energy arriving. Change f and λ and watch v = fλ in the table. Tick “same rope” to see that on one rope a higher f gives a shorter λ.",
+    k3: "The rule", t3: "The pattern moves; the medium stays",
+    b3: "In one period T each bit makes one full wiggle and comes back home, while the crest moves forward exactly one wavelength λ. So the wave speed is v = λ/T = fλ.",
+    q: "A wave passes under a floating cork, from left to right. What does the cork do?",
+    o1: "It rides along with the wave, to the right", o2: "It goes round a small loop and ends up about where it started", o3: "It stays perfectly still while the wave slides under it",
+    right: "Yes. Press Play: the red path is a small closed loop, while the crest runs far ahead. Then go to step 2.",
+    wrong: "Press Play and watch the red path for a few seconds, then compare with how far the crest has moved. Then go to step 2.",
+    play: "▶ Play", pause: "❚❚ Pause", restart: "↺ Restart", speedLabel: "Speed",
+    fLabel: "Frequency f", lLabel: "Wavelength λ", lockLabel: "Same rope: keep the speed fixed",
+    lockWater: "In deep water λ is set by f: λ = g/(2πf²)",
+    src: "source →", frontL: "front", crestL: "crest", squeezeL: "squeeze", unitM: "m",
+    rF: "Frequency f", rT: "Period T = 1/f", rL: "Wavelength λ", rV: "Wave speed v = fλ", rt: "Time t",
+    rGo: "Wave has moved v·t", rHome: "Red bit: rest position", rNow: "Red bit: off home now", rMax: "Red bit: farthest from home",
+    notYet: "not reached yet",
+    liveArrive: "The wave reached the red bit {t} s after it started: {x} m ÷ {v} m/s.",
+    liveSel: "Tracking the bit that rests at {x} m{d}.", depth: ", {z} m deep",
+    ruleMain: "<strong>A wave carries its shape and its energy forward; each bit of the medium only moves around its home. Its speed is v = fλ.</strong>",
+    ruleNow: "Your wave now: λ = {l} m, T = {T} s, so v = λ/T = {v} m/s, and f·λ = {f} × {l} = {v} m/s.",
+    ruleDeep: "Loops shrink with depth: half a wavelength down they are e<sup>−π</sup> = {p}% of the surface size.",
+    soundH: "Sound in air", tempL: "Air temperature", pitchL: "Pitch f", echoL: "Echo after",
+    soundV: "At {c} °C sound travels at v = {v} m/s.", soundL: "A {f} Hz note has λ = v/f = {l}.",
+    a440: "Concert A, 440 Hz",
+    echoD: "Shout at a cliff and hear the echo {t} s later: the sound went there and back, so the cliff is d = v·t/2 = {d} m away.",
+    swellH: "Ocean swell", swell: "A swell with a period of {T} s has λ = gT²/(2π) = {l} m and moves at v = {v} m/s ({k} km/h), yet the water under it only goes round loops about as high as the wave.",
+    unitCm: "cm", resultTitle: "What we found", resultMain: "v = f · λ  ·  energy moves, the medium stays",
+    resultNote: "Rope bits go up and down, spring coils go back and forth, and water goes round loops; none of them travels with the wave. Only the pattern and the energy do.",
+    explainK: "Explain it", explainQ: "A surfer waits beyond the breaking waves and rises and falls as swells pass. Why isn’t she carried to the beach? What changes once she catches a breaking wave?",
+    homeK: "Try at home", homeQ: "Float a bottle cap in a full bath or sink and make ripples at one end with a finger. Does the cap travel to the other end? Then tie a ribbon to the middle of a rope or slinky and send a pulse along it.",
+    foot: "Model: small sine waves. Rope y = A sin(ωt − kx), spring ξ = A sin(ωt − kx), both starting from rest at x = 0 so the front moves at v = ω/k. Deep water (linear Airy theory): ξ = −A·e^{kz}·sin(kx − ωt), ζ = A·e^{kz}·cos(kx − ωt), with λ = g/(2πf²), g = 9.81 m/s². Real waves of finite height leave each loop slightly open (Stokes drift, surface speed ≈ (kA)²·v): about 0.25% of the wave speed for ordinary swell with kA ≈ 0.05; breaking waves near the shore do throw water forward. Speed of sound in dry air: v = 331.3·√(1 + θ/273.15) m/s (343 m/s at 20 °C). · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "水会跟着波走吗？", eyebrow: "物理 · 阶段 4", h1: "水会跟着波走吗？",
+    intro: "一列波从左往右传。水（或绳子、弹簧）里有一小块标成了红色。看看它去了哪里，波又去了哪里。",
+    reset: "重置", figAria: "一列波在水、绳子或弹簧里从左往右传。红点是被跟踪的那一小块，红线是它走过的路。方向键换一块，空格键播放或暂停。",
+    modeAria: "选择介质",
+    mRope: "绳子（上下的波）", mSpring: "弹簧（前后推拉的波）", mWater: "深海（软木塞）",
+    capRope: "绳子：每一小段只上下动，和波前进的方向垂直（横波）。点任意一个点来跟踪它。",
+    capSpring: "弹簧（彩虹圈）：每一圈只沿着波前进的方向前后动（纵波），声波里的空气也是这样。点任意一圈来跟踪它。",
+    capWater: "深海的侧面：每一小块水都在绕圈，越深圈越小。为了看清，浪画得比真实的涌浪陡。点任意一个点来跟踪它。",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "软木塞会跟着浪走吗？",
+    b1: "一个软木塞漂在深海上（红点）。一列浪从左往右从它下面经过。先选一个答案，再按「播放」，看红色的路线。",
+    k2: "动手", t2: "先跟踪一小块，再看波",
+    b2: "在绳子、弹簧、深海之间切换。按「重新开始」：绳子和弹簧上，波从左端由静止开始传，波前（虚线）到达之前，红色那块一动不动；波前一到它才动，这就是能量传到了。改变 f 和 λ，看表里的 v = fλ。勾上「同一根绳子」，会发现在同一根绳子上 f 越高，λ 越短。",
+    k3: "规律", t3: "传的是样子，介质留在原地",
+    b3: "一个周期 T 里，每一小块完整地晃一次、回到原处；而波峰正好往前走了一个波长 λ。所以波速 v = λ/T = fλ。",
+    q: "一列浪从左往右从漂着的软木塞下面经过。软木塞会怎样？",
+    o1: "跟着浪一起往右走", o2: "绕一个小圈，最后差不多回到原处", o3: "完全不动，浪从它下面滑过去",
+    right: "对。按「播放」：红色路线是一个闭合的小圈，波峰却跑出去很远。然后到第 2 步。",
+    wrong: "按「播放」，看几秒红色的路线，再比比波峰走了多远。然后到第 2 步。",
+    play: "▶ 播放", pause: "❚❚ 暂停", restart: "↺ 重新开始", speedLabel: "速度",
+    fLabel: "频率 f", lLabel: "波长 λ", lockLabel: "同一根绳子：波速不变",
+    lockWater: "深水里 λ 由 f 决定：λ = g/(2πf²)",
+    src: "波源 →", frontL: "波前", crestL: "波峰", squeezeL: "密部", unitM: "米",
+    rF: "频率 f", rT: "周期 T = 1/f", rL: "波长 λ", rV: "波速 v = fλ", rt: "时间 t",
+    rGo: "波走过 v·t", rHome: "红块：原来的位置", rNow: "红块：现在离原处", rMax: "红块：离原处最远",
+    notYet: "波还没到",
+    liveArrive: "波开始后 {t} 秒到达红块：{x} 米 ÷ {v} 米/秒。",
+    liveSel: "正在跟踪原本在 {x} 米处的那一块{d}。", depth: "，水下 {z} 米",
+    ruleMain: "<strong>波把形状和能量往前传；介质的每一小块只在原处附近动。波速 v = fλ。</strong>",
+    ruleNow: "你现在的波：λ = {l} 米，T = {T} 秒，所以 v = λ/T = {v} 米/秒；f·λ = {f} × {l} = {v} 米/秒。",
+    ruleDeep: "水下的圈越深越小：在半个波长深处，只有水面圈的 e<sup>−π</sup> = {p}%。",
+    soundH: "空气中的声音", tempL: "气温", pitchL: "音高 f", echoL: "回声延迟",
+    soundV: "{c} °C 时，声速 v = {v} 米/秒。", soundL: "{f} 赫兹的音，波长 λ = v/f = {l}。",
+    a440: "标准音 A，440 赫兹",
+    echoD: "对着山崖喊一声，{t} 秒后听到回声：声音走了一个来回，所以山崖在 d = v·t/2 = {d} 米外。",
+    swellH: "海上的涌浪", swell: "周期 {T} 秒的涌浪，λ = gT²/(2π) = {l} 米，速度 v = {v} 米/秒（{k} 千米/时）；可它下面的水只在绕圈，圈的大小和浪高差不多。",
+    unitCm: "厘米", resultTitle: "我们发现", resultMain: "v = f · λ  ·  能量往前传，介质留在原处",
+    resultNote: "绳子上下动，弹簧前后动，水绕圈；它们都不跟着波走。往前走的只有波的样子和能量。",
+    explainK: "说一说", explainQ: "冲浪的人在碎浪区外面等浪，涌浪经过时她一起一伏。为什么她没有被带到岸边？等她赶上一个正在破碎的浪，又有什么不同？",
+    homeK: "家里做一做", homeQ: "在装满水的浴缸或水池里放一个瓶盖，用手指在一头拨出水波。瓶盖会漂到另一头吗？再在绳子或彩虹圈中间系一根丝带，沿着它甩出一个波。",
+    foot: "模型：小振幅正弦波。绳子 y = A sin(ωt − kx)，弹簧 ξ = A sin(ωt − kx)，都从 x = 0 处由静止开始，波前以 v = ω/k 前进。深水（线性艾里理论）：ξ = −A·e^{kz}·sin(kx − ωt)，ζ = A·e^{kz}·cos(kx − ωt)，λ = g/(2πf²)，g = 9.81 m/s²。真实的浪有一定高度，每个圈不完全闭合（斯托克斯漂移，水面漂移速度 ≈ (kA)²·v）：普通涌浪 kA ≈ 0.05，约为波速的 0.25%；近岸破碎的浪确实会把水往前推。干燥空气中的声速：v = 331.3·√(1 + θ/273.15) m/s（20 °C 时 343 m/s）。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure physics, no DOM (tests extract this block) */
+const G = 9.81, VIEW = 6;                       // metres of medium shown
+const F_RANGE = { rope: [0.25, 2], spring: [0.25, 2], water: [0.5, 1] }, L_RANGE = [0.5, 4];
+const lamWater = (f) => G / (2 * Math.PI * f * f);                // deep-water dispersion ω² = g·k
+function amp(mode, lam) {
+  const k = 2 * Math.PI / lam;
+  if (mode === "rope") return 0.45;
+  if (mode === "spring") return Math.min(0.3, 0.6 / k);           // kA ≤ 0.6: coils never cross
+  return Math.min(0.35, 0.4 / k);                                  // water: steep but not breaking
+}
+// Displacement of the bit whose rest position is (x0, z) at time t. Rope/spring start from rest at t = 0.
+function disp(mode, x0, z, t, f, lam) {
+  const w = 2 * Math.PI * f, k = 2 * Math.PI / lam, A = amp(mode, lam);
+  if (mode === "water") {
+    const ph = k * x0 - w * t, e = Math.exp(k * z);
+    return { dx: -A * e * Math.sin(ph), dy: A * e * Math.cos(ph) };
+  }
+  if (x0 > f * lam * t) return { dx: 0, dy: 0 };                   // the front has not arrived
+  const s = A * Math.sin(w * t - k * x0);
+  return mode === "rope" ? { dx: 0, dy: s } : { dx: s, dy: 0 };
+}
+// Leading crest (rope), squeeze (spring) or crest (water) inside [0, VIEW]; null if none.
+function leadCrest(mode, t, f, lam) {
+  const v = f * lam;
+  if (mode === "water") {                                          // crests where kx − ωt = 2πn
+    const x = VIEW - (((VIEW - v * t) % lam) + lam) % lam;
+    return x >= 0 ? x : null;
+  }
+  const first = v * t - (mode === "rope" ? lam / 4 : lam);         // rope: phase π/2; spring: phase 2π
+  if (first < 0) return null;
+  const n = Math.max(0, Math.ceil((first - VIEW) / lam));
+  const x = first - n * lam;
+  return x >= 0 ? x : null;
+}
+// Lock the speed: move f (or λ), keep v = fλ, stay inside both slider ranges.
+function lockFit(v, f, lam, moved, fr) {
+  const fmin = Math.max(fr[0], v / L_RANGE[1]), fmax = Math.min(fr[1], v / L_RANGE[0]);
+  let ff = moved === "f" ? f : v / lam;
+  ff = Math.min(fmax, Math.max(fmin, ff));
+  return { f: ff, lam: v / ff };
+}
+const soundSpeed = (c) => 331.3 * Math.sqrt(1 + c / 273.15);
+const echoDist = (v, t) => v * t / 2;
+const swellLam = (T) => G * T * T / (2 * Math.PI);
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const scene = $("scene"), sv = Play.svg;
+const X0 = 30, S = 90;                                             // px for x = 0, px per metre
+const BASE = { rope: 165, spring: 165, water: 100 };
+const sx = (x) => X0 + S * x;
+const f2 = (x) => Play.fmt(x, 2);
+let mode = "water", f = 0.7, lam = lamWater(0.7), t = 0, playing = false, raf = 0, last = 0, speed = 1, lock = false, vLock = 2;
+let sel = { i: 8, row: 0 }, trail = [], maxD = 0, prevFront = 0, lastLive = "";
+
+/* ---------- particles ---------- */
+function rests() {
+  const out = [];
+  if (mode === "water") { for (let r = 0; r <= 4; r++) for (let i = 0; i <= 12; i++) out.push({ i, row: r, x0: i * 0.5, z: -r * 0.5 }); }
+  else for (let i = 0; i <= 48; i++) out.push({ i, row: 0, x0: i * 0.125, z: 0 });
+  return out;
+}
+const restOf = (s) => (mode === "water" ? { x0: s.i * 0.5, z: -s.row * 0.5 } : { x0: s.i * 0.125, z: 0 });
+function posPx(x0, z) {
+  const d = disp(mode, x0, z, t, f, lam);
+  return { x: sx(x0 + d.dx), y: BASE[mode] - S * (z + d.dy), d };
+}
+
+/* ---------- controls ---------- */
+const MODES = [["rope", "mRope"], ["spring", "mSpring"], ["water", "mWater"]];
+$("modes").innerHTML = MODES.map(([m, k]) => `<button type="button" data-m="${m}">${P.t(k)}</button>`).join("");
+$("modes").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.m)));
+function setMode(m) {
+  mode = m;
+  const fr = F_RANGE[m];
+  $("fS").min = fr[0] * 100; $("fS").max = fr[1] * 100; $("fS").step = m === "water" ? 2 : 5;
+  if (m === "water") { f = Play.clamp(f, fr[0], fr[1]); lam = lamWater(f); }
+  else { if (!(lam >= L_RANGE[0] && lam <= L_RANGE[1])) lam = 2; f = Play.clamp(f, fr[0], fr[1]); }
+  sel = m === "water" ? { i: 8, row: 0 } : { i: 32, row: 0 };
+  vLock = f * lam;
+  restart();
+}
+$("fS").addEventListener("input", () => {
+  const nf = Play.clamp(+$("fS").value / 100, F_RANGE[mode][0], F_RANGE[mode][1]);
+  if (mode === "water") { f = nf; lam = lamWater(f); }
+  else if (lock) ({ f, lam } = lockFit(vLock, nf, lam, "f", F_RANGE[mode]));
+  else f = nf;
+  restart();
+});
+$("lS").addEventListener("input", () => {
+  if (mode === "water") return;
+  const nl = Play.clamp(+$("lS").value / 10, L_RANGE[0], L_RANGE[1]);
+  if (lock) ({ f, lam } = lockFit(vLock, f, nl, "l", F_RANGE[mode]));
+  else lam = nl;
+  restart();
+});
+$("lock").addEventListener("change", () => { lock = $("lock").checked; vLock = f * lam; syncControls(); });
+$("play").addEventListener("click", () => (playing ? pause() : start()));
+$("restart").addEventListener("click", () => restart());
+$("speed").addEventListener("change", () => { speed = +$("speed").value || 1; });
+function start() { playing = true; last = 0; raf = requestAnimationFrame(tick); syncPlay(); }
+function pause() { playing = false; cancelAnimationFrame(raf); syncPlay(); }
+function syncPlay() { $("play").textContent = P.t(playing ? "pause" : "play"); }
+function say(msg) { if (msg !== lastLive) { lastLive = msg; Play.live($("live"), msg); } }
+function syncControls() {
+  $("modes").querySelectorAll("button").forEach((b) => { const on = b.dataset.m === mode; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+  $("fS").value = Math.round(f * 100); $("fV").textContent = f2(f) + " Hz";
+  $("lS").value = Math.round(Play.clamp(lam, L_RANGE[0], L_RANGE[1]) * 10); $("lV").textContent = f2(lam) + " " + P.t("unitM");
+  $("lS").disabled = mode === "water"; $("lock").disabled = mode === "water";
+  $("lockBox").lastElementChild.textContent = P.t(mode === "water" ? "lockWater" : "lockLabel");
+  $("lockBox").firstElementChild.hidden = mode === "water";
+  $("cap").textContent = P.t({ rope: "capRope", spring: "capSpring", water: "capWater" }[mode]);
+}
+
+/* ---------- pick a bit: tap, or arrow keys on the figure ---------- */
+scene.addEventListener("pointerdown", (e) => {
+  const p = Play.pointer(scene, e);
+  let best = null, bd = Infinity;
+  rests().forEach((r) => {
+    const q = posPx(r.x0, r.z), d = mode === "water" ? Math.hypot(q.x - p.x, q.y - p.y) : Math.abs(q.x - p.x);
+    if (d < bd) { bd = d; best = r; }
+  });
+  if (best && bd < 40) { select(best.i, best.row); e.preventDefault(); }
+});
+scene.addEventListener("keydown", (e) => {
+  const nI = mode === "water" ? 12 : 48, nR = mode === "water" ? 4 : 0;
+  const m = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+  if (m) { select(Play.clamp(sel.i + m[0], 0, nI), Play.clamp(sel.row + m[1], 0, nR)); e.preventDefault(); }
+  if (e.key === " " || e.key === "Enter") { $("play").click(); e.preventDefault(); }
+});
+function select(i, row) {
+  sel = { i, row }; trail = []; maxD = 0;
+  const r = restOf(sel);
+  say(P.t("liveSel", { x: f2(r.x0), d: mode === "water" && r.z < 0 ? P.t("depth", { z: Play.fmt(-r.z, 1) }) : "" }));
+  draw();
+}
+
+/* ---------- time ---------- */
+function restart() {
+  t = 0; prevFront = 0; trail = []; maxD = 0;
+  syncControls(); draw(); syncPlay(); drawRule();
+}
+function tick(ts) {
+  if (!playing) return;
+  if (last) {
+    t += Math.min(0.1, (ts - last) / 1000) * speed;
+    const front = f * lam * t, r = restOf(sel);
+    if (mode !== "water" && prevFront < r.x0 && front >= r.x0 && r.x0 > 0) say(P.t("liveArrive", { t: f2(r.x0 / (f * lam)), x: f2(r.x0), v: f2(f * lam) }));
+    prevFront = front;
+  }
+  last = ts;
+  draw();
+  raf = requestAnimationFrame(tick);
+}
+
+/* ---------- drawing ---------- */
+function draw() {
+  scene.innerHTML = "";
+  const B = BASE[mode], A = amp(mode, lam), v = f * lam;
+  // ruler 0 … 6 m
+  sv("line", { class: "ax", x1: sx(0), y1: 296, x2: sx(VIEW), y2: 296 }, scene);
+  for (let m = 0; m <= VIEW; m++) {
+    sv("line", { class: "tick", x1: sx(m), y1: 290, x2: sx(m), y2: 302 }, scene);
+    sv("text", { class: "lbl", x: sx(m), y: 324, "text-anchor": "middle" }, scene).textContent = m === VIEW ? m + " " + P.t("unitM") : m;
+  }
+  const R = rests();
+  if (mode === "water") {
+    const surf = [];
+    for (let x = -0.5; x <= VIEW + 0.5 + 1e-9; x += 0.05) { const q = posPx(x, 0); surf.push(q.x.toFixed(1) + "," + q.y.toFixed(1)); }
+    sv("polygon", { class: "sea", points: `${sx(-0.5)},282 ${surf.join(" ")} ${sx(VIEW + 0.5)},282` }, scene);
+    sv("polyline", { class: "surf", points: surf.join(" ") }, scene);
+    R.forEach((r) => { const q = posPx(r.x0, r.z); sv("circle", { class: "pt", cx: q.x.toFixed(1), cy: q.y.toFixed(1), r: 4.5 }, scene); });
+  } else if (mode === "rope") {
+    const pts = R.map((r) => posPx(r.x0, 0));
+    sv("polyline", { class: "rope", points: pts.map((q) => q.x.toFixed(1) + "," + q.y.toFixed(1)).join(" ") }, scene);
+    pts.forEach((q) => sv("circle", { class: "pt", cx: q.x.toFixed(1), cy: q.y.toFixed(1), r: 3.5 }, scene));
+  } else {
+    R.forEach((r) => { const q = posPx(r.x0, 0); sv("line", { class: "coil", x1: q.x.toFixed(1), y1: B - 42, x2: q.x.toFixed(1), y2: B + 42 }, scene); });
+  }
+  // wave source label, front, leading crest and one wavelength
+  if (mode !== "water") {
+    sv("text", { class: "lbl", x: 6, y: 245 }, scene).textContent = P.t("src");
+    const fx = v * t;
+    if (fx > 0 && fx < VIEW) {
+      sv("line", { class: "front", x1: sx(fx), y1: 64, x2: sx(fx), y2: 262 }, scene);
+      sv("text", { class: "lblB", x: sx(fx), y: 284, "text-anchor": fx > VIEW - 0.6 ? "end" : "middle" }, scene).textContent = P.t("frontL");
+    }
+  }
+  const cx = leadCrest(mode, t, f, lam);
+  if (cx !== null) {
+    const top = mode === "rope" ? B - S * A - 12 : mode === "spring" ? B - 50 : posPx(cx, 0).y - 10;
+    const px = mode === "spring" ? sx(cx + disp(mode, cx, 0, t, f, lam).dx) : sx(cx);
+    sv("polygon", { class: "crest", points: `${px - 9},${top - 14} ${px + 9},${top - 14} ${px},${top}` }, scene);
+    const by = Math.max(30, top - 44);
+    sv("text", { class: "lblA", x: px > 480 ? px - 14 : px + 14, y: top - 2, "text-anchor": px > 480 ? "end" : "start" }, scene).textContent = P.t(mode === "spring" ? "squeezeL" : "crestL");
+    const bx = cx - lam;
+    if (bx >= 0 && (mode === "water" || bx <= v * t)) {
+      const x1 = sx(bx), x2 = sx(cx), yb = Math.min(by, 52);
+      sv("path", { class: "brk", d: `M${x1},${yb + 8} V${yb} H${x2} V${yb + 8}` }, scene);
+      sv("text", { class: "lblA", x: (x1 + x2) / 2, y: yb - 6, "text-anchor": "middle" }, scene).textContent = "λ = " + f2(lam) + " " + P.t("unitM");
+    }
+  }
+  // the marked bit: home cross, trail, dot
+  const r = restOf(sel), hx = sx(r.x0), hy = B - S * r.z, q = posPx(r.x0, r.z);
+  const dist = Math.hypot(q.d.dx, q.d.dy);
+  maxD = Math.max(maxD, dist);
+  if (playing) { trail.push(q.x.toFixed(1) + "," + q.y.toFixed(1)); if (trail.length > 400) trail.shift(); }
+  if (trail.length > 1) sv("polyline", { class: "trail", points: trail.join(" ") }, scene);
+  sv("path", { class: "home", d: `M${hx - 7},${hy} H${hx + 7} M${hx},${hy - 7} V${hy + 7}` }, scene);
+  if (mode === "spring") sv("line", { class: "markL", x1: q.x.toFixed(1), y1: B - 46, x2: q.x.toFixed(1), y2: B + 46 }, scene);
+  else sv("circle", { class: "mark", cx: q.x.toFixed(1), cy: q.y.toFixed(1), r: 8 }, scene);
+  drawReadout(r, dist);
+}
+function drawReadout(r, dist) {
+  const v = f * lam, M = " " + P.t("unitM");
+  const row = (k, val, key) => `<tr${key ? ' class="key"' : ""}><td>${P.t(k)}</td><td>${val}</td></tr>`;
+  const arrived = mode === "water" || v * t >= r.x0;
+  $("readout").innerHTML =
+    row("rF", f2(f) + " Hz") + row("rT", f2(1 / f) + " s") + row("rL", f2(lam) + M) + row("rV", f2(v) + " m/s", true) +
+    row("rt", Play.fmt(t, 1) + " s") + row("rGo", f2(v * t) + M, true) +
+    row("rHome", f2(r.x0) + M + (r.z < 0 ? " · z = " + Play.fmt(r.z, 1) + M : "")) +
+    row("rNow", arrived ? f2(dist) + M : P.t("notYet")) + row("rMax", f2(maxD) + M, true);
+}
+
+/* ---------- step 3: the rule, with sound and swell ---------- */
+let soundState = { c: 20, fHz: 440, e: 1 };
+const pitchOf = (u) => 20 * Math.pow(1000, u / 1000);             // slider 0…1000 → 20 Hz … 20 kHz
+const uOf = (fHz) => Math.round(1000 * Math.log(fHz / 20) / Math.log(1000));
+function drawRule() {
+  const box = $("rule");
+  if (!stp || stp.i !== 2) { box.innerHTML = ""; return; }
+  if (!box.firstChild) {
+    box.innerHTML = "<p>" + P.t("ruleMain") + '</p><p id="ruleNow"></p><p id="ruleDeep"></p>' +
+      "<h3>" + P.t("soundH") + "</h3>" +
+      `<span class="pair"><label for="tc">${P.t("tempL")}</label><input type="range" id="tc" min="-20" max="40" step="1"><span class="val" id="tcV"></span></span>` +
+      '<p id="sV"></p>' +
+      `<span class="pair"><label for="pf">${P.t("pitchL")}</label><input type="range" id="pf" min="0" max="1000" step="1"><span class="val" id="pfV"></span></span>` +
+      `<p><button type="button" class="small" id="a440">${P.t("a440")}</button></p><p id="sL"></p>` +
+      `<span class="pair"><label for="ec">${P.t("echoL")}</label><input type="range" id="ec" min="10" max="300" step="5"><span class="val" id="ecV"></span></span>` +
+      '<p id="sE"></p><h3>' + P.t("swellH") + '</h3><p id="sw"></p>';
+    $("tc").value = soundState.c; $("pf").value = uOf(soundState.fHz); $("ec").value = Math.round(soundState.e * 100);
+    $("tc").addEventListener("input", () => { soundState.c = Play.clamp(+$("tc").value, -20, 40); fillSound(); });
+    $("pf").addEventListener("input", () => { soundState.fHz = pitchOf(Play.clamp(+$("pf").value, 0, 1000)); fillSound(); });
+    $("ec").addEventListener("input", () => { soundState.e = Play.clamp(+$("ec").value / 100, 0.1, 3); fillSound(); });
+    $("a440").addEventListener("click", () => { soundState.fHz = 440; $("pf").value = uOf(440); fillSound(); });
+    fillSound();
+  }
+  const v = f * lam;
+  $("ruleNow").textContent = P.t("ruleNow", { l: f2(lam), T: f2(1 / f), v: f2(v), f: f2(f) });
+  $("ruleDeep").innerHTML = mode === "water" ? P.t("ruleDeep", { p: Play.fmt(Math.exp(-Math.PI) * 100, 1) }) : "";
+}
+function fillSound() {
+  const s = soundState, v = soundSpeed(s.c), fHz = s.fHz, l = v / fHz;
+  const fTxt = Play.fmt(fHz, fHz >= 100 ? 0 : 1);
+  const lTxt = l >= 0.5 ? f2(l) + " " + P.t("unitM") : Play.fmt(l * 100, l < 0.1 ? 2 : 1) + " " + P.t("unitCm");
+  $("tcV").textContent = String(s.c).replace("-", "−") + " °C"; $("pfV").textContent = fTxt + " Hz"; $("ecV").textContent = Play.fmt(s.e, 2) + " s";
+  $("sV").textContent = P.t("soundV", { c: String(s.c).replace("-", "−"), v: Play.fmt(v, 1) });
+  $("sL").textContent = P.t("soundL", { f: fTxt, l: lTxt });
+  $("sE").textContent = P.t("echoD", { t: Play.fmt(s.e, 2), d: Play.fmt(echoDist(v, s.e), 0) });
+  const T = 10, L = swellLam(T), vs = L / T;
+  $("sw").textContent = P.t("swell", { T, l: Play.fmt(L, 0), v: Play.fmt(vs, 1), k: Play.fmt(vs * 3.6, 0) });
+}
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+let stp = null;
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("readout").hidden = i === 2;
+  $("rule").innerHTML = "";
+  drawRule();
+});
+function resetAll() {
+  pause();
+  speed = 1; $("speed").value = "1"; lock = false; $("lock").checked = false;
+  f = 0.7; lam = 2; soundState = { c: 20, fHz: 440, e: 1 };
+  lastLive = ""; $("live").textContent = "";
+  pr.reset(); stp.go(0); setMode("water");
+}
+$("reset").addEventListener("click", resetAll);
+resetAll();
+// No autoplay (with or without Play.reduced): the reader predicts first, then presses Play.
+</script>
+</body>
+</html>

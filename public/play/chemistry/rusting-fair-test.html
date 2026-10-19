@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What does a nail need to rust?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 600 / 400; max-height: 440px; }
+  .result .math { white-space: normal; }
+  .glass { fill: var(--soft); fill-opacity: .5; stroke: var(--fg); stroke-width: 2.5; }
+  .glass.hi { stroke: var(--a); stroke-width: 4.5; }
+  .water { fill: var(--c); fill-opacity: .32; }
+  .water.salty { fill-opacity: .55; }
+  .saltdot { fill: var(--surface); fill-opacity: .9; }
+  .oil { fill: var(--hl); fill-opacity: .85; }
+  .stopper { fill: var(--b); }
+  .gran { fill: var(--surface); stroke: var(--muted); stroke-width: 1.2; }
+  .thread { stroke: var(--muted); stroke-width: 1.5; }
+  .nail { fill: var(--muted); stroke: var(--fg); stroke-width: 1.2; }
+  .rustcoat { fill: var(--b); }
+  .rustspot { fill: var(--b); stroke: var(--fg); stroke-width: .6; stroke-opacity: .5; }
+  .letter { fill: var(--fg); font: 700 28px var(--font); }
+  .flag { fill: var(--no); font: 700 26px var(--font); }
+  .pct { fill: var(--fg); font: 600 24px var(--math); }
+  .word { fill: var(--muted); font: 23px var(--font); }
+  .unfair { fill: none; stroke: var(--no); stroke-width: 2.5; stroke-dasharray: 8 6; }
+  .barbg { fill: var(--soft); } .barfg { fill: var(--b); }
+  .tubes { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 8px; padding: 0 14px 14px; }
+  .tcard { border: 1px solid var(--line); border-radius: 10px; padding: 8px 9px; font-size: 13px; line-height: 1.45; min-width: 0; }
+  .tcard.bad { border-color: var(--no); border-style: dashed; }
+  .tcard h4 { margin: 0 0 6px; font-size: 14px; }
+  .tcard h4 span { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .tg { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+  .tg button:disabled { opacity: .4; cursor: default; }
+  .cond { color: var(--fg); margin: 0 0 4px; }
+  .verd { color: var(--muted); margin: 0; }
+  .tcard.bad .verd { color: var(--no); font-weight: 650; }
+  .demo { padding: 0 14px 12px; }
+  .livebox { font-size: 14px !important; }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 400" role="img"></svg>
+      <div class="controls" id="dayCtl">
+        <button type="button" id="play"></button>
+        <label for="day" data-t="dayLabel"></label>
+        <input type="range" id="day" min="0" max="14" step="1" value="0">
+        <span class="val" id="dayVal"></span>
+      </div>
+      <div class="tubes" id="tubes" role="group" data-t-aria="tubesAria"></div>
+      <div class="demo"><span class="tag-demo" data-t="demoTag"></span></div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="stepBody2"></p>
+      <p class="livebox" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — pure model, no DOM (checked in node)
+// Rust growth is ILLUSTRATIVE: real rates depend on the steel, temperature and surface.
+const K_BASE = 0.12;     // per day, tap water open to air
+const TRACE_O2 = 0.03;   // boiled water under oil: a little oxygen still dissolves back in
+const TRACE_H2O = 0.02;  // calcium chloride keeps the air very dry, but not perfectly
+const SALT_X = 3;        // salt water speeds rusting
+const DAY_MAX = 14;
+const FACTORS = ["water", "air", "salt"];
+const M_FE = 55.845, M_O = 15.999;   // IUPAC conventional atomic masses
+const DEFAULTS = [
+  { water: true, air: true, salt: false },   // A control
+  { water: true, air: false, salt: false },  // B boiled water + oil
+  { water: false, air: true, salt: false },  // C dry air + CaCl2
+  { water: true, air: true, salt: true },    // D salt water
+];
+function norm(c) { const w = !!c.water; return { water: w, air: !!c.air, salt: w && !!c.salt }; }
+function rate(c) {
+  c = norm(c);
+  return K_BASE * (c.water ? 1 : TRACE_H2O) * (c.air ? 1 : TRACE_O2) * (c.salt ? SALT_X : 1);
+}
+function rustFrac(c, d) {
+  d = Number.isNaN(+d) ? 0 : Math.min(DAY_MAX, Math.max(0, +d));
+  return 1 - Math.exp(-rate(c) * d);
+}
+function word(f) { return f < 0.005 ? "w0" : f < 0.1 ? "w1" : f < 0.4 ? "w2" : "w3"; }
+function diffs(c, ref) { c = norm(c); ref = norm(ref); return FACTORS.filter((k) => c[k] !== ref[k]); }
+function verdict(i, tubes) {
+  if (i === 0) return { kind: "control", list: [] };
+  const list = diffs(tubes[i], tubes[0]);
+  return { kind: list.length === 0 ? "same" : list.length === 1 ? "fair" : "unfair", list };
+}
+function condKey(c) { c = norm(c); return "c" + (c.water ? "W" : "D") + (c.air ? "A" : "N") + (c.salt ? "S" : ""); }
+// 4 Fe + 3 O2 -> 2 Fe2O3 : oxygen taken up per gram of iron
+const O_PER_FE = (3 * M_O) / (2 * M_FE);
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "What does a nail need to rust?", eyebrow: "Chemistry · Stage 3", h1: "What does a nail need to rust?",
+    intro: "Four test tubes, four iron nails. Change one thing at a time, let the days run, and see which nails rust.",
+    reset: "Reset", fig: "Four test tubes A to D, each with an iron nail; brown rust grows on the nail as the days pass, with the percentage of rust below each tube",
+    tubesAria: "Conditions in each tube",
+    s1: "Guess", s2: "Fair test", s3: "Rule",
+    k1: "Predict first", t1: "Is water enough to rust iron?",
+    b1: "Tube B holds water that was boiled to drive out the dissolved air, with a layer of oil on top so air can't get back in.",
+    q: "A nail sits in tube B for two weeks. What happens?",
+    o1: "It rusts: it is under water", o2: "It barely rusts", o3: "It rusts even faster than in tube A",
+    right: "Yes. With almost no oxygen it barely rusts. Drag the days slider and watch tube B.",
+    wrong: "Many people think water alone is enough. Drag the days slider and watch tube B.",
+    k2: "Hands on", t2: "Change one thing at a time",
+    b2: "Tube A is the control: tap water, open to air. Toggle water, air and salt in the other tubes, then run the days. A tube that changes more than one thing from A gets flagged: if it rusts differently, you can't tell which change did it.",
+    k3: "The rule", t3: "Water and oxygen, both",
+    b3: "After {d} days: A (water + air) {a}, B (no oxygen) {b}, C (no water) {c}, D (salt water + air) {e}. Take away either water or oxygen and the nail stays almost bright. Salt only speeds rusting up when both are there.",
+    b3b: "Rust is iron joined with oxygen (and some water): 4 Fe + 3 O₂ → 2 Fe₂O₃. Each 1.00 g of iron that rusts takes {o} g of oxygen from the air, so a rusted nail gets heavier. Why the mass grows:",
+    linkAtoms: "Atoms are rearranged, never lost",
+    dayLabel: "Days", playBtn: "▶ Run days", pauseBtn: "❚❚ Pause",
+    demoTag: "Rust rates are illustrative, not measured",
+    tWater: "Water", tAir: "Air (O₂)", tSalt: "Salt",
+    tOn: "{f}: on", tOff: "{f}: off",
+    fwater: "water", fair: "oxygen", fsalt: "salt", and: " and ",
+    control: "control",
+    cWA: "Tap water, open to air.", cWAS: "Salt water, open to air.",
+    cWN: "Boiled water with a layer of oil on top.", cWNS: "Boiled salt water with oil on top.",
+    cDA: "Dry air, stoppered, with calcium chloride to soak up moisture.", cDN: "Dry and airless: stoppered, air pumped out.",
+    vcontrol: "The other tubes are compared with this one.",
+    vsame: "Same as A: a repeat, which checks A.",
+    vfair: "Changes only {f} from A: a fair test of {f}.",
+    vunfair: "⚠ Changes {f} at once: not a fair test.",
+    w0: "bright", w1: "barely", w2: "rusting", w3: "badly rusted",
+    liveDay: "Day {d}: A {a}, B {b}, C {c}, D {e}.", liveFlag: "{n} tube(s) change more than one thing from A.",
+    resultTitle: "What we found", resultMain: "iron + water + oxygen → rust",
+    resultNote: "Take away either one and rusting almost stops; salt speeds it up but can't replace either. Paint, oil and zinc coatings protect iron by keeping water and air off.",
+    explainK: "Explain it", explainQ: "Tube B used boiled water and an oil layer. What would go wrong with only the boiling, or only the oil?",
+    homeK: "Try at home", homeQ: "With an adult: put three plain steel nails (not shiny galvanised ones) in three jars. One in tap water; one in water you have just boiled and cooled, with a layer of cooking oil on top; one dry, with a silica-gel packet and a lid. Look every day for a week.",
+    foot: "Rust rates are illustrative, not measured: rust cover = 1 − e^(−rate × days), with rate {k} per day for tap water open to air; salt water × {s}. The oil layer still lets about {po}% of the oxygen back in, and calcium chloride leaves about {pw}% of the moisture, so B and C rust barely, not never. Real rust is hydrated iron(III) oxide, Fe₂O₃·xH₂O. Atomic masses (IUPAC): Fe {fe}, O {om}. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "铁钉生锈要什么条件？", eyebrow: "化学 · 阶段 3", h1: "铁钉生锈要什么条件？",
+    intro: "四支试管，四根铁钉。一次只改一个条件，让日子过去，看哪根铁钉生锈。",
+    reset: "重置", fig: "A 到 D 四支试管，每支里有一根铁钉；随着天数增加，铁钉上长出棕色的锈，试管下方写着生锈的百分比",
+    tubesAria: "每支试管里的条件",
+    s1: "先猜", s2: "公平实验", s3: "规律",
+    k1: "先猜一猜", t1: "光有水，铁会生锈吗？",
+    b1: "B 管里的水先煮沸过，赶走了溶在水里的空气；水面再盖一层油，空气进不去。",
+    q: "铁钉在 B 管里放两周，会怎样？",
+    o1: "会生锈：它泡在水里", o2: "几乎不生锈", o3: "比 A 管锈得还快",
+    right: "对。几乎没有氧气，它几乎不生锈。拖动天数滑块，看 B 管。",
+    wrong: "很多人以为有水就够了。拖动天数滑块，看 B 管。",
+    k2: "动手", t2: "一次只改一个条件",
+    b2: "A 管是对照：自来水，通空气。在其他试管里切换水、空气、盐，再让日子走。和 A 比改了不止一个条件的试管会被标出来：它锈得不一样时，你分不清是哪个改动造成的。",
+    k3: "规律", t3: "水和氧气，缺一不可",
+    b3: "{d} 天后：A（水 + 空气）{a}，B（没有氧气）{b}，C（没有水）{c}，D（盐水 + 空气）{e}。去掉水或氧气中的任何一个，铁钉几乎一直亮。盐只有在水和氧气都在时才让锈得更快。",
+    b3b: "铁锈是铁和氧（还有一些水）结合成的：4 Fe + 3 O₂ → 2 Fe₂O₃。每 1.00 g 铁生锈，要从空气里拿走 {o} g 氧，所以生锈的铁钉会变重。质量为什么会变多：",
+    linkAtoms: "原子只是重新组合，一个也不少",
+    dayLabel: "天数", playBtn: "▶ 让日子走", pauseBtn: "❚❚ 暂停",
+    demoTag: "生锈快慢是示意，不是实测",
+    tWater: "水", tAir: "空气 (O₂)", tSalt: "盐",
+    tOn: "{f}：有", tOff: "{f}：无",
+    fwater: "水", fair: "氧气", fsalt: "盐", and: "和",
+    control: "对照",
+    cWA: "自来水，通空气。", cWAS: "盐水，通空气。",
+    cWN: "煮沸过的水，上面盖一层油。", cWNS: "煮沸过的盐水，上面盖一层油。",
+    cDA: "塞紧的干燥空气，管底放氯化钙吸水。", cDN: "既干燥又没空气：塞紧并抽走空气。",
+    vcontrol: "其他试管都和它比。",
+    vsame: "和 A 一样：是重复实验，用来核对 A。",
+    vfair: "和 A 比只改了{f}：是检验{f}的公平实验。",
+    vunfair: "⚠ 同时改了{f}：不是公平实验。",
+    w0: "光亮", w1: "几乎不锈", w2: "在生锈", w3: "锈得厉害",
+    liveDay: "第 {d} 天：A {a}，B {b}，C {c}，D {e}。", liveFlag: "有 {n} 支试管和 A 比改了不止一个条件。",
+    resultTitle: "我们发现", resultMain: "铁 + 水 + 氧气 → 铁锈",
+    resultNote: "去掉任何一个，生锈就几乎停下；盐能加快生锈，但代替不了水或氧气。刷漆、涂油、镀锌能防锈，就是把水和空气挡在外面。",
+    explainK: "说一说", explainQ: "B 管既把水煮沸，又盖了一层油。如果只煮沸、或者只盖油，各会出什么问题？",
+    homeK: "家里做一做", homeQ: "请大人陪着：把三根普通铁钉（不要亮闪闪的镀锌钉）放进三个瓶子。一个倒自来水；一个倒刚煮沸又放凉的水，水面盖一层食用油；一个不放水，放一包硅胶干燥剂再盖上盖。一周里每天看一次。",
+    foot: "生锈快慢是示意，不是实测：锈的覆盖比例 = 1 − e^(−速率 × 天数)，自来水通空气时速率每天 {k}；盐水 × {s}。油层大约还会放进 {po}% 的氧气，氯化钙大约还留下 {pw}% 的水汽，所以 B、C 是几乎不锈，不是绝对不锈。真实的铁锈是含水的氧化铁 Fe₂O₃·xH₂O。相对原子质量（IUPAC）：Fe {fe}，O {om}。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent);
+const LET = ["A", "B", "C", "D"];
+const XS = [75, 225, 375, 525];
+const pct = (f) => Play.fmt(f * 100, 0) + "%";
+const state = { tubes: DEFAULTS.map((c) => ({ ...c })), day: 0, step: 0, playing: false, answered: false };
+
+function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+// fixed rust-spot layout along the shank: [dx, t along shank, radius, threshold]
+const SPOTS = (() => {
+  const rnd = seeded(5), out = [];
+  for (let i = 0; i < 22; i++) out.push([(rnd() * 2 - 1) * 4.5, rnd(), 2.5 + rnd() * 3, (i + 0.5) / 22]);
+  return out;
+})();
+
+function factorList(list) { return list.map((k) => P.t("f" + k)).join(P.t("and")); }
+
+function drawTube(i) {
+  const c = norm(state.tubes[i]), cx = XS[i], f = rustFrac(c, state.day);
+  const v = verdict(i, state.tubes);
+  const L = cx - 34, R = cx + 34, top = 70, bot = 290;
+  const tubeD = `M${L},${top} L${L},${bot} A34,34 0 0 0 ${R},${bot} L${R},${top}`;
+  if (v.kind === "unfair") S("rect", { class: "unfair", x: cx - 66, y: 6, width: 132, height: 388, rx: 12 }, fig);
+  S("text", { class: "letter", x: cx, y: 36, "text-anchor": "middle" }, fig).textContent = LET[i];
+  if (v.kind === "unfair") S("text", { class: "flag", x: cx + 28, y: 36, "text-anchor": "middle" }, fig).textContent = "⚠";
+  const sealed = !c.air || !c.water;
+  let surface = 120;
+  if (c.water) {
+    S("path", { class: "water" + (c.salt ? " salty" : ""), d: `M${L},${surface} L${L},${bot} A34,34 0 0 0 ${R},${bot} L${R},${surface} Z` }, fig);
+    if (c.salt) for (let k = 0; k < 9; k++) S("circle", { class: "saltdot", cx: cx - 22 + (k % 3) * 22 + (k % 2) * 4, cy: 150 + Math.floor(k / 3) * 60, r: 2.2 }, fig);
+    if (!c.air) S("rect", { class: "oil", x: L, y: surface - 16, width: 68, height: 16 }, fig);
+  } else {
+    const rnd = seeded(31 + i);
+    for (let k = 0; k < 16; k++) {
+      const gx = cx + (rnd() * 2 - 1) * 24, gy = 300 + rnd() * 14 - Math.abs(gx - cx) * 0.25;
+      S("circle", { class: "gran", cx: gx, cy: gy, r: 5 + rnd() * 2 }, fig);
+    }
+  }
+  S("path", { class: "glass" + (state.step === 0 && i === 1 ? " hi" : ""), d: tubeD }, fig);
+  if (sealed) S("rect", { class: "stopper", x: L - 6, y: top - 18, width: 80, height: 24, rx: 4 }, fig);
+  // nail: head + shank + tip; rests on the bottom in water, hangs on a thread in the dry tube
+  const y0 = c.water ? 150 : 104, len = c.water ? 148 : 150;
+  if (!c.water) S("line", { class: "thread", x1: cx, y1: top + 6, x2: cx, y2: y0 }, fig);
+  const nailD = `M${cx - 13},${y0} L${cx + 13},${y0} L${cx + 13},${y0 + 7} L${cx + 4.5},${y0 + 7} L${cx + 4.5},${y0 + len} L${cx},${y0 + len + 14} L${cx - 4.5},${y0 + len} L${cx - 4.5},${y0 + 7} L${cx - 13},${y0 + 7} Z`;
+  S("path", { class: "nail", d: nailD }, fig);
+  if (f > 0.001) S("path", { class: "rustcoat", d: nailD, "fill-opacity": Play.fmt(0.85 * f, 3) }, fig);
+  SPOTS.forEach(([dx, t, r, th]) => {
+    if (th < f) S("circle", { class: "rustspot", cx: cx + dx, cy: y0 + 9 + t * (len - 4), r }, fig);
+  });
+  // readout under the tube
+  S("text", { class: "pct", x: cx, y: 354, "text-anchor": "middle" }, fig).textContent = pct(f);
+  S("text", { class: "word", x: cx, y: 379, "text-anchor": "middle" }, fig).textContent = P.t(word(f));
+  S("rect", { class: "barbg", x: cx - 50, y: 384, width: 100, height: 6, rx: 3 }, fig);
+  S("rect", { class: "barfg", x: cx - 50, y: 384, width: 100 * f, height: 6, rx: 3 }, fig);
+}
+
+function buildCards() {
+  const box = $("tubes");
+  box.innerHTML = "";
+  state.tubes.forEach((c, i) => {
+    const card = document.createElement("div");
+    card.className = "tcard"; card.id = "card" + i;
+    const h = document.createElement("h4");
+    h.textContent = LET[i];
+    if (i === 0) { const s = document.createElement("span"); s.textContent = P.t("control"); h.appendChild(s); }
+    const tg = document.createElement("div"); tg.className = "tg";
+    [["water", "tWater"], ["air", "tAir"], ["salt", "tSalt"]].forEach(([k, lab]) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "small"; b.textContent = P.t(lab);
+      b.dataset.i = i; b.dataset.k = k; b.dataset.lab = lab;
+      b.addEventListener("click", () => {
+        const t = state.tubes[i];
+        t[k] = !t[k];
+        if (!t.water) t.salt = false;
+        render(); b.focus();
+      });
+      tg.appendChild(b);
+    });
+    const cond = document.createElement("p"); cond.className = "cond";
+    const ver = document.createElement("p"); ver.className = "verd";
+    card.append(h, tg, cond, ver);
+    box.appendChild(card);
+  });
+}
+function syncCards() {
+  state.tubes.forEach((c0, i) => {
+    const c = norm(c0), card = $("card" + i), v = verdict(i, state.tubes);
+    card.classList.toggle("bad", v.kind === "unfair");
+    card.querySelectorAll("button").forEach((b) => {
+      const on = c[b.dataset.k];
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", String(on));
+      b.disabled = b.dataset.k === "salt" && !c.water;
+      b.setAttribute("aria-label", LET[i] + " · " + P.t(on ? "tOn" : "tOff", { f: P.t(b.dataset.lab) }));
+    });
+    card.querySelector(".cond").textContent = P.t(condKey(c));
+    card.querySelector(".verd").textContent = P.t("v" + v.kind, { f: factorList(v.list) });
+  });
+}
+
+function render() {
+  fig.innerHTML = "";
+  fig.setAttribute("aria-label", P.t("fig"));
+  for (let i = 0; i < 4; i++) drawTube(i);
+  syncCards();
+  $("day").value = state.day;
+  $("dayVal").textContent = Play.fmt(state.day, 0);
+  $("play").textContent = P.t(state.playing ? "pauseBtn" : "playBtn");
+  const fr = state.tubes.map((c) => pct(rustFrac(c, state.day)));
+  if (state.step === 2) {
+    $("stepBody").textContent = P.t("b3", { d: Play.fmt(state.day, 0), a: fr[0], b: fr[1], c: fr[2], e: fr[3] });
+  }
+  const nBad = state.tubes.filter((c, i) => verdict(i, state.tubes).kind === "unfair").length;
+  let msg = P.t("liveDay", { d: Play.fmt(state.day, 0), a: fr[0], b: fr[1], c: fr[2], e: fr[3] });
+  if (state.step === 1 && nBad) msg += " " + P.t("liveFlag", { n: nBad });
+  Play.live($("live"), state.step === 0 && !state.answered ? "" : msg);
+}
+
+/* ---------- day animation (never autoplays) ---------- */
+let raf = 0, last = 0, acc = 0;
+function tick(t) {
+  if (!state.playing) return;
+  acc += last ? Math.min(0.1, (t - last) / 1000) : 0;
+  last = t;
+  const d = Math.min(DAY_MAX, Math.floor(acc / 0.45));
+  if (d !== state.day) { state.day = d; if (d >= DAY_MAX) state.playing = false; render(); }
+  if (state.playing) raf = requestAnimationFrame(tick);
+}
+function stop() { state.playing = false; cancelAnimationFrame(raf); last = 0; }
+$("play").addEventListener("click", () => {
+  if (state.playing) { stop(); render(); return; }
+  if (state.day >= DAY_MAX) state.day = 0;
+  if (Play.reduced) { state.day = DAY_MAX; render(); return; }
+  state.playing = true; last = 0; acc = state.day * 0.45; render();
+  raf = requestAnimationFrame(tick);
+});
+$("day").addEventListener("input", (e) => { stop(); state.day = Play.clamp(Math.round(+e.target.value) || 0, 0, DAY_MAX); render(); });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { state.answered = true; $("dayCtl").hidden = false; render(); });
+
+function setB3b() {
+  const p = $("stepBody2");
+  p.textContent = P.t("b3b", { o: Play.fmt(O_PER_FE, 2) }) + " ";
+  const a = document.createElement("a");
+  a.href = "atoms-rearrange.html?lang=" + P.lang;
+  a.textContent = P.t("linkAtoms");
+  p.appendChild(a);
+}
+
+buildCards();
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  stop();
+  state.step = i;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("tubes").hidden = i !== 1;
+  $("dayCtl").hidden = i === 0 && !state.answered;
+  $("stepBody2").hidden = i !== 2;
+  if (i === 0) { state.tubes = DEFAULTS.map((c) => ({ ...c })); }
+  if (i === 2) { state.tubes = DEFAULTS.map((c) => ({ ...c })); state.day = DAY_MAX; setB3b(); }
+  render();
+});
+
+$("foot").textContent = P.t("foot", {
+  k: Play.fmt(K_BASE, 2), s: SALT_X, po: Play.fmt(TRACE_O2 * 100, 0), pw: Play.fmt(TRACE_H2O * 100, 0),
+  fe: Play.fmt(M_FE, 3), om: Play.fmt(M_O, 3),
+});
+$("reset").addEventListener("click", () => {
+  stop();
+  state.tubes = DEFAULTS.map((c) => ({ ...c })); state.day = 0; state.answered = false;
+  pr.reset(); st.go(0);
+});
+render();
+</script>
+</body>
+</html>

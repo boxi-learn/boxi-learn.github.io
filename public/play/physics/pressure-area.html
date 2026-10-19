@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why doesn't a bed of nails hurt?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.fig { width: 100%; height: auto; display: block; }
+  svg.fig text { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; font-family: var(--font); }
+  .lbl { fill: var(--muted); font-size: 23px; }
+  .lbF { fill: var(--fg); font-size: 23px; font-weight: 700; }
+  .lbA { fill: var(--a); font-size: 23px; font-weight: 700; }
+  .lbN { fill: var(--no); font-size: 23px; font-weight: 700; }
+  .lbH { fill: var(--b); font-size: 23px; font-weight: 700; }
+  .board { fill: var(--b); opacity: .8; }
+  .nail { fill: var(--muted); }
+  .body { fill: var(--c); opacity: .85; }
+  .arrF { stroke: var(--fg); stroke-width: 4; fill: none; stroke-linecap: round; }
+  .arrH { fill: var(--fg); }
+  .lens { fill: var(--surface); stroke: var(--fg); stroke-width: 2.5; }
+  .skin { fill: var(--h); opacity: .3; }
+  .skinLine { fill: none; stroke: var(--h); stroke-width: 3; }
+  .snow { fill: var(--soft); stroke: var(--line); stroke-width: 2; }
+  .snowTop { fill: none; stroke: var(--muted); stroke-width: 2.5; stroke-linejoin: round; }
+  .stick { stroke: var(--fg); stroke-width: 5; stroke-linecap: round; fill: none; }
+  .head { fill: var(--fg); }
+  .sup { fill: var(--c); }
+  .gauge { fill: none; stroke: var(--muted); stroke-width: 2; }
+  .gaugeFill { fill: var(--c); opacity: .75; }
+  .z0 { fill: var(--a); opacity: .28; } .z1 { fill: var(--hl); opacity: .45; } .z2 { fill: var(--no); opacity: .4; }
+  .ax { stroke: var(--muted); stroke-width: 1.5; }
+  .ghost { fill: var(--surface); stroke: var(--muted); stroke-width: 2; }
+  .ptr { fill: var(--fg); }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .controls .val { min-width: 4.8em; font-size: 14px; }
+  .pair { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; min-width: 0; }
+  .pair input[type=range] { flex: 1 1 80px; min-width: 0; }
+  .pair label { min-width: 5em; }
+  .presets { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .presets button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout th, .readout td { padding: 3px 5px; text-align: right; border-bottom: 1px solid var(--line); }
+  .readout th:first-child, .readout td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  .readout tr.cur td { color: var(--fg); font-weight: 700; }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+  #rule h3 { font-size: 14px; margin: 10px 0 4px; }
+  #rule ul { margin: 0 0 8px; padding-left: 18px; color: var(--muted); }
+  #rule li { margin-bottom: 4px; }
+  .result .math { white-space: normal; }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="fig" id="scene" viewBox="0 0 600 400" role="img" data-t-aria="figAria"></svg>
+      <div class="controls">
+        <div class="grp"><span class="presets" id="sups" role="group" data-t-aria="supLabel"></span></div>
+        <div class="grp">
+          <span class="pair"><label for="w" data-t="wLabel"></label><input type="range" id="w" min="300" max="800" step="10"><span class="val" id="wVal"></span></span>
+          <span class="pair" id="nPair"><label for="n" data-t="nLabel"></label><input type="range" id="n" min="0" max="14" step="1"><span class="val" id="nVal"></span></span>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Why doesn't a bed of nails hurt?", eyebrow: "Physics · Stage 3", h1: "Why doesn't a bed of nails hurt?",
+    intro: "The same body weight rests on one nail, a thousand nails, boots or snowshoes. Watch how hard each point presses.",
+    reset: "Reset", figAria: "Your weight resting on the chosen support, a close-up of the skin or the snow under it, and a pressure scale from 1 kPa to 1 GPa",
+    supLabel: "What you rest on", wLabel: "Your weight", nLabel: "Number of nails",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "One nail or a thousand?",
+    b1: "A performer lies down on a board. Pick an answer, then tap “1 nail” and “1000 nails” below the picture and watch the close-up of the skin.",
+    k2: "Hands on", t2: "Spread the same weight",
+    b2: "Change your weight and the number of nails, then stand in fresh snow in boots, snowshoes or skis. The weight hardly matters; the area does.",
+    k3: "The rule", t3: "Pressure = force ÷ area",
+    q: "Which hurts more to lie on?", o1: "1000 nails — more points stick into you", o2: "The same — your weight is the same", o3: "1 nail — much more",
+    right: "Yes. One nail takes your whole weight on one tiny tip. Check it with the buttons, then go to step 2.",
+    wrong: "That is the usual guess. Tap “1 nail” and “1000 nails” and compare the close-up and the pointer on the scale.",
+    sNail1: "1 nail", sNail1000: "1000 nails", sBoots: "Boots", sShoes: "Snowshoes", sSkis: "Skis",
+    nNails: "{n} nails", nNail: "1 nail", unitN: "N", unitPa: "Pa", kg: "≈ {m} kg",
+    weightF: "F = {F} N", perNail: "each nail: {f} N", tip: "one tip = 1 mm²", drawn: "{d} of {n} drawn",
+    zone0: "skin: fine", zone1: "painful", zone2: "skin breaks", skinNote: "close-up of skin",
+    snowTitle: "fresh snow", sinks: "sinks {d} cm", snowDepth: "60 cm of snow",
+    rF: "Weight F", rA: "Area A", rP: "Pressure p = F/A", rEach: "Force on each nail", rSink: "Sinks into snow",
+    liveNails: "{n}: {F} N on {A}, pressure {p} Pa. {z}.",
+    liveSnow: "{s}: {F} N on {A}, pressure {p} Pa. Sinks about {d} cm.",
+    zoneSay0: "The skin just feels the points", zoneSay1: "It hurts", zoneSay2: "The tip breaks the skin",
+    ruleMain: "<strong>What presses in is pressure: force divided by area, p = F/A</strong> (1 pascal = 1 N per m²). Your weight is {F} N whatever you lie on. On 1000 nails the area is {r}× bigger, so each point presses {r}× more gently: {p1} Pa instead of {p0} Pa.",
+    colS: "Support", colA: "Area", colP: "Pressure",
+    moreH: "The same rule everywhere",
+    ex1: "<strong>Thumbtack:</strong> your thumb pushes {F} N. On the 1 cm² head that is {p1} Pa on your thumb; on the 0.1 mm² tip it is {p2} Pa into the wood — the same force, {r}× the pressure.",
+    ex2: "<strong>Knife:</strong> push {F} N along an 8 cm blade. A sharp edge 0.01 mm wide gives {p1} Pa; a blunt one 0.3 mm wide only {p2} Pa. Sharpening shrinks A.",
+    ex3: "<strong>Tractor:</strong> a {M}-tonne tractor ({F} N) on two tracks 2 m × 0.4 m presses the soil with {p} Pa — about {r}× a person in boots, not thousands of times.",
+    resultTitle: "What we found", resultMain: "p = F / A",
+    resultNote: "Pressure, not force, decides whether something pierces or sinks. The same weight on 1000 times the area presses 1000 times more gently, so a bed of nails is safe and one nail is not.",
+    explainK: "Explain it", explainQ: "A friend says “a bed of nails must hurt more, because there are more points sticking into you”. Using the words “force”, “area” and “pressure”, explain why it is the other way round.",
+    homeK: "Try at home", homeQ: "Hold a sharpened pencil between your two index fingers, point on one side and flat end on the other, and squeeze gently. Both fingers feel the same force — which one hurts? Then press your fingertip and then your flat palm into soft dough or wet sand with the same push and compare the dents.",
+    foot: "Model: p = F/A with F = your weight (300–800 N, g = 9.81 m/s²). Each nail tip touches 1 mm² and all nails share the weight equally (on a real bed, ~1000 nails about 2 cm apart, only part of the back touches, so real numbers are a few times higher). Areas for both feet: boots 0.05 m², snowshoes 2 × 0.15 m², skis 2 × 1.6 m × 0.065 m. Skin zones are illustrative orders of magnitude: below about 1 MPa a blunt point is only felt; skin’s tensile strength is roughly 5–30 MPa, so we draw “skin breaks” from 10 MPa. Snow sinking is an illustrative linear model for fresh powder (depth = p ÷ 40 kPa per metre, at most 60 cm). Thumbtack, knife and tractor numbers are round example values. · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "躺在钉床上为什么不疼？", eyebrow: "物理 · 阶段 3", h1: "躺在钉床上为什么不疼？",
+    intro: "同样的体重，分别压在一根钉子、一千根钉子、靴子或雪鞋上。看看每一点压得有多狠。",
+    reset: "重置", figAria: "体重压在所选的支撑物上，下面皮肤或雪地的放大图，以及从 1 千帕到 1 吉帕的压强刻度",
+    supLabel: "压在什么上面", wLabel: "你的体重", nLabel: "钉子根数",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "一根钉子还是一千根？",
+    b1: "表演者躺到一块木板上。先选一个答案，再点图下面的「1 根钉子」和「1000 根钉子」，看皮肤的放大图。",
+    k2: "动手", t2: "把同样的体重分摊开",
+    b2: "改体重、改钉子根数，再穿靴子、雪鞋或滑雪板站到新雪上。体重差不了多少，面积才是关键。",
+    k3: "规律", t3: "压强 = 力 ÷ 面积",
+    q: "躺在哪个上面更疼？", o1: "1000 根钉子——扎你的尖更多", o2: "一样疼——体重没变", o3: "1 根钉子——疼得多",
+    right: "对。一根钉子要用一个小尖撑起你整个体重。用按钮验证一下，再到第 2 步。",
+    wrong: "大多数人都这么猜。点一点「1 根钉子」和「1000 根钉子」，比较放大图和刻度上的指针。",
+    sNail1: "1 根钉子", sNail1000: "1000 根钉子", sBoots: "靴子", sShoes: "雪鞋", sSkis: "滑雪板",
+    nNails: "{n} 根钉子", nNail: "1 根钉子", unitN: "牛", unitPa: "帕", kg: "≈ {m} 千克",
+    weightF: "F = {F} 牛", perNail: "每根钉子：{f} 牛", tip: "一个尖 = 1 mm²", drawn: "画出 {d} / {n} 根",
+    zone0: "皮肤：没事", zone1: "疼", zone2: "扎破皮", skinNote: "皮肤放大图",
+    snowTitle: "新雪", sinks: "陷下 {d} 厘米", snowDepth: "雪深 60 厘米",
+    rF: "体重 F", rA: "面积 A", rP: "压强 p = F/A", rEach: "每根钉子受力", rSink: "陷进雪里",
+    liveNails: "{n}：{F} 牛压在 {A} 上，压强 {p} 帕。{z}。",
+    liveSnow: "{s}：{F} 牛压在 {A} 上，压强 {p} 帕。大约陷下 {d} 厘米。",
+    zoneSay0: "皮肤只是感觉到尖", zoneSay1: "会疼", zoneSay2: "尖扎破了皮肤",
+    ruleMain: "<strong>压进去的是压强，也就是力除以面积：p = F/A</strong>（1 帕 = 每平方米 1 牛）。不管躺在什么上面，你的体重都是 {F} 牛。换成 1000 根钉子，面积大了 {r} 倍，每一点就轻了 {r} 倍：{p1} 帕，而不是 {p0} 帕。",
+    colS: "支撑物", colA: "面积", colP: "压强",
+    moreH: "到处都是这一条",
+    ex1: "<strong>图钉：</strong>拇指推 {F} 牛。压在 1 cm² 的钉帽上，拇指受 {p1} 帕；压在 0.1 mm² 的钉尖上，木头受 {p2} 帕——力一样，压强是 {r} 倍。",
+    ex2: "<strong>刀：</strong>沿 8 厘米长的刀刃用 {F} 牛往下切。锋利的刃宽 0.01 毫米，压强 {p1} 帕；钝刀刃宽 0.3 毫米，只有 {p2} 帕。磨刀就是把 A 磨小。",
+    ex3: "<strong>拖拉机：</strong>{M} 吨的拖拉机（{F} 牛）装两条 2 米 × 0.4 米的履带，对地压强 {p} 帕——大约是穿靴子的人的 {r} 倍，而不是几千倍。",
+    resultTitle: "我们发现", resultMain: "p = F / A",
+    resultNote: "决定扎不扎进去、陷不陷下去的是压强，不是力。同样的体重分到 1000 倍的面积上，每一点就轻 1000 倍，所以钉床安全，一根钉子不行。",
+    explainK: "说一说", explainQ: "朋友说「钉床肯定更疼，因为扎你的尖更多」。用上「力」「面积」「压强」三个词，讲讲为什么恰好反过来。",
+    homeK: "家里做一做", homeQ: "用两根食指夹住一支削尖的铅笔，一边是笔尖，一边是平的笔尾，轻轻夹紧。两根手指受的力一样大——哪根疼？再用同样的劲，先用指尖、再用整个手掌按进软面团或湿沙里，比比两个坑。",
+    foot: "模型：p = F/A，F 是体重（300–800 牛，g = 9.81 m/s²）。每个钉尖接触 1 mm²，所有钉子平分体重（真实钉床约 1000 根、间距约 2 厘米，背上只有一部分贴着钉子，所以实际数值要高几倍）。双脚合计面积：靴子 0.05 m²，雪鞋 2 × 0.15 m²，滑雪板 2 × 1.6 m × 0.065 m。皮肤分区是示意的数量级：钝尖低于约 1 兆帕只是有感觉；皮肤的抗拉强度大约 5–30 兆帕，所以从 10 兆帕起画成「扎破皮」。陷雪深度是新雪的示意线性模型（深度 = p ÷ 每米 40 千帕，最多 60 厘米）。图钉、刀、拖拉机的数都是取整的示例值。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure physics, no DOM (tests extract this block) */
+const G = 9.81, TIP = 1e-6, NMAX = 2000, SKIN_PAIN = 1e6, SKIN_BREAK = 1e7, SNOW_K = 4e4, SNOW_MAX = 60;
+const SUP = {
+  sNail1: { kind: "nails", n: 1 }, sNail1000: { kind: "nails", n: 1000 },
+  sBoots: { kind: "snow", A: 0.05, w: 46 }, sShoes: { kind: "snow", A: 2 * 0.15, w: 100 }, sSkis: { kind: "snow", A: 2 * 1.6 * 0.065, w: 300 },
+};
+const fin = (x, d) => (Number.isFinite(x) ? x : d);
+const clampN = (n) => Math.round(Math.min(NMAX, Math.max(1, fin(n, 1))));
+const clampF = (F) => Math.min(800, Math.max(300, fin(F, 700)));
+// Nails slider: steps through these counts (roughly even on a log scale).
+const NSTEPS = [1, 2, 3, 5, 10, 20, 30, 50, 100, 200, 300, 500, 1000, 1500, 2000];
+const nFromIdx = (i) => NSTEPS[Math.round(Math.min(NSTEPS.length - 1, Math.max(0, fin(i, 0))))];
+const idxFromN = (n) => { n = clampN(n); let b = 0; NSTEPS.forEach((v, i) => { if (Math.abs(Math.log(v / n)) < Math.abs(Math.log(NSTEPS[b] / n))) b = i; }); return b; };
+function areaOf(key, n) { const s = SUP[key] || SUP.sNail1; return s.kind === "nails" ? clampN(n) * TIP : s.A; }
+const pressure = (F, A) => (A > 0 ? clampF(F) / A : Infinity);
+const skinZone = (p) => (p < SKIN_PAIN ? 0 : p < SKIN_BREAK ? 1 : 2);
+const dimple = (p) => Math.min(1, Math.max(0, (Math.log10(Math.max(p, 1)) - 4) / 3));   // 10 kPa → 0, 10 MPa → 1
+const sinkCm = (p) => Math.min(SNOW_MAX, Math.max(0, 100 * fin(p, 0) / SNOW_K));
+function state(key, F, n) {
+  const s = SUP[key] || SUP.sNail1; F = clampF(F); n = s.kind === "nails" ? clampN(n) : 0;
+  const A = areaOf(key, n), p = pressure(F, A);
+  return { key, kind: s.kind, F, n, A, p, each: n ? F / n : 0, zone: skinZone(p), dim: dimple(p), sink: s.kind === "snow" ? sinkCm(p) : 0, m: F / G };
+}
+// Worked examples for step 3 (round values).
+function examples() {
+  const thumb = 20, head = 1e-4, tack = 1e-7;
+  const knifeF = 40, blade = 0.08, sharp = 1e-5, blunt = 3e-4;
+  const trM = 5, trF = trM * 1000 * G, trA = 2 * 2 * 0.4;
+  return {
+    tack: { F: thumb, p1: thumb / head, p2: thumb / tack, r: head / tack },
+    knife: { F: knifeF, p1: knifeF / (blade * sharp), p2: knifeF / (blade * blunt) },
+    tractor: { M: trM, F: trF, p: trF / trA, r: (trF / trA) / (700 / SUP.sBoots.A) },
+  };
+}
+const SUPS = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"];
+const sup = (e) => (e < 0 ? "⁻" : "") + String(Math.abs(e)).split("").map((d) => SUPS[+d]).join("");
+function sci(x) {
+  if (!(x > 0) || !Number.isFinite(x)) return "—";
+  let e = Math.floor(Math.log10(x)), m = x / Math.pow(10, e);
+  if (Math.round(m * 10) / 10 >= 10) { m /= 10; e += 1; }
+  return e >= 0 && e <= 3 ? String(Math.round(x)) : m.toFixed(1) + " × 10" + sup(e);
+}
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const scene = $("scene");
+const S = { key: "sNail1", F: 700, n: 1 };
+let st = null, shown = { dim: 0, sink: 0 }, anim = 0, stp = null, lastLive = "";
+const fA = (A) => (A >= 0.01 ? Play.fmt(A, 3) + " m²" : sci(A) + " m²");
+
+/* ---------- controls ---------- */
+Object.keys(SUP).forEach((k) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.dataset.k = k; b.textContent = P.t(k);
+  b.addEventListener("click", () => { S.key = k; if (SUP[k].kind === "nails") S.n = SUP[k].n; update(); });
+  $("sups").appendChild(b);
+});
+$("w").addEventListener("input", () => { S.F = +$("w").value || 700; update(); });
+$("n").addEventListener("input", () => {
+  S.n = nFromIdx(+$("n").value);
+  if (SUP[S.key].kind !== "nails") S.key = "sNail1";
+  update(true);
+});
+
+function update(fromN) {
+  const nails = SUP[S.key].kind === "nails";
+  if (nails) S.key = S.n === 1000 ? "sNail1000" : "sNail1";
+  st = state(S.key, S.F, S.n);
+  S.F = st.F; if (nails) S.n = st.n;
+  $("w").value = S.F;
+  $("wVal").textContent = S.F + " " + P.t("unitN") + " " + P.t("kg", { m: Math.round(st.m) });
+  if (!fromN) $("n").value = idxFromN(S.n);
+  $("nVal").textContent = S.n === 1 ? P.t("nNail") : P.t("nNails", { n: S.n });
+  $("nPair").style.opacity = nails ? "1" : ".5";
+  document.querySelectorAll("#sups button").forEach((b) => {
+    const k = b.dataset.k, on = nails ? SUP[k].kind === "nails" && SUP[k].n === S.n : k === S.key;
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  readout(); drawRule(); animateTo(); say();
+}
+function say() {
+  const n = S.n === 1 ? P.t("nNail") : P.t("nNails", { n: S.n });
+  const msg = st.kind === "nails"
+    ? P.t("liveNails", { n, F: st.F, A: fA(st.A), p: sci(st.p), z: P.t("zoneSay" + st.zone) })
+    : P.t("liveSnow", { s: P.t(st.key), F: st.F, A: fA(st.A), p: sci(st.p), d: Play.fmt(st.sink, 0) });
+  if (msg !== lastLive) { lastLive = msg; Play.live($("live"), msg); }
+}
+
+/* ---------- gentle tween of the dent / sink (none when reduced motion) ---------- */
+function animateTo() {
+  cancelAnimationFrame(anim);
+  const from = { ...shown }, to = { dim: st.dim, sink: st.sink }, t0 = performance.now();
+  if (Play.reduced) { shown = to; draw(); return; }
+  const step = (ts) => {
+    const u = Math.min(1, (ts - t0) / 350), e = 1 - Math.pow(1 - u, 3);
+    shown = { dim: from.dim + (to.dim - from.dim) * e, sink: from.sink + (to.sink - from.sink) * e };
+    draw();
+    if (u < 1) anim = requestAnimationFrame(step);
+  };
+  anim = requestAnimationFrame(step);
+}
+
+/* ---------- drawing ---------- */
+const sv = Play.svg;
+function text(x, y, cls, str, anchor) {
+  const w = [...str].reduce((a, c) => a + (c.charCodeAt(0) > 0x2e80 ? 23 : 12.5), 0), xx = anchor === "middle" ? Play.clamp(x, 6 + w / 2, 594 - w / 2) : x;
+  sv("text", { class: cls, x: xx.toFixed(1), y, "text-anchor": anchor || "start" }, scene).textContent = str;
+}
+function arrowDown(x, y0, y1) {
+  sv("line", { class: "arrF", x1: x, y1: y0, x2: x, y2: y1 - 10 }, scene);
+  sv("polygon", { class: "arrH", points: `${x},${y1} ${x - 9},${y1 - 15} ${x + 9},${y1 - 15}` }, scene);
+}
+function draw() {
+  scene.innerHTML = "";
+  if (st.kind === "nails") drawNails(); else drawSnow();
+  drawScale();
+}
+function drawNails() {
+  const X0 = 30, X1 = 370, BY = 222, TY = 178, d = Math.min(st.n, 33);
+  sv("rect", { class: "board", x: X0, y: BY, width: X1 - X0, height: 16, rx: 3 }, scene);
+  for (let i = 0; i < d; i++) {
+    const x = d === 1 ? (X0 + X1) / 2 : X0 + 14 + i * (X1 - X0 - 28) / (d - 1);
+    sv("rect", { class: "nail", x: x - 1.5, y: TY + 10, width: 3, height: BY - TY - 10 }, scene);
+    sv("polygon", { class: "nail", points: `${x - 3},${TY + 11} ${x + 3},${TY + 11} ${x},${TY}` }, scene);
+  }
+  sv("rect", { class: "body", x: 50, y: 118, width: 300, height: TY - 118, rx: 26 }, scene);
+  arrowDown(200, 34, 112);
+  text(212, 70, "lbF", P.t("weightF", { F: st.F }));
+  text(200, 268, "lbl", st.n > d ? P.t("drawn", { d, n: st.n }) : (st.n === 1 ? P.t("nNail") : P.t("nNails", { n: st.n })), "middle");
+  // close-up of one tip pressing into the skin (skin is above the tip)
+  const cx = 494, cy = 128, r = 92, y0 = 128, dent = 46 * shown.dim, zc = ["lbA", "lbH", "lbN"][st.zone];
+  const clip = sv("clipPath", { id: "lensClip" }, sv("defs", {}, scene));
+  sv("circle", { cx, cy, r }, clip);
+  sv("circle", { class: "lens", cx, cy, r }, scene);
+  const g = sv("g", { "clip-path": "url(#lensClip)" }, scene), pts = [];
+  for (let i = 0; i <= 40; i++) { const x = cx - r + i * 2 * r / 40, dx = x - cx; pts.push(x.toFixed(1) + "," + (y0 - dent * Math.exp(-(dx * dx) / 500)).toFixed(1)); }
+  sv("polygon", { class: "skin", points: `${cx - r},${cy - r} ${cx + r},${cy - r} ` + pts.slice().reverse().join(" ") }, g);
+  sv("polyline", { class: "skinLine", points: pts.join(" ") }, g);
+  const tipY = st.zone === 2 ? y0 - dent - 26 : y0 - dent;
+  sv("polygon", { class: "nail", points: `${cx - 16},${cy + r} ${cx + 16},${cy + r} ${cx + 16},${tipY + 40} ${cx},${tipY} ${cx - 16},${tipY + 40}` }, g);
+  text(cx, 246, zc, P.t("zone" + st.zone), "middle");
+  text(cx, 274, "lbl", P.t("perNail", { f: Play.fmt(st.each, st.each < 10 ? 2 : 0) }), "middle");
+}
+function drawSnow() {
+  const SY = 186, X0 = 20, X1 = 380, cx = 200, s = SUP[st.key], w = s.w, sink = shown.sink * 0.9;
+  const L = cx - w / 2, R = cx + w / 2, by = SY + sink;
+  sv("rect", { class: "snow", x: X0, y: SY, width: X1 - X0, height: 66 }, scene);
+  sv("rect", { class: "snow", x: L, y: SY - 1, width: w, height: sink + 1, style: "fill:var(--surface);stroke:none" }, scene);
+  sv("polyline", { class: "snowTop", points: `${X0},${SY} ${L},${SY} ${L},${by} ${R},${by} ${R},${SY} ${X1},${SY}` }, scene);
+  // support
+  if (st.key === "sSkis") sv("path", { class: "sup", d: `M${L},${by} L${R - 16},${by} Q${R + 4},${by} ${R + 8},${by - 14} L${R - 14},${by - 6} L${L},${by - 6} Z` }, scene);
+  else if (st.key === "sShoes") sv("ellipse", { class: "sup", cx, cy: by - 4, rx: w / 2, ry: 6 }, scene);
+  else sv("rect", { class: "sup", x: L, y: by - 12, width: w, height: 12, rx: 4 }, scene);
+  // person
+  const feet = by - (st.key === "sBoots" ? 12 : 6), hip = feet - 58, neck = hip - 50;
+  sv("polyline", { class: "stick", points: `${cx - 12},${feet} ${cx},${hip} ${cx + 12},${feet}` }, scene);
+  sv("line", { class: "stick", x1: cx, y1: hip, x2: cx, y2: neck }, scene);
+  sv("polyline", { class: "stick", points: `${cx - 26},${hip - 10} ${cx},${neck + 8} ${cx + 26},${hip - 10}` }, scene);
+  sv("circle", { class: "head", cx, cy: neck - 14, r: 14 }, scene);
+  text(240, Math.max(48, neck - 20), "lbF", P.t("weightF", { F: st.F }));
+  text(30, 240, "lbl", P.t("snowTitle"));
+  // depth gauge
+  const GX = 470, GY = 40, GH = 180, d = st.sink;
+  sv("rect", { class: "gauge", x: GX, y: GY, width: 48, height: GH, rx: 4 }, scene);
+  sv("rect", { class: "gaugeFill", x: GX, y: GY, width: 48, height: GH * shown.sink / SNOW_MAX, rx: 4 }, scene);
+  text(GX + 24, GY + GH + 26, "lbl", P.t("snowDepth"), "middle");
+  text(GX + 24, Math.min(GY + GH * d / SNOW_MAX + 26, GY + GH - 6), "lbH", P.t("sinks", { d: Play.fmt(d, 0) }), "middle");
+}
+// Log pressure scale 10³…10⁹ Pa with skin zones; dots for every support at the current weight.
+const LX0 = 34, LX1 = 566, LY = 332, lx = (p) => LX0 + (Math.log10(p) - 3) / 6 * (LX1 - LX0);
+function drawScale() {
+  [[1e3, SKIN_PAIN, "z0"], [SKIN_PAIN, SKIN_BREAK, "z1"], [SKIN_BREAK, 1e9, "z2"]].forEach(([a, b, c]) => sv("rect", { class: c, x: lx(a), y: LY - 10, width: lx(b) - lx(a), height: 20 }, scene));
+  sv("line", { class: "ax", x1: LX0, y1: LY + 10, x2: LX1, y2: LY + 10 }, scene);
+  ["1 kPa", "", "100 kPa", "", "10 MPa", "", "1 GPa"].forEach((s, i) => {
+    const x = LX0 + i * (LX1 - LX0) / 6;
+    sv("line", { class: "ax", x1: x, y1: LY + 10, x2: x, y2: LY + 18 }, scene);
+    if (s) sv("text", { class: "lbl", x, y: LY + 40, "text-anchor": i === 0 ? "start" : i === 6 ? "end" : "middle" }, scene).textContent = s;
+  });
+  [[1e3, SKIN_PAIN, 0], [SKIN_PAIN, SKIN_BREAK, 1], [SKIN_BREAK, 1e9, 2]].forEach(([a, b, z]) => {
+    const x = (lx(a) + lx(b)) / 2;
+    sv("text", { class: "lbl", x, y: LY + 64, "text-anchor": "middle" }, scene).textContent = P.t("zone" + z);
+  });
+  Object.keys(SUP).forEach((k) => {
+    const o = state(k, st.F, SUP[k].n || 1);
+    sv("circle", { class: "ghost", cx: lx(o.p).toFixed(1), cy: LY, r: 5 }, scene);
+  });
+  const x = lx(Play.clamp(st.p, 1e3, 1e9));
+  sv("polygon", { class: "ptr", points: `${x},${LY + 4} ${x - 9},${LY - 14} ${x + 9},${LY - 14}` }, scene);
+  text(x, LY - 22, "lbF", "p = " + sci(st.p) + " " + P.t("unitPa"), "middle");
+}
+
+/* ---------- side panel ---------- */
+function readout() {
+  const row = (k, v) => `<tr><td>${P.t(k)}</td><td>${v}</td></tr>`;
+  let h = row("rF", st.F + " " + P.t("unitN")) + row("rA", fA(st.A)) + row("rP", sci(st.p) + " " + P.t("unitPa"));
+  h += st.kind === "nails" ? row("rEach", Play.fmt(st.each, st.each < 10 ? 2 : 0) + " " + P.t("unitN"))
+    : row("rSink", "≈ " + Play.fmt(st.sink, 0) + " cm");
+  $("readout").innerHTML = h;
+}
+function drawRule() {
+  const box = $("rule");
+  if (!stp || stp.i !== 2) { box.innerHTML = ""; return; }
+  const a = state("sNail1", S.F, 1), b = state("sNail1000", S.F, 1000), ex = examples();
+  let h = "<p>" + P.t("ruleMain", { F: S.F, r: Play.fmt(b.A / a.A, 0), p0: sci(a.p), p1: sci(b.p) }) + "</p>";
+  h += `<table class="readout"><tr><th>${P.t("colS")}</th><th>${P.t("colA")}</th><th>${P.t("colP")}</th></tr>`;
+  Object.keys(SUP).forEach((k) => {
+    const o = state(k, S.F, SUP[k].n || 1), cur = st.kind === "nails" ? SUP[k].n === S.n : k === S.key;
+    h += `<tr${cur ? ' class="cur"' : ""}><td>${P.t(k)}</td><td>${fA(o.A)}</td><td>${sci(o.p)} ${P.t("unitPa")}</td></tr>`;
+  });
+  h += "</table><h3>" + P.t("moreH") + "</h3><ul>";
+  h += "<li>" + P.t("ex1", { F: ex.tack.F, p1: sci(ex.tack.p1), p2: sci(ex.tack.p2), r: Play.fmt(ex.tack.r, 0) }) + "</li>";
+  h += "<li>" + P.t("ex2", { F: ex.knife.F, p1: sci(ex.knife.p1), p2: sci(ex.knife.p2) }) + "</li>";
+  h += "<li>" + P.t("ex3", { M: ex.tractor.M, F: sci(ex.tractor.F), p: sci(ex.tractor.p), r: Play.fmt(ex.tractor.r, 1) }) + "</li></ul>";
+  box.innerHTML = h;
+}
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }], right: P.t("right"), wrong: P.t("wrong"),
+});
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = i === 2 ? "" : P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("readout").hidden = i === 2;
+  if (st) drawRule();
+});
+function resetAll() {
+  Object.assign(S, { key: "sNail1", F: 700, n: 1 });
+  lastLive = ""; $("live").textContent = "";
+  pr.reset(); stp.go(0); update();
+}
+$("reset").addEventListener("click", resetAll);
+resetAll();
+</script>
+</body>
+</html>

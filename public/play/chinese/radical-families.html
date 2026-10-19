@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radical families</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .han { font-family: "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", "Songti SC", serif; }
+  #fig text { fill: var(--fg); }
+  #fig .lab { font-size: 20px; fill: var(--muted); font-family: var(--font); }
+  #fig .py { font-size: 22px; font-family: var(--font); }
+  #fig .ra { fill: var(--a); }
+  #fig .alt { fill: var(--c); }
+  #fig .slot { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  #fig .slot.got { stroke: var(--a); stroke-width: 2.5; }
+  #fig .box { fill: var(--soft); stroke: var(--line); stroke-width: 1.5; }
+  #fig .arrow { stroke: var(--muted); stroke-width: 2.5; fill: none; }
+  .sorter { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .bins { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .bin { text-align: left; padding: 8px 9px; min-height: 92px; display: flex; flex-direction: column; gap: 2px; border-radius: 12px; background: var(--soft); border: 2px solid transparent; }
+  .bin:hover, .bin.over { border-color: var(--a); }
+  .bin.armed { border-style: dashed; border-color: var(--line); }
+  .bin.armed:hover, .bin.armed.over { border-style: solid; border-color: var(--a); }
+  .bin .hd { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .bin .old { font-size: 26px; color: var(--a); line-height: 1.1; }
+  .bin .side { font-size: 24px; color: var(--c); }
+  .bin .nm { font-size: 13px; color: var(--muted); line-height: 1.3; }
+  .sfb { display: none; margin: 0; font-size: 14px; color: var(--fg); min-height: 1.4em; }
+  @media (max-width: 860px) { .sfb { display: block; } }
+  .bin .got { font-size: 21px; letter-spacing: .08em; line-height: 1.25; color: var(--fg); overflow-wrap: anywhere; }
+  .bin.flash { background: var(--surface); }
+  .bin.nope { border-color: var(--no); }
+  .trayrow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .tray { display: flex; flex-wrap: wrap; gap: 6px; min-height: 52px; }
+  .tile { touch-action: none; font-size: 26px; width: 50px; height: 50px; padding: 0; display: grid; place-items: center; line-height: 1; }
+  .tile[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .tile.big { width: 84px; height: 84px; font-size: 52px; }
+  .tile.shake { animation: shake .3s; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  .ghost { position: fixed; z-index: 9; pointer-events: none; font-size: 40px; color: var(--a); transform: translate(-50%, -60%); }
+  .pairs { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 14px 14px; align-items: center; font-size: 13px; color: var(--muted); }
+  .pairs button { font-size: 18px; min-width: 52px; }
+  .pairs button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .sayrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 2px 0 8px; }
+  .gloss { font-size: 15px !important; color: var(--fg) !important; }
+  .gloss .big { font-size: 22px; }
+  @media (max-width: 560px) {
+    .bins { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bin { min-height: 78px; }
+    .tile { width: 46px; height: 46px; font-size: 24px; }
+  }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" data-t-aria="figAria"></svg>
+      <div class="pairs" id="pairs" role="group" data-t-aria="pairsLabel"><span data-t="pairsLabel"></span></div>
+      <div class="sorter" id="sorter">
+        <div class="trayrow"><span id="trayLabel"></span><span id="score"></span></div>
+        <div class="tray" id="tray" role="group" data-t-aria="trayAria"></div>
+        <div class="bins" id="bins" role="group" data-t-aria="binsLabel"></div>
+        <p class="sfb" id="sfb" aria-hidden="true"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="gloss" id="gloss"></p>
+      <div class="sayrow"><button type="button" class="small" id="say" data-t="say"></button><button type="button" class="small" id="next" data-t="next" hidden></button></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math han" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// Meaning families. old = the full character the radical comes from; side = the squeezed form used in these characters.
+// Origins follow 说文解字 (each character below is listed there or in later dictionaries as 从水 / 从手 / 从木 / 从肉 / 从月 / 从玉 / 从衣 / 从示).
+const CATS = [
+  { id: "water", old: "水", side: "氵", en: "water", zh: "水" },
+  { id: "hand", old: "手", side: "扌", en: "hand", zh: "手" },
+  { id: "tree", old: "木", side: "木", en: "tree, wood", zh: "树木" },
+  { id: "flesh", old: "肉", side: "月", en: "flesh, body", zh: "肉、身体" },
+  { id: "moon", old: "月", side: "月", en: "moon", zh: "月亮" },
+  { id: "jade", old: "玉", side: "王", en: "jade", zh: "玉石" },
+  { id: "cloth", old: "衣", side: "衤", en: "clothing", zh: "衣服" },
+  { id: "altar", old: "示", side: "礻", en: "altar, gods", zh: "祭祀、神" },
+];
+// Characters to sort. py = standard Putonghua reading; w = a simple word; en/zh = child-level gloss.
+const CH = [
+  { c: "河", py: "hé", cat: "water", w: "小河", en: "river", zh: "河流" },
+  { c: "湖", py: "hú", cat: "water", w: "湖水", en: "lake", zh: "湖泊" },
+  { c: "海", py: "hǎi", cat: "water", w: "大海", en: "sea", zh: "大海" },
+  { c: "打", py: "dǎ", cat: "hand", w: "打球", en: "to hit", zh: "用手击打" },
+  { c: "拍", py: "pāi", cat: "hand", w: "拍手", en: "to clap, to pat", zh: "用手掌拍" },
+  { c: "推", py: "tuī", cat: "hand", w: "推车", en: "to push", zh: "用手往前推" },
+  { c: "林", py: "lín", cat: "tree", w: "树林", en: "woods (two trees)", zh: "两棵树：成片的树" },
+  { c: "树", py: "shù", cat: "tree", w: "大树", en: "tree", zh: "树木" },
+  { c: "肚", py: "dù", cat: "flesh", w: "肚子", en: "belly", zh: "身体的肚子" },
+  { c: "脸", py: "liǎn", cat: "flesh", w: "洗脸", en: "face", zh: "脸面" },
+  { c: "腿", py: "tuǐ", cat: "flesh", w: "大腿", en: "leg", zh: "腿脚" },
+  { c: "期", py: "qī", cat: "moon", w: "星期", en: "a set time, as in a week — time was counted by the moon", zh: "约定的时间；古人用月亮的圆缺记时间" },
+  { c: "朗", py: "lǎng", cat: "moon", w: "晴朗", en: "bright, clear (first: bright moonlight)", zh: "明亮，本指月光明亮" },
+  { c: "玩", py: "wán", cat: "jade", w: "玩具", en: "to play (first: to handle jade in your hands)", zh: "玩耍，本指拿着玉把玩" },
+  { c: "珠", py: "zhū", cat: "jade", w: "珍珠", en: "pearl, bead", zh: "珍珠、圆珠" },
+  { c: "球", py: "qiú", cat: "jade", w: "皮球", en: "ball (first: a fine jade)", zh: "球，本指一种美玉" },
+  { c: "衫", py: "shān", cat: "cloth", w: "衬衫", en: "shirt", zh: "上衣" },
+  { c: "袖", py: "xiù", cat: "cloth", w: "袖子", en: "sleeve", zh: "衣服的袖子" },
+  { c: "被", py: "bèi", cat: "cloth", w: "被子", en: "quilt (a cover you sleep under)", zh: "睡觉盖的被子" },
+  { c: "神", py: "shén", cat: "altar", w: "神话", en: "god, spirit", zh: "神灵" },
+  { c: "祖", py: "zǔ", cat: "altar", w: "祖先", en: "ancestor", zh: "祖先，祭祀时供奉的长辈" },
+  { c: "福", py: "fú", cat: "altar", w: "幸福", en: "blessing, good luck", zh: "福气，向神祈求的好运" },
+];
+// Final round: characters not seen in the sorting step, one per family.
+const TEST = [
+  { c: "松", py: "sōng", cat: "tree", w: "松树", en: "pine tree", zh: "松树" },
+  { c: "脚", py: "jiǎo", cat: "flesh", w: "脚印", en: "foot", zh: "脚" },
+  { c: "祝", py: "zhù", cat: "altar", w: "祝福", en: "to wish well (first: to pray at the altar)", zh: "祝愿，本指在神前祷告" },
+  { c: "洗", py: "xǐ", cat: "water", w: "洗手", en: "to wash", zh: "用水洗" },
+  { c: "裤", py: "kù", cat: "cloth", w: "裤子", en: "trousers", zh: "裤子" },
+  { c: "明", py: "míng", cat: "moon", w: "明月", en: "bright — 日 sun and 月 moon", zh: "明亮，日和月放在一起" },
+  { c: "理", py: "lǐ", cat: "jade", w: "整理", en: "to put in order (first: to cut and polish jade)", zh: "整理，本指按纹路雕琢玉石" },
+  { c: "拉", py: "lā", cat: "hand", w: "拉门", en: "to pull", zh: "用手拉" },
+];
+// Look-alike radicals for step 3.
+const PAIRS = [
+  { btn: "月", cols: [
+    { old: "肉", side: "月", cat: "flesh", ex: ["肚", "脸", "腿"] },
+    { old: "月", side: "月", cat: "moon", ex: ["期", "朗"] } ], k: "pMoon" },
+  { btn: "王", cols: [
+    { old: "玉", side: "王", cat: "jade", ex: ["玩", "珠", "球"] } ], k: "pJade" },
+  { btn: "衤礻", cols: [
+    { old: "衣", side: "衤", cat: "cloth", ex: ["衫", "袖", "被"] },
+    { old: "示", side: "礻", cat: "altar", ex: ["神", "祖", "福"] } ], k: "pDots" },
+  { btn: "阝", cols: [
+    { old: "阜", side: "阝", pos: "L", ex: ["阶", "陡", "院"] },
+    { old: "邑", side: "阝", pos: "R", ex: ["郊", "都", "邮"] } ], k: "pEar" },
+];
+// Fixed scrambled order for the tray (indices into CH) so families are not side by side.
+const ORDER = [8, 12, 2, 14, 19, 4, 17, 6, 10, 21, 0, 15, 11, 5, 18, 9, 1, 20, 13, 3, 16, 7];
+
+const P = Play.setup({
+  en: {
+    title: "Radical families", eyebrow: "Chinese · Stage 1", h1: "Radical families: what the left side means",
+    intro: "The side part of a character names a family of meanings. Sort characters into their families — and watch out for parts that look alike but come from different old characters.",
+    reset: "Reset", figAria: "Characters with their radicals and the older characters those radicals come from",
+    pairsLabel: "Look-alike parts:", binsLabel: "Meaning families", trayAria: "Characters to sort",
+    s1: "Guess", s2: "Sort", s3: "Look-alikes", s4: "New ones",
+    k1: "Predict first", t1: "Does 月 always mean the moon?",
+    b1: "Pick an answer. The picture shows what the three characters mean.",
+    k2: "Hands on", t2: "Sort the characters into families",
+    b2: "Drag a character onto a family, or tap the character and then the family (keyboard: Tab to a character, Enter, then Tab to a family, Enter). Each family is named by its full, older character.",
+    k3: "The rule", t3: "Same shape, different family",
+    b3: "A meaning part is often an old character squeezed to fit on the side. Squeezing can make two families look the same. Tap the buttons under the picture to compare.",
+    k4: "Try it", t4: "Characters you have not sorted yet",
+    b4: "Tap the family you think this character belongs to. Use the side part — and remember the look-alikes.",
+    q: "肚, 脸 and 腿 all have 月 on the left. They are about…", o1: "The moon", o2: "Parts of the body", o3: "Nothing shared — 月 is just a shape",
+    right: "Yes. 肚 belly, 脸 face, 腿 leg. Their 月 is not the moon: it is 肉 (flesh) squeezed thin.",
+    wrong: "Look at the meanings: 肚 belly, 脸 face, 腿 leg — all body parts. This 月 is really 肉 (flesh), squeezed thin. 月 does not always mean the moon.",
+    hidden: "?", say: "▶ Say it", next: "Next ›",
+    trayLeft: "To sort: {n}", trayTest: "Character {i} of {n}", trayDone: "All sorted.", testDone: "Round over.",
+    score: "First try: {k} / {n}",
+    pickHint: "{c} picked — now tap a family.", idle: "Pick a character.",
+    ok: "{c} → {cat}.", trapMoon: "{c} is part of your body. Its 月 is 肉 (flesh), squeezed thin — not the moon.",
+    trapFlesh: "{c} really is about the moon: {g}.",
+    trapDots: "Look closely: 衤 (clothing, from 衣) has one more short stroke than 礻 (altar, from 示).",
+    trapJade: "This 王 is not a king: it is 玉 (jade) with its dot dropped.",
+    generic: "Not {cat}. Look at the side part of {c} again.",
+    belongs: "{c} belongs to {cat}.",
+    allDone: "All {n} sorted, {k} on the first try. Every 月 that was a body part went to 肉.",
+    testEnd: "{k} of {n} right on the first try.",
+    pMoon: "Left: 月 from 肉 (flesh) — body parts. Right: the real moon 月 — time and light. In old printing the flesh form was even drawn a little differently.",
+    pJade: "As a side part, 玉 drops its dot and its last stroke tilts up. So 玩, 珠, 球 are about jade, not kings.",
+    pDots: "衣 (clothing) becomes 衤; 示 (altar) becomes 礻. The only difference is one short stroke.",
+    pEar: "On the left, 阝 comes from 阜 (a mound, a hill): steps, steep, a walled yard. On the right, 阝 comes from 邑 (a town): suburbs, capital, post office.",
+    left: "left 阝 = hill", rightE: "right 阝 = town",
+    resultTitle: "What we found", resultMain: "肉 → 月 · 玉 → 王 · 衣 → 衤 · 示 → 礻",
+    resultNote: "A meaning part names a family, often through an older character that has been squeezed. It points to the area of meaning, not the exact word: 期 is about time, counted by the moon.",
+    explainK: "Explain it", explainQ: "A friend says 胖 (fat) must have something to do with the moon. Explain why not — and give a character whose 月 really is the moon.",
+    homeK: "Try at home", homeQ: "Find characters with 月, 王 or 衤/礻 on the side in a picture book or on packets. Sort them into body / moon, jade, clothing / gods, then check with an adult or a dictionary.",
+    foot: "Origins of the radicals follow 说文解字 (Shuowen Jiezi, c. 100 CE); pinyin follows standard Putonghua (现代汉语词典); glosses are simplified for children. 都 is read dū here (as in 首都). Speech uses your browser's Chinese voice. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "偏旁家族分一分", eyebrow: "语文 · 阶段 1", h1: "偏旁家族分一分：左边那一半是什么意思",
+    intro: "字的形旁说的是一个意义家族。把字分进各自的家族——小心那些长得一样、其实来自不同古字的偏旁。",
+    reset: "重置", figAria: "带偏旁的字，以及这些偏旁原来的完整字形",
+    pairsLabel: "长得像的偏旁：", binsLabel: "意义家族", trayAria: "待分的字",
+    s1: "先猜", s2: "分一分", s3: "认一认", s4: "考考你",
+    k1: "先猜一猜", t1: "带「月」的字都跟月亮有关吗？",
+    b1: "先选一个答案，图上会出现这三个字的意思。",
+    k2: "动手", t2: "把字分进各自的家族",
+    b2: "把字拖到一个家族上，或者先点字、再点家族（键盘：Tab 到字，回车，再 Tab 到家族，回车）。每个家族用它原来的完整字形命名。",
+    k3: "规律", t3: "长得一样，不一定是一家",
+    b3: "形旁常常是一个古字压扁了放在旁边。压扁以后，两个家族可能长得一模一样。点图下面的按钮比一比。",
+    k4: "试一试", t4: "没分过的新字",
+    b4: "点一下你认为这个字属于的家族。看偏旁，也别忘了那几对长得像的。",
+    q: "肚、脸、腿左边都是「月」。它们说的是……", o1: "月亮", o2: "身体的部位", o3: "没有共同点——「月」只是个形状",
+    right: "对。肚子、脸、腿。它们的「月」不是月亮，是「肉」压扁了。",
+    wrong: "看看意思：肚子、脸、腿，都是身体的部位。这个「月」其实是「肉」压扁了。带「月」的字不一定跟月亮有关。",
+    hidden: "?", say: "▶ 读一读", next: "下一个 ›",
+    trayLeft: "还有 {n} 个", trayTest: "第 {i} 个，共 {n} 个", trayDone: "全部分完。", testDone: "这一轮结束。",
+    score: "一次分对：{k} / {n}",
+    pickHint: "选了「{c}」——再点一个家族。", idle: "先选一个字。",
+    ok: "「{c}」→ {cat}。", trapMoon: "「{c}」是身体的一部分。它的「月」是「肉」压扁了，不是月亮。",
+    trapFlesh: "「{c}」真的跟月亮有关：{g}。",
+    trapDots: "仔细看：衤（衣服，来自「衣」）比 礻（祭祀，来自「示」）多一个短点。",
+    trapJade: "这个「王」不是国王，是「玉」去掉了一点。",
+    generic: "不是「{cat}」。再看看「{c}」的偏旁。",
+    belongs: "「{c}」属于「{cat}」。",
+    allDone: "{n} 个字全部分完，一次分对 {k} 个。凡是身体部位的「月」，都进了「肉」家。",
+    testEnd: "{n} 个里一次答对 {k} 个。",
+    pMoon: "左边：「月」来自「肉」，管身体部位。右边：真正的月亮，管时间和月光。旧时印刷，肉月旁还写得跟月亮的「月」略有不同。",
+    pJade: "「玉」做偏旁时去掉一点，最后一横变成提。所以玩、珠、球说的是玉，不是国王。",
+    pDots: "「衣」变成衤，「示」变成礻。差别只有一个短点。",
+    pEar: "左耳刀「阝」来自「阜」（土山）：台阶、陡坡、院墙。右耳刀「阝」来自「邑」（城镇）：郊外、首都、邮局。",
+    left: "左阝 = 土山", rightE: "右阝 = 城镇",
+    resultTitle: "我们发现", resultMain: "肉 → 月 · 玉 → 王 · 衣 → 衤 · 示 → 礻",
+    resultNote: "形旁标的是一个意义家族，而且常是压扁了的古字。它指出意思的大方向，不是字的确切意思：「期」说的是时间，古人用月亮记时间。",
+    explainK: "说一说", explainQ: "有人说「胖」一定跟月亮有关。跟他讲讲为什么不是——再举一个「月」真的是月亮的字。",
+    homeK: "家里做一做", homeQ: "在绘本或包装上找带「月」「王」「衤/礻」偏旁的字，分成身体/月亮、玉、衣服/神几类，再问大人或查字典核对。",
+    foot: "偏旁来源依据《说文解字》（约公元 100 年）；拼音按普通话标准读音（《现代汉语词典》）；释义为儿童简化版。「都」这里读 dū（首都）。朗读用浏览器自带的中文语音。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), binsEl = $("bins"), trayEl = $("tray"), S = Play.svg;
+const catOf = (id) => CATS.find((x) => x.id === id);
+const catName = (id) => { const c = catOf(id); return L === "zh" ? c.old + "（" + c.zh + "）" : c.old + " (" + c.en + ")"; };
+const glossOf = (x) => x[L];
+// Status line: the aria-live note in the side panel, mirrored under the families on narrow screens.
+function tell(text) { Play.live($("live"), text); $("sfb").textContent = text; }
+$("resultMain").textContent = P.t("resultMain");
+
+let step = 0, revealed = false, pair = 0, sel = null, last = null;
+// sorting state
+const placed = new Set(), missed = new Set(), seenCat = new Set();
+// test state
+let ti = 0, tAnswered = false;
+const tFirst = TEST.map(() => null);
+
+function scoreSort() { let k = 0; placed.forEach((i) => { if (!missed.has(i)) k++; }); return k; }
+function scoreTest() { return tFirst.filter((x) => x === true).length; }
+// Why a drop is wrong: pick the most useful hint.
+function wrongMsg(x, binId) {
+  if (x.cat === "flesh" && binId === "moon") return P.t("trapMoon", { c: x.c });
+  if (x.cat === "moon" && binId === "flesh") return P.t("trapFlesh", { c: x.c, g: glossOf(x) });
+  if ((x.cat === "cloth" && binId === "altar") || (x.cat === "altar" && binId === "cloth")) return P.t("trapDots");
+  if (x.cat === "jade") return P.t("trapJade");
+  return P.t("generic", { cat: catName(binId), c: x.c });
+}
+function glossLine(x) {
+  const g = $("gloss");
+  g.textContent = "";
+  if (!x) return;
+  const b = document.createElement("span"); b.className = "big han"; b.textContent = x.c + " ";
+  const p = document.createElement("strong"); p.textContent = x.py;
+  g.append(b, p, document.createTextNode((L === "zh" ? "　" : "  ") + x.w + (L === "zh" ? "：" : " — ") + glossOf(x)));
+}
+
+// ---- SVG figures (steps 1 and 3) ----
+function txt(x, y, s, cls, size, anchor) {
+  const t = S("text", { x, y, "text-anchor": anchor || "middle", class: cls || "" }, fig);
+  if (size) t.setAttribute("font-size", size);
+  t.textContent = s;
+  return t;
+}
+function drawGuess() {
+  ["肚", "脸", "腿"].forEach((c, i) => {
+    const x = CH.find((y) => y.c === c), cx = 30 + i * 186;
+    S("rect", { x: cx, y: 40, width: 168, height: 270, rx: 16, class: "slot" + (revealed ? " got" : "") }, fig);
+    txt(cx + 84, 160, c, "han", 104);
+    txt(cx + 84, 222, revealed ? x.py + "  " + x.w : P.t("hidden"), "py han");
+    txt(cx + 84, 266, revealed ? glossOf(x) : P.t("hidden"), "lab");
+  });
+}
+function drawPair() {
+  const pr = PAIRS[pair], n = pr.cols.length, w = 600 / n;
+  pr.cols.forEach((col, j) => {
+    const x0 = j * w, cx = x0 + w / 2;
+    if (j > 0) S("line", { x1: x0, y1: 20, x2: x0, y2: 340, stroke: "var(--line)", "stroke-width": 2 }, fig);
+    // old character → squeezed side form
+    S("rect", { x: cx - 120, y: 22, width: 96, height: 96, rx: 12, class: "box" }, fig);
+    txt(cx - 72, 96, col.old, "han ra", 72);
+    S("path", { d: `M${cx - 14} 70 h28 m-9 -8 l9 8 l-9 8`, class: "arrow" }, fig);
+    S("rect", { x: cx + 24, y: 22, width: 96, height: 96, rx: 12, class: "box" }, fig);
+    txt(cx + 72, 96, col.side, "han " + (j ? "alt" : "ra"), 72);
+    const label = col.cat ? catOf(col.cat)[L] : P.t(col.pos === "L" ? "left" : "rightE");
+    txt(cx, 156, label, "lab " + (j ? "alt" : "ra"));
+    // example characters, each with its pinyin
+    const ex = col.ex, gap = Math.min(110, (w - 30) / ex.length);
+    ex.forEach((c, i) => {
+      const ex0 = cx + (i - (ex.length - 1) / 2) * gap;
+      const d = CH.find((y) => y.c === c) || EAR.find((y) => y.c === c);
+      txt(ex0, 248, c, "han", 66);
+      txt(ex0, 290, d.py, "lab");
+      txt(ex0, 322, d.w, "lab han");
+    });
+  });
+}
+// 阝 examples (not part of the sorting game). 都 read dū as in 首都.
+const EAR = [
+  { c: "阶", py: "jiē", w: "台阶" }, { c: "陡", py: "dǒu", w: "陡坡" }, { c: "院", py: "yuàn", w: "院子" },
+  { c: "郊", py: "jiāo", w: "郊外" }, { c: "都", py: "dū", w: "首都" }, { c: "邮", py: "yóu", w: "邮局" },
+];
+
+// ---- bins and tray (steps 2 and 4) ----
+const binBtns = CATS.map((k) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "bin";
+  b.dataset.cat = k.id;
+  b.innerHTML = '<span class="hd"><span class="old han"></span><span class="side han"></span></span><span class="nm"></span><span class="got han"></span>';
+  b.querySelector(".old").textContent = k.old;
+  b.querySelector(".nm").textContent = k[L];
+  b.addEventListener("click", () => { if (suppress) return; if (sel !== null) drop(sel, k.id); else tell(P.t("idle")); });
+  binsEl.appendChild(b);
+  return b;
+});
+function renderBins() {
+  binBtns.forEach((b) => {
+    const id = b.dataset.cat, k = catOf(id);
+    b.querySelector(".side").textContent = seenCat.has(id) && k.side !== k.old ? "→ " + k.side : "";
+    b.querySelector(".got").textContent = step === 1 ? CH.filter((x, i) => placed.has(i) && x.cat === id).map((x) => x.c).join("") : "";
+    b.classList.toggle("armed", sel !== null);
+    b.setAttribute("aria-label", k.old + " " + k[L] + (b.querySelector(".got").textContent ? ": " + b.querySelector(".got").textContent : ""));
+  });
+}
+function renderTray() {
+  trayEl.innerHTML = "";
+  const items = step === 1 ? ORDER.filter((i) => !placed.has(i)).map((i) => ({ i, x: CH[i] }))
+    : (ti < TEST.length ? [{ i: ti, x: TEST[ti] }] : []);
+  items.forEach(({ i, x }) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "tile han" + (step === 3 ? " big" : "");
+    b.dataset.i = i;
+    b.textContent = x.c;
+    b.setAttribute("aria-label", x.c + " " + x.py);
+    b.setAttribute("aria-pressed", sel === i ? "true" : "false");
+    b.addEventListener("click", () => {
+      if (suppress) return;
+      sel = sel === i ? null : i;
+      renderTray(); renderBins();
+      tell(sel === null ? P.t("idle") : P.t("pickHint", { c: x.c }));
+      const nb = trayEl.querySelector(`[data-i="${i}"]`);
+      if (nb) nb.focus();
+    });
+    trayEl.appendChild(b);
+  });
+  if (step === 1) {
+    $("trayLabel").textContent = placed.size === CH.length ? P.t("trayDone") : P.t("trayLeft", { n: CH.length - placed.size });
+    $("score").textContent = P.t("score", { k: scoreSort(), n: placed.size });
+  } else {
+    $("trayLabel").textContent = ti < TEST.length ? P.t("trayTest", { i: ti + 1, n: TEST.length }) : P.t("testDone");
+    const done = tFirst.filter((x) => x !== null).length;
+    $("score").textContent = P.t("score", { k: scoreTest(), n: done });
+  }
+}
+function flash(binId, ok) {
+  const b = binBtns.find((x) => x.dataset.cat === binId);
+  if (Play.reduced) return;
+  b.classList.add(ok ? "flash" : "nope");
+  setTimeout(() => b.classList.remove("flash", "nope"), 450);
+}
+function drop(i, binId) {
+  if (step === 1) {
+    const x = CH[i];
+    if (x.cat === binId) {
+      placed.add(i); seenCat.add(binId); sel = null; last = x;
+      glossLine(x);
+      let line = P.t("ok", { c: x.c, cat: catName(binId) });
+      if (placed.size === CH.length) line += " " + P.t("allDone", { n: CH.length, k: scoreSort() });
+      tell(line);
+      flash(binId, true);
+      renderTray(); renderBins();
+      const t = trayEl.querySelector(".tile"); if (t) t.focus();
+    } else {
+      missed.add(i); sel = null;
+      tell(wrongMsg(x, binId));
+      flash(binId, false);
+      renderTray(); renderBins();
+      const t = trayEl.querySelector(`[data-i="${i}"]`);
+      if (t && !Play.reduced) { t.classList.add("shake"); setTimeout(() => t.classList.remove("shake"), 320); }
+    }
+  } else if (step === 3) {
+    if (ti >= TEST.length || tAnswered) return;
+    const x = TEST[ti], ok = x.cat === binId;
+    if (tFirst[ti] === null) tFirst[ti] = ok;
+    flash(binId, ok);
+    if (ok) {
+      tAnswered = true; seenCat.add(binId); sel = null; last = x;
+      glossLine(x);
+      let line = P.t("ok", { c: x.c, cat: catName(binId) });
+      if (ti === TEST.length - 1) line += " " + P.t("testEnd", { k: scoreTest(), n: TEST.length });
+      tell(line);
+      $("next").hidden = ti === TEST.length - 1;
+      if (ti === TEST.length - 1) { ti = TEST.length; }
+    } else {
+      sel = null;
+      tell(wrongMsg(x, binId));
+    }
+    renderTray(); renderBins();
+  }
+}
+$("next").addEventListener("click", () => {
+  if (ti < TEST.length - 1) ti++;
+  tAnswered = false; sel = null; $("next").hidden = true;
+  $("gloss").textContent = "";
+  tell("");
+  renderTray(); renderBins();
+  const t = trayEl.querySelector(".tile"); if (t) t.focus();
+});
+
+// arrow keys move focus inside the tray and inside the family grid
+function arrows(box, sel) {
+  box.addEventListener("keydown", (e) => {
+    const els = [...box.querySelectorAll(sel)];
+    const i = els.indexOf(document.activeElement);
+    if (i < 0) return;
+    const cols = Math.max(1, Math.round(box.clientWidth / (els[0].offsetWidth + 6)));
+    const d = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    els[Play.clamp(i + d, 0, els.length - 1)].focus();
+  });
+}
+arrows(trayEl, ".tile");
+arrows(binsEl, ".bin");
+
+// drag (mouse + touch via pointer events); a tap still goes through the click handlers above
+let drag = null, suppress = false;
+function binAt(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return el ? el.closest(".bin") : null;
+}
+trayEl.addEventListener("pointerdown", (e) => {
+  const b = e.target.closest(".tile");
+  if (!b || e.button > 0) return;
+  drag = { i: +b.dataset.i, c: b.textContent, x: e.clientX, y: e.clientY, ghost: null, over: null };
+});
+window.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  if (!drag.ghost && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6) {
+    drag.ghost = document.createElement("div");
+    drag.ghost.className = "ghost han";
+    drag.ghost.textContent = drag.c;
+    document.body.appendChild(drag.ghost);
+  }
+  if (drag.ghost) {
+    drag.ghost.style.left = e.clientX + "px";
+    drag.ghost.style.top = e.clientY + "px";
+    const over = binAt(e.clientX, e.clientY);
+    if (over !== drag.over) { if (drag.over) drag.over.classList.remove("over"); if (over) over.classList.add("over"); drag.over = over; }
+  }
+});
+function endDrag(e, cancel) {
+  if (!drag) return;
+  if (drag.ghost) {
+    drag.ghost.remove();
+    if (drag.over) drag.over.classList.remove("over");
+    suppress = true;
+    setTimeout(() => (suppress = false), 0);
+    const bin = cancel ? null : binAt(e.clientX, e.clientY);
+    if (bin) drop(drag.i, bin.dataset.cat);
+  }
+  drag = null;
+}
+window.addEventListener("pointerup", (e) => endDrag(e, false));
+window.addEventListener("pointercancel", (e) => endDrag(e, true));
+
+// look-alike buttons (step 3)
+const pairBtns = PAIRS.map((pr, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "small han";
+  b.textContent = pr.btn;
+  b.addEventListener("click", () => { pair = i; draw(); });
+  b.addEventListener("keydown", (e) => {
+    const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    pair = (pair + d + PAIRS.length) % PAIRS.length;
+    draw();
+    pairBtns[pair].focus();
+  });
+  $("pairs").appendChild(b);
+  return b;
+});
+
+$("say").addEventListener("click", () => {
+  let s;
+  if (step === 0) s = "肚子，脸，腿";
+  else if (step === 2) s = PAIRS[pair].cols.map((c) => c.ex.join("，")).join("；");
+  else s = last ? last.w : (step === 3 && ti < TEST.length ? TEST[ti].c : "");
+  if (s) Play.speak(s, "zh-CN");
+});
+
+function draw() {
+  fig.innerHTML = "";
+  if (step === 0) drawGuess();
+  else if (step === 2) drawPair();
+  pairBtns.forEach((b, i) => b.setAttribute("aria-pressed", i === pair ? "true" : "false"));
+  if (step === 2) tell(P.t(PAIRS[pair].k));
+  if (step === 1 || step === 3) { renderTray(); renderBins(); }
+}
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { revealed = true; draw(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i; sel = null; last = null;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  fig.style.display = i === 0 || i === 2 ? "" : "none";
+  $("pairs").hidden = i !== 2;
+  $("sorter").hidden = i !== 1 && i !== 3;
+  $("next").hidden = !(i === 3 && tAnswered && ti < TEST.length - 1);
+  $("gloss").textContent = "";
+  tell(i === 1 || i === 3 ? P.t("idle") : "");
+  draw();
+});
+
+$("reset").addEventListener("click", () => {
+  revealed = false; pair = 0; sel = null; last = null; ti = 0; tAnswered = false;
+  placed.clear(); missed.clear(); seenCat.clear();
+  tFirst.fill(null);
+  pr.reset();
+  st.go(0);
+});
+</script>
+</body>
+</html>

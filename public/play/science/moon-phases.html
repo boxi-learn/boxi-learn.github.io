@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why does the Moon change shape?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .pane { width: 100%; height: auto; display: block; touch-action: none; }
+  #top { cursor: grab; }
+  #top:active { cursor: grabbing; }
+  .lb { font-size: 13px; fill: var(--muted); }
+  .lbf { font-size: 13px; fill: var(--fg); font-weight: 650; }
+  .lbp { font-size: 13px; fill: var(--on-panel-muted); }
+  .lbpf { font-size: 15px; fill: var(--on-panel); font-weight: 650; }
+  .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+  .controls label { min-width: 6.5em; }
+  .controls .val { min-width: 5.6em; }
+  .phases { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 14px 12px; }
+  .phases button { padding: 2px; line-height: 0; border-radius: 9px; }
+  .phases button svg { width: 26px; height: 26px; display: block; }
+  .phases button.on { background: var(--soft); color: var(--fg); border-color: var(--a); box-shadow: inset 0 0 0 1px var(--a); }
+  .seg button.on { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .sidebox { padding: 0 14px 6px; }
+  #side { width: 100%; max-width: 440px; height: auto; display: block; margin: 0 auto; }
+  .read { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 6px 0 10px; font-size: 14px; }
+  .read dt { color: var(--muted); }
+  .read dd { margin: 0; font-variant-numeric: tabular-nums; color: var(--fg); }
+  .read dd.big { font-weight: 700; }
+  .result .math { white-space: normal; }
+  @media (max-width: 560px) {
+    .panes { grid-template-columns: 1fr; }
+    .controls label { min-width: 0; }
+  }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="playBtn"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="panes">
+        <svg class="pane" id="top" viewBox="0 0 300 280" role="slider" tabindex="0" data-t-aria="topAria"></svg>
+        <svg class="pane" id="sky" viewBox="0 0 300 280" role="img" data-t-aria="skyAria"></svg>
+      </div>
+      <div class="controls">
+        <label for="age" data-t="ageLabel"></label>
+        <input type="range" id="age" min="0" max="29.5" step="0.1" value="7.4">
+        <span class="val" id="ageVal"></span>
+      </div>
+      <div class="phases" id="phases" role="group" data-t-aria="phasesAria"></div>
+      <div class="controls">
+        <span data-t="hemiLabel"></span>
+        <span class="seg">
+          <button type="button" class="small" id="hN" data-t="hN"></button>
+          <button type="button" class="small" id="hS" data-t="hS"></button>
+        </span>
+        <label class="check"><input type="checkbox" id="shadow"> <span data-t="shadowLabel"></span></label>
+      </div>
+      <div class="sidebox" id="sidebox" hidden>
+        <svg id="side" viewBox="0 0 300 200" role="img" data-t-aria="sideAria"></svg>
+        <div class="controls seg" style="padding:4px 0 8px">
+          <button type="button" class="small" id="nTyp" data-t="nTyp"></button>
+          <button type="button" class="small" id="nEcl" data-t="nEcl"></button>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <dl class="read">
+        <dt data-t="rPhase"></dt><dd id="oPhase" class="big"></dd>
+        <dt data-t="rAge"></dt><dd id="oAge"></dd>
+        <dt data-t="rAngle"></dt><dd id="oAngle"></dd>
+        <dt data-t="rLit"></dt><dd id="oLit" class="big"></dd>
+        <dt data-t="rShadow" class="shrow"></dt><dd id="oShadow" class="shrow"></dd>
+      </dl>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Why does the Moon change shape?", eyebrow: "Science · Stage 2", h1: "Half the Moon is always lit — we just see different amounts of that half",
+    intro: "Drag the Moon around Earth. Sunlight comes from the left. On the right is what you see from Earth.",
+    reset: "Reset", play: "Play a month", pause: "Pause",
+    topAria: "Top view of the Sun's light, Earth and the Moon's orbit. Drag the Moon, or use the arrow keys, to move it around Earth.",
+    skyAria: "The Moon as seen from Earth at the chosen point in its orbit.",
+    sideAria: "Side view of the Moon's tilted orbit and Earth's shadow.",
+    phasesAria: "Jump to a phase",
+    ageLabel: "Days since new moon", hemiLabel: "Seen from", hN: "Northern Hemisphere", hS: "Southern Hemisphere",
+    shadowLabel: "Show Earth's shadow",
+    nTyp: "A typical month", nEcl: "Eclipse season",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Why is the Moon sometimes a thin crescent?",
+    b1: "Pick an answer. In the next step you will move the Moon around Earth and check.",
+    k2: "Hands on", t2: "Move the Moon through one month",
+    b2: "Drag the Moon in the top view. The sunlit half (yellow) always faces the Sun. The green outline is the half that faces Earth — the half we can see. Find the full moon and the first quarter. Then tick “Show Earth's shadow”: where is the shadow when the Moon is a crescent?",
+    k3: "The rule", t3: "Phases = how much of the lit half faces us",
+    b3: "The Sun always lights half of the Moon. As the Moon goes round Earth (new to new in {month} days), we see more or less of that lit half. Earth's shadow always points away from the Sun, so it can only reach the Moon at full moon — and even then the Moon's orbit is tilted {inc}°, so it usually passes up to {off} km above or below the shadow. It must come within {need} km to touch it. That only happens in an eclipse season, about twice a year.",
+    q: "What makes the Moon look like a crescent?",
+    o1: "Earth's shadow covers part of the Moon", o2: "Clouds cover part of the Moon", o3: "We only see part of the Moon's sunlit half",
+    right: "Yes. Check it in step 2: drag the Moon and watch the green half.",
+    wrong: "Many people think so. Test it in step 2 — turn on Earth's shadow and see where it points.",
+    topTitle: "Top view (not to scale)", sunlight: "sunlight", sunFar: "from the Sun", earth: "Earth", weSee: "half we see",
+    shadowTxt: "Earth's shadow", skyTitleN: "From Earth · Northern Hemisphere", skyTitleS: "From Earth · Southern Hemisphere",
+    newNote: "lit side faces away", mirrorNote: "left and right swap in the south",
+    sideTitle: "Side view · up–down ×{k}", orbitPlane: "plane of Earth's orbit", sunL: "Sun ←",
+    eclTot: "Total lunar eclipse!", eclPart: "Partial lunar eclipse!", rShadow: "Earth's shadow", vFront: "on the far side of Earth from the Moon (it points away from the Sun)", vMiss: "misses: Moon is {h} km from the shadow's centre line",
+    p0: "New moon", p1: "Waxing crescent", p2: "First quarter", p3: "Waxing gibbous", p4: "Full moon", p5: "Waning gibbous", p6: "Last quarter", p7: "Waning crescent",
+    rPhase: "Phase", rAge: "Days since new moon", rAngle: "Angle Sun–Earth–Moon", rLit: "Lit part we see",
+    vAge: "{d} days", vAngle: "{a}°", vLit: "{p}% of the disc",
+    liveSum: "Day {d}: {name}, {p}% lit.",
+    noteNew: "New moon: the lit half faces away from us, and the Moon is near the Sun in the sky.",
+    noteFull: "Full moon: the lit half faces us. The Moon is opposite the Sun — this is the only place Earth's shadow could reach it.",
+    noteEcl: "Eclipse: the Moon is inside Earth's shadow. It turns a dull red all over — it does not become a crescent.",
+    noteEclP: "Partial eclipse: Earth's shadow takes a dark, reddish bite out of the full Moon. Its edge is part of a circle much bigger than the Moon — not a phase.",
+    noteShadow: "The Moon is nowhere near Earth's shadow, yet it still has a phase. The shadow is not the cause.",
+    resultTitle: "What we found",
+    resultMain: "angle {a}° → lit = (1 − cos {a}°) ÷ 2 = {p}%",
+    resultNote: "The Sun always lights half the Moon. The phase is how much of that half faces us. Earth's shadow reaches the Moon only during a lunar eclipse.",
+    explainK: "Explain it", explainQ: "A friend says the crescent Moon is Earth's shadow. Use the first-quarter Moon (where are the Sun, Earth and Moon?) to change their mind.",
+    homeK: "Try at home", homeQ: "In a dark room with one lamp on one side, hold a ball at arm's length and turn slowly on the spot. Watch the lit part of the ball grow and shrink — your head is Earth. Bonus: draw the Moon each evening for two weeks.",
+    foot: "Model: illuminated fraction = (1 − cos θ) ÷ 2, θ = angle Sun–Earth–Moon; the Sun is so far away that its rays are parallel. Synodic month (new to new) {month} days; the Moon goes once round relative to the stars in {sid} days, but Earth moves along its orbit meanwhile. The top view is drawn with the Sun direction fixed. Orbit tilt {inc}°; Moon distance {dm} km; radii Earth {re} km, Moon {rm} km, Sun {rs} km; Sun distance {ds} million km; Earth's dark shadow (umbra) at the Moon's distance is {umb} km in radius. Pictures show the Northern Hemisphere view; from the Southern Hemisphere the Moon appears upside down, so the lit side is on the opposite side (left and right swap), and near the equator the crescent lies on its side. Real motion is not perfectly even, so real dates can differ by up to about a day. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "月亮为什么会变形状？", eyebrow: "科学 · 阶段 2", h1: "月球总有一半是亮的，我们只是看到这亮面的多少不同",
+    intro: "拖动月球绕地球转。阳光从左边来。右边是从地球上看到的月亮。",
+    reset: "重置", play: "播放一个月", pause: "暂停",
+    topAria: "俯视图：阳光、地球和月球轨道。拖动月球或用方向键，让它绕地球转。",
+    skyAria: "从地球上看，月球在轨道这个位置时的样子。",
+    sideAria: "侧视图：倾斜的月球轨道和地球的影子。",
+    phasesAria: "跳到某个月相",
+    ageLabel: "新月后第几天", hemiLabel: "观看地点", hN: "北半球", hS: "南半球",
+    shadowLabel: "显示地球的影子",
+    nTyp: "普通的月份", nEcl: "食季",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "月亮为什么有时只剩细细一弯？",
+    b1: "先选一个答案。下一步你会让月球绕地球转，亲手检验。",
+    k2: "动手", t2: "让月球走完一个月",
+    b2: "在俯视图里拖动月球。被太阳照亮的一半（黄色）总是朝着太阳；绿色轮廓是朝着地球的一半——我们能看到的一半。找一找满月和上弦月。再勾上「显示地球的影子」：月亮是月牙时，影子在哪里？",
+    k3: "规律", t3: "月相 = 亮面有多少朝着我们",
+    b3: "太阳总是照亮月球的一半。月球绕地球转（从新月到下一个新月 {month} 天），我们看到的亮面就时多时少。地球的影子总是背着太阳，所以只有满月时才可能落到月球上；即使是满月，月球轨道也倾斜 {inc}°，月球通常从影子上方或下方经过，最远偏开 {off} 千米，而要碰到影子得靠近到 {need} 千米以内。这只在「食季」才会发生，大约一年两次。",
+    q: "月亮为什么会变成月牙？",
+    o1: "地球的影子挡住了月亮的一部分", o2: "云遮住了月亮的一部分", o3: "我们只看到月球亮面的一部分",
+    right: "对。到第 2 步检验：拖动月球，看绿色的那一半。",
+    wrong: "很多人这样想。到第 2 步检验一下——打开地球的影子，看看它朝哪边。",
+    topTitle: "俯视图（不按比例）", sunlight: "阳光", sunFar: "来自太阳", earth: "地球", weSee: "我们看到的一半",
+    shadowTxt: "地球的影子", skyTitleN: "从地球看 · 北半球", skyTitleS: "从地球看 · 南半球",
+    newNote: "亮面背对我们", mirrorNote: "南半球看左右相反",
+    sideTitle: "侧视图 · 上下放大 {k} 倍", orbitPlane: "地球公转的平面", sunL: "太阳 ←",
+    eclTot: "月全食！", eclPart: "月偏食！", rShadow: "地球的影子", vFront: "在地球的另一边，离月球很远（影子背着太阳）", vMiss: "没碰到：月球离影子中心线 {h} 千米",
+    p0: "新月", p1: "蛾眉月", p2: "上弦月", p3: "盈凸月", p4: "满月", p5: "亏凸月", p6: "下弦月", p7: "残月",
+    rPhase: "月相", rAge: "新月后第几天", rAngle: "太阳–地球–月球的夹角", rLit: "看到的亮面",
+    vAge: "{d} 天", vAngle: "{a}°", vLit: "圆面的 {p}%",
+    liveSum: "第 {d} 天：{name}，亮 {p}%。",
+    noteNew: "新月：亮面背对我们，月球在天上离太阳很近。",
+    noteFull: "满月：亮面正对我们。月球在太阳的对面——只有这里，地球的影子才可能落到它身上。",
+    noteEcl: "月食：月球进入了地球的影子，整个变成暗红色——并不会变成月牙。",
+    noteEclP: "月偏食：地球的影子在满月上咬出一块暗红的缺口。缺口的边是一个比月亮大得多的圆的一段——这不是月相。",
+    noteShadow: "月球离地球的影子还远着呢，可它照样有月相。月相不是影子造成的。",
+    resultTitle: "我们发现",
+    resultMain: "夹角 {a}° → 亮面 = (1 − cos {a}°) ÷ 2 = {p}%",
+    resultNote: "太阳总照亮月球的一半；月相就是这一半有多少朝着我们。地球的影子只在月食时才落到月球上。",
+    explainK: "说一说", explainQ: "朋友说月牙是地球的影子挡出来的。用上弦月（太阳、地球、月球各在哪里？）说服他。",
+    homeK: "家里做一做", homeQ: "暗房间里只在一边开一盏灯，伸直手臂举一个球，原地慢慢转一圈。看球上亮的部分怎样变大又变小——你的头就是地球。加分：连续两周，每天傍晚画一次月亮。",
+    foot: "模型：亮面比例 = (1 − cos θ) ÷ 2，θ 为太阳–地球–月球夹角；太阳很远，阳光可看作平行光。朔望月（新月到新月）{month} 天；月球相对恒星绕一圈是 {sid} 天，但这期间地球也在公转。俯视图里太阳方向固定不动。月球轨道倾角 {inc}°；地月距离 {dm} 千米；半径：地球 {re} 千米，月球 {rm} 千米，太阳 {rs} 千米；日地距离 {ds} 百万千米；在月球距离处，地球的本影半径 {umb} 千米。图中是北半球看到的样子；在南半球看，月亮是倒过来的，亮的一边左右相反；在赤道附近月牙是横躺的。真实运动并不完全均匀，实际日期可能差一天左右。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- model (pure, angles in degrees, θ = Sun–Earth–Moon angle, 0 = new moon) ---------- */
+const SYN = 29.530589, SID = 27.321662, INC = 5.145;
+const D_M = 384400, R_E = 6371, R_M = 1737.4, R_S = 696000, D_S = 149.6e6;
+const RAD = Math.PI / 180;
+const wrap360 = (a) => ((a % 360) + 360) % 360;
+const litFrac = (th) => (1 - Math.cos(th * RAD)) / 2;
+const ageOf = (th) => wrap360(th) / 360 * SYN;
+const umbraR = (x) => R_E - x * (R_S - R_E) / D_S;            // km, x = distance behind Earth
+const MAX_OFF = D_M * Math.sin(INC * RAD);                     // highest the Moon gets above Earth's orbit plane
+const NEED = umbraR(D_M) + R_M;                                // centre distance to touch the umbra
+function phaseIndex(th) {
+  const a = wrap360(th), TOL = 6;                              // principal phases: within ±6° (≈ ½ day)
+  for (let k = 0; k < 4; k++) { const c = 90 * k; const d = Math.min(Math.abs(a - c), 360 - Math.abs(a - c)); if (d <= TOL) return 2 * k; }
+  return a < 90 ? 1 : a < 180 ? 3 : a < 270 ? 5 : 7;
+}
+// Moon position (km) in a frame with x pointing away from the Sun, y in Earth's orbit plane, z up.
+function moonPos(th, node) {
+  return { x: -D_M * Math.cos(th * RAD), y: D_M * Math.sin(th * RAD), z: MAX_OFF * Math.sin((th - node) * RAD) };
+}
+function eclipse(th, node) { // 0 none, 1 partial, 2 total (umbral)
+  const m = moonPos(th, node);
+  if (m.x <= 0) return 0;
+  const rho = Math.hypot(m.y, m.z), u = umbraR(m.x);
+  return rho < u - R_M ? 2 : rho < u + R_M ? 1 : 0;
+}
+// Path of the lit part of a disc as seen from Earth. mirror = Southern Hemisphere.
+function phasePath(cx, cy, R, th, mirror) {
+  const a = wrap360(th), c = Math.cos(a * RAD);
+  let s = a < 180 ? 1 : -1;                                    // lit limb: right while waxing (north)
+  if (mirror) s = -s;
+  const rx = Math.abs(R * c), bulge = s * c;                   // terminator half-width and side
+  const limbSweep = s > 0 ? 1 : 0, termSweep = bulge > 0 ? 0 : 1;
+  const top = `${cx} ${(cy - R).toFixed(2)}`, bot = `${cx} ${(cy + R).toFixed(2)}`;
+  const term = rx < 0.05 ? `L${top}` : `A${rx.toFixed(2)} ${R} 0 0 ${termSweep} ${top}`;
+  return `M${top} A${R} ${R} 0 0 ${limbSweep} ${bot} ${term} Z`;
+}
+if (typeof module !== "undefined") module.exports = { litFrac, ageOf, phaseIndex, eclipse, phasePath, umbraR, MAX_OFF, NEED };
+
+/* ---------- state ---------- */
+const $ = (id) => document.getElementById(id);
+const START = { th: 90, south: false, shadow: false, node: 60 };
+const S = Object.assign({}, START);
+const nf = (x, d = 0) => Number(Play.fmt(x, d)).toLocaleString(P.lang === "zh" ? "zh-CN" : "en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const nums = () => ({ month: Play.fmt(SYN, 1), sid: Play.fmt(SID, 1), inc: Play.fmt(INC, 1), off: nf(Math.round(MAX_OFF / 100) * 100), need: nf(Math.round(NEED / 100) * 100) });
+$("foot").textContent = P.t("foot", Object.assign(nums(), {
+  dm: nf(D_M), re: nf(R_E), rm: nf(R_M, 1), rs: nf(R_S), ds: Play.fmt(D_S / 1e6, 1), umb: nf(umbraR(D_M)),
+}));
+function txt(parent, x, y, s, cls, anchor) {
+  const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "start" }, parent);
+  t.textContent = s;
+  return t;
+}
+
+/* ---------- top view ---------- */
+const topv = $("top"), sky = $("sky"), side = $("side");
+const E = { x: 170, y: 150, r: 18, orb: 98, mr: 16 };
+const moonXY = (th) => [E.x - E.orb * Math.cos(th * RAD), E.y + E.orb * Math.sin(th * RAD)]; // counter-clockwise seen from north
+function drawTop() {
+  topv.innerHTML = "";
+  // parallel sunlight from the far left
+  for (let y = 42; y <= 262; y += 22) Play.svg("line", { x1: 4, y1: y, x2: 40, y2: y, stroke: "var(--hl)", "stroke-width": 1.6 }, topv);
+  for (let y = 42; y <= 262; y += 22) Play.svg("path", { d: `M40 ${y - 4} L48 ${y} L40 ${y + 4} Z`, fill: "var(--hl)" }, topv);
+  txt(topv, 8, 18, P.t("topTitle"), "lbf");
+  txt(topv, 6, 34, P.t("sunlight") + " · " + P.t("sunFar"), "lb");
+  if (S.shadow) {
+    Play.svg("path", { d: `M${E.x} ${E.y - E.r} L300 ${E.y - E.r + 3} L300 ${E.y + E.r - 3} L${E.x} ${E.y + E.r} Z`, fill: "var(--ink-panel)", opacity: 0.3 }, topv);
+    txt(topv, E.x + E.r + 6, E.y - E.r - 6, P.t("shadowTxt"), "lb halo", "start");
+  }
+  Play.svg("circle", { cx: E.x, cy: E.y, r: E.orb, fill: "none", stroke: "var(--line)", "stroke-width": 2, "stroke-dasharray": "5 5" }, topv);
+  // Earth: day side faces the Sun (left)
+  Play.svg("circle", { cx: E.x, cy: E.y, r: E.r, fill: "var(--c)" }, topv);
+  Play.svg("path", { d: `M${E.x} ${E.y - E.r} A${E.r} ${E.r} 0 0 1 ${E.x} ${E.y + E.r} Z`, fill: "var(--ink-panel)", opacity: 0.55 }, topv);
+  txt(topv, E.x, E.y + E.r + 15, P.t("earth"), "lb halo", "middle");
+  // Moon: left half lit (faces the Sun), Earth-facing half outlined
+  const [mx, my] = moonXY(S.th), R = E.mr;
+  const g = Play.svg("g", {}, topv);
+  Play.svg("circle", { cx: mx, cy: my, r: R, fill: "var(--ink-panel)", opacity: 0.75 }, g);
+  Play.svg("path", { d: `M${mx} ${my - R} A${R} ${R} 0 0 0 ${mx} ${my + R} Z`, fill: "var(--hl)" }, g);
+  const ux = (E.x - mx) / E.orb, uy = (E.y - my) / E.orb;     // unit vector Moon → Earth
+  const px = -uy * (R + 2), py = ux * (R + 2);
+  const ax = mx + px, ay = my + py, bx = mx - px, by = my - py;
+  // arc through the point facing Earth (mx + u·R)
+  // a = m + R·perp(u); turning back by 90° (sweep 0 in screen coordinates) passes through m + R·u
+  Play.svg("path", { d: `M${ax} ${ay} A${R + 2} ${R + 2} 0 0 0 ${bx} ${by}`, fill: "none", stroke: "var(--a)", "stroke-width": 3.5, "stroke-linecap": "round" }, g);
+  Play.svg("line", { x1: ax, y1: ay, x2: bx, y2: by, stroke: "var(--a)", "stroke-width": 1.2, "stroke-dasharray": "3 2" }, g);
+  Play.svg("circle", { cx: mx, cy: my, r: 24, fill: "transparent" }, g);   // touch target
+  // legend: green arc = the half facing Earth
+  const lg = txt(topv, 296, 34, P.t("weSee"), "lb", "end");
+  let lw = 70; try { lw = lg.getComputedTextLength() || lw; } catch (e) { /* not rendered yet */ }
+  Play.svg("path", { d: `M${292 - lw - 4} 21 A8 8 0 0 0 ${292 - lw - 4} 37`, fill: "none", stroke: "var(--a)", "stroke-width": 3.5, "stroke-linecap": "round" }, topv);
+  topv.setAttribute("aria-valuemin", 0); topv.setAttribute("aria-valuemax", 29.5);
+  topv.setAttribute("aria-valuenow", Play.fmt(ageOf(S.th), 1));
+  topv.setAttribute("aria-valuetext", P.t("p" + phaseIndex(S.th)) + ", " + P.t("vAge", { d: Play.fmt(ageOf(S.th), 1) }));
+}
+
+/* ---------- view from Earth ---------- */
+function drawSky(i) {
+  sky.innerHTML = "";
+  Play.svg("rect", { x: 0, y: 0, width: 300, height: 280, fill: "var(--ink-panel)" }, sky);
+  txt(sky, 10, 20, P.t(S.south ? "skyTitleS" : "skyTitleN"), "lbp");
+  const cx = 150, cy = 138, R = 78;
+  Play.svg("circle", { cx, cy, r: R, fill: "var(--on-panel)", opacity: 0.1, stroke: "var(--on-panel-muted)", "stroke-width": 1, "stroke-dasharray": litFrac(S.th) < 0.01 ? "4 4" : "none" }, sky);
+  Play.svg("path", { d: phasePath(cx, cy, R, S.th, S.south), fill: "var(--on-panel)" }, sky);
+  const ec = S.shadow ? eclipse(S.th, S.node) : 0;              // in an eclipse the Moon turns a dull red
+  if (ec) { // draw Earth's umbra to scale on the Moon's face, clipped to the disc
+    const m = moonPos(S.th, S.node), k = R / R_M, dir = S.south ? 1 : -1;  // north view: east (where the shadow sits before full) is left
+    const cp = Play.svg("clipPath", { id: "disc" }, Play.svg("defs", {}, sky));
+    Play.svg("circle", { cx, cy, r: R }, cp);
+    Play.svg("circle", { cx: cx + dir * m.y * k, cy: cy - dir * m.z * k, r: umbraR(m.x) * k, fill: "var(--no)", opacity: 0.8, "clip-path": "url(#disc)" }, sky);
+  }
+  txt(sky, cx, 246, P.t("p" + i), "lbpf", "middle");
+  const sub = i === 0 ? P.t("newNote") : S.south ? P.t("mirrorNote") : P.t("vLit", { p: Play.fmt(100 * litFrac(S.th), 0) });
+  txt(sky, cx, 266, sub, "lbp", "middle");
+}
+
+/* ---------- side view: tilted orbit vs Earth's shadow ---------- */
+const SV = { x: 150, y: 92, kx: 118 / D_M, k: 5, r: 296 };
+function drawSide() {
+  side.innerHTML = "";
+  const kz = SV.kx * SV.k, X = (x) => SV.x + x * SV.kx, Y = (z) => SV.y - z * kz;
+  txt(side, 6, 16, P.t("sideTitle", { k: SV.k }), "lbf");
+  for (let y = SV.y - 30; y <= SV.y + 30; y += 15) Play.svg("line", { x1: 2, y1: y, x2: 20, y2: y, stroke: "var(--hl)", "stroke-width": 1.4 }, side);
+  txt(side, 4, SV.y - 38, P.t("sunL"), "lb");
+  Play.svg("line", { x1: 24, x2: SV.r, y1: SV.y, y2: SV.y, stroke: "var(--line)", "stroke-width": 1.5, "stroke-dasharray": "2 4" }, side);
+  // umbra cone from Earth to the right edge
+  const xEnd = (SV.r - SV.x) / SV.kx, uEnd = umbraR(xEnd);
+  Play.svg("path", { d: `M${SV.x} ${Y(R_E)} L${SV.r} ${Y(uEnd)} L${SV.r} ${Y(-uEnd)} L${SV.x} ${Y(-R_E)} Z`, fill: "var(--ink-panel)", opacity: 0.3 }, side);
+  // the Moon's orbit seen edge-on
+  let d = "";
+  for (let a = 0; a <= 360; a += 5) { const m = moonPos(a, S.node); d += (a ? "L" : "M") + X(m.x).toFixed(1) + " " + Y(m.z).toFixed(1); }
+  Play.svg("path", { d, fill: "none", stroke: "var(--muted)", "stroke-width": 1.2, "stroke-dasharray": "4 4" }, side);
+  Play.svg("circle", { cx: SV.x, cy: SV.y, r: R_E * kz, fill: "var(--c)" }, side);
+  const m = moonPos(S.th, S.node), e = eclipse(S.th, S.node);
+  Play.svg("circle", { cx: X(m.x), cy: Y(m.z), r: Math.max(3.5, R_M * kz), fill: e ? "var(--no)" : "var(--hl)", stroke: "var(--fg)", "stroke-width": 1 }, side);
+  if (e) txt(side, Play.clamp(X(m.x), 60, SV.r), Y(m.z) - 10, P.t(e === 2 ? "eclTot" : "eclPart"), "lbf halo", X(m.x) > 220 ? "end" : "middle");
+  // legend row
+  Play.svg("line", { x1: 6, x2: 26, y1: 172, y2: 172, stroke: "var(--line)", "stroke-width": 1.5, "stroke-dasharray": "2 4" }, side);
+  txt(side, 30, 176, P.t("orbitPlane"), "lb");
+  Play.svg("rect", { x: 6, y: 184, width: 20, height: 8, fill: "var(--ink-panel)", opacity: 0.3 }, side);
+  txt(side, 30, 193, P.t("shadowTxt"), "lb");
+}
+function shadowText() {
+  const m = moonPos(S.th, S.node), e = eclipse(S.th, S.node);
+  if (e) return P.t(e === 2 ? "eclTot" : "eclPart");
+  if (m.x <= 0) return P.t("vFront");
+  const off = Math.hypot(m.y, m.z), h = nf(Math.round(off / 100) * 100);
+  return P.t("vMiss", { h });
+}
+
+/* ---------- phase buttons (rendered with the same geometry) ---------- */
+const phaseBox = $("phases"), phaseBtns = [];
+for (let k = 0; k < 8; k++) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small";
+  b.setAttribute("aria-label", P.t("p" + k)); b.title = P.t("p" + k);
+  b.appendChild(Play.svg("svg", { viewBox: "0 0 30 30", "aria-hidden": "true" }));
+  b.addEventListener("click", () => { stop(); S.th = 45 * k; render(); });
+  phaseBox.appendChild(b); phaseBtns.push(b);
+}
+function drawPhaseBtns(i) {
+  phaseBtns.forEach((b, k) => {
+    const s = b.firstChild; s.innerHTML = "";
+    Play.svg("circle", { cx: 15, cy: 15, r: 12, fill: "var(--ink-panel)" }, s);
+    Play.svg("path", { d: phasePath(15, 15, 12, 45 * k, S.south), fill: "var(--on-panel)" }, s);
+    b.classList.toggle("on", k === i && Math.abs(wrap360(S.th) - 45 * k) < 6.5);
+  });
+}
+
+/* ---------- render ---------- */
+function render() {
+  S.th = wrap360(S.th);
+  const i = phaseIndex(S.th), f = litFrac(S.th), age = ageOf(S.th);
+  $("age").value = Play.fmt(age, 1);
+  $("ageVal").textContent = P.t("vAge", { d: Play.fmt(age, 1) });
+  $("hN").classList.toggle("on", !S.south); $("hS").classList.toggle("on", S.south);
+  $("hN").setAttribute("aria-pressed", String(!S.south)); $("hS").setAttribute("aria-pressed", String(S.south));
+  $("shadow").checked = S.shadow;
+  $("sidebox").hidden = !S.shadow;
+  $("nTyp").classList.toggle("on", S.node !== 0); $("nEcl").classList.toggle("on", S.node === 0);
+  drawTop(); drawSky(i); drawPhaseBtns(i);
+  if (S.shadow) drawSide();
+  document.querySelectorAll(".shrow").forEach((el) => (el.hidden = !S.shadow));
+  $("oShadow").textContent = S.shadow ? shadowText() : "";
+  $("oPhase").textContent = P.t("p" + i);
+  $("oAge").textContent = P.t("vAge", { d: Play.fmt(age, 1) });
+  $("oAngle").textContent = P.t("vAngle", { a: Play.fmt(S.th, 0) });
+  $("oLit").textContent = P.t("vLit", { p: Play.fmt(100 * f, 0) });
+  const a = Math.round(S.th);
+  $("resultMain").textContent = P.t("resultMain", { a, p: Play.fmt(100 * litFrac(a), 0) });
+  let note = P.t("liveSum", { d: Play.fmt(age, 1), name: P.t("p" + i), p: Play.fmt(100 * f, 0) });
+  if (i === 0) note += " " + P.t("noteNew");
+  else if (i === 4) { const ec = S.shadow ? eclipse(S.th, S.node) : 0; note += " " + P.t(ec === 2 ? "noteEcl" : ec ? "noteEclP" : "noteFull"); }
+  else if (S.shadow && Math.abs(S.th - 180) > 60) note += " " + P.t("noteShadow");
+  Play.live($("live"), note);
+}
+
+/* ---------- interaction ---------- */
+let anim = 0, last = 0;
+const playBtn = $("playBtn");
+function stop() { if (anim) cancelAnimationFrame(anim); anim = 0; playBtn.textContent = P.t("play"); }
+function tick(ts) {
+  if (last) S.th += Math.min(100, ts - last) * 0.045;          // about 8 s per month
+  last = ts; render(); anim = requestAnimationFrame(tick);
+}
+playBtn.addEventListener("click", () => { if (anim) stop(); else { last = 0; playBtn.textContent = P.t("pause"); anim = requestAnimationFrame(tick); } });
+
+function fromPointer(e) {
+  const p = Play.pointer(topv, e);
+  if (Math.hypot(p.x - E.x, p.y - E.y) < 4) return;
+  const t = wrap360(Math.atan2(p.y - E.y, E.x - p.x) / RAD), q = Math.round(t / 90) * 90;
+  S.th = Math.abs(t - q) < 2 ? q : t;                          // gentle snap to the four main phases
+  render();
+}
+let dragging = false;
+topv.addEventListener("pointerdown", (e) => { stop(); dragging = true; topv.setPointerCapture(e.pointerId); fromPointer(e); });
+topv.addEventListener("pointermove", (e) => { if (dragging) fromPointer(e); });
+topv.addEventListener("pointerup", () => (dragging = false));
+topv.addEventListener("pointercancel", () => (dragging = false));
+topv.addEventListener("keydown", (e) => {
+  const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 7, PageDown: -7 }[e.key];
+  if (step) { stop(); S.th += step * 360 / SYN; render(); e.preventDefault(); }
+  if (e.key === "Home") { stop(); S.th = 0; render(); e.preventDefault(); }
+});
+$("age").addEventListener("input", () => { stop(); S.th = Play.clamp(+$("age").value, 0, SYN) / SYN * 360; render(); });
+$("hN").addEventListener("click", () => { S.south = false; render(); });
+$("hS").addEventListener("click", () => { S.south = true; render(); });
+$("shadow").addEventListener("change", () => { S.shadow = $("shadow").checked; render(); });
+$("nTyp").addEventListener("click", () => { S.node = START.node; render(); });
+$("nEcl").addEventListener("click", () => { S.node = 0; render(); });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }], right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k, nums());
+  $("predict").hidden = i !== 0;
+  if (i === 2 && !S.shadow) { S.shadow = true; render(); }
+});
+$("reset").addEventListener("click", () => { stop(); Object.assign(S, START); pr.reset(); st.go(0); render(); });
+stop();
+render();
+</script>
+</body>
+</html>
