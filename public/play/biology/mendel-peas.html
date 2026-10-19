@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mendel's peas: why the 3 : 1?</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .lbl { fill: var(--fg); font-size: 14px; }
+  .lbl.m { fill: var(--muted); font-size: 13px; }
+  .lbl.b { font-weight: 650; }
+  .lbl.big { font-size: 18px; font-weight: 700; }
+  .lbl.g { font-family: var(--math); font-size: 16px; font-weight: 700; }
+  .lbl.q { fill: var(--a); font-size: 34px; font-weight: 750; }
+  .panel { fill: var(--soft); }
+  .petP { fill: var(--h); }
+  .petW { fill: var(--surface); stroke: var(--muted); stroke-width: 1.2; }
+  .petB { fill: var(--h); opacity: .38; }
+  .ctr { fill: var(--hl); }
+  .stem { stroke: var(--a); stroke-width: 3; fill: none; }
+  .cellP { fill: var(--h); opacity: .22; }
+  .cellW { fill: var(--surface); }
+  .cellLine { fill: none; stroke: var(--line); stroke-width: 1.5; }
+  .cellHi { fill: none; stroke: var(--hl); stroke-width: 4; }
+  .hdr { fill: var(--soft); }
+  .barP { fill: var(--h); }
+  .barW { fill: var(--surface); stroke: var(--muted); stroke-width: 1; }
+  .exp { stroke: var(--fg); stroke-width: 2; stroke-dasharray: 4 3; }
+  .seedP { fill: var(--h); }
+  .seedW { fill: var(--surface); stroke: var(--muted); stroke-width: .8; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .ah { fill: var(--muted); }
+  .no { fill: var(--no); }
+  #extra { font-size: 14px; }
+  .controls .seg { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlN">
+        <label for="n" data-t="nLabel"></label>
+        <input type="range" id="n" min="0" max="3" step="1" value="1">
+        <span class="val" id="nVal"></span>
+        <button type="button" class="small" id="reroll" data-t="reroll"></button>
+      </div>
+      <div class="controls" id="ctlTest">
+        <span data-t="pickLabel"></span>
+        <span class="seg">
+          <button type="button" class="small" id="mA" data-t="mA"></button>
+          <button type="button" class="small" id="mB" data-t="mB"></button>
+        </span>
+        <button type="button" class="small" id="reveal" data-t="reveal"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="extra"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Mendel's peas: why the 3 : 1?", eyebrow: "Biology · Stage 3", h1: "Mendel's peas: why the 3 : 1?",
+    intro: "Guess what a purple × white cross gives. Then plant the grandchildren yourself and count.",
+    reset: "Reset", figAria: "Pea flowers, a Punnett square, and bars counting purple and white plants",
+    nLabel: "Plant", nVal: "{n} seeds", reroll: "Re-roll", pickLabel: "Purple plant:", mA: "Mystery A", mB: "Mystery B",
+    reveal: "Reveal", hide: "Hide",
+    s1: "Guess", s2: "Grandchildren", s3: "Rule",
+    k1: "Predict first", t1: "A true-breeding purple pea × a true-breeding white pea. What do the children look like?",
+    b1: "\"True-breeding\" means the plant's own seeds always give the same colour. Pick an answer.",
+    q: "The children (first generation) will be…", o1: "all pale purple", o2: "all purple", o3: "half purple, half white",
+    right: "Yes: every child is purple. White seems to have vanished.", wrong: "Look at the picture: what Mendel saw was different.",
+    fb1: "That is the paint idea: mix purple and white, get pale purple. Peas don't do that: every child is fully purple.",
+    fb2: "Right. But the white is not gone: it is hidden. Each child got P from the purple parent and p from the white one. Step 2 crosses these children with each other.",
+    fb3: "That happens in a different cross (Pp × pp, see step 3). Here every child got one P, so every child is purple.",
+    f1Hint: "Pick an answer to see the children.",
+    k2: "Hands on · cross the children", t2: "Purple child × purple child (Pp × Pp)",
+    b2: "Each parent has two copies of the colour gene, P and p. Into every seed it puts one of them, at random, like a coin toss. Plant seeds and watch the Punnett square fill in.",
+    x2: "Expected: ¼ PP + ½ Pp + ¼ pp, so ¾ purple and ¼ white: 3 : 1. With few seeds the count jumps around; with 1000 it settles near 3 : 1. Mendel's own count for flower colour, reported in 1866: {mp} purple : {mw} white = {mr} : 1.",
+    live2a: "Last seed: one parent gave {a}, the other gave {b} → {g}, {c}.",
+    live2b: "{n} plants: {p} purple, {w} white. Observed {r} : 1 ({wp}% white). Expected 3 : 1 (25% white).",
+    rNone: "no white yet",
+    k3: "The rule · and a test", t3: "Two copies, one passed on at random",
+    b3: "Every plant carries two copies of the gene. Each parent passes on one, chosen at random. P hides p, so Pp looks purple. Two hidden p's meet in about ¼ of the grandchildren, and white comes back.",
+    x3: "Test cross: a purple plant could be PP or Pp. Cross it with white (pp). If even one white child appears, the purple parent was hiding a p. A Pp parent gives 10 purple children in a row only 1 time in {odds}. Paint mixing could never do this: once blended, white could never come back.",
+    live3: "Mystery {m} × white: {p} purple, {w} white children.",
+    live3r: "Mystery {m} was {g}.",
+    fP: "purple", fW: "white", fPale: "paint guess: pale purple", fChildren: "children", fF1: "children (F1)", fF2: "grandchildren (F2)",
+    fParents: "↓ parent 1 gives · parent 2 gives →", fEach: "each box ≈ ¼",
+    fTray: "{n} plants", fThis: "your {n}", fMendel: "Mendel 1866", fExp: "3 : 1",
+    fMyst: "Mystery {m}", fWhite: "white pp", fUnknown: "Mystery {m}: PP or Pp?",
+    fPaint: "If paint:", fGene: "Genes:", fNever: "white never returns", fBack: "3 : 1, white returns",
+    fHas: "has a white child → Pp", fAll: "all purple so far → probably PP",
+    resultTitle: "What we found", resultMain: "Pp × Pp → 1 PP : 2 Pp : 1 pp = 3 : 1",
+    resultNote: "Mendel counted {mp} purple : {mw} white ({mr} : 1). Counts wobble by chance; the 3 : 1 shows up in large numbers.",
+    explainK: "Explain it", explainQ: "A friend says children are a mix of their parents, like paint. Use the white flowers that came back in the grandchildren to explain why that can't be the whole story.",
+    homeK: "Try at home", homeQ: "Give each parent a coin: heads = P, tails = p. Toss both coins together 40 times and tally how often you get pp. Do you get about 10?",
+    foot: "Data: Gregor Mendel, \"Versuche über Pflanzen-Hybriden\" (Experiments on Plant Hybrids), read 1865, reported in 1866: in the cross for flower / seed-coat colour, 705 F2 plants had violet-red flowers and 224 white (929 in all, 3.15 : 1). Mendel's purple is a violet-red. Simulation: each parent passes one of its two copies with probability ½; random numbers from a seeded mulberry32 generator, so each re-roll is reproducible. Real genetics has exceptions (incomplete dominance, linked genes); flower colour in peas follows this simple rule. · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "孟德尔的豌豆：为什么是 3 : 1？", eyebrow: "生物 · 阶段 3", h1: "孟德尔的豌豆：为什么是 3 : 1？",
+    intro: "先猜紫花 × 白花会生出什么。再亲手种下孙代，数一数。",
+    reset: "重置", figAria: "豌豆花、棋盘格（庞纳特方格）和统计紫花白花的条形图",
+    nLabel: "种下", nVal: "{n} 粒种子", reroll: "重新抽", pickLabel: "紫花植株：", mA: "神秘 A", mB: "神秘 B",
+    reveal: "揭晓", hide: "隐藏",
+    s1: "先猜", s2: "孙代", s3: "规律",
+    k1: "先猜一猜", t1: "纯种紫花豌豆 × 纯种白花豌豆，子代长什么样？",
+    b1: "「纯种」指这株植物自己结的种子永远开同一种颜色的花。选一个答案。",
+    q: "子代（第一代）会是……", o1: "全是浅紫", o2: "全是紫色", o3: "一半紫一半白",
+    right: "对：子代全是紫花。白色好像消失了。", wrong: "看图：孟德尔看到的不是这样。",
+    fb1: "这就是「调颜料」的想法：紫加白得浅紫。豌豆不是这样，子代都是纯正的紫色。",
+    fb2: "对。但白色没有消失，只是藏起来了：每个子代从紫花亲本得到 P，从白花亲本得到 p。第 2 步让这些子代互相杂交。",
+    fb3: "这种情况出现在另一种杂交里（Pp × pp，见第 3 步）。这里每个子代都拿到一个 P，所以都是紫色。",
+    f1Hint: "先选一个答案，再看子代。",
+    k2: "动手 · 让子代互相杂交", t2: "紫花子代 × 紫花子代（Pp × Pp）",
+    b2: "每个亲本都有两份花色基因 P 和 p。每粒种子里，它随机放进其中一份，就像抛硬币。种下种子，看棋盘格一格格填满。",
+    x2: "预期：¼ PP + ½ Pp + ¼ pp，即 ¾ 紫、¼ 白，3 : 1。种子少时数目忽高忽低；种到 1000 粒就稳在 3 : 1 附近。孟德尔自己数的花色数据（1866 年发表）：紫 {mp} : 白 {mw} = {mr} : 1。",
+    live2a: "最后一粒：一方给了 {a}，另一方给了 {b} → {g}，{c}。",
+    live2b: "{n} 株：紫 {p}，白 {w}。观察到 {r} : 1（白占 {wp}%）。预期 3 : 1（白占 25%）。",
+    rNone: "还没有白花",
+    k3: "规律 · 再做一个检验", t3: "两份基因，随机传一份",
+    b3: "每株植物都带两份花色基因，父母各随机传给孩子一份。P 盖住 p，所以 Pp 看上去是紫的。两个藏起来的 p 在大约 ¼ 的孙代里相遇，白花就回来了。",
+    x3: "测交：紫花可能是 PP，也可能是 Pp。让它和白花（pp）杂交。只要出现一株白花子代，就说明紫花亲本藏着 p。Pp 亲本连生 10 株全紫的机会只有 {odds} 分之一。调颜料做不到这一点：一旦混匀，白色就再也回不来了。",
+    live3: "神秘 {m} × 白花：子代紫 {p} 株，白 {w} 株。",
+    live3r: "神秘 {m} 是 {g}。",
+    fP: "紫", fW: "白", fPale: "调颜料的猜法：浅紫", fChildren: "子代", fF1: "子代（F1）", fF2: "孙代（F2）",
+    fParents: "↓ 亲本 1 给 · 亲本 2 给 →", fEach: "每格约 ¼",
+    fTray: "{n} 株", fThis: "你的 {n} 株", fMendel: "孟德尔 1866", fExp: "3 : 1",
+    fMyst: "神秘 {m}", fWhite: "白花 pp", fUnknown: "神秘 {m}：PP 还是 Pp？",
+    fPaint: "若像调颜料：", fGene: "按基因：", fNever: "白花再也不出现", fBack: "3 : 1，白花回来",
+    fHas: "出现白花 → Pp", fAll: "目前全紫 → 多半是 PP",
+    resultTitle: "我们发现", resultMain: "Pp × Pp → 1 PP : 2 Pp : 1 pp = 3 : 1",
+    resultNote: "孟德尔数到紫 {mp} : 白 {mw}（{mr} : 1）。数目会因偶然而波动，数量大时 3 : 1 才显出来。",
+    explainK: "说一说", explainQ: "朋友说孩子是父母的混合，就像调颜料。用孙代里重新出现的白花，给他讲讲为什么这种说法不对。",
+    homeK: "家里做一做", homeQ: "每个亲本用一枚硬币：正面 = P，反面 = p。两枚硬币一起抛 40 次，记下 pp 出现几次。是不是 10 次左右？",
+    foot: "数据：格雷戈尔·孟德尔《植物杂交实验》，1865 年宣读，1866 年发表：花色（种皮颜色）杂交的 F2 中，紫红花 705 株、白花 224 株（共 929 株，3.15 : 1）。孟德尔的「紫花」是紫红色。模拟：每个亲本以 ½ 的概率传出两份中的一份；随机数来自带种子的 mulberry32 生成器，每次「重新抽」都可复现。真实遗传有例外（不完全显性、基因连锁），豌豆花色符合这条简单规律。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- pure logic ----------
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const NS_ = [1, 10, 100, 1000], MAXN = 1000;
+const MENDEL = { p: 705, w: 224 };
+const ratio = (p, w) => (w > 0 ? p / w : Infinity);
+// One child of parents g1, g2 (strings like "Pp"): each gives one of its two letters at random.
+function child(g1, g2, rnd) {
+  const a = g1[rnd() < 0.5 ? 0 : 1], b = g2[rnd() < 0.5 ? 0 : 1];
+  return { a, b };
+}
+const purple = (c) => c.a === "P" || c.b === "P";
+const geno = (c) => (c.a === "p" && c.b === "P" ? "Pp" : c.a + c.b);
+function cross(g1, g2, n, seed) {
+  const rnd = mulberry32(seed), out = [];
+  for (let i = 0; i < n; i++) out.push(child(g1, g2, rnd));
+  return out;
+}
+// counts of the first n children: cells[i][j], i = parent-1 allele (0:P,1:p), j = parent-2 allele
+function tally(kids, n) {
+  const cells = [[0, 0], [0, 0]];
+  let p = 0;
+  for (let i = 0; i < n; i++) {
+    const c = kids[i];
+    cells[c.a === "P" ? 0 : 1][c.b === "P" ? 0 : 1]++;
+    if (purple(c)) p++;
+  }
+  return { cells, p, w: n - p };
+}
+
+// ---------- state ----------
+let seed = 1, step = 0, answered = -1, mystery = 0, revealed = false;
+let kids = cross("Pp", "Pp", MAXN, seed);
+const f = Play.fmt;
+const rStr = (p, w) => (w > 0 ? f(ratio(p, w), 2) : P.t("rNone"));
+const MR = f(ratio(MENDEL.p, MENDEL.w), 2);
+const CHANCE10 = Math.pow(0.5, 10);
+document.getElementById("resultNote").textContent = P.t("resultNote", { mp: MENDEL.p, mw: MENDEL.w, mr: MR });
+function mysteryGenos() { return mulberry32(seed * 7919 + 3)() < 0.5 ? ["PP", "Pp"] : ["Pp", "PP"]; }
+
+// ---------- drawing ----------
+const fig = document.getElementById("fig"), nIn = document.getElementById("n");
+const extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+const S = (tag, a, p) => Play.svg(tag, a, p || fig);
+function text(x, y, s, cls, anchor) {
+  const t = S("text", { x, y, class: "lbl " + (cls || ""), "text-anchor": anchor || "start" });
+  t.textContent = s;
+  return t;
+}
+function arrow(x1, y1, x2, y2) {
+  S("line", { x1, y1, x2, y2, class: "arrow" });
+  const a = Math.atan2(y2 - y1, x2 - x1), L = 8;
+  const p = [[x2, y2], [x2 - L * Math.cos(a - 0.45), y2 - L * Math.sin(a - 0.45)], [x2 - L * Math.cos(a + 0.45), y2 - L * Math.sin(a + 0.45)]];
+  S("polygon", { points: p.map((q) => q.join(",")).join(" "), class: "ah" });
+}
+function flower(cx, cy, r, kind, stem) {
+  if (stem) S("path", { d: `M${cx} ${cy + r * 0.6} L${cx} ${cy + r * 2.1}`, class: "stem" });
+  const cls = kind === "P" ? "petP" : kind === "B" ? "petB" : "petW";
+  for (let i = 0; i < 5; i++) {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+    S("ellipse", { cx: cx + Math.cos(a) * r * 0.55, cy: cy + Math.sin(a) * r * 0.55, rx: r * 0.5, ry: r * 0.38,
+      transform: `rotate(${(a * 180) / Math.PI} ${cx + Math.cos(a) * r * 0.55} ${cy + Math.sin(a) * r * 0.55})`, class: cls });
+  }
+  S("circle", { cx, cy, r: r * 0.22, class: "ctr" });
+}
+function size() {
+  const r = fig.getBoundingClientRect();
+  const W = Math.max(280, Math.round(r.width || 600)), H = Math.max(240, Math.round(r.height || 360));
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  return { W, H };
+}
+
+function drawGuess(W, H) {
+  const r = Math.min(26, W / 16), y0 = 50;
+  const xa = W * 0.28, xb = W * 0.72;
+  flower(xa, y0, r, "P", true); flower(xb, y0, r, "W", true);
+  text(xa, y0 + r * 2.1 + 18, P.t("fP") + " PP", "g", "middle");
+  text(xb, y0 + r * 2.1 + 18, P.t("fW") + " pp", "g", "middle");
+  text(W / 2, y0 + 8, "×", "big", "middle");
+  const ay = y0 + r * 2.1 + 30;
+  arrow(W / 2, ay, W / 2, ay + 26);
+  const cy = ay + 26 + 18 + r;
+  text(12, ay + 18, P.t("fF1"), "m b");
+  const n = 4, gap = Math.min(80, (W - 40) / n);
+  for (let i = 0; i < n; i++) {
+    const x = W / 2 + (i - (n - 1) / 2) * gap;
+    if (answered < 0) { text(x, cy + 12, "?", "q", "middle"); continue; }
+    flower(x, cy, r * 0.85, "P", true);
+    text(x, cy + r * 2 + 16, "Pp", "g", "middle");
+  }
+  if (answered < 0) text(W / 2, H - 14, P.t("f1Hint"), "m", "middle");
+  else if (answered === 0) {
+    // what the paint idea predicted, crossed out
+    const x = 22, y = H - 22;
+    flower(x, y - 4, 10, "B", false);
+    const t = text(x + 18, y, P.t("fPale") + " ✗", "m", "start"); t.classList.add("b");
+  }
+}
+
+function drawCross(W, H) {
+  const n = NS_[+nIn.value], T = tally(kids, n), last = kids[n - 1];
+  const narrow = W < 500;
+  const barH = 64, top = 8;
+  const sq = Math.max(120, Math.min(narrow ? W * 0.46 : W * 0.4, H - barH - 40));
+  const hd = 24, cell = (sq - hd) / 2, x0 = 10, y0 = top + 14;
+  // Punnett square
+  text(x0, y0 - 2, P.t("fParents"), "m", "start");
+  const al = ["P", "p"];
+  for (let j = 0; j < 2; j++) {
+    S("rect", { x: x0 + hd + j * cell, y: y0 + 2, width: cell, height: hd - 2, class: "hdr" });
+    text(x0 + hd + j * cell + cell / 2, y0 + hd - 6, al[j], "g", "middle");
+    S("rect", { x: x0, y: y0 + hd + j * cell, width: hd - 2, height: cell, class: "hdr" });
+    text(x0 + hd / 2 - 1, y0 + hd + j * cell + cell / 2 + 6, al[j], "g", "middle");
+  }
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+    const cx = x0 + hd + j * cell, cy = y0 + hd + i * cell, c = T.cells[i][j];
+    const isW = i === 1 && j === 1;
+    S("rect", { x: cx, y: cy, width: cell, height: cell, class: isW ? "cellW" : "cellP" });
+    S("rect", { x: cx, y: cy, width: cell, height: cell, class: "cellLine" });
+    text(cx + cell / 2, cy + cell / 2 - 4, geno({ a: al[i], b: al[j] }), "g", "middle");
+    text(cx + cell / 2, cy + cell / 2 + 16, f(c, 0), "m", "middle");
+  }
+  const li = last.a === "P" ? 0 : 1, lj = last.b === "P" ? 0 : 1;
+  S("rect", { x: x0 + hd + lj * cell + 2, y: y0 + hd + li * cell + 2, width: cell - 4, height: cell - 4, class: "cellHi" });
+  text(x0 + sq / 2 + hd / 2, y0 + sq + 16, P.t("fEach"), "m", "middle");
+  // seed tray
+  const tx = x0 + sq + 16, tw = W - tx - 10, th = sq, ty = y0;
+  S("rect", { x: tx, y: ty, width: tw, height: th, rx: 10, class: "panel" });
+  text(tx + 10, ty + 18, P.t("fTray", { n }), "m b");
+  const gx = tx + 8, gy = ty + 26, gw = tw - 16, gh = th - 34;
+  const cols = n === 1 ? 1 : n <= 10 ? 5 : n <= 100 ? 10 : Math.max(20, Math.round(Math.sqrt(n * gw / gh)));
+  const rows = Math.ceil(n / cols), pitch = Math.min(gw / cols, gh / rows);
+  const ox = gx + (gw - pitch * cols) / 2, oy = gy + (gh - pitch * rows) / 2;
+  for (let i = 0; i < n; i++) {
+    const c = kids[i], x = ox + (i % cols) * pitch, y = oy + Math.floor(i / cols) * pitch;
+    if (n <= 100) {
+      if (pitch >= 24) flower(x + pitch / 2, y + pitch / 2, pitch * 0.4, purple(c) ? "P" : "W", false);
+      else S("circle", { cx: x + pitch / 2, cy: y + pitch / 2, r: pitch * 0.38, class: purple(c) ? "seedP" : "seedW" });
+    } else S("rect", { x: x + 0.3, y: y + 0.3, width: Math.max(0.6, pitch - 0.6), height: Math.max(0.6, pitch - 0.6), class: purple(c) ? "seedP" : "seedW" });
+  }
+  // bars: this run vs Mendel, with the expected 3 : 1 line
+  const by = Math.max(y0 + sq + 30, H - barH), lw = narrow ? 88 : 116, vw = narrow ? 58 : 70;
+  const bx = 10 + lw, bw = W - 20 - lw - vw;
+  const rowsB = [[P.t("fThis", { n }), T.p, T.w], [P.t("fMendel"), MENDEL.p, MENDEL.w]];
+  rowsB.forEach((r, i) => {
+    const y = by + i * 26, tot = r[1] + r[2], fp = tot ? r[1] / tot : 0;
+    text(10, y + 14, r[0], "m");
+    S("rect", { x: bx, y: y + 2, width: bw, height: 16, rx: 3, class: "barW" });
+    if (fp > 0) S("rect", { x: bx, y: y + 2, width: Math.max(1, fp * bw), height: 16, rx: 3, class: "barP" });
+    text(W - 10, y + 15, (r[2] > 0 ? f(ratio(r[1], r[2]), 2) : "—") + " : 1", "b", "end");
+  });
+  const ex = bx + 0.75 * bw;
+  S("line", { x1: ex, y1: by - 4, x2: ex, y2: by + 48, class: "exp" });
+  text(ex, by - 7, P.t("fExp"), "m b", "middle");
+  Play.live(liveEl, P.t("live2a", { a: last.a, b: last.b, g: geno(last), c: purple(last) ? P.t("fP") : P.t("fW") }) + " " +
+    P.t("live2b", { n, p: T.p, w: T.w, r: rStr(T.p, T.w), wp: f((T.w / n) * 100, 1) }));
+}
+
+function drawRule(W, H) {
+  const g = mysteryGenos()[mystery], name = mystery ? "B" : "A";
+  const kidsT = cross(g, "pp", 10, seed * 31 + mystery + 11);
+  const pc = kidsT.filter(purple).length;
+  const r = Math.min(20, W / 22), y0 = 30;
+  const xa = W * 0.22, xb = W * 0.58;
+  flower(xa, y0, r, "P", true); flower(xb, y0, r, "W", true);
+  text(xa, y0 + r * 2.1 + 16, revealed ? P.t("fMyst", { m: name }) + " = " + g : P.t("fUnknown", { m: name }), "m b", "middle");
+  text(xb, y0 + r * 2.1 + 16, P.t("fWhite"), "m b", "middle");
+  text((xa + xb) / 2, y0 + 6, "×", "big", "middle");
+  const ky = y0 + r * 2.1 + 40, step10 = Math.min(34, (W - 40) / 10);
+  for (let i = 0; i < 10; i++) flower(W / 2 + (i - 4.5) * step10, ky, step10 * 0.36, purple(kidsT[i]) ? "P" : "W", false);
+  const verdict = text(W / 2, ky + step10 * 0.5 + 22, pc < 10 ? P.t("fHas") : P.t("fAll"), "b", "middle");
+  if (pc < 10) verdict.classList.add("big");
+  // the two models, generation by generation: parents → F1 → F2
+  const my = Math.max(ky + 52, H - 112), fr = 8, gap = Math.min(22, (W - 40) / 10);
+  [[P.t("fPaint"), "PxW>B>BBBB", P.t("fNever")], [P.t("fGene"), "PxW>P>PPPW", P.t("fBack")]].forEach((row, i) => {
+    const y = my + i * 54;
+    S("rect", { x: 6, y, width: W - 12, height: 48, rx: 8, class: "panel" });
+    text(14, y + 17, row[0], "m b");
+    text(W - 14, y + 17, row[2], i === 0 ? "m" : "b", "end");
+    [...row[1]].forEach((k, j) => {
+      const x = 22 + j * gap, yy = y + 34;
+      if (k === "x") text(x, yy + 5, "×", "m", "middle");
+      else if (k === ">") text(x, yy + 5, "→", "m", "middle");
+      else flower(x, yy, fr, k, false);
+    });
+  });
+  Play.live(liveEl, P.t("live3", { m: name, p: pc, w: 10 - pc }) + (revealed ? " " + P.t("live3r", { m: name, g }) : ""));
+}
+
+function draw() {
+  const { W, H } = size();
+  fig.innerHTML = "";
+  const n = NS_[+nIn.value];
+  document.getElementById("nVal").textContent = P.t("nVal", { n });
+  document.getElementById("reveal").textContent = revealed ? P.t("hide") : P.t("reveal");
+  document.getElementById("mA").classList.toggle("on", mystery === 0);
+  document.getElementById("mB").classList.toggle("on", mystery === 1);
+  document.getElementById("mA").setAttribute("aria-pressed", mystery === 0);
+  document.getElementById("mB").setAttribute("aria-pressed", mystery === 1);
+  if (step === 0) { drawGuess(W, H); extra.textContent = answered >= 0 ? P.t("fb" + (answered + 1)) : ""; Play.live(liveEl, ""); }
+  if (step === 1) { drawCross(W, H); extra.textContent = P.t("x2", { mp: MENDEL.p, mw: MENDEL.w, mr: MR }); }
+  if (step === 2) { drawRule(W, H); extra.textContent = P.t("x3", { odds: f(1 / CHANCE10, 0) }); }
+}
+
+// ---------- steps & controls ----------
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { answered = i; if (step === 0) draw(); });
+
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  document.getElementById("predict").hidden = i !== 0;
+  document.getElementById("ctlN").hidden = i !== 1;
+  document.getElementById("ctlTest").hidden = i !== 2;
+  draw();
+});
+
+nIn.addEventListener("input", draw);
+document.getElementById("reroll").addEventListener("click", () => { seed++; kids = cross("Pp", "Pp", MAXN, seed); draw(); });
+document.getElementById("mA").addEventListener("click", () => { mystery = 0; revealed = false; draw(); });
+document.getElementById("mB").addEventListener("click", () => { mystery = 1; revealed = false; draw(); });
+document.getElementById("reveal").addEventListener("click", () => { revealed = !revealed; draw(); });
+document.getElementById("reset").addEventListener("click", () => {
+  seed = 1; kids = cross("Pp", "Pp", MAXN, seed); nIn.value = 1; answered = -1; mystery = 0; revealed = false; pr.reset(); st.go(0);
+});
+if ("ResizeObserver" in window) new ResizeObserver(() => draw()).observe(fig);
+else window.addEventListener("resize", draw);
+</script>
+</body>
+</html>

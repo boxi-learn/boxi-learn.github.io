@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How far would a cart roll with no friction?</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .stage svg.fig { width: 100%; height: auto; display: block; }
+  #scene { touch-action: none; }
+  .ax { stroke: var(--line); stroke-width: 2; fill: none; }
+  .grid { stroke: var(--line); stroke-width: 1; }
+  .board { fill: var(--soft); stroke: var(--fg); stroke-width: 2.5; stroke-linejoin: round; }
+  .ground { stroke: var(--fg); stroke-width: 3; }
+  .tick { stroke: var(--muted); stroke-width: 1.5; }
+  .cartBody { fill: var(--a); } .wheel { fill: var(--fg); }
+  .lbl { fill: var(--muted); font-size: 23px; font-family: var(--font); }
+  .lblA { fill: var(--a); font-size: 23px; font-weight: 700; font-family: var(--font); }
+  .lblS { fill: var(--muted); font-size: 15px; font-family: var(--font); }
+  .lblSA { fill: var(--a); font-size: 15px; font-weight: 700; font-family: var(--font); }
+  #chart text { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
+  .curve { stroke: var(--a); stroke-width: 2.5; fill: none; stroke-dasharray: 8 6; }
+  .dotNow { fill: var(--a); } .dotOld { fill: var(--a); opacity: .3; }
+  .arrowA { stroke: var(--a); stroke-width: 3; fill: none; }
+  .arrowHead { fill: var(--a); }
+  .mark { opacity: .55; }
+  .handle { fill: var(--hl); stroke: var(--fg); stroke-width: 1.5; cursor: ns-resize; }
+  .dim { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .controls .grp input[type=range] { flex: 1 1 90px; }
+  .controls .val { min-width: 4.6em; font-size: 14px; }
+  .controls select { font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .pair { display: flex; align-items: center; gap: 8px; flex: 1 1 210px; min-width: 0; }
+  .pair input[type=range] { flex: 1 1 80px; min-width: 0; }
+  .surfs { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout th, .readout td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+  .readout th:first-child, .readout td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+  #rule .controls { padding: 4px 0 8px; }
+  .cap { font-size: 13px; color: var(--muted); padding: 0 14px 6px; }
+  .charthead { font-size: 13px; color: var(--muted); padding: 10px 14px 0; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .charthead strong { color: var(--fg); }
+  .result .math { white-space: normal; }
+  .track { fill: none; stroke: var(--fg); stroke-width: 2.5; stroke-linejoin: round; }
+  .gal { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 8px; }
+  .gal h3 { font-size: 14px; margin: 0 0 4px; }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="fig" id="scene" viewBox="0 0 600 250" role="img" data-t-aria="figAria"></svg>
+      <div class="vtag" id="tag"></div>
+      <div class="cap" id="cap"></div>
+      <div class="controls">
+        <div class="grp">
+          <button type="button" id="play"></button>
+          <button type="button" class="small" id="skip" data-t="skip"></button>
+          <label for="speed" data-t="speedLabel"></label>
+          <select id="speed"><option value="1" selected>1×</option><option value="4">4×</option><option value="16">16×</option></select>
+        </div>
+        <div class="grp">
+          <span class="surfs" id="surfs" role="group" data-t-aria="surfLabel"></span>
+        </div>
+        <div class="grp">
+          <span class="pair"><label for="mu" data-t="muLabel"></label>
+          <input type="range" id="mu" min="0" max="200" step="1" value="178">
+          <span class="val" id="muVal"></span></span>
+          <span class="pair"><label for="height" data-t="heightLabel"></label>
+          <input type="range" id="height" min="5" max="60" step="1" value="30">
+          <span class="val" id="heightVal"></span></span>
+        </div>
+      </div>
+      <div class="charthead"><span><strong data-t="chartTitle"></strong></span><button type="button" class="small" id="clear" data-t="clear"></button></div>
+      <svg class="fig" id="chart" viewBox="0 0 600 290" role="img" data-t-aria="chartAria"></svg>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "How far would a cart roll with no friction?", eyebrow: "Physics · Stage 3", h1: "How far would a cart roll with no friction?",
+    intro: "Let a cart roll down a ramp onto a long floor. Change the floor and watch how far it gets before it stops.",
+    reset: "Reset", figAria: "A ramp on the left and a 20 m floor with a ruler; a cart rolls down and along the floor",
+    chartAria: "Graph of stopping distance against friction coefficient, with one dot per finished run",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "What stops the cart?",
+    b1: "Press Play: the cart rolls down a 0.30 m ramp onto carpet and stops after about a metre. Now imagine a floor so smooth it has no friction at all (and no air). Pick an answer.",
+    k2: "Hands on", t2: "Make the floor smoother, run by run",
+    b2: "Try carpet, wood and ice, then drag the μ slider lower still. Every run that finishes adds a dot to the graph. Keep the ramp height the same so only one thing changes. Last, pick “No friction”.",
+    k3: "The rule", t3: "Nothing needs to keep pushing",
+    b3: "A moving thing does not stop by itself. Friction is a force that takes speed away, at a rate of μg every second. Less friction, slower loss, longer roll; with no friction at all, nothing takes the speed away and the cart rolls on at the same speed forever. Galileo argued this in the 1630s with two ramps; Newton made it his first law of motion (1687): an object keeps its speed and direction unless a force acts on it.",
+    q: "On a floor with no friction at all, what does the cart do after the ramp?",
+    o1: "Slows down and stops — the push from the ramp runs out", o2: "Stops almost at once at the bottom", o3: "Keeps rolling at the same speed and never stops",
+    right: "Yes. Go to step 2 and get there one floor at a time: carpet, wood, ice, smoother still.",
+    wrong: "That is what most people expect, because everything we push does stop. Go to step 2 and find out what is doing the stopping.",
+    play: "▶ Release", pause: "❚❚ Pause", replay: "↺ Replay", skip: "⇥ Skip to end",
+    speedLabel: "Speed", surfLabel: "Floor surface", muLabel: "Friction μ", heightLabel: "Ramp height",
+    sCarpet: "Carpet", sWood: "Wood", sIce: "Ice", sNone: "No friction", sCustom: "Custom",
+    noFric: "0 (none)",
+    tag: "g = 9.81 m/s² · floor: {s} · μ = {mu}",
+    cap: "Ramp: a {L} m board raised to {h} m (tilt {a}°), smooth, drawn {k}× larger than the floor. Drag the yellow handle to change the height. Floor: 20 m shown.",
+    chartTitle: "Stopping distance d against friction μ", clear: "Clear dots",
+    chartHint: "Each run that finishes adds a dot here.", neverStops: "never stops", dAxis: "d (m)", muAxis: "μ →",
+    colF: "Formula", colS: "Simulation",
+    rV: "Speed at the bottom", rD: "Stopping distance", rT: "Time on the floor", rNow: "Now on the floor", nowVal: "{x} m · {v} m/s",
+    never: "never stops", going: "{x} m and counting", stillMoving: "still moving",
+    offEdge: "keeps going — off the edge of the page", offD: "{x} m →",
+    unitM: "m", unitMS: "m/s", unitS: "s",
+    ruleRuns: "<strong>Ramp height {h} m, so the speed at the bottom is v = √(2gh) = {v} m/s.</strong> Then <span class=\"math\">d = v²/(2μg) = 2gh/(2μg) = h/μ</span>:",
+    ruleRow: "μ = {mu} → d = {d} m", ruleZero: "μ = 0 → never stops",
+    ruleHalf: "Halve μ and d doubles. Make μ smaller and smaller, and d grows past any distance you name. Note that g cancels out: on the Moon the cart would roll exactly as far.",
+    galH: "Galileo’s two ramps", galLabel: "Second ramp tilt", galAria: "A ball rolls down one ramp and up a second ramp to the height it started from",
+    galSay: "Tilt {a}°: the ball rolls {s} m up the second ramp and stops at {h} m, the height it started from.",
+    galFlat: "Second ramp flat: the ball can never climb back to {h} m, so it never stops.",
+    galNote: "With no friction, a ball rolling down one ramp climbs the next to the same height. Make the second ramp shallower and it rolls farther to get there. Lay it flat and it never gets there: it rolls on forever.",
+    galFar: "→ farther", sameH: "same height",
+    liveStop: "Stopped after {d} m on the floor (formula: {f} m).", liveGo: "No friction: released at {v} m/s. It will not slow down.",
+    liveCap: "Still moving after {t} s: {x} m along, speed still {v} m/s. We stopped watching; the cart did not stop.",
+    resultTitle: "What we found", resultMain: "d = v²/(2μg) = h/μ → no limit as μ → 0",
+    resultNote: "A force is not needed to keep something moving, only to change its motion. Friction is the force that stops a rolling cart. This is Newton’s first law.",
+    explainK: "Explain it", explainQ: "A friend says “the ball stopped because the kick ran out”. Using the word “friction”, explain what really stopped it, and what would happen on perfect ice.",
+    homeK: "Try at home", homeQ: "Lean a book on a few other books to make a ramp. Roll a toy car or a can down it onto a carpet, then onto a smooth floor. Mark where it stops each time and measure the distances.",
+    foot: "Model: the ramp is frictionless, so v = √(2gh) at the bottom (independent of the tilt). On the floor the only force along the motion is friction, a = −μg, solved step by step (Δt = 1 ms) until the speed reaches zero; formula d = v²/(2μg). Rolling is treated as sliding with an effective μ: real carts slow down through rolling resistance, and the μ values here (carpet 0.3, wood 0.1, ice 0.02) are illustrative. Air resistance is ignored. g = 9.81 m/s². · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "没有摩擦，小车能滑多远？", eyebrow: "物理 · 阶段 3", h1: "没有摩擦，小车能滑多远？",
+    intro: "让小车从斜面滑下，滑上一段长长的地面。换一种地面，看它滑多远才停。",
+    reset: "重置", figAria: "左边是斜面，右边是带刻度尺的 20 米地面；小车从斜面滑下，在地面上滑行",
+    chartAria: "停下距离和摩擦系数的关系图，每完成一次实验多一个点",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "是什么让小车停下？",
+    b1: "按「放手」：小车从 0.30 米高的斜面滑到地毯上，滑了大约 1 米就停了。现在想象一块光滑到完全没有摩擦的地面（也没有空气）。先选一个答案。",
+    k2: "动手", t2: "一次比一次光滑",
+    b2: "试试地毯、木地板、冰面，再把 μ 滑块往下拖得更小。每完成一次，图上就多一个点。斜面高度别动，一次只改一样。最后选「没有摩擦」。",
+    k3: "规律", t3: "不用一直推",
+    b3: "运动的东西不会自己停下。摩擦是一种力，它每秒从速度里拿走 μg。摩擦越小，速度掉得越慢，滑得越远；完全没有摩擦，就没有东西拿走速度，小车会以同样的速度一直滑下去。伽利略在 17 世纪 30 年代用两个斜面论证了这一点；牛顿把它写成运动第一定律（1687 年）：没有力作用时，物体保持原来的速度和方向。",
+    q: "在完全没有摩擦的地面上，小车滑下斜面以后会怎样？",
+    o1: "慢慢减速停下——斜面给的推力用完了", o2: "到底下几乎马上停住", o3: "以同样的速度一直滑，永远不停",
+    right: "对。到第 2 步，一种地面一种地面地走过去：地毯、木地板、冰面，再更光滑。",
+    wrong: "大多数人都这么想，因为我们推过的东西最后都停了。到第 2 步找找到底是谁让它停的。",
+    play: "▶ 放手", pause: "❚❚ 暂停", replay: "↺ 重放", skip: "⇥ 跳到结尾",
+    speedLabel: "速度", surfLabel: "地面", muLabel: "摩擦 μ", heightLabel: "斜面高度",
+    sCarpet: "地毯", sWood: "木地板", sIce: "冰面", sNone: "没有摩擦", sCustom: "自定义",
+    noFric: "0（无）",
+    tag: "g = 9.81 m/s² · 地面：{s} · μ = {mu}",
+    cap: "斜面：一块 {L} 米长的板，一头垫高到 {h} 米（倾角 {a}°），光滑，画得比地面放大 {k} 倍。拖黄色把手可以改高度。地面：画出 20 米。",
+    chartTitle: "停下距离 d 和摩擦 μ 的关系", clear: "清除点",
+    chartHint: "每完成一次实验，这里多一个点。", neverStops: "永远不停", dAxis: "d（米）", muAxis: "μ →",
+    colF: "公式", colS: "模拟",
+    rV: "到底时的速度", rD: "停下距离", rT: "在地面上滑的时间", rNow: "现在（地面上）", nowVal: "{x} 米 · {v} 米/秒",
+    never: "永远不停", going: "已滑 {x} 米，还在滑", stillMoving: "还在动",
+    offEdge: "一直滑——滑出画面了", offD: "{x} 米 →",
+    unitM: "米", unitMS: "米/秒", unitS: "秒",
+    ruleRuns: "<strong>斜面高 {h} 米，到底时速度 v = √(2gh) = {v} 米/秒。</strong>于是 <span class=\"math\">d = v²/(2μg) = 2gh/(2μg) = h/μ</span>：",
+    ruleRow: "μ = {mu} → d = {d} 米", ruleZero: "μ = 0 → 永远不停",
+    ruleHalf: "μ 减半，d 就翻倍。μ 越来越小，d 会超过你说出的任何距离。注意 g 被约掉了：在月球上，小车滑的距离一模一样。",
+    galH: "伽利略的两个斜面", galLabel: "第二个斜面的倾角", galAria: "小球从一个斜面滚下，再滚上第二个斜面，回到出发时的高度",
+    galSay: "倾角 {a}°：小球沿第二个斜面滚了 {s} 米，停在 {h} 米高，正是出发时的高度。",
+    galFlat: "第二个斜面放平了：小球永远回不到 {h} 米高，所以永远不停。",
+    galNote: "没有摩擦时，小球从一个斜面滚下，会滚上另一个斜面，回到同样的高度。第二个斜面越平，它要滚得越远才能到那个高度。把它放平，它永远到不了：就一直滚下去。",
+    galFar: "→ 更远", sameH: "同样高度",
+    liveStop: "在地面上滑了 {d} 米停下（公式算出 {f} 米）。", liveGo: "没有摩擦：以 {v} 米/秒出发，速度不会变小。",
+    liveCap: "过了 {t} 秒还在动：已滑 {x} 米，速度还是 {v} 米/秒。是我们不看了，小车并没有停。",
+    resultTitle: "我们发现", resultMain: "d = v²/(2μg) = h/μ → μ → 0 时没有上限",
+    resultNote: "让东西保持运动不需要力，改变它的运动才需要力。让滚动的小车停下的，是摩擦力。这就是牛顿第一定律。",
+    explainK: "说一说", explainQ: "朋友说「球停下是因为踢的那股劲用完了」。用上「摩擦」这个词，讲讲到底是什么让它停下的；如果在完美的冰面上会怎样。",
+    homeK: "家里做一做", homeQ: "把一本书斜靠在几本书上搭个斜面。让玩具车或易拉罐从上面滚下，先滚到地毯上，再滚到光滑的地板上。每次标出停下的位置，量一量距离。",
+    foot: "模型：斜面没有摩擦，所以到底时 v = √(2gh)（和倾角无关）。在地面上，沿运动方向只有摩擦力，a = −μg，逐步数值求解（步长 1 毫秒）直到速度为零；公式 d = v²/(2μg)。滚动按滑动处理，用一个等效 μ：真实小车靠滚动阻力减速，这里的 μ 值（地毯 0.3、木地板 0.1、冰面 0.02）只是示意。忽略空气阻力。g = 9.81 m/s²。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure physics, no DOM (tests extract this block) */
+const G = 9.81, LR = 1.2, DT = 0.001, SAMPLE = 0.01, TMAX = 600;
+// Ramp: frictionless board of length LR raised to height h. Floor: deceleration mu*g until v = 0.
+function simulate(h, mu) {
+  h = Number.isFinite(h) ? Math.min(Math.max(h, 0.01), LR * 0.99) : 0.3;
+  mu = Number.isFinite(mu) ? Math.max(mu, 0) : 0;
+  const sinA = h / LR, aR = G * sinA;
+  // ramp, step by step; land exactly on the end of the board
+  const rs = [0], rv = [0];
+  let s = 0, v = 0, t = 0, tr = null, vb = null;
+  const ns = Math.round(SAMPLE / DT);
+  ramp: for (let i = 0; i < 100000; i++) {
+    for (let j = 0; j < ns; j++) {
+      const s2 = s + v * DT + 0.5 * aR * DT * DT;
+      if (s2 >= LR) {
+        const tau = (-v + Math.sqrt(v * v + 2 * aR * (LR - s))) / aR;
+        tr = t + Math.min(DT, Math.max(0, tau)); vb = v + aR * (tr - t);
+        break ramp;
+      }
+      s = s2; v += aR * DT; t += DT;
+    }
+    rs.push(s); rv.push(v);
+  }
+  // floor
+  const a = mu * G, fx = [0], fv = [vb];
+  let x = 0, u = vb, tf = 0, tStop = null, d = null;
+  if (a > 0) {
+    floor: for (let i = 0; i < 1e6; i++) {
+      for (let j = 0; j < ns; j++) {
+        if (u - a * DT <= 0) {                       // stops inside this step
+          const tau = u / a;
+          x += u * tau - 0.5 * a * tau * tau; tf += tau;
+          tStop = tf; d = x;
+          break floor;
+        }
+        x += u * DT - 0.5 * a * DT * DT; u -= a * DT; tf += DT;
+      }
+      fx.push(x); fv.push(u);
+    }
+  }
+  return { h, mu, angle: Math.asin(sinA) * 180 / Math.PI, tr, vb, rs, rv, fx, fv, tStop, d };
+}
+// Formulas, for comparison with the simulation.
+const vBottom = (h) => Math.sqrt(2 * G * h);
+const dStop = (h, mu) => (mu > 0 ? (vBottom(h) ** 2) / (2 * mu * G) : null);
+// State at time t: phase "ramp" (s along the board) or "floor" (x along the floor).
+function stateAt(sim, t) {
+  t = Math.max(0, Number.isFinite(t) ? t : 0);
+  const lerp = (arr, k) => { const n = arr.length - 1, i = Math.min(n, Math.floor(k)), f = i < n ? k - i : 0; return i < n ? arr[i] + (arr[i + 1] - arr[i]) * f : arr[n]; };
+  if (t < sim.tr) {
+    const k = t / SAMPLE, n = sim.rs.length - 1;
+    if (k >= n) {                                      // last partial sample: constant acceleration from the last sample
+      const dt = t - n * SAMPLE, aR = G * sim.h / LR;
+      return { phase: "ramp", s: Math.min(LR, sim.rs[n] + sim.rv[n] * dt + 0.5 * aR * dt * dt), v: sim.rv[n] + aR * dt };
+    }
+    return { phase: "ramp", s: lerp(sim.rs, k), v: lerp(sim.rv, k) };
+  }
+  const tf = t - sim.tr;
+  if (sim.tStop === null) return { phase: "floor", x: sim.vb * tf, v: sim.vb, stopped: false };
+  if (tf >= sim.tStop) return { phase: "floor", x: sim.d, v: 0, stopped: true };
+  const k = tf / SAMPLE, n = sim.fx.length - 1;
+  if (k >= n) {
+    const dt = tf - n * SAMPLE, a = sim.mu * G;
+    return { phase: "floor", x: Math.min(sim.d, sim.fx[n] + sim.fv[n] * dt - 0.5 * a * dt * dt), v: Math.max(0, sim.fv[n] - a * dt), stopped: false };
+  }
+  return { phase: "floor", x: lerp(sim.fx, k), v: Math.max(0, lerp(sim.fv, k)), stopped: false };
+}
+const tEndOf = (sim) => (sim.tStop === null ? sim.tr + TMAX : sim.tr + sim.tStop);
+// slider 0..200 ↔ μ 0.005..0.5 (log scale), rounded to 3 significant figures
+const sToMu = (s) => +(0.005 * Math.pow(100, Math.min(200, Math.max(0, Number.isFinite(s) ? s : 0)) / 200)).toPrecision(3);
+const muToS = (mu) => Math.round(200 * Math.log(Math.max(0.005, Math.min(0.5, mu)) / 0.005) / Math.log(100));
+/* SIM-END */
+
+const SURF = { carpet: 0.3, wood: 0.1, ice: 0.02, none: 0 };
+const SKEY = { carpet: "sCarpet", wood: "sWood", ice: "sIce", none: "sNone", custom: "sCustom" };
+const SCOL = { carpet: "var(--b)", wood: "var(--hl)", ice: "var(--c)", none: "none", custom: "var(--a)" };
+const $ = (id) => document.getElementById(id);
+const scene = $("scene"), chart = $("chart");
+const S = { h: 0.3, mu: 0.3, surf: "carpet", t: 0, playing: false, speed: 1, logged: false };
+let sim = null, tEnd = 1, raf = 0, last = 0, dots = [], lastLive = "";
+
+const fd = (x) => (Number.isFinite(x) ? Play.fmt(x, x < 10 ? 2 : x < 100 ? 1 : 0) : "—");
+const fv = (v) => Play.fmt(v, 2);
+const fmu = (mu) => (mu > 0 ? String(+mu.toPrecision(3)) : "0");
+
+/* ---------- controls ---------- */
+const sBtns = {};
+["carpet", "wood", "ice", "none"].forEach((k) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(SKEY[k]);
+  b.addEventListener("click", () => { S.surf = k; S.mu = SURF[k]; recompute(); });
+  $("surfs").appendChild(b); sBtns[k] = b;
+});
+$("mu").addEventListener("input", () => {
+  S.mu = sToMu(+$("mu").value);
+  S.surf = Object.keys(SURF).find((k) => SURF[k] === S.mu) || "custom";
+  recompute();
+});
+$("height").addEventListener("input", () => { S.h = Play.clamp(+$("height").value, 5, 60) / 100; recompute(); });
+$("speed").addEventListener("change", () => { S.speed = +$("speed").value || 1; });
+$("play").addEventListener("click", () => {
+  if (S.playing) { pause(); return; }
+  if (S.t >= tEnd - 1e-9) { S.t = 0; S.logged = false; }
+  S.playing = true; last = 0;
+  if (S.mu === 0 && S.t === 0) { addDot(); say(P.t("liveGo", { v: fv(sim.vb) })); }
+  raf = requestAnimationFrame(tick); syncPlay();
+});
+$("skip").addEventListener("click", () => { if (S.mu === 0) return; pause(); S.t = tEnd; finish(); draw(); syncPlay(); });
+$("clear").addEventListener("click", () => { dots = []; drawChart(); });
+function pause() { S.playing = false; cancelAnimationFrame(raf); syncPlay(); }
+function syncPlay() {
+  $("play").textContent = P.t(S.playing ? "pause" : S.t >= tEnd - 1e-9 && S.t > 0 ? "replay" : "play");
+  $("skip").disabled = S.mu === 0;
+}
+function tick(ts) {
+  if (!S.playing) return;
+  if (last) S.t += Math.min(0.1, (ts - last) / 1000) * S.speed;
+  last = ts;
+  if (S.t >= tEnd) { S.t = tEnd; S.playing = false; finish(); }
+  draw(); syncPlay();
+  if (S.playing) raf = requestAnimationFrame(tick);
+}
+function finish() {
+  if (S.mu > 0) {
+    if (!S.logged) addDot();
+    say(P.t("liveStop", { d: fd(sim.d), f: fd(dStop(S.h, S.mu)) }));
+  } else {
+    const st = stateAt(sim, S.t);
+    say(P.t("liveCap", { t: Math.round(S.t - sim.tr), x: fd(st.x), v: fv(st.v) }));
+  }
+  S.logged = true;
+}
+function say(msg) { if (msg !== lastLive) { lastLive = msg; Play.live($("live"), msg); } }
+function addDot() {
+  dots = dots.filter((p) => !(Math.abs(p.h - S.h) < 1e-9 && Math.abs(p.mu - S.mu) < 1e-9));
+  dots.push({ h: S.h, mu: S.mu, d: sim.d, surf: S.surf });
+  if (dots.length > 40) dots.shift();
+  S.logged = true;
+  drawChart();
+}
+
+/* ---------- drag the ramp handle ---------- */
+let dragging = false;
+scene.addEventListener("pointerdown", (e) => {
+  const p = Play.pointer(scene, e);
+  if (p.x > FOOT + 10 || p.y > FY + 6) return;
+  dragging = true; scene.setPointerCapture && scene.setPointerCapture(e.pointerId); dragTo(p); e.preventDefault();
+});
+scene.addEventListener("pointermove", (e) => { if (dragging) dragTo(Play.pointer(scene, e)); });
+["pointerup", "pointercancel"].forEach((ev) => scene.addEventListener(ev, () => { dragging = false; }));
+function dragTo(p) {
+  const h = Math.round(Play.clamp((FY - p.y) / KR, 0.05, 0.6) * 100) / 100;
+  if (Math.abs(h - S.h) > 1e-9) { S.h = h; recompute(); }
+}
+
+/* ---------- physics ---------- */
+function recompute() {
+  pause();
+  sim = simulate(S.h, S.mu);
+  tEnd = tEndOf(sim);
+  S.t = 0; S.logged = false;
+  syncControls(); draw(); drawChart(); drawRule(); syncPlay();
+}
+function syncControls() {
+  Object.keys(sBtns).forEach((k) => { sBtns[k].classList.toggle("on", S.surf === k); sBtns[k].setAttribute("aria-pressed", S.surf === k ? "true" : "false"); });
+  $("mu").value = muToS(S.mu);
+  $("muVal").textContent = S.mu > 0 ? fmu(S.mu) : P.t("noFric");
+  $("height").value = Math.round(S.h * 100);
+  $("heightVal").textContent = S.h.toFixed(2) + " m";
+  $("tag").textContent = P.t("tag", { s: P.t(SKEY[S.surf]), mu: fmu(S.mu) });
+  $("cap").textContent = P.t("cap", { L: LR.toFixed(1), h: S.h.toFixed(2), a: Play.fmt(sim.angle, 1), k: Play.fmt(KR / KF, 0) });
+}
+
+/* ---------- drawing: scene ---------- */
+const FOOT = 210, FY = 190, FX1 = 584, FLOOR_L = 20, KR = 150, KF = (FX1 - FOOT) / FLOOR_L;
+function cartAt(px, py, deg, parent) {
+  const g = Play.svg("g", { transform: `translate(${px.toFixed(1)},${py.toFixed(1)}) rotate(${deg.toFixed(2)})` }, parent);
+  Play.svg("rect", { class: "cartBody", x: -14, y: -19, width: 28, height: 12, rx: 3 }, g);
+  Play.svg("circle", { class: "wheel", cx: -8, cy: -4, r: 4 }, g);
+  Play.svg("circle", { class: "wheel", cx: 8, cy: -4, r: 4 }, g);
+}
+function draw() {
+  const sv = Play.svg;
+  scene.innerHTML = "";
+  const run = Math.sqrt(LR * LR - S.h * S.h) * KR, topX = FOOT - run, topY = FY - S.h * KR;
+  // ramp
+  sv("line", { class: "ground", x1: 8, y1: FY, x2: FOOT, y2: FY }, scene);
+  sv("polygon", { class: "board", points: `${topX.toFixed(1)},${topY.toFixed(1)} ${FOOT},${FY} ${topX.toFixed(1)},${FY}` }, scene);
+  sv("line", { class: "dim", x1: topX - 8, y1: topY, x2: topX - 8, y2: FY }, scene);
+  sv("text", { class: "lbl", x: Math.max(8, topX - 4), y: topY - 34 }, scene).textContent = "h = " + S.h.toFixed(2) + " m";
+  sv("circle", { class: "handle", cx: (topX - 8).toFixed(1), cy: topY.toFixed(1), r: 9 }, scene);
+  // floor strip + ruler
+  const col = SCOL[S.surf];
+  if (S.mu > 0) sv("rect", { x: FOOT, y: FY, width: FX1 - FOOT, height: 8, fill: col, opacity: 0.85 }, scene);
+  sv("line", { class: "ground", x1: FOOT, y1: FY, x2: FX1, y2: FY, "stroke-dasharray": S.mu > 0 ? "none" : "10 6" }, scene);
+  for (let m = 0; m <= FLOOR_L; m += 5) {
+    const x = FOOT + m * KF;
+    sv("line", { class: "tick", x1: x, y1: FY + 10, x2: x, y2: FY + 18 }, scene);
+    sv("text", { class: "lbl", x, y: FY + 42, "text-anchor": m === FLOOR_L ? "end" : "middle" }, scene).textContent = m === FLOOR_L ? m + " m" : String(m);
+  }
+  for (let m = 1; m < FLOOR_L; m++) if (m % 5) sv("line", { class: "tick", x1: FOOT + m * KF, y1: FY + 10, x2: FOOT + m * KF, y2: FY + 14 }, scene);
+  // where earlier runs (same height) stopped
+  dots.forEach((p) => {
+    if (Math.abs(p.h - S.h) > 1e-9 || p.d === null || p.d > FLOOR_L) return;
+    const x = FOOT + p.d * KF;
+    sv("polygon", { class: "mark", points: `${x - 6},${FY - 12} ${x + 6},${FY - 12} ${x},${FY - 2}`, fill: SCOL[p.surf] === "none" ? "var(--a)" : SCOL[p.surf] }, scene);
+  });
+  // cart
+  const st = stateAt(sim, S.t);
+  if (st.phase === "ramp") {
+    const f = st.s / LR, deg = Math.atan2(FY - topY, FOOT - topX) * 180 / Math.PI;
+    cartAt(topX + f * (FOOT - topX), topY + f * (FY - topY), deg, scene);
+  } else if (st.x <= FLOOR_L - 0.4) {
+    cartAt(FOOT + st.x * KF, FY, 0, scene);
+  } else {
+    sv("path", { class: "arrowA", d: `M${FX1 - 70},${FY - 14} H${FX1 - 6}` }, scene);
+    sv("polygon", { class: "arrowHead", points: `${FX1 - 8},${FY - 22} ${FX1 + 6},${FY - 14} ${FX1 - 8},${FY - 6}` }, scene);
+    sv("text", { class: "lblA", x: FX1, y: FY - 56, "text-anchor": "end" }, scene).textContent = P.t("offD", { x: fd(st.x) });
+    if (!st.stopped) sv("text", { class: "lbl", x: FX1, y: FY - 30, "text-anchor": "end" }, scene).textContent = P.t("offEdge");
+  }
+  drawReadout(st);
+}
+function drawReadout(st) {
+  const fF = dStop(S.h, S.mu), floorT = S.mu > 0 ? sim.vb / (S.mu * G) : null;
+  const onFloor = st.phase === "floor";
+  const simD = S.mu > 0 ? fd(sim.d) + " " + P.t("unitM") : (onFloor && S.t > sim.tr ? P.t("going", { x: fd(st.x) }) : P.t("stillMoving"));
+  const row = (k, a, b) => `<tr><td>${P.t(k)}</td><td>${a}</td><td>${b}</td></tr>`;
+  $("readout").innerHTML =
+    `<tr><th></th><th>${P.t("colF")}</th><th>${P.t("colS")}</th></tr>` +
+    row("rV", fv(vBottom(S.h)) + " " + P.t("unitMS"), fv(sim.vb) + " " + P.t("unitMS")) +
+    row("rD", fF === null ? P.t("never") : fd(fF) + " " + P.t("unitM"), simD) +
+    row("rT", floorT === null ? P.t("never") : Play.fmt(floorT, 2) + " " + P.t("unitS"), sim.tStop === null ? "—" : Play.fmt(sim.tStop, 2) + " " + P.t("unitS")) +
+    `<tr><td>${P.t("rNow")}</td><td colspan="2">${P.t("nowVal", { x: fd(onFloor ? st.x : 0), v: fv(onFloor ? st.v : 0) })}</td></tr>`;
+}
+
+/* ---------- drawing: chart ---------- */
+const CX0 = 70, CX1 = 580, CY0 = 46, CY1 = 238, MU_MAX = 0.5, D_MAX = 20;
+const cx = (mu) => CX0 + Play.clamp(mu / MU_MAX, 0, 1) * (CX1 - CX0), cy = (d) => CY1 - Play.clamp(d / D_MAX, 0, 1) * (CY1 - CY0);
+function drawChart() {
+  const sv = Play.svg;
+  chart.innerHTML = "";
+  for (let d = 5; d <= D_MAX; d += 5) sv("line", { class: "grid", x1: CX0, y1: cy(d), x2: CX1, y2: cy(d) }, chart);
+  sv("polyline", { class: "ax", points: `${CX0},${CY0 - 6} ${CX0},${CY1} ${CX1},${CY1}` }, chart);
+  [0, 5, 10, 15, 20].forEach((d) => { sv("text", { class: "lbl", x: CX0 - 10, y: cy(d) + 8, "text-anchor": "end" }, chart).textContent = d; });
+  [0, 0.1, 0.2, 0.3, 0.4, 0.5].forEach((m) => { sv("text", { class: "lbl", x: cx(m), y: CY1 + 30, "text-anchor": "middle" }, chart).textContent = m; });
+  sv("text", { class: "lbl", x: 6, y: CY0 - 20 }, chart).textContent = P.t("dAxis");
+  sv("text", { class: "lbl", x: CX1, y: CY1 - 10, "text-anchor": "end" }, chart).textContent = P.t("muAxis");
+  const mine = dots.filter((p) => Math.abs(p.h - S.h) < 1e-9 && p.mu > 0);
+  // the h/μ curve: shown once three runs at this height are in, or on the rule step
+  if (mine.length >= 3 || (stp && stp.i === 2)) {
+    const pts = [], m0 = S.h / D_MAX;
+    for (let i = 0; i <= 120; i++) { const m = m0 + (MU_MAX - m0) * Math.pow(i / 120, 2); pts.push(cx(m).toFixed(1) + "," + cy(S.h / m).toFixed(1)); }
+    sv("polyline", { class: "curve", points: pts.join(" ") }, chart);
+    const mL = Math.max(0.12, Math.min(0.3, S.h / 4));
+    sv("text", { class: "lblA", x: cx(mL) + 8, y: cy(S.h / mL) - 14 }, chart).textContent = "d = h/μ";
+  }
+  dots.forEach((p, i) => {
+    const cls = Math.abs(p.h - S.h) < 1e-9 ? "dotNow" : "dotOld", latest = i === dots.length - 1;
+    if (p.d === null) {
+      const x = cx(0) + 4;
+      sv("path", { class: "arrowA", d: `M${x},${CY1 - 4} V${CY0 + 8}`, opacity: cls === "dotOld" ? 0.3 : 1 }, chart);
+      sv("polygon", { class: "arrowHead", points: `${x - 7},${CY0 + 12} ${x},${CY0 - 4} ${x + 7},${CY0 + 12}`, opacity: cls === "dotOld" ? 0.3 : 1 }, chart);
+      if (cls === "dotNow") sv("text", { class: "lblA", x: x + 12, y: CY0 - 14 }, chart).textContent = P.t("neverStops");
+    } else if (p.d > D_MAX) {
+      const x = cx(p.mu);
+      sv("polygon", { class: cls, points: `${x - 8},${CY0 + 6} ${x},${CY0 - 8} ${x + 8},${CY0 + 6}` }, chart);
+      if (latest && cls === "dotNow") sv("text", { class: "lblA", x: x + 12, y: CY0 + 10 }, chart).textContent = "↑ " + fd(p.d) + " m";
+    } else {
+      sv("circle", { class: cls, cx: cx(p.mu).toFixed(1), cy: cy(p.d).toFixed(1), r: 7 }, chart);
+    }
+  });
+  if (!dots.length) sv("text", { class: "lbl", x: (CX0 + CX1) / 2, y: (CY0 + CY1) / 2, "text-anchor": "middle" }, chart).textContent = P.t("chartHint");
+}
+
+/* ---------- step 3: the rule + Galileo's two ramps ---------- */
+let galA = 30;
+function drawRule() {
+  const box = $("rule");
+  if (!stp || stp.i !== 2) { box.innerHTML = ""; return; }
+  const rows = [0.3, 0.1, 0.02, 0.002].map((m) => P.t("ruleRow", { mu: m, d: fd(dStop(S.h, m)) }));
+  rows.push(P.t("ruleZero"));
+  box.innerHTML =
+    "<p>" + P.t("ruleRuns", { h: S.h.toFixed(2), v: fv(vBottom(S.h)) }) + "<br>" + rows.join("<br>") + "</p>" +
+    "<p>" + P.t("ruleHalf") + "</p>" +
+    '<div class="gal"><h3>' + P.t("galH") + "</h3><p>" + P.t("galNote") + "</p>" +
+    '<svg class="fig" id="gal" viewBox="0 0 360 180" role="img" aria-label="' + P.t("galAria") + '"></svg>' +
+    '<div class="controls"><label for="galA">' + P.t("galLabel") + '</label><input type="range" id="galA" min="0" max="45" step="1" value="' + galA + '"><span class="val" id="galVal"></span></div>' +
+    '<p id="galSay"></p></div>';
+  $("galA").addEventListener("input", () => { galA = Play.clamp(+$("galA").value, 0, 45); drawGal(); });
+  drawGal();
+}
+function drawGal() {
+  const g = $("gal"), sv = Play.svg;
+  if (!g) return;
+  g.innerHTML = "";
+  const TOP = 40, BOT = 140, L0 = 20, V0 = 110, V1 = 140, XE = 350, H = BOT - TOP;
+  sv("line", { class: "dim", x1: L0, y1: TOP, x2: XE, y2: TOP }, g);
+  sv("text", { class: "lblS", x: L0 + 18, y: TOP - 10 }, g).textContent = P.t("sameH") + " · " + S.h.toFixed(2) + " m";
+  let path = `M${L0},${TOP} L${V0},${BOT} L${V1},${BOT} `, endX = null;
+  if (galA > 0) {
+    const run = H / Math.tan(galA * Math.PI / 180);
+    if (V1 + run <= XE) { endX = V1 + run; path += `L${endX.toFixed(1)},${TOP} L${(endX + 10).toFixed(1)},${TOP}`; }
+    else path += `L${XE},${(BOT - (XE - V1) * Math.tan(galA * Math.PI / 180)).toFixed(1)}`;
+  } else path += `L${XE},${BOT}`;
+  sv("path", { class: "track", d: path }, g);
+  sv("circle", { class: "dotOld", cx: L0 + 6, cy: TOP - 7, r: 7 }, g);
+  if (endX !== null) sv("circle", { class: "dotNow", cx: (endX - 4).toFixed(1), cy: TOP - 7, r: 7 }, g);
+  else {
+    sv("text", { class: "lblSA", x: XE, y: BOT + 26, "text-anchor": "end" }, g).textContent = galA > 0 ? P.t("galFar") : "→ " + P.t("neverStops");
+  }
+  $("galVal").textContent = galA + "°";
+  $("galSay").textContent = galA > 0
+    ? P.t("galSay", { a: galA, s: fd(S.h / Math.sin(galA * Math.PI / 180)), h: S.h.toFixed(2) })
+    : P.t("galFlat", { h: S.h.toFixed(2) });
+}
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }], right: P.t("right"), wrong: P.t("wrong"),
+});
+let stp = null;
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  if (sim) { drawChart(); drawRule(); }
+});
+function resetAll() {
+  S.h = 0.3; S.mu = 0.3; S.surf = "carpet"; S.speed = 1; $("speed").value = "1";
+  dots = []; galA = 30; lastLive = ""; $("live").textContent = "";
+  pr.reset(); stp.go(0); recompute();
+}
+$("reset").addEventListener("click", resetAll);
+resetAll();
+</script>
+</body>
+</html>

@@ -126,7 +126,7 @@ body.embed .explainit { display: none; } /* the lesson page shows 说一说 / �
   .steps button { flex: 1 1 auto; padding: 8px 8px; font-size: 13px; }
   .result { display: block; }
   .result .rn { margin-top: 10px; }
-  .result .math { font-size: 20px; }
+  .result .math { font-size: 20px; white-space: normal; overflow-wrap: anywhere; }
 }
 
 /* Subject accents (light / dark). --a drives buttons, kickers, focus. */

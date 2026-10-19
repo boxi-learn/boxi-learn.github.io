@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Is current used up in a bulb?</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .wire { stroke: var(--fg); stroke-width: 3; fill: none; stroke-linejoin: round; }
+  .cover { fill: var(--surface); }
+  .plate { stroke: var(--fg); stroke-width: 4; }
+  .plate.neg { stroke-width: 9; }
+  .term { fill: var(--fg); }
+  .lever { stroke: var(--fg); stroke-width: 4; stroke-linecap: round; }
+  .chg { fill: var(--c); }
+  .halo { fill: var(--hl); }
+  .bulb { fill: var(--surface); stroke: var(--fg); stroke-width: 3; }
+  .bulbx { stroke: var(--fg); stroke-width: 2.5; }
+  .bulb.out { stroke-dasharray: 5 5; opacity: .6; }
+  .meter { fill: var(--surface); stroke: var(--a); stroke-width: 3; }
+  .slot { fill: transparent; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 4; }
+  .lbl { fill: var(--muted); font-size: 22px; font-family: var(--font); }
+  .lblA { fill: var(--a); font-size: 23px; font-weight: 700; font-family: var(--font); }
+  .lblM { fill: var(--fg); font-size: 20px; font-weight: 700; font-family: var(--font); }
+  .lblR { fill: var(--fg); font-size: 23px; font-weight: 700; font-family: var(--math); }
+  .hit { cursor: pointer; outline: none; }
+  .hit:focus-visible .ring { stroke: var(--hl); stroke-width: 4; fill: none; }
+  .hit .ring { fill: none; stroke: none; }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .pair { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 0; }
+  .pair input[type=range] { flex: 1 1 80px; min-width: 0; }
+  .controls .val { min-width: 3.6em; font-size: 14px; }
+  .btns { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout th, .readout td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+  .readout th:first-child, .readout td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+  .cap { font-size: 13px; color: var(--muted); padding: 0 14px 6px; }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="group" data-t-aria="figAria"></svg>
+      <div class="vtag" id="tag"></div>
+      <div class="cap" data-t="cap"></div>
+      <div class="controls">
+        <div class="grp">
+          <button type="button" id="play"></button>
+          <span class="btns" id="modes" role="group" data-t-aria="modeLabel"></span>
+          <button type="button" id="sw"></button>
+        </div>
+        <div class="grp">
+          <span class="pair"><label for="volt" data-t="voltLabel"></label>
+          <input type="range" id="volt" min="1.5" max="9" step="0.5" value="6">
+          <span class="val" id="voltVal"></span></span>
+          <span class="pair"><label for="nb" data-t="nLabel"></label>
+          <input type="range" id="nb" min="1" max="3" step="1" value="1">
+          <span class="val" id="nbVal"></span></span>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Is current used up in a bulb?", eyebrow: "Physics · Stage 3", h1: "Is current used up in a bulb?",
+    intro: "Build a circuit with a battery, bulbs and a switch. Put ammeters wherever you like and watch the charge flow.",
+    reset: "Reset", figAria: "Circuit diagram: battery, switch, bulbs and ammeters, with moving charge dots",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Before the bulb or after it?",
+    b1: "Ammeter A1 measures the current flowing into the bulb; A2 measures the current coming out. The readings stay hidden until you choose.",
+    k2: "Hands on", t2: "Build circuits, put ammeters anywhere",
+    b2: "Change the battery and the number of bulbs, and switch between series and parallel. Tap a dashed circle to place an ammeter, tap a meter to remove it. Tap a bulb to unscrew it: in series every bulb goes out; in parallel only that branch stops.",
+    k3: "The rule", t3: "Charge goes round; the bulb takes energy",
+    b3: "A series loop has only one path, so every ammeter reads the same current. In parallel each branch is connected straight across the battery and gets the full voltage; the branch currents add up to the current in the main wire.",
+    q: "Which ammeter reads more?", o1: "A1, before the bulb — the bulb uses some current up", o2: "A2, after the bulb", o3: "They read the same",
+    right: "Yes. Look at the meters: the same current goes in and comes out. Go to step 2 and build bigger circuits.",
+    wrong: "Most people guess that. Look at the meters now: A1 and A2 read exactly the same.",
+    play: "▶ Charges", pause: "❚❚ Pause", modeLabel: "How the bulbs are connected",
+    series: "Series", parallel: "Parallel", swOpen: "Close switch", swClosed: "Open switch",
+    voltLabel: "Battery", nLabel: "Bulbs",
+    tagSeries: "series · R = {R} Ω per bulb", tagParallel: "parallel · R = {R} Ω per bulb",
+    cap: "Tap a bulb to unscrew it. Tap a dashed circle to place an ammeter. Dot speed is proportional to the current.",
+    bulbAria: "Bulb {k}: {s}. Press to unscrew or screw in.", bulbIn: "lit, {P} W", bulbDark: "in, not lit", bulbOut: "unscrewed",
+    meterAria: "Ammeter {m}: {v}. Press to remove.", slotAria: "Empty place for ammeter {m}. Press to place one.", swAria: "Switch: {s}. Press to toggle.",
+    swIsOpen: "open", swIsClosed: "closed", hidden: "hidden until you choose",
+    rI: "Current", rV: "Voltage across", rP: "Power P = I²R", out: "out",
+    ruleSeries: "<strong>Series, {n} bulb(s), {V} V:</strong> <span class=\"math\">I = V ÷ (nR) = {V} ÷ ({n} × {R}) = {I} A</span> — the same at A1, A2, A3 and A4. Each bulb gets <span class=\"math\">{Vb} V</span> and gives <span class=\"math\">P = I²R = {P} W</span>.",
+    ruleParallel: "<strong>Parallel, {V} V:</strong> each lit branch gets the full {V} V, so <span class=\"math\">I = V ÷ R = {V} ÷ {R} = {Ib} A</span>. Main wire: <span class=\"math\">I = {sum} = {I} A</span>. Each lit bulb: <span class=\"math\">P = {P} W</span>.",
+    ruleBroken: "<strong>No complete loop</strong> ({why}): the current is 0 A everywhere in that loop.",
+    ruleParOut: "<strong>L{k} is unscrewed:</strong> its branch carries 0 A, but every other branch is still a complete loop through the battery, so those bulbs stay lit.",
+    whySwitch: "the switch is open", whyBulb: "a bulb is unscrewed",
+    ruleEnergy: "<strong>Charge is not used up:</strong> every second {I} C flows into bulb {k} and {I} C flows out. What the bulb takes is energy: each coulomb gives up {Vb} J there, so {P} J of electrical energy become light and heat every second.",
+    ruleEnergy0: "Close the loop to see the energy count.",
+    liveSeries: "Series, {V} V: every ammeter reads {I} A.", liveParallel: "Parallel, {V} V: main wire {I} A, branches {br} A.", liveOff: "No current: {why}.",
+    resultTitle: "What we found", resultMain: "series: same I everywhere · parallel: I = I₁ + I₂ + I₃",
+    resultNote: "A bulb does not use up current: as much charge comes out as goes in. It hands over energy, P = I²R, as light and heat.",
+    explainK: "Explain it", explainQ: "A friend says the first bulb after the battery's + end gets the most current, so it shines brightest. Using the words “loop”, “current” and “energy”, explain why bulbs in one series loop are equally bright.",
+    homeK: "Try at home", homeQ: "With a school circuit kit (a battery, two small bulbs, wires), connect the bulbs in a line, then side by side, and compare how bright they are. No kit? Notice that switching one lamp off at home does not switch the others off — home lamps are wired in parallel. Never open mains wiring.",
+    foot: "Model: ideal battery (no internal resistance), ideal wires and ammeters (no resistance), each bulb a constant R = 6 Ω. A real filament's resistance rises as it heats up — several times higher when glowing than when cold — so real numbers differ, but the pattern does not. Ohm's law I = V/R; Kirchhoff's current law: current into a junction = current out. Dots follow the conventional current direction (+ to −); in a metal wire the electrons drift the other way, at well under 1 mm/s. Brightness drawn as √(P / 13.5 W). The “current is used up” idea is documented in physics-education research (e.g. Shipstone 1984; Driver et al. 1994). · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "电流会被灯泡用掉吗？", eyebrow: "物理 · 阶段 3", h1: "电流会被灯泡用掉吗？",
+    intro: "用电池、灯泡和开关搭一个电路。把电流表放在任意位置，看电荷怎样流动。",
+    reset: "重置", figAria: "电路图：电池、开关、灯泡和电流表，电荷小点在流动",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "灯泡前面还是后面？",
+    b1: "电流表 A1 测流进灯泡的电流，A2 测从灯泡流出来的电流。你选好之前，读数先遮住。",
+    k2: "动手", t2: "搭电路，电流表随便放",
+    b2: "改电池电压和灯泡个数，在串联和并联之间切换。点虚线圆圈放一个电流表，点电流表把它拿走。点灯泡把它拧下来：串联时所有灯都灭；并联时只有那一条支路停。",
+    k3: "规律", t3: "电荷绕一圈回来，灯泡拿走的是能量",
+    b3: "串联只有一条路，所以每个电流表读数都一样。并联时每条支路都直接接在电池两端，分到电池的全部电压；各支路电流加起来，等于干路电流。",
+    q: "哪个电流表读数大？", o1: "A1，灯泡前面——灯泡用掉了一些电流", o2: "A2，灯泡后面", o3: "一样大",
+    right: "对。看电流表：流进去多少，就流出来多少。到第 2 步搭更大的电路。",
+    wrong: "大多数人都这么猜。现在看电流表：A1 和 A2 读数完全一样。",
+    play: "▶ 电荷", pause: "❚❚ 暂停", modeLabel: "灯泡怎样连接",
+    series: "串联", parallel: "并联", swOpen: "闭合开关", swClosed: "断开开关",
+    voltLabel: "电池", nLabel: "灯泡",
+    tagSeries: "串联 · 每个灯泡 R = {R} Ω", tagParallel: "并联 · 每个灯泡 R = {R} Ω",
+    cap: "点灯泡把它拧下来。点虚线圆圈放电流表。小点的速度和电流成正比。",
+    bulbAria: "灯泡 {k}：{s}。按一下拧下或拧上。", bulbIn: "亮，{P} 瓦", bulbDark: "拧着，不亮", bulbOut: "已拧下",
+    meterAria: "电流表 {m}：{v}。按一下拿走。", slotAria: "电流表 {m} 的空位。按一下放一个。", swAria: "开关：{s}。按一下切换。",
+    swIsOpen: "断开", swIsClosed: "闭合", hidden: "选好答案后显示",
+    rI: "电流", rV: "两端电压", rP: "功率 P = I²R", out: "拧下",
+    ruleSeries: "<strong>串联，{n} 个灯泡，{V} V：</strong><span class=\"math\">I = V ÷ (nR) = {V} ÷ ({n} × {R}) = {I} A</span>——A1、A2、A3、A4 处都一样。每个灯泡分到 <span class=\"math\">{Vb} V</span>，功率 <span class=\"math\">P = I²R = {P} W</span>。",
+    ruleParallel: "<strong>并联，{V} V：</strong>每条亮着的支路都分到全部 {V} V，所以 <span class=\"math\">I = V ÷ R = {V} ÷ {R} = {Ib} A</span>。干路：<span class=\"math\">I = {sum} = {I} A</span>。每个亮着的灯泡：<span class=\"math\">P = {P} W</span>。",
+    ruleBroken: "<strong>电路没有闭合</strong>（{why}）：这一圈里各处电流都是 0 A。",
+    ruleParOut: "<strong>L{k} 拧下来了：</strong>它那条支路电流为 0 A，但其他每条支路仍然和电池连成完整的一圈，所以那些灯照样亮。",
+    whySwitch: "开关断开了", whyBulb: "有灯泡拧下来了",
+    ruleEnergy: "<strong>电荷没有被用掉：</strong>每秒有 {I} C 电荷流进灯泡 {k}，也有 {I} C 流出来。灯泡拿走的是能量：每库仑电荷在这里交出 {Vb} J，所以每秒有 {P} J 电能变成光和热。",
+    ruleEnergy0: "把电路接通，才能数能量。",
+    liveSeries: "串联，{V} V：每个电流表都读 {I} A。", liveParallel: "并联，{V} V：干路 {I} A，各支路 {br} A。", liveOff: "没有电流：{why}。",
+    resultTitle: "我们发现", resultMain: "串联：各处 I 相同 · 并联：I = I₁ + I₂ + I₃",
+    resultNote: "灯泡不会用掉电流：流进去多少电荷，就流出来多少。它交出去的是能量 P = I²R，变成光和热。",
+    explainK: "说一说", explainQ: "朋友说：离电池正极最近的灯泡分到的电流最多，所以最亮。用上「一圈」「电流」「能量」三个词，讲讲为什么同一个串联电路里的灯泡一样亮。",
+    homeK: "家里做一做", homeQ: "如果有学校的电路小套件（电池、两个小灯泡、导线），先把两个灯泡连成一串，再并排连，比比亮度。没有套件？留意家里关掉一盏灯，别的灯并不会灭——家里的灯是并联的。千万不要拆家里的电线。",
+    foot: "模型：理想电池（没有内阻），理想导线和电流表（没有电阻），每个灯泡电阻恒为 R = 6 Ω。真实灯丝的电阻随温度升高而变大——发光时是冷的时候的好几倍——所以真实数值会不同，但规律不变。欧姆定律 I = V/R；基尔霍夫电流定律：流进节点的电流 = 流出的电流。小点按「常规电流」方向（正极到负极）走；金属导线里的电子其实反方向漂移，速度远小于 1 毫米/秒。亮度按 √(P / 13.5 W) 画。「电流被用掉」这一迷思在物理教育研究中有大量记录（如 Shipstone 1984；Driver 等 1994）。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure circuit model, no DOM (tests extract this block) */
+const R_BULB = 6, V_MAX = 9, P_REF = (V_MAX * V_MAX) / R_BULB;
+function solve(V, R, n, mode, closed, inOk) {
+  V = Number.isFinite(V) && V > 0 ? V : 0;
+  R = Number.isFinite(R) && R > 0 ? R : R_BULB;
+  n = Number.isFinite(n) ? Math.max(0, Math.min(3, Math.round(n))) : 0;
+  inOk = Array.isArray(inOk) ? inOk : [];
+  const isIn = (i) => inOk[i] !== false;
+  const bulbs = [];
+  let total = 0, why = null;
+  if (!closed) why = "switch";
+  if (mode === "series") {
+    let allIn = true;
+    for (let i = 0; i < n; i++) if (!isIn(i)) allIn = false;
+    if (closed && !allIn) why = "bulb";
+    const I = closed && allIn && n > 0 ? V / (n * R) : 0;
+    for (let i = 0; i < n; i++) bulbs.push({ in: isIn(i), I, V: I * R, P: I * I * R });
+    total = I;
+  } else {
+    for (let i = 0; i < n; i++) {
+      const I = closed && isIn(i) ? V / R : 0;
+      bulbs.push({ in: isIn(i), I, V: closed && isIn(i) ? V : 0, P: I * I * R });
+      total += I;
+    }
+    if (closed && n > 0 && total === 0) why = "bulb";
+  }
+  const b = (k) => (k < bulbs.length ? bulbs[k].I : null);
+  const meters = mode === "series" ? [total, total, total, total] : [total, b(0), b(1), b(2)];
+  return { V, R, n, total, bulbs, meters, power: V * total, why };
+}
+const glow = (P) => (Number.isFinite(P) && P > 0 ? Math.sqrt(Math.min(1, P / P_REF)) : 0);
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = { V: 6, n: 1, mode: "series", closed: true, inOk: [true, true, true], meters: [true, true, false, false], playing: false, answered: false };
+let sol = null, segs = [], phases = [], raf = 0, last = 0, lastLive = "", stp = null, dotsG = null;
+const fmtI = (x) => Play.fmt(x, x > 0 && x < 0.1 ? 3 : 2);
+const fmtP = (x) => Play.fmt(x, x > 0 && x < 0.1 ? 3 : 2);
+const fmtV = (x) => Play.fmt(x, 1);
+const revealed = () => S.answered || (stp && stp.i > 0);
+
+/* ---------- geometry ---------- */
+const XL = 60, XR = 540, YT = 70, YB = 290, BT = 165, BB = 195, YBULB = 205, YMET = 128, SWX = 300, SWX_P = 150;
+const xsSeries = (n) => (n === 1 ? [300] : n === 2 ? [220, 380] : [180, 310, 440]);
+const xsPar = (n) => (n === 1 ? [420] : n === 2 ? [300, 460] : [205, 345, 485]);
+function layout() {
+  const n = S.n, L = { bulbs: [], slots: [], segs: [], wires: [], sw: null };
+  if (S.mode === "series") {
+    const xs = xsSeries(n);
+    const loop = [[XL, BT], [XL, YT], [XR, YT], [XR, YB], [XL, YB], [XL, BB], [XL, BT]];
+    L.wires.push(loop);
+    L.segs.push({ pts: loop, I: sol.total });
+    xs.forEach((x, i) => L.bulbs.push({ x, y: YT, i, dir: "h" }));
+    const a2 = (xs[0] + (n > 1 ? xs[1] : XR)) / 2;
+    L.slots = [{ x: 118, y: YT, ty: "up" }, { x: a2, y: YT, ty: "up" }, { x: XR, y: 180, ty: "left" }, { x: 160, y: YB, ty: "down" }];
+    L.sw = { x: SWX, y: YB };
+  } else {
+    const xs = xsPar(n), xe = xs[n - 1], br = sol.bulbs.map((b) => b.I);
+    const main = [[xs[0], YB], [XL, YB], [XL, BB], [XL, BT], [XL, YT], [xs[0], YT]];
+    L.wires.push([[xe, YB], [XL, YB], [XL, YT], [xe, YT]]);
+    L.segs.push({ pts: main, I: sol.total });
+    xs.forEach((x, i) => {
+      L.wires.push([[x, YT], [x, YB]]);
+      L.segs.push({ pts: [[x, YT], [x, YB]], I: br[i] });
+      if (i < n - 1) {
+        const rest = br.slice(i + 1).reduce((a, c) => a + c, 0);
+        L.segs.push({ pts: [[x, YT], [xs[i + 1], YT]], I: rest });
+        L.segs.push({ pts: [[xs[i + 1], YB], [x, YB]], I: rest });
+      }
+      L.bulbs.push({ x, y: YBULB, i, dir: "v" });
+    });
+    L.slots = [{ x: 150, y: YT, ty: "up" }];
+    for (let k = 0; k < 3; k++) L.slots.push(k < n ? { x: xs[k], y: YMET, ty: "right" } : null);
+    L.sw = { x: SWX_P + 10, y: YB };
+  }
+  return L;
+}
+
+/* ---------- drawing ---------- */
+function polyLen(pts) { let s = 0; for (let i = 1; i < pts.length; i++) s += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return s; }
+function pointAt(pts, d) {
+  for (let i = 1; i < pts.length; i++) {
+    const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    if (d <= l || i === pts.length - 1) { const f = l > 0 ? Play.clamp(d / l, 0, 1) : 0; return [pts[i - 1][0] + f * (pts[i][0] - pts[i - 1][0]), pts[i - 1][1] + f * (pts[i][1] - pts[i - 1][1])]; }
+    d -= l;
+  }
+  return pts[0];
+}
+const SP = 24, KSPEED = 50; // dot spacing (px), px/s per ampere
+function drawDots() {
+  if (!dotsG) return;
+  dotsG.innerHTML = "";
+  segs.forEach((s, k) => {
+    if (!(s.I > 0)) return;
+    const L = polyLen(s.pts), ph = phases[k] || 0;
+    for (let d = ph; d < L - 2; d += SP) { const p = pointAt(s.pts, d); Play.svg("circle", { class: "chg", cx: p[0].toFixed(1), cy: p[1].toFixed(1), r: 4.5 }, dotsG); }
+  });
+}
+function hit(parent, fid, aria, onAct) {
+  const g = Play.svg("g", { class: "hit", tabindex: 0, role: "button", "data-fid": fid, "aria-label": aria }, parent);
+  g.addEventListener("click", onAct);
+  g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onAct(); } });
+  return g;
+}
+function draw() {
+  const sv = Play.svg, fid = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fid : null;
+  sol = solve(S.V, R_BULB, S.n, S.mode, S.closed, S.inOk);
+  const L = layout();
+  if (segs.length !== L.segs.length) phases = L.segs.map(() => 0);
+  segs = L.segs;
+  fig.innerHTML = "";
+  L.wires.forEach((w) => sv("polyline", { class: "wire", points: w.map((p) => p.join(",")).join(" ") }, fig));
+  dotsG = sv("g", {}, fig);
+  drawDots();
+  // battery (+ on top)
+  sv("rect", { class: "cover", x: XL - 26, y: BT - 4, width: 52, height: BB - BT + 8 }, fig);
+  sv("line", { class: "plate", x1: XL - 24, y1: BT + 6, x2: XL + 24, y2: BT + 6 }, fig);
+  sv("line", { class: "plate neg", x1: XL - 12, y1: BB - 6, x2: XL + 12, y2: BB - 6 }, fig);
+  sv("line", { class: "wire", x1: XL, y1: BT, x2: XL, y2: BT + 6 }, fig);
+  sv("line", { class: "wire", x1: XL, y1: BB - 6, x2: XL, y2: BB }, fig);
+  sv("text", { class: "lbl", x: XL - 30, y: BT + 4, "text-anchor": "end" }, fig).textContent = "+";
+  sv("text", { class: "lblR", x: XL + 34, y: (BT + BB) / 2 + 8 }, fig).textContent = fmtV(S.V) + " V";
+  // switch
+  const sw = L.sw, gs = hit(fig, "sw", P.t("swAria", { s: P.t(S.closed ? "swIsClosed" : "swIsOpen") }), toggleSwitch);
+  sv("rect", { class: "cover", x: sw.x - 30, y: sw.y - 34, width: 60, height: 44, opacity: S.closed ? 0 : 1 }, gs);
+  sv("rect", { class: "ring", x: sw.x - 30, y: sw.y - 34, width: 60, height: 46, rx: 6 }, gs);
+  sv("line", { class: "lever", x1: sw.x - 22, y1: sw.y, x2: S.closed ? sw.x + 22 : sw.x + 16, y2: S.closed ? sw.y : sw.y - 26 }, gs);
+  sv("circle", { class: "term", cx: sw.x - 22, cy: sw.y, r: 5 }, gs);
+  sv("circle", { class: "term", cx: sw.x + 22, cy: sw.y, r: 5 }, gs);
+  // bulbs
+  L.bulbs.forEach((b) => {
+    const bs = sol.bulbs[b.i], isIn = S.inOk[b.i];
+    const st = !isIn ? P.t("bulbOut") : bs.P > 0 ? P.t("bulbIn", { P: fmtP(bs.P) }) : P.t("bulbDark");
+    const g = hit(fig, "b" + b.i, P.t("bulbAria", { k: b.i + 1, s: st }), () => { S.inOk[b.i] = !S.inOk[b.i]; update(); });
+    const h = b.dir === "h";
+    if (isIn) {
+      const gl = glow(bs.P);
+      if (gl > 0) sv("circle", { class: "halo", cx: b.x, cy: b.y, r: 22 + 22 * gl, opacity: (0.25 + 0.5 * gl).toFixed(2) }, g);
+      sv("circle", { class: "bulb", cx: b.x, cy: b.y, r: 20, style: gl > 0 ? `fill: color-mix(in srgb, var(--hl) ${Math.round(20 + 80 * gl)}%, var(--surface))` : "" }, g);
+      sv("line", { class: "bulbx", x1: b.x - 14, y1: b.y - 14, x2: b.x + 14, y2: b.y + 14 }, g);
+      sv("line", { class: "bulbx", x1: b.x + 14, y1: b.y - 14, x2: b.x - 14, y2: b.y + 14 }, g);
+    } else {
+      sv("rect", { class: "cover", x: b.x - 22, y: b.y - 22, width: 44, height: 44 }, g);
+      sv("circle", { class: "term", cx: h ? b.x - 18 : b.x, cy: h ? b.y : b.y - 18, r: 4 }, g);
+      sv("circle", { class: "term", cx: h ? b.x + 18 : b.x, cy: h ? b.y : b.y + 18, r: 4 }, g);
+      const ox = h ? 0 : 40, oy = h ? 42 : 0;
+      sv("circle", { class: "bulb out", cx: b.x + ox, cy: b.y + oy, r: 18 }, g);
+    }
+    sv("rect", { class: "ring", x: b.x - 26, y: b.y - 26, width: 52, height: 52, rx: 26 }, g);
+    const lx = h ? b.x : b.x - 30, ly = h ? b.y + (isIn ? 50 : 92) : b.y + 8;
+    sv("text", { class: "lbl", x: lx, y: ly, "text-anchor": h ? "middle" : "end" }, g).textContent = "L" + (b.i + 1);
+  });
+  // ammeters
+  L.slots.forEach((s, k) => {
+    if (!s) return;
+    const name = "A" + (k + 1), on = S.meters[k], v = sol.meters[k];
+    const txt = revealed() ? fmtI(v) + " A" : "? A";
+    const g = hit(fig, "m" + k, on ? P.t("meterAria", { m: name, v: revealed() ? fmtI(v) + " A" : P.t("hidden") }) : P.t("slotAria", { m: name }), () => { S.meters[k] = !S.meters[k]; update(); });
+    g.setAttribute("aria-pressed", on ? "true" : "false");
+    if (on) {
+      sv("circle", { class: "meter", cx: s.x, cy: s.y, r: 21 }, g);
+      sv("text", { class: "lblM", x: s.x, y: s.y + 7, "text-anchor": "middle" }, g).textContent = name;
+      const tp = s.ty === "up" ? [s.x, s.y - 30, "middle"] : s.ty === "down" ? [s.x, s.y + 46, "middle"] : s.ty === "left" ? [s.x - 30, s.y + 8, "end"] : [s.x + 26, s.y + 8, "start"];
+      sv("text", { class: "lblA", x: tp[0], y: tp[1], "text-anchor": tp[2] }, g).textContent = txt;
+    } else {
+      sv("circle", { class: "slot", cx: s.x, cy: s.y, r: 14 }, g);
+      sv("text", { class: "lbl", x: s.x, y: s.y + 7, "text-anchor": "middle" }, g).textContent = "+";
+    }
+    sv("circle", { class: "ring", cx: s.x, cy: s.y, r: 26 }, g);
+  });
+  if (fid) { const el = fig.querySelector(`[data-fid="${fid}"]`); if (el) el.focus(); }
+}
+
+/* ---------- panel ---------- */
+function panel() {
+  $("voltVal").textContent = fmtV(S.V) + " V";
+  $("nbVal").textContent = S.n;
+  $("volt").value = S.V; $("nb").value = S.n;
+  $("tag").textContent = P.t(S.mode === "series" ? "tagSeries" : "tagParallel", { R: R_BULB });
+  Object.keys(modeBtns).forEach((k) => { modeBtns[k].classList.toggle("on", S.mode === k); modeBtns[k].setAttribute("aria-pressed", S.mode === k ? "true" : "false"); });
+  $("sw").textContent = P.t(S.closed ? "swClosed" : "swOpen");
+  $("play").textContent = P.t(S.playing ? "pause" : "play");
+  $("play").setAttribute("aria-pressed", S.playing ? "true" : "false");
+  const rv = revealed(), cell = (b, f) => (!b.in ? P.t("out") : rv ? f(b) : "?");
+  let h = "<tr><th></th>" + sol.bulbs.map((b, i) => `<th>L${i + 1}</th>`).join("") + "</tr>";
+  h += `<tr><td>${P.t("rI")}</td>` + sol.bulbs.map((b) => `<td>${cell(b, (x) => fmtI(x.I) + " A")}</td>`).join("") + "</tr>";
+  h += `<tr><td>${P.t("rV")}</td>` + sol.bulbs.map((b) => `<td>${cell(b, (x) => fmtV(x.V) + " V")}</td>`).join("") + "</tr>";
+  h += `<tr><td>${P.t("rP")}</td>` + sol.bulbs.map((b) => `<td>${cell(b, (x) => fmtP(x.P) + " W")}</td>`).join("") + "</tr>";
+  $("readout").innerHTML = h;
+  // rule (step 3)
+  const box = $("rule");
+  if (!stp || stp.i !== 2) box.innerHTML = "";
+  else {
+    const why = sol.why ? P.t(sol.why === "switch" ? "whySwitch" : "whyBulb") : "";
+    const parts = [];
+    if (S.mode === "series") {
+      if (sol.total > 0) { const b = sol.bulbs[0]; parts.push(P.t("ruleSeries", { n: S.n, V: fmtV(S.V), R: R_BULB, I: fmtI(sol.total), Vb: fmtV(b.V), P: fmtP(b.P) })); }
+      else parts.push(P.t("ruleBroken", { why }));
+    } else if (sol.total > 0) {
+      const lit = sol.bulbs.find((b) => b.I > 0);
+      parts.push(P.t("ruleParallel", { V: fmtV(S.V), R: R_BULB, Ib: fmtI(lit.I), sum: sol.bulbs.map((b) => fmtI(b.I)).join(" + "), I: fmtI(sol.total), P: fmtP(lit.P) }));
+      const off = sol.bulbs.findIndex((b) => !b.in);
+      if (off >= 0) parts.push(P.t("ruleParOut", { k: off + 1 }));
+    } else parts.push(P.t("ruleBroken", { why }));
+    const k = sol.bulbs.findIndex((b) => b.I > 0);
+    parts.push(k >= 0 ? P.t("ruleEnergy", { I: fmtI(sol.bulbs[k].I), k: k + 1, Vb: fmtV(sol.bulbs[k].V), P: fmtP(sol.bulbs[k].P) }) : P.t("ruleEnergy0"));
+    box.innerHTML = parts.map((p) => "<p>" + p + "</p>").join("");
+  }
+  let msg;
+  if (!rv) msg = "";
+  else if (sol.total === 0) msg = P.t("liveOff", { why: P.t(sol.why === "switch" ? "whySwitch" : "whyBulb") });
+  else if (S.mode === "series") msg = P.t("liveSeries", { V: fmtV(S.V), I: fmtI(sol.total) });
+  else msg = P.t("liveParallel", { V: fmtV(S.V), I: fmtI(sol.total), br: sol.bulbs.map((b) => fmtI(b.I)).join(" / ") });
+  if (msg !== lastLive) { lastLive = msg; Play.live($("live"), msg); }
+}
+function update() { draw(); panel(); }
+
+/* ---------- animation ---------- */
+function tick(ts) {
+  if (!S.playing) return;
+  const dt = last ? Math.min(0.1, (ts - last) / 1000) : 0;
+  last = ts;
+  segs.forEach((s, k) => { if (s.I > 0) phases[k] = ((phases[k] || 0) + KSPEED * s.I * dt) % SP; });
+  drawDots();
+  raf = requestAnimationFrame(tick);
+}
+function setPlaying(on) {
+  S.playing = on; cancelAnimationFrame(raf); last = 0;
+  if (on) raf = requestAnimationFrame(tick);
+  panel();
+}
+
+/* ---------- controls ---------- */
+const modeBtns = {};
+["series", "parallel"].forEach((k) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(k);
+  b.addEventListener("click", () => { S.mode = k; update(); });
+  $("modes").appendChild(b); modeBtns[k] = b;
+});
+function toggleSwitch() { S.closed = !S.closed; update(); }
+$("sw").addEventListener("click", toggleSwitch);
+$("play").addEventListener("click", () => setPlaying(!S.playing));
+$("volt").addEventListener("input", () => { const v = +$("volt").value; S.V = Number.isFinite(v) ? Play.clamp(v, 1.5, 9) : 6; update(); });
+$("nb").addEventListener("input", () => { const v = Math.round(+$("nb").value); S.n = Number.isFinite(v) ? Play.clamp(v, 1, 3) : 1; update(); });
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }], right: P.t("right"), wrong: P.t("wrong"),
+}, () => { S.answered = true; update(); });
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  if (sol) update();
+});
+function resetAll() {
+  Object.assign(S, { V: 6, n: 1, mode: "series", closed: true, inOk: [true, true, true], meters: [true, true, false, false], answered: false });
+  phases = []; segs = [];
+  pr.reset(); stp.go(0); update();
+  setPlaying(!Play.reduced);
+}
+$("reset").addEventListener("click", resetAll);
+resetAll();
+</script>
+</body>
+</html>

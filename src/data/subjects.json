@@ -1256,7 +1256,7 @@
       "us": "8",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "How far would a cart roll with no friction?",
       "zh": "没有摩擦，小车能滑多远？"
@@ -1269,7 +1269,15 @@
       "en": "A moving thing stops by itself when the push runs out.",
       "zh": "推力用完了，东西自己就会停。"
      },
-     "play": null
+     "play": "incline-cart.html",
+     "explain": {
+      "en": "A friend says “the ball stopped because the kick ran out”. Using the word “friction”, explain what really stopped it, and what would happen on perfect ice.",
+      "zh": "朋友说「球停下是因为踢的那股劲用完了」。用上「摩擦」这个词，讲讲到底是什么让它停下的；如果在完美的冰面上会怎样。"
+     },
+     "home": {
+      "en": "Lean a book on a few other books to make a ramp. Roll a toy car or a can down it onto a carpet, then onto a smooth floor. Mark where it stops each time and measure the distances.",
+      "zh": "把一本书斜靠在几本书上搭个斜面。让玩具车或易拉罐从上面滚下，先滚到地毯上，再滚到光滑的地板上。每次标出停下的位置，量一量距离。"
+     }
     },
     {
      "slug": "series-parallel",
@@ -1284,20 +1292,28 @@
       "us": "8",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Is current used up in a bulb?",
       "zh": "电流会被灯泡用掉吗？"
      },
      "insight": {
-      "en": "The current is the same all the way round a series loop; the bulb turns energy into light, not charge into nothing.",
-      "zh": "串联电路里各处电流一样大；灯泡把能量变成光，电荷并没有消失。"
+      "en": "The current is the same all the way round a series loop: a bulb turns energy into light and heat, it does not use up charge. In parallel each branch gets the full battery voltage and the branch currents add up.",
+      "zh": "串联电路里各处电流一样大：灯泡把能量变成光和热，并没有用掉电荷。并联时每条支路都分到电池的全部电压，各支路电流相加。"
      },
      "misconception": {
       "en": "Current is used up by a bulb.",
       "zh": "电流经过灯泡就被用掉了。"
      },
-     "play": null
+     "play": "series-parallel.html",
+     "explain": {
+      "en": "A friend says the first bulb after the battery's + end gets the most current, so it shines brightest. Using the words “loop”, “current” and “energy”, explain why bulbs in one series loop are equally bright.",
+      "zh": "朋友说：离电池正极最近的灯泡分到的电流最多，所以最亮。用上「一圈」「电流」「能量」三个词，讲讲为什么同一个串联电路里的灯泡一样亮。"
+     },
+     "home": {
+      "en": "With a school circuit kit (a battery, two small bulbs, wires), connect the bulbs in a line, then side by side, and compare how bright they are. No kit? Notice that switching one lamp off at home does not switch the others off — home lamps are wired in parallel. Never open mains wiring.",
+      "zh": "如果有学校的电路小套件（电池、两个小灯泡、导线），先把两个灯泡连成一串，再并排连，比比亮度。没有套件？留意家里关掉一盏灯，别的灯并不会灭——家里的灯是并联的。千万不要拆家里的电线。"
+     }
     },
     {
      "slug": "lens-images",
@@ -1595,7 +1611,7 @@
       "us": "8",
       "uk": "9"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Snap atoms into molecules",
       "zh": "原子拼分子"
@@ -1608,7 +1624,15 @@
       "en": "Atoms can stick together in any number and any way.",
       "zh": "原子可以随便几个、随便怎么粘在一起。"
      },
-     "play": null
+     "play": "atoms-build-molecules.html",
+     "explain": {
+      "en": "Why can you build H₂O₂ but never H₃O as a neutral molecule? Use the number of bonds each atom makes.",
+      "zh": "为什么能拼出 H₂O₂，却拼不出中性的 H₃O 分子？用每种原子能连的键数来解释。"
+     },
+     "home": {
+      "en": "Use balls of play dough and toothpicks. Give every ball a fixed number of toothpicks: 1 for H, 2 for O, 3 for N, 4 for C. Which molecules can you build with every toothpick joined?",
+      "zh": "用橡皮泥团和牙签。给每个泥团插固定数量的牙签：H 1 根、O 2 根、N 3 根、C 4 根。所有牙签都要连上，你能拼出哪些分子？"
+     }
     },
     {
      "slug": "same-atoms-different-stuff",
@@ -1890,7 +1914,7 @@
       "us": "6",
       "uk": "7"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Zoom into a leaf, a hand, a pond",
       "zh": "放大一片叶、一只手、一滴池水"
@@ -1903,7 +1927,15 @@
       "en": "Only animals are made of cells.",
       "zh": "只有动物才由细胞组成。"
      },
-     "play": null
+     "play": "cell-zoom.html",
+     "explain": {
+      "en": "A friend says “plants aren't made of cells like we are”. Using what you zoomed into, tell them what leaf and cheek cells share, and what only the leaf cell has.",
+      "zh": "朋友说「植物不像我们那样由细胞组成」。用你放大看到的东西告诉他：叶细胞和口腔细胞有哪些共同部分，哪些只有叶细胞有。"
+     },
+     "home": {
+      "en": "Peel the thin see-through skin from inside an onion layer, lay it flat on a window and look with a magnifier or your phone's zoom. Can you see brick-like cells? Then try a drop of puddle water.",
+      "zh": "从洋葱鳞片内侧撕下一片透明薄膜，平贴在窗玻璃上，用放大镜或手机放大看。能看到砖块一样的细胞吗？再试试一滴水洼里的水。"
+     }
     },
     {
      "slug": "why-cells-are-small",
@@ -2007,7 +2039,7 @@
       "us": "8",
       "uk": "9"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Mendel's peas: why the 3 : 1?",
       "zh": "孟德尔的豌豆：为什么是 3 : 1？"
@@ -2020,7 +2052,15 @@
       "en": "Children are a blend of their parents, like mixing paint.",
       "zh": "孩子是父母的混合，就像调颜料。"
      },
-     "play": null
+     "play": "mendel-peas.html",
+     "explain": {
+      "en": "A friend says children are a mix of their parents, like paint. Use the white flowers that came back in the grandchildren to explain why that can't be the whole story.",
+      "zh": "朋友说孩子是父母的混合，就像调颜料。用孙代里重新出现的白花，给他讲讲为什么这种说法不对。"
+     },
+     "home": {
+      "en": "Give each parent a coin: heads = P, tails = p. Toss both coins together 40 times and tally how often you get pp. Do you get about 10?",
+      "zh": "每个亲本用一枚硬币：正面 = P，反面 = p。两枚硬币一起抛 40 次，记下 pp 出现几次。是不是 10 次左右？"
+     }
     },
     {
      "slug": "natural-selection",

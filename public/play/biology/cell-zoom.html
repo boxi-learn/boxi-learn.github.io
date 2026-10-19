@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zoom into a leaf, a hand, a pond</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .lab { font-size: 13px; fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round; }
+  .lab.b { font-weight: 650; }
+  .lab.m { fill: var(--muted); }
+  .lab.no { fill: var(--no); }
+  .lab.q { fill: var(--a); font-size: 30px; font-weight: 750; }
+  .lead { stroke: var(--fg); stroke-width: 1; fill: none; opacity: .7; }
+  .ldot { fill: var(--fg); }
+  #fig { cursor: zoom-in; transition: opacity .16s; }
+  #fig.cmp { cursor: pointer; }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .sel { stroke: var(--hl) !important; stroke-width: 3px !important; stroke-opacity: 1 !important; }
+  [data-part] { cursor: pointer; }
+  .controls .zb { min-width: 2.4em; font-weight: 700; }
+  .controls .grow { flex: 1 1 100%; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px; }
+  .chips button.done { border-color: var(--a); }
+  #extra { font-size: 14px; }
+  #extra strong { color: var(--fg); }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlZoom">
+        <div class="grow" id="specs" role="group" data-t-aria="specLabel"></div>
+        <div class="grow">
+          <button type="button" class="small zb" id="zout" data-t-aria="zout">−</button>
+          <input type="range" id="zoom" min="0" max="50" step="0.25" value="0" data-t-aria="zoomLabel">
+          <button type="button" class="small zb" id="zin" data-t-aria="zin">+</button>
+          <span class="val" id="zVal"></span>
+        </div>
+        <div class="grow" id="jumps" role="group" data-t-aria="jumpLabel"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="chips" id="chips"></div>
+      <p id="extra"></p>
+      <p class="note" id="found"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+ en: {
+  title: "Zoom into a leaf, a hand, a pond", eyebrow: "Biology · Stage 3", h1: "Zoom into a leaf, a hand, a pond",
+  intro: "Guess first. Then zoom from 10 cm down to 1 µm into a leaf, your hand and a drop of pond water.",
+  reset: "Reset", figAria: "Zoomable drawing of a specimen with a scale bar",
+  s1: "Guess", s2: "Zoom", s3: "Compare", s4: "Rule",
+  k1: "Predict first", t1: "Which of these are made of cells?",
+  b1: "Pick one. Being wrong costs nothing: step 2 lets you check.",
+  q: "With a strong enough microscope, in which will you find cells: a leaf, the skin of your hand, a drop of pond water?",
+  o1: "Only my hand: animals are made of cells", o2: "My hand and the leaf, not the pond water", o3: "All three",
+  o4: "My hand and the pond water, not the leaf: plants aren't alive in the same way",
+  right: "Now go and find the cells.", wrong: "Keep your guess and test it in step 2.",
+  fb1: "A common idea. Yet the first cells ever seen (1665) were in cork, the bark of a tree. Zoom into the leaf in step 2.",
+  fb2: "Right about the leaf. But pond water is full of living things too small to see, and each is a cell.",
+  fb3: "Yes. Check it anyway: in step 2, zoom into each one until you find cells.",
+  fb4: "Plants grow, feed, respond to light and reproduce: they are alive. Zoom into the leaf in step 2.",
+  k2: "Hands on · zoom", t2: "Zoom from 10 cm down to 1 µm",
+  b2: "Pick a specimen, then zoom: slider, − / +, mouse wheel, pinch, or drag up and down on the picture. The scale bar is always true.",
+  specLabel: "Specimen", specLeaf: "Leaf", specHand: "Hand & cheek", specPond: "Pond drop",
+  zoomLabel: "Zoom", zin: "Zoom in", zout: "Zoom out", jumpLabel: "Jump to",
+  n_lf: "Leaf", n_lv: "Veins", n_ls: "Surface", n_lp: "Cells", n_lc: "Chloroplast",
+  n_hh: "Hand", n_hs: "Skin", n_hk: "Skin flakes", n_hc: "Cheek cells", n_hb: "Bacteria",
+  n_pd: "Slide", n_pw: "Drop", n_pp: "Single cells", n_pb: "Bacteria",
+  d_lf: "A leaf at life size. The lines are veins: pipes for water and sugar.",
+  d_lv: "Closer: a net of fine veins. The green between them still looks smooth.",
+  d_ls: "The leaf's surface is a sheet of jigsaw-shaped cells. Pairs of guard cells open and close tiny pores (stomata) to let air in.",
+  d_lp: "A slice just under the surface: tall palisade cells packed with chloroplasts. Each has a wall, a membrane, a big vacuole and a nucleus.",
+  d_lc: "One chloroplast, about {c} long. The dark stacks (grana) hold the green pigment that catches light.",
+  d_hh: "The back of your hand at life size.",
+  d_hs: "Skin is criss-crossed by fine furrows. A hair about {h} wide pokes out: close to the smallest thing your eye can see.",
+  d_hk: "The top of your skin is flat, dead cells about {f} across, without nuclei. They flake off all the time.",
+  d_hc: "Now a scrape from inside your cheek, stained blue as in a school lab: living cheek cells, about {c} across, each with a nucleus. No wall, no chloroplasts.",
+  d_hb: "The tiny rods and dots are mouth bacteria, {b} long: each a whole living thing made of one cell.",
+  d_pd: "A drop of pond water on a glass slide, under a cover slip. To your eye: water and a few specks.",
+  d_pw: "The specks grow into shapes. Some of them would be swimming.",
+  d_pp: "Living things made of one cell each: a slipper-shaped paramecium covered in beating cilia, a shape-changing amoeba, small green algae. Each feeds, moves and divides on its own.",
+  d_pb: "Bacteria, {b} long: paramecium food. Even the smallest living things here are cells.",
+  tagTrue: "schematic · true scale", magV: "×{m}",
+  live2: "Field of view {f} wide · ×{m} compared with your eye · smallest detail you could now make out ≈ {d}.",
+  live2b: "Field of view {f} wide · ×{m} compared with your eye · anything finer than {d} needs an electron microscope.",
+  found: "Cells found: {l}", yes: "✓", no: "—",
+  L_leaf: "a leaf", L_vein: "vein", L_cell: "a skin cell of the leaf", L_stoma: "stoma (pore + 2 guard cells)",
+  L_pal: "palisade cell", L_wall: "cell wall", L_chl: "chloroplast", L_vac: "vacuole", L_nuc: "nucleus", L_mem: "membrane",
+  L_gran: "granum (stack)", L_hand: "back of your hand", L_furrow: "skin furrow", L_hair: "hair",
+  L_flake: "flat dead skin cells", L_cheek: "cheek cell", L_cyto: "cytoplasm", L_bact: "bacteria",
+  L_slide: "glass slide", L_drop: "drop of pond water", L_param: "paramecium", L_cilia: "cilia", L_amoeba: "amoeba", L_alga: "green alga",
+  p1Ask: "cells?",
+  k3: "Hands on · compare", t3: "Plant cell vs animal cell",
+  b3: "Tap a part of either cell, or a button, to label it. Which parts do both have?",
+  cPlant: "Plant cell (leaf)", cAnimal: "Animal cell (cheek)", allBtn: "Label all",
+  pn_membrane: "membrane", pn_cytoplasm: "cytoplasm", pn_nucleus: "nucleus", pn_wall: "cell wall", pn_chloroplast: "chloroplast", pn_vacuole: "vacuole",
+  pd_membrane: "A thin, flexible skin around every cell. It controls what goes in and out.",
+  pd_cytoplasm: "The jelly that fills the cell, where most of its chemistry happens.",
+  pd_nucleus: "Holds the DNA, the cell's instructions, and runs the cell.",
+  pd_wall: "A stiff box of cellulose outside the membrane that holds the plant up.",
+  pd_chloroplast: "Where photosynthesis makes sugar from light, water and CO₂. Only in green parts of plants (root cells have none).",
+  pd_vacuole: "A large bag of watery sap that keeps the plant cell firm. Animal cells have small vacuoles at most.",
+  both: "In both cells", plantOnly: "Plant cells only",
+  live3: "{n} of 6 parts labelled.",
+  k4: "The rule", t4: "Every living thing is made of cells",
+  b4: "A leaf, your skin, pond creatures: zoom in far enough and each is made of cells, or is one cell. Plant and animal cells share a membrane, cytoplasm and nucleus; plant cells add a wall, chloroplasts and a large vacuole.",
+  x4: "Cells here range from about {lo} (a bacterium) to {hi} (an amoeba); most are smaller than the {eye} your eye can see, so nobody saw them before microscopes. To see a {cc} cheek cell as a 1 mm dot you need about ×{m1}; a {bb} bacterium needs ×{m2}. Hooke named cells in 1665, looking at cork; by 1839 Schleiden and Schwann had shown that plants and animals are both made of cells.",
+  lad: "µm, log scale", eyeLine: "eye limit", micro: "needs a microscope",
+  r_bact: "bacterium", r_chloro: "chloroplast", r_nucleus: "nucleus", r_rbc: "red blood cell", r_alga: "green alga",
+  r_stoma: "stoma", r_flake: "skin flake cell", r_cheek: "cheek cell", r_hair: "hair (width)", r_plant: "plant cell",
+  r_param: "paramecium", r_amoeba: "amoeba",
+  uCm: "cm", uMm: "mm", uUm: "µm",
+  resultTitle: "What we found", resultMain: "leaf · skin · pond water → cells",
+  resultNote: "Plant cell {p}, cheek cell {c}, bacterium {b}. The eye alone sees down to about {e}.",
+  explainK: "Explain it", explainQ: "A friend says “plants aren't made of cells like we are”. Using what you zoomed into, tell them what leaf and cheek cells share, and what only the leaf cell has.",
+  homeK: "Try at home", homeQ: "Peel the thin see-through skin from inside an onion layer, lay it flat on a window and look with a magnifier or your phone's zoom. Can you see brick-like cells? Then try a drop of puddle water.",
+  foot: "Sizes (one table drives the drawings, scale bar, ladder and these numbers): {list}; unaided eye ≈ {eye} at reading distance; light microscope ≈ {lm}. Microscope slide {sl}, cover slip {cs}. Leaf, hand, drop and skin-furrow sizes are illustrative. Mature human red blood cells have no nucleus. Magnification = size on screen ÷ real size, assuming 96 CSS px per inch (screens vary). Drawings are schematic, at true relative scale. History: Hooke, Micrographia (1665); Schleiden (1838), Schwann (1839). · CC BY 4.0 · Boxi Yu",
+ },
+ zh: {
+  title: "放大一片叶、一只手、一滴池水", eyebrow: "生物 · 阶段 3", h1: "放大一片叶、一只手、一滴池水",
+  intro: "先猜一猜。再把一片叶、你的手和一滴池水从 10 厘米一路放大到 1 微米。",
+  reset: "重置", figAria: "可缩放的标本图和比例尺",
+  s1: "先猜", s2: "放大", s3: "比较", s4: "规律",
+  k1: "先猜一猜", t1: "哪些东西是由细胞组成的？",
+  b1: "选一个。猜错没关系，第 2 步可以检验。",
+  q: "用足够强的显微镜看，下面哪些里面能找到细胞：一片叶、手背的皮肤、一滴池塘水？",
+  o1: "只有手：动物才由细胞组成", o2: "手和叶子，池水里没有", o3: "三样都有",
+  o4: "手和池水，叶子没有：植物不算同一种「活」",
+  right: "那就去把细胞找出来吧。", wrong: "记住你的猜测，第 2 步来检验。",
+  fb1: "很多人这么想。可人类最早看到的细胞（1665 年）就在软木里，软木是树皮。第 2 步放大叶子看看。",
+  fb2: "叶子说对了。可池水里满是小到看不见的生物，每一个都是一个细胞。",
+  fb3: "对。还是亲手验证一下：第 2 步把三样东西都放大，直到找到细胞。",
+  fb4: "植物会生长、取食、对光有反应、会繁殖：它们是活的。第 2 步放大叶子看看。",
+  k2: "动手 · 放大", t2: "从 10 厘米放大到 1 微米",
+  b2: "选一个标本再缩放：滑块、− / +、鼠标滚轮、双指捏合，或在图上上下拖动。比例尺始终是准的。",
+  specLabel: "标本", specLeaf: "叶子", specHand: "手和口腔", specPond: "一滴池水",
+  zoomLabel: "缩放", zin: "放大", zout: "缩小", jumpLabel: "跳到",
+  n_lf: "叶子", n_lv: "叶脉", n_ls: "表皮", n_lp: "细胞", n_lc: "叶绿体",
+  n_hh: "手", n_hs: "皮肤", n_hk: "皮屑", n_hc: "口腔细胞", n_hb: "细菌",
+  n_pd: "载玻片", n_pw: "水滴", n_pp: "单细胞生物", n_pb: "细菌",
+  d_lf: "一片原大的叶子。那些线是叶脉：运水和糖的管道。",
+  d_lv: "再近一点：一张细细的叶脉网。叶脉之间的绿色看上去还是光滑的。",
+  d_ls: "叶的表面是一层拼图形状的细胞。成对的保卫细胞开合小孔（气孔），让空气进来。",
+  d_lp: "表皮下的一层薄片：高高的栅栏细胞，挤满叶绿体。每个都有细胞壁、细胞膜、大液泡和细胞核。",
+  d_lc: "一个叶绿体，长约 {c}。深色的一摞摞（基粒）含有吸收光的绿色色素。",
+  d_hh: "原大的手背。",
+  d_hs: "皮肤上纵横交错着细纹。一根约 {h} 粗的汗毛冒出来：接近肉眼能看清的最小尺寸。",
+  d_hk: "皮肤最外层是扁平的死细胞，约 {f} 宽，没有细胞核，一直在脱落。",
+  d_hc: "换成从口腔内侧刮下的一点，像实验课那样染成蓝色：活的口腔上皮细胞，约 {c} 宽，都有细胞核。没有细胞壁和叶绿体。",
+  d_hb: "小杆和小点是口腔细菌，长 {b}：每一个都是只有一个细胞的完整生物。",
+  d_pd: "一滴池塘水放在载玻片上，盖着盖玻片。肉眼看：只是水和几个小点。",
+  d_pw: "小点放大成了各种形状，其中一些本来在游动。",
+  d_pp: "每个都只有一个细胞的生物：全身长满纤毛的拖鞋形草履虫、会变形的变形虫、小小的绿藻。每一个都能自己取食、运动和分裂。",
+  d_pb: "细菌，长 {b}：草履虫的食物。这里最小的生物也是细胞。",
+  tagTrue: "示意图 · 真实比例", magV: "×{m}",
+  live2: "视野宽 {f} · 比肉眼放大 ×{m} · 现在能分辨的最小细节约 {d}。",
+  live2b: "视野宽 {f} · 比肉眼放大 ×{m} · 比 {d} 更细的东西要用电子显微镜。",
+  found: "已找到细胞：{l}", yes: "✓", no: "—",
+  L_leaf: "一片叶", L_vein: "叶脉", L_cell: "叶表皮细胞", L_stoma: "气孔（小孔 + 2 个保卫细胞）",
+  L_pal: "栅栏细胞", L_wall: "细胞壁", L_chl: "叶绿体", L_vac: "液泡", L_nuc: "细胞核", L_mem: "细胞膜",
+  L_gran: "基粒", L_hand: "手背", L_furrow: "皮纹", L_hair: "汗毛",
+  L_flake: "扁平的死皮细胞", L_cheek: "口腔上皮细胞", L_cyto: "细胞质", L_bact: "细菌",
+  L_slide: "载玻片", L_drop: "一滴池水", L_param: "草履虫", L_cilia: "纤毛", L_amoeba: "变形虫", L_alga: "绿藻",
+  p1Ask: "有细胞吗？",
+  k3: "动手 · 比较", t3: "植物细胞和动物细胞",
+  b3: "点细胞的某个部分或按钮，贴上名字。哪些部分两种细胞都有？",
+  cPlant: "植物细胞（叶）", cAnimal: "动物细胞（口腔）", allBtn: "全部标出",
+  pn_membrane: "细胞膜", pn_cytoplasm: "细胞质", pn_nucleus: "细胞核", pn_wall: "细胞壁", pn_chloroplast: "叶绿体", pn_vacuole: "液泡",
+  pd_membrane: "包在每个细胞外面的一层薄而柔软的膜，控制物质进出。",
+  pd_cytoplasm: "充满细胞的胶状物质，细胞的大部分化学反应在这里进行。",
+  pd_nucleus: "装着 DNA（细胞的「说明书」），指挥细胞的活动。",
+  pd_wall: "细胞膜外面坚硬的纤维素「盒子」，撑起整株植物。",
+  pd_chloroplast: "光合作用的场所：用光、水和 CO₂ 造糖。只在植物的绿色部分有（根细胞没有）。",
+  pd_vacuole: "装满细胞液的大袋子，让植物细胞保持饱满。动物细胞最多只有小液泡。",
+  both: "两种细胞都有", plantOnly: "只有植物细胞有",
+  live3: "已标出 {n} / 6 个部分。",
+  k4: "规律", t4: "所有生物都由细胞组成",
+  b4: "一片叶、你的皮肤、池塘小生物：放大到足够倍数，都由细胞组成，或本身就是一个细胞。植物细胞和动物细胞都有细胞膜、细胞质和细胞核；植物细胞还多了细胞壁、叶绿体和大液泡。",
+  x4: "这里的细胞小到约 {lo}（细菌），大到约 {hi}（变形虫），大多比肉眼能看清的 {eye} 还小，所以显微镜出现前没人见过。把 {cc} 的口腔细胞看成 1 毫米的点，要放大约 ×{m1}；{bb} 的细菌要 ×{m2}。1665 年胡克在软木里命名了「细胞」；到 1839 年，施莱登和施旺证明植物和动物都由细胞组成。",
+  lad: "微米，对数刻度", eyeLine: "肉眼极限", micro: "要用显微镜",
+  r_bact: "细菌", r_chloro: "叶绿体", r_nucleus: "细胞核", r_rbc: "红细胞", r_alga: "绿藻",
+  r_stoma: "气孔", r_flake: "皮屑细胞", r_cheek: "口腔细胞", r_hair: "头发粗细", r_plant: "植物细胞",
+  r_param: "草履虫", r_amoeba: "变形虫",
+  uCm: "厘米", uMm: "毫米", uUm: "微米",
+  resultTitle: "我们发现", resultMain: "叶子 · 皮肤 · 池水 → 细胞",
+  resultNote: "植物细胞 {p}，口腔细胞 {c}，细菌 {b}。肉眼最多只能看清约 {e}。",
+  explainK: "说一说", explainQ: "朋友说「植物不像我们那样由细胞组成」。用你放大看到的东西告诉他：叶细胞和口腔细胞有哪些共同部分，哪些只有叶细胞有。",
+  homeK: "家里做一做", homeQ: "从洋葱鳞片内侧撕下一片透明薄膜，平贴在窗玻璃上，用放大镜或手机放大看。能看到砖块一样的细胞吗？再试试一滴水洼里的水。",
+  foot: "尺寸（同一张表决定图、比例尺、尺寸梯和这些数字）：{list}；肉眼在阅读距离约能分辨 {eye}，光学显微镜约 {lm}。载玻片 {sl}，盖玻片 {cs}。叶、手、水滴和皮纹的尺寸是示意。人成熟的红细胞没有细胞核。放大倍数 = 屏幕上的大小 ÷ 真实大小，按每英寸 96 个 CSS 像素算（屏幕各有出入）。图是示意图，相对比例真实。历史：胡克《显微图谱》（1665）；施莱登（1838）、施旺（1839）。· CC BY 4.0 · Boxi Yu",
+ },
+});
+
+// ---------- one size table (µm): [min, typical, max]. Everything drawn or quoted comes from here ----------
+const SIZE = {
+  eye: [100, 100, 100], light: [0.2, 0.2, 0.2],
+  bact: [1, 1.5, 2], granum: [0.3, 0.5, 0.6], chloro: [3, 5, 10], nucleus: [5, 7, 10],
+  rbc: [7, 7.5, 8], alga: [8, 10, 12], stoma: [20, 30, 50], flake: [30, 35, 40],
+  cheek: [50, 60, 80], hair: [50, 70, 100], plant: [50, 75, 100], param: [100, 200, 300], amoeba: [250, 450, 750],
+  // illustrative sizes for the big things
+  pave: [30, 50, 80], furrow: [400, 400, 400], drop: [8000, 8000, 8000], leaf: [80000, 80000, 80000],
+  slideL: [75000, 75000, 75000], slideW: [25000, 25000, 25000], cover: [22000, 22000, 22000],
+};
+const T = (key) => SIZE[key][1];
+const LADDER = ["bact", "chloro", "nucleus", "rbc", "alga", "stoma", "flake", "cheek", "hair", "plant", "param", "amoeba"];
+const LMAX = 5, LMIN = 0;
+const PX_MM = 25.4 / 96;
+const CELLF = { leaf: 2000, hand: 650, pond: 1800 };
+
+// ---------- pure helpers ----------
+const clamp = Play.clamp;
+function nice(x) { const d = x >= 10 ? 0 : x >= 1 ? 1 : 2; return String(+x.toFixed(d)); }
+function fmtLen(um) {
+  if (!(um > 0)) return "—";
+  if (um >= 10000) return nice(um / 10000) + " " + P.t("uCm");
+  if (um >= 1000) return nice(um / 1000) + " " + P.t("uMm");
+  return nice(um) + " " + P.t("uUm");
+}
+function fmtRange(key) { const s = SIZE[key]; return s[0] === s[2] ? fmtLen(s[1]) : nice(s[0]) + "–" + fmtLen(s[2]); }
+function sig2(x) {
+  if (!(x > 0)) return "—";
+  if (x < 10) return String(+x.toFixed(1));
+  const p = pow(10, floor(log10(x)) - 1);
+  return (round(x / p) * p).toLocaleString("en-US");
+}
+const magOf = (Wpx, F) => (Wpx * PX_MM) / (F / 1000);
+function scaleBar(k, maxPx) {
+  let best = 0;
+  for (let e = -2; e <= 6; e++) for (const m of [1, 2, 5]) { const L = m * pow(10, e); if (L * k <= maxPx) best = L; }
+  return best || 0.01;
+}
+function hash(i, j, s) {
+  let h = (Math.imul(i | 0, 374761393) + Math.imul(j | 0, 668265263) + Math.imul(s | 0, 982451653)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+// ---------- svg helpers ----------
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = (tag, a, p) => Play.svg(tag, a, p);
+const fs = (c, o) => "fill:var(--" + c + ")" + (o != null ? ";fill-opacity:" + o : "");
+const R4 = (r) => ({ x: r.x, y: r.y, width: r.w, height: r.h });
+const mx = Math.max, { ceil, cos, floor, hypot, log10, min, pow, sin, abs, round } = Math;
+const pth = (par, d, st) => S("path", { d, style: st }, par);
+const LC = ";stroke-linecap:round";
+const sn = (c, w, o) => "fill:none" + ss(c, w, o);
+const ss = (c, w, o) => ";stroke:var(--" + c + ");stroke-width:" + (+w).toFixed(2) + (o != null ? ";stroke-opacity:" + o : "");
+const qd = (p, c, q) => "M" + xy(p) + "Q" + xy(c) + " " + xy(q);
+const circ = (p, r, st, par) => S("circle", { cx: N(p[0]), cy: N(p[1]), r: N(r), style: st }, par);
+const N = (x) => x.toFixed(1), xy = (p) => N(p[0]) + " " + N(p[1]);
+const polyD = (pts, close) => "M" + pts.map(xy).join("L") + (close ? "Z" : "");
+function smoothD(pts) {
+  const n = pts.length, mid = (i) => { const a = pts[i % n], b = pts[(i + 1) % n]; return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; };
+  const s = mid(0); let d = "M" + xy(s);
+  for (let i = 1; i <= n; i++) { const p = pts[i % n], q = mid(i); d += "Q" + xy(p) + " " + xy(q); }
+  return d + "Z";
+}
+function text(x, y, s, cls, anchor, p) {
+  const t = S("text", { x: N(x), y: N(y), class: "lab " + (cls || ""), "text-anchor": anchor || "start" }, p);
+  t.textContent = s; return t;
+}
+let clipN = 0;
+function clipG(par, d) {
+  const id = "cz" + (++clipN), cp = S("clipPath", { id }, par);
+  if (typeof d === "string") S("path", { d }, cp); else d(cp);
+  return S("g", { "clip-path": "url(#" + id + ")" }, par);
+}
+
+// view: field width F (µm) shown across rect r; world origin at the rect centre
+function mkView(F, r) {
+  const k = r.w / F;
+  return { k, F, r, cx: r.x + r.w / 2, cy: r.y + r.h / 2, x0: -r.w / 2 / k, x1: r.w / 2 / k, y0: -r.h / 2 / k, y1: r.h / 2 / k };
+}
+const pj = (v, x, y) => [v.cx + x * v.k, v.cy + y * v.k];
+const vis = (v, x, y, R) => x + R > v.x0 && x - R < v.x1 && y + R > v.y0 && y - R < v.y1;
+const rot = (cx, cy, a, lx, ly) => [cx + lx * cos(a) - ly * sin(a), cy + lx * sin(a) + ly * cos(a)];
+function ellPts(v, cx, cy, rx, ry, a, n) {
+  const out = [];
+  for (let i = 0; i < n; i++) { const t = (i / n) * 2 * Math.PI, w = rot(cx, cy, a, rx * cos(t), ry * sin(t)); out.push(pj(v, ...w)); }
+  return out;
+}
+function bg(g, v, c, o) {
+  const r = v.r;
+  S("rect", { ...R4(r), style: fs("surface") }, g);
+  if (c) S("rect", { ...R4(r), style: fs(c, o) }, g);
+}
+// label request: world point, apparent size (µm) must fall in [lo, hi] px
+function lab(v, labs, x, y, sizeUm, lo, hi, key, dx, dy) {
+  const px = sizeUm * v.k;
+  if (px < lo || px > hi) return;
+  const p = pj(v, x, y), r = v.r;
+  if (p[0] < r.x + 12 || p[0] > r.x + r.w - 12 || p[1] < r.y + 12 || p[1] > r.y + r.h - 12) return;
+  labs.push({ x: p[0], y: p[1], text: P.t(key), dx, dy });
+}
+
+// jittered grid (optionally brick-offset rows); returns world corner
+function gp(i, j, s, seed, jit, brick) {
+  const sy = brick ? s * 0.87 : s;
+  return [i * s + (brick && (j & 1) ? s / 2 : 0) + (hash(i, j, seed) - 0.5) * jit * s, j * sy + (hash(i, j, seed + 7) - 0.5) * jit * s];
+}
+function gridRange(v, s, brick) {
+  const sy = brick ? s * 0.87 : s;
+  return [floor(v.x0 / s) - 2, ceil(v.x1 / s) + 1, floor(v.y0 / sy) - 1, ceil(v.y1 / sy) + 1];
+}
+const lodA = (v, s) => clamp((v.k * s - 7) / 16, 0, 1);
+// all cell edges of a jittered grid as one path (straight, wavy, or with diagonals)
+function edges(g, v, s, seed, jit, brick, mode, c, w, o) {
+  const a = lodA(v, s);
+  if (a <= 0) return;
+  const [i0, i1, j0, j1] = gridRange(v, s, brick);
+  if ((i1 - i0) * (j1 - j0) > 9000) return;
+  let d = "";
+  const seg = (A, B, i, j, n) => {
+    const p = pj(v, ...A), q = pj(v, ...B);
+    if (mode === "wavy") {
+      const h = (hash(i, j, seed + n) - 0.5) * 0.7, mx = (p[0] + q[0]) / 2 - (q[1] - p[1]) * h, my = (p[1] + q[1]) / 2 + (q[0] - p[0]) * h;
+      d += "M" + xy(p) + "Q" + N(mx) + " " + N(my) + " " + xy(q);
+    } else d += "M" + xy(p) + "L" + xy(q);
+  };
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const A = gp(i, j, s, seed, jit, brick);
+    seg(A, gp(i + 1, j, s, seed, jit, brick), i, j, 1);
+    seg(A, gp(i, j + 1, s, seed, jit, brick), i, j, 2);
+    if (mode === "diag") seg(A, gp(i + 1, j + 1, s, seed, jit, brick), i, j, 3);
+  }
+  S("path", { d, style: sn(c, w, o * a) + LC }, g);
+}
+function cellCentre(i, j, s, seed, jit, brick) {
+  const c = [gp(i, j, s, seed, jit, brick), gp(i + 1, j, s, seed, jit, brick), gp(i, j + 1, s, seed, jit, brick), gp(i + 1, j + 1, s, seed, jit, brick)];
+  return [(c[0][0] + c[1][0] + c[2][0] + c[3][0]) / 4, (c[0][1] + c[1][1] + c[2][1] + c[3][1]) / 4];
+}
+// bacteria as one path: rods are round-capped segments, cocci are dots
+function bacteria(g, v, list, c) {
+  const L = T("bact"), wpx = 0.6 * v.k;
+  if (L * v.k < 1.2) return;
+  let d = "";
+  list.forEach((b) => {
+    if (!vis(v, b[0], b[1], L)) return;
+    const half = b[3] ? L * 0.35 : 0.001, p = pj(v, ...rot(b[0], b[1], b[2], -half, 0)), q = pj(v, ...rot(b[0], b[1], b[2], half, 0));
+    d += "M" + xy(p) + "L" + N(q[0] + (b[3] ? 0 : 0.01)) + " " + N(q[1]);
+  });
+  if (d) S("path", { d, style: sn(c, mx(1.4, wpx), 0.85) + LC }, g);
+}
+function bactCluster(cx, cy, n, R, seed) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const a = hash(i, seed, 1) * 6.283, r = Math.sqrt(hash(i, seed, 2)) * R;
+    out.push([cx + r * cos(a), cy + r * sin(a), hash(i, seed, 3) * 3.14, hash(i, seed, 4) < 0.65]);
+  }
+  return out;
+}
+
+// ---------- specimen 1: leaf ----------
+const LF = (() => {
+  const L = T("leaf"), x0 = -0.55 * L, MY = 0.11 * L, HW = 0.26 * L;
+  const hw = (u) => HW * pow(mx(0, sin(Math.PI * pow(u, 0.8))), 0.85);
+  const top = [], bot = [];
+  for (let i = 0; i <= 48; i++) { const u = i / 48, x = x0 + u * L; top.push([x, MY - hw(u)]); bot.unshift([x, MY + hw(u)]); }
+  return { L, x0, MY, hw, pts: top.concat(bot) };
+})();
+function drawLeaf(g, v, labs) {
+  const k = v.k, d = polyD(LF.pts.map((p) => pj(v, ...p)), true);
+  const a = pj(v, LF.x0 - 0.16 * LF.L, LF.MY + 0.03 * LF.L), b = pj(v, LF.x0, LF.MY);
+  S("line", { x1: N(a[0]), y1: N(a[1]), x2: N(b[0]), y2: N(b[1]), style: ss("a", mx(2, 1500 * k)) + LC }, g);
+  S("path", { d, style: fs("a", 0.42) + ss("a", 1.5, 0.9) }, g);
+  const cg = clipG(g, d);
+  edges(cg, v, 1800, 11, 0.5, false, "", "a", mx(0.8, 60 * k), 0.6);
+  const s = T("pave");
+  edges(cg, v, s, 23, 0.45, true, "wavy", "a", mx(0.8, 1.2 * k), 0.8);
+  const st = T("stoma");
+  if (k * st > 4) {
+    const [i0, i1, j0, j1] = gridRange(v, s, true);
+    let dd = "", best = null, sa = clamp((k * st - 4) / 6, 0, 1);
+    if ((i1 - i0) * (j1 - j0) < 9000) for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      if (!((i === 1 && j === -1) || (hash(i, j, 5) < 0.12 && (i || j)))) continue;
+      const c = cellCentre(i, j, s, 23, 0.45, true), an = hash(i, j, 6) * Math.PI;
+      if (!vis(v, c[0], c[1], st)) continue;
+      dd += polyD(ellPts(v, c[0], c[1], st / 2, st * 0.36, an, 28), true) + polyD(ellPts(v, c[0], c[1], st * 0.28, st * 0.06, an, 20), true);
+      const dist = hypot(c[0], c[1]);
+      if (!best || dist < best.d) best = { d: dist, c };
+    }
+    if (dd) pth(cg, dd, "fill-rule:evenodd;" + fs("a", 0.75 * sa) + ss("a", 1, 0.9 * sa));
+    if (best) lab(v, labs, best.c[0], best.c[1] - st * 0.36, st, 14, 500, "L_stoma", 34, -44);
+  }
+  const c0 = cellCentre(0, 0, s, 23, 0.45, true);
+  lab(v, labs, c0[0], c0[1], s, 22, 600, "L_cell", -40, 54);
+
+  const m0 = pj(v, LF.x0, LF.MY), m1 = pj(v, LF.x0 + LF.L, LF.MY);
+  let vd = "M" + xy(m0) + "L" + xy(m1);
+  for (let u = 0.12; u < 0.86; u += 0.1) for (const sg of [-1, 1]) {
+    const x = LF.x0 + u * LF.L, p = pj(v, x, LF.MY), c = pj(v, x + 0.1 * LF.L, LF.MY + sg * 0.45 * LF.hw(u)), q = pj(v, x + 0.2 * LF.L, LF.MY + sg * 0.85 * LF.hw(u + 0.2));
+    vd += qd(p, c, q);
+  }
+  pth(cg, vd, sn("a", mx(1.2, 250 * k), 0.9) + LC);
+  lab(v, labs, -0.15 * LF.L, LF.MY, LF.L, 150, 3000, "L_vein", 40, 40);
+  lab(v, labs, LF.x0 + 0.85 * LF.L, LF.MY - LF.hw(0.85) * 0.5, LF.L, 150, 2000, "L_leaf", 20, -50);
+}
+// palisade cells in a slice under the surface
+function drawPal(g, v, labs) {
+  bg(g, v, "a", 0.08);
+  const k = v.k, PH = T("plant"), PW = PH / 3, PER = PW + 2, OFF = 3.2, Y0 = -0.4 * PH, Y1 = Y0 + PH;
+  const cl = T("chloro"), nr = T("nucleus") / 2, gr = T("granum");
+  const i0 = floor((v.x0 + OFF) / PER) - 1, i1 = ceil((v.x1 + OFF) / PER) + 1;
+  if (i1 - i0 > 300) return;
+  const rr = (x, y, w, h, rx, st) => { const p = pj(v, x, y); return S("rect", { x: N(p[0]), y: N(p[1]), width: N(w * k), height: N(h * k), rx: N(rx * k), style: st }, g); };
+
+  const EH = 16, EW = 34;
+  for (let i = floor(v.x0 / EW) - 1; i <= ceil(v.x1 / EW); i++) rr(i * EW + 1, Y0 - EH - 2, EW - 2, EH, 3, fs("c", 0.06) + ss("b", mx(1, 0.5 * k), 0.8));
+  const SG = 28;
+  for (let j = 0; j < 4; j++) for (let i = floor(v.x0 / SG) - 1; i <= ceil(v.x1 / SG) + 1; i++) {
+    const x = i * SG + (hash(i, j, 41) - 0.5) * 10, y = Y1 + 16 + j * SG + (hash(i, j, 42) - 0.5) * 8, r = 9 + hash(i, j, 43) * 4;
+    if (!vis(v, x, y, r)) continue;
+    const p = pj(v, x, y);
+    circ(p, r * k, fs("a", 0.1) + ss("b", mx(1, 0.5 * k), 0.7), g);
+  }
+  let chl = "", grana = "", spots = [];
+  for (let i = i0; i <= i1; i++) {
+    const L = i * PER - OFF;
+    if (L + PW < v.x0 - 2 || L > v.x1 + 2) continue;
+    rr(L, Y0, PW, PH, 4, fs("a", 0.08) + ss("b", mx(1.2, 0.8 * k), 0.9));
+    if (k * 0.6 > 1.5) rr(L + 0.6, Y0 + 0.6, PW - 1.2, PH - 1.2, 3.5, sn("c", mx(0.8, 0.12 * k), 0.8));
+    rr(L + 4.6, Y0 + 5, PW - 9.2, PH - 15, 3, fs("c", 0.16) + ss("c", 1, 0.45));
+    const nx = L + PW / 2 + (hash(i, 0, 44) - 0.5) * 6, ny = Y1 - 5.5, np = pj(v, nx, ny);
+    circ(np, nr * k, fs("b", 0.45) + ss("b", 1, 0.8), g);
+    if (i === 0) spots.push(["nuc", nx, ny]);
+    for (let m = ceil((Y0 + 4) / 7); m <= floor((Y1 - 10) / 7); m++) for (const side of [0, 1]) {
+      const jit = i === 0 && side === 0 ? 0 : (hash(i, m * 2 + side, 45) - 0.5) * 2;
+      const x = side ? L + PW - OFF : L + OFF, y = m * 7 + jit;
+      if (!vis(v, x, y, cl)) continue;
+      chl += polyD(ellPts(v, x, y, 1.3, cl / 2, 0, 18), true);
+      if (k * gr > 3) for (let q = -3; q <= 3; q++) {
+        const gx = x + (q & 1 ? 0.35 : -0.35), gy = y + q * 0.62, p = pj(v, gx - gr / 2, gy - 0.13);
+        grana += "M" + xy(p) + "h" + N(gr * k) + "v" + N(0.26 * k) + "h" + N(-gr * k) + "Z";
+      }
+    }
+  }
+  if (chl) pth(g, chl, fs("a", 0.85) + ss("a", 1, 1));
+  if (grana) pth(g, grana, fs("fg", 0.45));
+  const L1 = PER - OFF;
+  lab(v, labs, L1 + PW / 2, Y0 + PH * 0.3, PH, 60, 1600, "L_pal", 50, -70);
+  lab(v, labs, -OFF, Y0 + PH * 0.18, PW, 30, 2500, "L_wall", -40, -50);
+  lab(v, labs, 0, 0, cl, 8, 500, "L_chl", 50, -36);
+  lab(v, labs, PW / 2 - OFF + 2, Y0 + PH * 0.55, PW, 40, 1200, "L_vac", 46, 30);
+  if (spots[0]) lab(v, labs, spots[0][1], spots[0][2], nr * 2, 8, 700, "L_nuc", -44, 34);
+  lab(v, labs, -OFF + 0.6, -4, 0.6, 3, 400, "L_mem", -40, 40);
+  lab(v, labs, 0.35, 0.62, gr, 6, 400, "L_gran", 50, 46);
+}
+
+// ---------- specimen 2: hand and cheek ----------
+const HAND = (() => {
+  const fw = 17000, base = -12000, rects = [[-40000, base, 80000, 100000, 16000, 0]];
+  [[-30000, 52000], [-10000, 66000], [10000, 62000], [30000, 48000]].forEach(([x, len]) => rects.push([x - fw / 2, base - len, fw, len + 9000, fw / 2, 0]));
+  rects.push([29000, 45000, 22000, 50000, 11000, -140]);
+  return { rects, base, fw };
+})();
+const HAIR = { x: 0, y: -150, a: 0.35, t0: -3500, t1: 2500 };
+function drawHand(g, v, labs) {
+  const k = v.k;
+  const shapes = (par, st) => HAND.rects.forEach((q) => {
+    const p = pj(v, ...q);
+    const r = S("rect", { x: N(p[0]), y: N(p[1]), width: N(q[2] * k), height: N(q[3] * k), rx: N(q[4] * k), style: st }, par);
+    if (q[5]) { const c = pj(v, q[0] + q[2] / 2, q[1]); r.setAttribute("transform", "rotate(" + q[5] + " " + xy(c) + ")"); }
+  });
+  const hg = S("g", { opacity: 0.32 }, g);
+  shapes(hg, fs("b"));
+  const cg = clipG(g, (cp) => shapes(cp, ""));
+  let kd = "";
+  [-30000, -10000, 10000, 30000].forEach((x) => { for (let n = 0; n < 3; n++) {
+    const p = pj(v, x - 4000, HAND.base - 1500 + n * 900), q = pj(v, x + 4000, HAND.base - 1500 + n * 900), c = pj(v, x, HAND.base - 2600 + n * 900);
+    kd += qd(p, c, q);
+  } });
+  pth(cg, kd, sn("b", mx(1, 80 * k), 0.6));
+  edges(cg, v, T("furrow"), 31, 0.7, false, "diag", "b", mx(0.7, 14 * k), 0.55);
+  edges(cg, v, T("flake"), 37, 0.35, true, "", "b", mx(0.6, 0.8 * k), 0.4);
+  const hw = T("hair");
+  if (hw * k > 0.6) {
+    const A = rot(HAIR.x, HAIR.y, HAIR.a, HAIR.t0, 0), B = rot(HAIR.x, HAIR.y, HAIR.a, HAIR.t1, 0);
+    const n = [-sin(HAIR.a) * hw / 2, cos(HAIR.a) * hw / 2];
+    const pts = [[A[0] + n[0], A[1] + n[1]], [B[0] + n[0], B[1] + n[1]], [B[0] - n[0], B[1] - n[1]], [A[0] - n[0], A[1] - n[1]]].map((p) => pj(v, ...p));
+    pth(cg, polyD(pts, true), fs("fg", 0.55));
+    const ap = pj(v, ...A);
+    circ(ap, mx(2, hw * 0.9 * k), sn("b", mx(1, 6 * k), 0.6), cg);
+  }
+  lab(v, labs, 0, 15000, 80000, 300, 4000, "L_hand", 30, -30);
+  const f0 = gp(0, 0, T("furrow"), 31, 0.7, false), f1 = gp(1, 0, T("furrow"), 31, 0.7, false);
+  lab(v, labs, (f0[0] + f1[0]) / 2, (f0[1] + f1[1]) / 2, T("furrow"), 30, 600, "L_furrow", 40, 40);
+  lab(v, labs, HAIR.x, HAIR.y, hw, 3, 300, "L_hair", -40, -40);
+  const fc = cellCentre(1, 1, T("flake"), 37, 0.35, true);
+  lab(v, labs, fc[0], fc[1], T("flake"), 16, 600, "L_flake", 40, 50);
+}
+function drawCheek(g, v, labs) {
+  bg(g, v, "c", 0.05);
+  const k = v.k, R = T("cheek") / 2, GS = T("cheek") * 1.25, nr = T("nucleus") / 2;
+  const i0 = floor(v.x0 / GS) - 1, i1 = ceil(v.x1 / GS) + 1, j0 = floor(v.y0 / GS) - 1, j1 = ceil(v.y1 / GS) + 1;
+  if ((i1 - i0) * (j1 - j0) > 2000) return;
+  let gran = "", bl = [], c0 = null;
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const zero = i === 0 && j === 0;
+    if (!zero && hash(i, j, 51) < 0.25) continue;
+    const cx = zero ? -14 : i * GS + (hash(i, j, 52) - 0.5) * 0.5 * GS, cy = zero ? 10 : j * GS + (hash(i, j, 53) - 0.5) * 0.5 * GS;
+    if (!vis(v, cx, cy, R * 1.3)) continue;
+    const pts = [], n = 9, a0 = hash(i, j, 54) * 6.28;
+    for (let m = 0; m < n; m++) { const a = a0 + (m / n) * 6.283 + (hash(i, m, 55 + j) - 0.5) * 0.4, r = R * (0.84 + 0.32 * hash(m, j, 56 + i)); pts.push([cx + r * cos(a), cy + r * sin(a)]); }
+    pth(g, smoothD(pts.map((p) => pj(v, ...p))), fs("c", 0.15) + ss("c", mx(1, 0.3 * k), 0.8));
+    if (k * R > 30) {
+      const p = pj(v, cx - R * 0.6, cy + R * 0.2), q = pj(v, cx + R * 0.5, cy + R * 0.45), c = pj(v, cx, cy + R * 0.1);
+      pth(g, qd(p, c, q), sn("c", 1, 0.3));
+    }
+    const nx = cx + (zero ? 0 : (hash(i, j, 57) - 0.5) * 8), ny = cy + (zero ? 0 : (hash(i, j, 58) - 0.5) * 8), np = pj(v, nx, ny);
+    circ(np, nr * k, fs("c", 0.6) + ss("c", 1, 0.9), g);
+    if (k * 0.4 > 1) for (let m = 0; m < 26; m++) {
+      const a = hash(m, i, 59 + j) * 6.283, r = (0.25 + 0.45 * hash(m, j, 60 + i)) * R, p = pj(v, cx + r * cos(a), cy + r * sin(a));
+      gran += "M" + xy(p) + "l0.01 0";
+    }
+    if (zero) c0 = { cx, cy, pts, nx, ny };
+    else bl = bl.concat(bactCluster(cx + (hash(i, j, 61) - 0.5) * R, cy + (hash(i, j, 62) - 0.5) * R, floor(hash(i, j, 63) * 4), 5, i * 31 + j));
+  }
+  if (gran) pth(g, gran, sn("c", mx(1, 0.5 * k), 0.35) + LC);
+  bacteria(g, v, bl.concat(bactCluster(0, 0, 9, 4, 7)), "h");
+  if (c0) {
+    lab(v, labs, c0.cx - R * 0.45, c0.cy - R * 0.35, 2 * R, 40, 800, "L_cheek", -40, -50);
+    lab(v, labs, c0.pts[2][0], c0.pts[2][1], 2 * R, 140, 4000, "L_mem", 40, 40);
+    lab(v, labs, c0.nx, c0.ny, nr * 2, 8, 800, "L_nuc", -40, 40);
+    lab(v, labs, c0.cx + R * 0.15, c0.cy + R * 0.55, 2 * R, 140, 3000, "L_cyto", 40, 30);
+  }
+  lab(v, labs, 1, -1, T("bact"), 5, 900, "L_bact", 46, -40);
+}
+
+// ---------- specimen 3: pond drop ----------
+const ORGS = (() => {
+  const out = [["param", -110, -25, 0.15, 1], ["amoeba", 240, 90, 0.7, 1], ["alga", 25, -18, 0.4, 1], ["alga", 38, 26, 2.1, 1], ["alga", -40, 75, 1.0, 1]];
+  const G = 700, R = T("drop") / 2 - 300;
+  for (let j = -6; j <= 6; j++) for (let i = -6; i <= 6; i++) {
+    if (abs(i) <= 1 && abs(j) <= 1) continue;
+    const x = i * G + (hash(i, j, 71) - 0.5) * G * 0.7, y = j * G + (hash(i, j, 72) - 0.5) * G * 0.7, h = hash(i, j, 73);
+    if (hypot(x, y) > R) continue;
+    const s = 0.75 + 0.5 * hash(i, j, 74), a = hash(i, j, 75) * 6.28;
+    if (h < 0.3) out.push(["param", x, y, a, s]);
+    else if (h < 0.45) out.push(["amoeba", x, y, a, s]);
+    else if (h < 0.8) for (let m = 0; m < 3; m++) out.push(["alga", x + m * 30 - 30, y + (m & 1) * 25, a + m, 1]);
+  }
+  return out;
+})();
+const PBACT = (() => {
+  let out = bactCluster(0, 0, 10, 5, 3);
+  const G = 30;
+  for (let j = -30; j <= 30; j++) for (let i = -30; i <= 30; i++) if (hash(i, j, 81) < 0.22) out.push([i * G + hash(i, j, 82) * G, j * G + hash(i, j, 83) * G, hash(i, j, 84) * 3.14, hash(i, j, 85) < 0.6]);
+  return out;
+})();
+function paramPts(o) {
+  const a = (T("param") * o[4]) / 2, b = a * 0.3, pts = [];
+  for (let i = 0; i < 48; i++) {
+    const t = (i / 48) * 6.283, ly = b * sin(t) * (1 + 0.2 * cos(t)) - (sin(t) > 0 ? 0.25 * b * Math.exp(-pow((cos(t) - 0.1) * 3, 2)) : 0);
+    pts.push(rot(o[1], o[2], o[3], a * cos(t), ly));
+  }
+  return { a, b, pts };
+}
+function drawOrg(g, v, o, cil) {
+  const k = v.k, kind = o[0], size = T(kind) * o[4];
+  if (!vis(v, o[1], o[2], size)) return;
+  const p0 = pj(v, o[1], o[2]), O = (lx, ly) => pj(v, ...rot(o[1], o[2], o[3], lx, ly));
+  if (size * k < 3) { circ(p0, mx(0.9, (size * k) / 2), fs(kind === "alga" ? "a" : "b", 0.8), g); return; }
+  if (kind === "param") {
+    const { a, b, pts } = paramPts(o);
+    pth(g, smoothD(pts.map((p) => pj(v, ...p))), fs("b", 0.22) + ss("b", mx(1, 0.6 * k), 0.9));
+    if (size * k > 30) {
+      const m = rot(o[1], o[2], o[3], 0, 0);
+      pth(g, polyD(ellPts(v, m[0], m[1], a * 0.17, b * 0.38, o[3], 20), true), fs("b", 0.5));
+      [-0.6, 0.6].forEach((u) => { const c = O(u * a, 0); circ(c, a * 0.05 * k, fs("c", 0.6), g); });
+      [[-0.25, -0.3], [0.3, 0.35], [-0.4, 0.25], [0.45, -0.2]].forEach(([u, w]) => { const c = O(u * a, w * b); circ(c, a * 0.035 * k, fs("hl", 0.6), g); });
+      const q0 = O(0.1 * a, -b * 0.75), q1 = O(0.05 * a, -b * 0.2), qc = O(0.35 * a, -b * 0.5);
+      pth(g, qd(q0, qc, q1), sn("b", 1.5, 0.8));
+    }
+    if (4 * k > 1.2) {
+      let d = "";
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i], q = pts[(i + 1) % pts.length], nx = q[1] - p[1], ny = -(q[0] - p[0]), l = hypot(nx, ny) || 1;
+        for (let s = 0; s < 3; s++) {
+          const u = s / 3, x = p[0] + (q[0] - p[0]) * u, y = p[1] + (q[1] - p[1]) * u, A = pj(v, x, y), B = pj(v, x - (nx / l) * 4, y - (ny / l) * 4);
+          d += "M" + xy(A) + "L" + xy(B);
+        }
+      }
+      S("path", { d, style: sn("b", mx(0.7, 0.25 * k), 0.6 * clamp((4 * k - 1.2) / 3, 0, 1)) }, g);
+    }
+    if (cil) cil.param = { pts, a };
+  } else if (kind === "amoeba") {
+    const R = size / 2, pts = [];
+    for (let i = 0; i < 40; i++) { const t = (i / 40) * 6.283, r = R * (0.62 + 0.22 * sin(3 * t + o[3]) + 0.12 * sin(5 * t + 2 * o[3])); pts.push([o[1] + r * cos(t), o[2] + r * sin(t)]); }
+    pth(g, smoothD(pts.map((p) => pj(v, ...p))), fs("h", 0.16) + ss("h", mx(1, 0.6 * k), 0.8));
+    if (size * k > 30) {
+      const c = pj(v, o[1] - R * 0.15, o[2] + R * 0.1);
+      circ(c, R * 0.09 * k, fs("h", 0.5) + ss("h", 1, 0.8), g);
+      let d = "";
+      for (let m = 0; m < 40; m++) { const a = hash(m, 1, 91) * 6.283, r = hash(m, 2, 91) * R * 0.5, p = pj(v, o[1] + r * cos(a), o[2] + r * sin(a)); d += "M" + xy(p) + "l0.01 0"; }
+      S("path", { d, style: sn("h", mx(1.2, 1.5 * k), 0.5) + LC }, g);
+    }
+  } else {
+    const rx = size / 2, ry = size * 0.42;
+    pth(g, polyD(ellPts(v, o[1], o[2], rx, ry, o[3], 20), true), fs("a", 0.75) + ss("a", 1, 1));
+    if (size * k > 20) {
+      let d = "";
+      [-1, 1].forEach((sg) => { const A = O(rx, 0), C = O(rx + 6, sg * 5), B = O(rx + 12, sg * 2); d += qd(A, C, B); });
+      S("path", { d, style: sn("a", mx(1, 0.25 * k), 0.8) }, g);
+      const e = O(rx * 0.5, ry * 0.5);
+      circ(e, mx(1.5, 0.7 * k), fs("no"), g);
+    }
+  }
+}
+function drawPond(g, v, labs) {
+  const k = v.k, SL = T("slideL"), SW = T("slideW"), CS = T("cover"), DR = T("drop") / 2;
+  const sp = pj(v, -SL / 2, -SW / 2), cp = pj(v, -CS / 2, -CS / 2), dc = pj(v, 0, 0);
+  S("rect", { x: N(sp[0]), y: N(sp[1]), width: N(SL * k), height: N(SW * k), rx: N(mx(2, 600 * k)), style: fs("c", 0.07) + ss("muted", 1.2, 0.8) }, g);
+  S("rect", { x: N(cp[0]), y: N(cp[1]), width: N(CS * k), height: N(CS * k), style: sn("muted", 1, 0.6) + ";stroke-dasharray:5 4" }, g);
+  const dd = "M" + N(dc[0] - DR * k) + " " + N(dc[1]) + "a" + N(DR * k) + " " + N(DR * k) + " 0 1 0 " + N(2 * DR * k) + " 0a" + N(DR * k) + " " + N(DR * k) + " 0 1 0 " + N(-2 * DR * k) + " 0Z";
+  pth(g, dd, fs("c", 0.2) + ss("c", 1.5, 0.6));
+  const cg = clipG(g, dd), info = {};
+  ORGS.forEach((o) => drawOrg(cg, v, o, o[1] === -110 ? info : null));
+  bacteria(cg, v, PBACT, "b");
+  lab(v, labs, -SL * 0.38, -SW * 0.3, SL, 150, 3000, "L_slide", 20, 30);
+  lab(v, labs, DR * 0.7, -DR * 0.7, 2 * DR, 30, 1500, "L_drop", 40, -30);
+  lab(v, labs, -110, -25 + T("param") * 0.15, T("param"), 40, 1400, "L_param", -30, 60);
+  if (info.param) { const p = info.param.pts[12]; lab(v, labs, p[0], p[1], 4, 5, 60, "L_cilia", 30, -40); }
+  lab(v, labs, 240, 90, T("amoeba"), 40, 1500, "L_amoeba", 40, 40);
+  lab(v, labs, 25, -18, T("alga"), 10, 600, "L_alga", 40, -40);
+  lab(v, labs, 0.5, 0.5, T("bact"), 5, 900, "L_bact", -46, 50);
+}
+
+// ---------- specimens: layers that cross-fade as you zoom ----------
+const FADE = 0.35;
+const SPECS = {
+  leaf: { layers: [{ start: Infinity, draw: drawLeaf }, { start: 250, draw: drawPal }],
+    stages: [[15000, "lf"], [2500, "lv"], [560, "ls"], [22, "lp"], [0, "lc"]], jumps: [1e5, 6000, 1000, 160, 9] },
+  hand: { layers: [{ start: Infinity, draw: drawHand }, { start: 400, draw: drawCheek }],
+    stages: [[15000, "hh"], [2600, "hs"], [650, "hk"], [25, "hc"], [0, "hb"]], jumps: [1e5, 6000, 1300, 200, 9] },
+  pond: { layers: [{ start: Infinity, draw: drawPond }],
+    stages: [[15000, "pd"], [1800, "pw"], [50, "pp"], [0, "pb"]], jumps: [1e5, 6000, 700, 9] },
+};
+const layerOp = (L, logF) => (L.start === Infinity ? 1 : clamp((log10(L.start) + FADE - logF) / FADE, 0, 1));
+const stageOf = (spec, F) => SPECS[spec].stages.find((s) => F >= s[0])[1];
+function renderSpec(par, spec, F, r, withLabels) {
+  const v = mkView(F, r), logF = log10(F), Ls = SPECS[spec].layers;
+  const g = clipG(par, (cp) => S("rect", R4(r), cp));
+  let first = 0;
+  Ls.forEach((L, i) => { if (layerOp(L, logF) >= 1) first = i; });
+  let labs = [];
+  for (let i = first; i < Ls.length; i++) {
+    const op = layerOp(Ls[i], logF);
+    if (op <= 0) continue;
+    const lg = S("g", op < 1 ? { opacity: op.toFixed(3) } : {}, g), mine = [];
+    Ls[i].draw(lg, v, mine);
+    if (op > 0.5) labs = mine;
+  }
+  if (withLabels) drawLabels(par, labs, r);
+  return v;
+}
+function drawLabels(par, labs, r) {
+  const placed = [], cw = P.lang === "zh" ? 13 : 7.1;
+  labs.forEach((l) => {
+    const tw = l.text.length * cw, right = l.dx >= 0;
+    let x0 = right ? l.x + l.dx : l.x + l.dx - tw, ty = clamp(l.y + l.dy, r.y + 20, r.y + r.h - 40);
+    x0 = clamp(x0, r.x + 6, r.x + r.w - 6 - tw);
+    for (let n = 0; n < 6 && placed.some((p) => abs(p.y - ty) < 17 && x0 < p.x1 && x0 + tw > p.x0); n++) ty += ty > r.y + r.h / 2 ? -18 : 18;
+    placed.push({ x0, x1: x0 + tw, y: ty });
+    const ex = l.x < x0 ? x0 - 3 : l.x > x0 + tw ? x0 + tw + 3 : x0 + tw / 2, ey = l.x >= x0 && l.x <= x0 + tw ? (l.y < ty ? ty - 14 : ty + 4) : ty - 4;
+    S("path", { d: "M" + N(l.x) + " " + N(l.y) + "L" + N(ex) + " " + N(ey), class: "lead" }, par);
+    S("circle", { cx: N(l.x), cy: N(l.y), r: 2.5, class: "ldot" }, par);
+    text(x0, ty, l.text, "b", "start", par);
+  });
+}
+
+// ---------- state ----------
+let step = 0, spec = "leaf", logF = LMAX, predictNote = "", anim = 0, W = 600, H = 360;
+let found = { leaf: false, hand: false, pond: false }, part = null, labelled = new Set();
+const zoom = $("zoom"), extra = $("extra"), liveEl = $("live");
+const foundEl = $("found"), chips = $("chips");
+
+function size() {
+  const r = fig.getBoundingClientRect();
+  W = mx(280, round(r.width || 600)); H = mx(240, round(r.height || 360));
+  fig.setAttribute("viewBox", "0 0 " + W + " " + H);
+}
+
+function drawGuess() {
+  const gap = 10, pw = (W - gap * 4) / 3, ph = H - 70;
+  ["leaf", "hand", "pond"].forEach((s, i) => {
+    const r = { x: gap + i * (pw + gap), y: 14, w: pw, h: ph };
+    S("rect", { ...R4(r), rx: 10, style: fs("soft") }, fig);
+    renderSpec(fig, s, 1e5, r, false);
+    S("rect", { ...R4(r), rx: 10, style: sn("line", 1) }, fig);
+    text(r.x + r.w / 2, r.y + r.h + 22, P.t(s === "leaf" ? "specLeaf" : s === "hand" ? "specHand" : "specPond"), "b", "middle", fig);
+    text(r.x + r.w / 2, r.y + r.h + 42, P.t("p1Ask"), "m", "middle", fig);
+    text(r.x + r.w / 2, r.y + r.h / 2 + 10, "?", "q", "middle", fig);
+  });
+}
+
+function drawZoom() {
+  const F = pow(10, logF), r = { x: 0, y: 0, w: W, h: H };
+  const v = renderSpec(fig, spec, F, r, true);
+  const key = stageOf(spec, F);
+  text(12, 22, P.t("n_" + key), "b", "start", fig);
+  text(W - 12, 22, P.t("tagTrue"), "m", "end", fig);
+
+  const L = scaleBar(v.k, min(160, W * 0.32)), bw = L * v.k;
+  S("rect", { x: 14, y: H - 18, width: N(bw), height: 5, style: fs("fg") }, fig);
+  S("rect", { x: 14, y: H - 18, width: N(bw), height: 5, style: sn("surface", 1) }, fig);
+  text(14, H - 24, fmtLen(L), "b", "start", fig);
+  const mag = magOf(W, F);
+  $("zVal").textContent = P.t("magV", { m: sig2(mag) });
+  zoom.value = (LMAX - logF) * 10;
+  zoom.setAttribute("aria-valuetext", fmtLen(F) + " · ×" + sig2(mag));
+  const vars = { c: fmtLen(key === "hc" ? T("cheek") : T("chloro")), h: fmtLen(T("hair")), f: fmtLen(T("flake")), b: fmtRange("bact") };
+  extra.textContent = "";
+  const st = document.createElement("strong"); st.textContent = P.t("n_" + key) + DOT;
+  extra.append(st, P.t("d_" + key, vars));
+  if (F <= CELLF[spec] && !found[spec]) { found[spec] = true; specButtons(); }
+  const dd = T("eye") / mag, lt = dd < T("light");
+  Play.live(liveEl, P.t(lt ? "live2b" : "live2", { f: fmtLen(F), m: sig2(mag), d: fmtLen(lt ? T("light") : dd) }));
+  foundEl.textContent = P.t("found", { l: ["leaf", "hand", "pond"].map((s) => P.t(s === "leaf" ? "specLeaf" : s === "hand" ? "specHand" : "specPond") + " " + P.t(found[s] ? "yes" : "no")).join(" · ") });
+}
+
+// plant vs animal cell
+const DOT = P.lang === "zh" ? "。" : ". ";
+const PARTS = ["membrane", "cytoplasm", "nucleus", "wall", "chloroplast", "vacuole"];
+const PLANT_ONLY = { wall: 1, chloroplast: 1, vacuole: 1 };
+function drawCompare() {
+  const hw = W / 2, top = 30, bot = H - 70, ch = bot - top;
+  const mk = (tag, a, prt, p) => { const e = S(tag, a, p || fig); if (prt) { e.dataset.part = prt; if (part === prt && !a["data-hit"]) e.classList.add("sel"); } return e; };
+  const anchors = { plant: {}, animal: {} };
+
+  const cw = min(hw - 30, ch * 0.78), x = (hw - cw) / 2, y = top + 6, h = ch - 12;
+  text(hw / 2, 20, P.t("cPlant"), "b", "middle", fig);
+  mk("rect", { x: N(x + 6), y: N(y + 6), width: N(cw - 12), height: N(h - 12), rx: 7, style: fs("a", 0.1) }, "cytoplasm");
+  const vx = x + cw * 0.3, vy = y + 20, vw = cw * 0.7 - 20, vh = h - 40;
+  mk("rect", { x: N(vx), y: N(vy), width: N(vw), height: N(vh), rx: 14, style: fs("c", 0.25) + ss("c", 1.2, 0.7) }, "vacuole");
+  const nr = min(13, (cw * 0.3 - 12) / 2), nx = x + 6 + (cw * 0.3 - 6) / 2, ny = y + h * 0.4;
+  mk("circle", { cx: N(nx), cy: N(ny), r: N(nr), style: fs("b", 0.55) + ss("b", 1.2, 0.9) }, "nucleus");
+  const cg = S("g", {}, fig);
+  const chl = [];
+  for (let i = 0; i < 4; i++) { chl.push([vx + (i + 0.5) * vw / 4, y + 13, 0]); chl.push([vx + (i + 0.5) * vw / 4, y + h - 13, 0]); }
+  for (let i = 0; i < 3; i++) chl.push([x + cw - 13, vy + (i + 0.7) * vh / 3.4, 90]);
+  chl.push([nx, y + h * 0.7, 90], [nx, y + h * 0.88, 90]);
+  chl.forEach((c) => mk("ellipse", { cx: N(c[0]), cy: N(c[1]), rx: 6, ry: 3.3, transform: "rotate(" + c[2] + " " + xy(c) + ")", style: fs("a", 0.9) + ss("a", 1, 1) }, "chloroplast", cg));
+  mk("rect", { x: N(x + 6), y: N(y + 6), width: N(cw - 12), height: N(h - 12), rx: 7, style: sn("c", 1.5, 0.9) }, "membrane");
+  mk("rect", { x: N(x + 6), y: N(y + 6), width: N(cw - 12), height: N(h - 12), rx: 7, "data-hit": 1, style: "fill:none;stroke:transparent;stroke-width:8" }, "membrane");
+  mk("rect", { x: N(x), y: N(y), width: N(cw), height: N(h), rx: 10, style: sn("b", 5, 0.85) }, "wall");
+  mk("rect", { x: N(x), y: N(y), width: N(cw), height: N(h), rx: 10, "data-hit": 1, style: "fill:none;stroke:transparent;stroke-width:8" }, "wall");
+  Object.assign(anchors.plant, { membrane: [x + cw - 6, y + h * 0.25], cytoplasm: [x + cw * 0.15, y + h * 0.6], nucleus: [nx, ny], wall: [x, y + h * 0.15], chloroplast: chl[1].slice(0, 2), vacuole: [vx + vw / 2, vy + vh / 2] });
+
+  const R = min(hw - 30, ch) / 2 - 4, ax = hw + hw / 2, ay = top + ch / 2;
+  text(ax, 20, P.t("cAnimal"), "b", "middle", fig);
+  const pts = [];
+  for (let i = 0; i < 10; i++) { const a = (i / 10) * 6.283, r = R * (0.86 + 0.14 * sin(i * 2.7 + 1)); pts.push([ax + r * cos(a), ay + r * 0.95 * sin(a)]); }
+  const bd = smoothD(pts);
+  mk("path", { d: bd, style: fs("c", 0.14) }, "cytoplasm");
+  let gd = "";
+  for (let m = 0; m < 30; m++) { const a = hash(m, 1, 99) * 6.283, r = (0.3 + 0.45 * hash(m, 2, 99)) * R; gd += "M" + N(ax + r * cos(a)) + " " + N(ay + r * sin(a)) + "l0.01 0"; }
+  pth(fig, gd, sn("c", 2, 0.4) + ";stroke-linecap:round;pointer-events:none");
+  const anr = mx(8, R * 0.17);
+  mk("circle", { cx: N(ax + R * 0.08), cy: N(ay - R * 0.05), r: N(anr), style: fs("c", 0.6) + ss("c", 1.2, 0.9) }, "nucleus");
+  mk("path", { d: bd, style: sn("c", 1.6, 0.9) }, "membrane");
+  mk("path", { d: bd, "data-hit": 1, style: "fill:none;stroke:transparent;stroke-width:10" }, "membrane");
+  Object.assign(anchors.animal, { membrane: pts[1], cytoplasm: [ax - R * 0.45, ay + R * 0.3], nucleus: [ax + R * 0.08, ay - R * 0.05] });
+
+  ["plant", "animal"].forEach((c, ci) => {
+    PARTS.forEach((p, i) => {
+      const sx = ci * hw + 8 + (i < 3 ? 0 : hw / 2), sy = H - 50 + (i % 3) * 18;
+      const has = c === "plant" || !PLANT_ONLY[p];
+      if (!labelled.has(p)) { text(sx, sy, "· · ·", "m", "start", fig); return; }
+      if (!has) { text(sx, sy, "✗ " + P.t("pn_" + p), "no", "start", fig); return; }
+      const a = anchors[c][p];
+      S("path", { d: "M" + xy(a) + "L" + N(sx + 4) + " " + N(sy - 13), class: "lead", style: p === part ? "stroke:var(--hl);stroke-width:2;opacity:1" : "opacity:.35" }, fig);
+      S("circle", { cx: N(a[0]), cy: N(a[1]), r: 2.5, class: "ldot" }, fig);
+      text(sx, sy, P.t("pn_" + p), p === part ? "b" : "", "start", fig);
+    });
+  });
+  Play.live(liveEl, P.t("live3", { n: labelled.size }));
+}
+function choosePart(p) {
+  part = p; labelled.add(p);
+  extra.textContent = "";
+  const st = document.createElement("strong");
+  st.textContent = P.t("pn_" + p) + " · " + P.t(PLANT_ONLY[p] ? "plantOnly" : "both") + DOT;
+  extra.append(st, P.t("pd_" + p));
+  buildChips(); draw();
+}
+function buildChips() {
+  chips.innerHTML = "";
+  PARTS.forEach((p) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small" + (labelled.has(p) ? " done" : "") + (part === p ? " on" : "");
+    b.textContent = P.t("pn_" + p);
+    b.addEventListener("click", () => { choosePart(p); chips.querySelectorAll("button")[PARTS.indexOf(p)].focus(); });
+    chips.appendChild(b);
+  });
+  const all = document.createElement("button");
+  all.type = "button"; all.className = "small"; all.textContent = P.t("allBtn");
+  all.addEventListener("click", () => { PARTS.forEach((p) => labelled.add(p)); buildChips(); draw(); });
+  chips.appendChild(all);
+}
+
+// size ladder from the same table
+function drawLadder() {
+  const rows = LADDER.slice().sort((a, b) => T(a) - T(b));
+  const cw = P.lang === "zh" ? 13 : 7.1, lw = min(W * 0.56, 8 + cw * mx(...rows.map((k) => (P.t("r_" + k) + " " + fmtRange(k)).length))), ax0 = lw + 8, ax1 = W - 14, top = 32, bot = H - 42;
+  const lo = -0.3, hi = 3.3, X = (um) => ax0 + ((log10(um) - lo) / (hi - lo)) * (ax1 - ax0);
+  const rh = (bot - top) / rows.length;
+  text(12, H - 10, P.t("lad"), "m", "start", fig);
+  const ex = X(T("eye"));
+  S("rect", { x: N(ax0), y: top - 6, width: N(ex - ax0), height: N(bot - top + 6), style: fs("soft") }, fig);
+  [1, 10, 100, 1000].forEach((u) => {
+    const x = X(u);
+    S("line", { x1: N(x), y1: top - 6, x2: N(x), y2: bot, style: ss("line", 1) }, fig);
+    text(x, H - 10, String(u), "m", "middle", fig);
+  });
+  S("line", { x1: N(ex), y1: top - 12, x2: N(ex), y2: bot, style: ss("no", 2) + ";stroke-dasharray:5 3" }, fig);
+  const el = P.t("eyeLine") + " " + fmtLen(T("eye"));
+  text(min(ex + 4, W - 6 - el.length * cw), top - 16, el, "no", "start", fig);
+  text(ax0 + 4, bot + 15, P.t("micro"), "m", "start", fig);
+  const col = { chloro: "a", plant: "a", stoma: "a", alga: "a", cheek: "c", nucleus: "c", rbc: "h", flake: "b", hair: "muted", bact: "h", param: "b", amoeba: "h" };
+  rows.forEach((key, i) => {
+    const y = top + (i + 0.5) * rh, s = SIZE[key], c = col[key];
+    text(12, y + 4, P.t("r_" + key) + " " + fmtRange(key), key === "hair" ? "m" : "", "start", fig);
+    if (s[0] !== s[2]) S("line", { x1: N(X(s[0])), y1: N(y), x2: N(X(s[2])), y2: N(y), style: ss(c, 5, 0.45) + LC }, fig);
+    S("circle", { cx: N(X(s[1])), cy: N(y), r: 4.5, style: fs(c) }, fig);
+  });
+}
+
+function draw() {
+  size();
+  fig.innerHTML = ""; clipN = 0;
+  fig.classList.toggle("cmp", step === 2);
+  if (step === 0) drawGuess();
+  else if (step === 1) drawZoom();
+  else if (step === 2) drawCompare();
+  else drawLadder();
+}
+
+// ---------- zoom input ----------
+function setLog(x) { logF = clamp(x, LMIN, LMAX); if (step === 1) draw(); }
+function stopAnim() { if (anim) cancelAnimationFrame(anim); anim = 0; }
+function animTo(target) {
+  stopAnim();
+  target = clamp(target, LMIN, LMAX);
+  if (Play.reduced) { setLog(target); return; }
+  const from = logF, t0 = performance.now(), dur = 250 + 120 * abs(target - from);
+  const tick = (t) => {
+    const u = clamp((t - t0) / dur, 0, 1), e = u < 0.5 ? 2 * u * u : 1 - pow(-2 * u + 2, 2) / 2;
+    setLog(from + (target - from) * e);
+    anim = u < 1 ? requestAnimationFrame(tick) : 0;
+  };
+  anim = requestAnimationFrame(tick);
+}
+zoom.addEventListener("input", () => { stopAnim(); setLog(LMAX - +zoom.value / 10); });
+$("zin").addEventListener("click", () => animTo(logF - 0.5));
+$("zout").addEventListener("click", () => animTo(logF + 0.5));
+fig.addEventListener("wheel", (e) => {
+  if (step !== 1) return;
+  e.preventDefault(); stopAnim();
+  setLog(logF + e.deltaY * (e.deltaMode === 1 ? 30 : 1) * 0.0015);
+}, { passive: false });
+fig.addEventListener("keydown", (e) => {
+  if (step !== 1) return;
+  const m = { "+": -0.1, "=": -0.1, ArrowUp: -0.1, "-": 0.1, ArrowDown: 0.1, PageUp: -1, PageDown: 1 }[e.key];
+  if (m) { e.preventDefault(); stopAnim(); setLog(logF + m); }
+  if (e.key === "Home") { e.preventDefault(); animTo(LMAX); }
+  if (e.key === "End") { e.preventDefault(); animTo(LMIN); }
+});
+const ptrs = new Map();
+let pinch0 = 0, drag0 = null;
+fig.addEventListener("pointerdown", (e) => {
+  if (step === 2) {
+    const t = e.target.closest && e.target.closest("[data-part]");
+    if (t) choosePart(t.dataset.part);
+    return;
+  }
+  if (step !== 1) return;
+  e.preventDefault(); stopAnim();
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  try { fig.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = hypot(a[0] - b[0], a[1] - b[1]); drag0 = null; }
+  else drag0 = [e.clientY, logF];
+});
+fig.addEventListener("pointermove", (e) => {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (ptrs.size === 2 && pinch0 > 0) {
+    const [a, b] = [...ptrs.values()], d = hypot(a[0] - b[0], a[1] - b[1]);
+    if (d > 0) { setLog(logF - log10(d / pinch0)); pinch0 = d; }
+  } else if (drag0) setLog(drag0[1] + ((e.clientY - drag0[0]) / mx(200, H)) * 1.5);
+});
+const up = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = 0; if (!ptrs.size) drag0 = null; };
+fig.addEventListener("pointerup", up); fig.addEventListener("pointercancel", up);
+
+// specimen + jump buttons
+const SPEC_KEY = { leaf: "specLeaf", hand: "specHand", pond: "specPond" };
+function specButtons() {
+  const box = $("specs");
+  box.innerHTML = "";
+  Object.keys(SPECS).forEach((s) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small" + (s === spec ? " on" : "");
+    b.setAttribute("aria-pressed", s === spec ? "true" : "false");
+    b.textContent = P.t(SPEC_KEY[s]) + (found[s] ? " ✓" : "");
+    b.addEventListener("click", () => switchSpec(s));
+    box.appendChild(b);
+  });
+  const jb = $("jumps");
+  jb.innerHTML = "";
+  SPECS[spec].jumps.forEach((F) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small";
+    b.textContent = P.t("n_" + stageOf(spec, F));
+    b.title = fmtLen(F);
+    b.addEventListener("click", () => animTo(log10(F)));
+    jb.appendChild(b);
+  });
+}
+function switchSpec(s) {
+  if (s === spec) return;
+  stopAnim();
+  const go = () => { spec = s; specButtons(); draw(); fig.style.opacity = 1; };
+  if (Play.reduced) { go(); return; }
+  fig.style.opacity = 0;
+  setTimeout(go, 160);
+}
+
+// ---------- steps ----------
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }, { label: P.t("o4") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { predictNote = P.t("fb" + (i + 1)); if (step === 0) extra.textContent = predictNote; });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  stopAnim();
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("ctlZoom").hidden = i !== 1;
+  chips.hidden = i !== 2;
+  foundEl.hidden = i !== 1;
+  if (i === 1) fig.setAttribute("tabindex", "0"); else { fig.removeAttribute("tabindex"); fig.blur(); }
+  extra.textContent = "";
+  Play.live(liveEl, "");
+  if (i === 0) extra.textContent = predictNote;
+  if (i === 2) { buildChips(); if (part) choosePart(part); }
+  if (i === 3) extra.textContent = P.t("x4", {
+    lo: fmtLen(T("bact")), hi: fmtLen(T("amoeba")), eye: fmtLen(T("eye")), cc: fmtLen(T("cheek")), bb: fmtLen(T("bact")),
+    m1: sig2(1000 / T("cheek")), m2: sig2(1000 / T("bact")),
+  });
+  draw();
+});
+
+$("resultNote").textContent = P.t("resultNote", { p: fmtRange("plant"), c: fmtLen(T("cheek")), b: fmtRange("bact"), e: fmtLen(T("eye")) });
+$("foot").textContent = P.t("foot", {
+  list: LADDER.map((k) => P.t("r_" + k) + " " + fmtRange(k)).join(P.lang === "zh" ? "；" : "; "),
+  eye: fmtLen(T("eye")), lm: fmtLen(T("light")), sl: nice(T("slideL") / 1000) + " × " + fmtLen(T("slideW")), cs: fmtLen(T("cover")) + (P.lang === "zh" ? " 见方" : " square"),
+});
+specButtons();
+$("reset").addEventListener("click", () => {
+  stopAnim(); logF = LMAX; spec = "leaf"; predictNote = ""; part = null; labelled = new Set();
+  found = { leaf: false, hand: false, pond: false }; fig.style.opacity = 1;
+  pr.reset(); specButtons(); st.go(0);
+});
+if ("ResizeObserver" in window) new ResizeObserver(() => draw()).observe(fig);
+else window.addEventListener("resize", draw);
+</script>
+</body>
+</html>

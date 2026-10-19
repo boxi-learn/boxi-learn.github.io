@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snap atoms into molecules</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .stage svg.main { height: auto; max-height: 460px; user-select: none; -webkit-user-select: none; }
+  .result .math { white-space: normal; }
+  .at-H { fill: var(--on-panel); stroke: var(--muted); }
+  .at-C { fill: var(--muted); stroke: var(--fg); }
+  .at-N { fill: var(--c); stroke: var(--fg); }
+  .at-O { fill: var(--no); stroke: var(--fg); }
+  .atom { stroke-width: 1.5; }
+  .sym { font: 700 17px var(--font); pointer-events: none; }
+  .sym-H { fill: var(--ink-panel); } .sym-C, .sym-N, .sym-O { fill: var(--bg); }
+  .bench { fill: var(--soft); stroke: var(--line); stroke-width: 1.5; }
+  .bond { stroke: var(--fg); stroke-width: 3.2; stroke-linecap: round; pointer-events: none; }
+  .bondhit { stroke: transparent; stroke-width: 22; cursor: pointer; }
+  .bondhit:hover + g .bond, .bondhit:hover { stroke: color-mix(in srgb, var(--no) 25%, transparent); }
+  .hand { stroke: var(--a); stroke-width: 3; stroke-linecap: round; pointer-events: none; }
+  .handtip { fill: var(--surface); stroke: var(--a); stroke-width: 2.5; pointer-events: none; }
+  .atomg { cursor: grab; outline: none; }
+  .atomg:focus-visible .ring, .atomg.sel .ring { stroke: var(--hl); stroke-width: 4; fill: none; }
+  .ring { fill: none; stroke: none; }
+  .atomg.full .atom { stroke: var(--a); stroke-width: 2.5; }
+  .done { fill: var(--a); font: 700 15px var(--font); }
+  .lbl { fill: var(--fg); font: 600 16px var(--font); }
+  .lbl-m { fill: var(--muted); font: 14px var(--font); }
+  .big { fill: var(--fg); font: 700 26px var(--math); }
+  .palette { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; width: 100%; }
+  .palette .pa { width: 46px; height: 46px; border-radius: 50%; padding: 0; font-weight: 700; font-size: 17px; touch-action: none; }
+  .pa-H { background: var(--on-panel); color: var(--ink-panel); border-color: var(--muted); }
+  .pa-C { background: var(--muted); color: var(--bg); border-color: var(--fg); }
+  .pa-N { background: var(--c); color: var(--bg); border-color: var(--fg); }
+  .pa-O { background: var(--no); color: var(--bg); border-color: var(--fg); }
+  .palette .sp { flex: 1 1 8px; }
+  .hint { font-size: 13px; color: var(--muted); width: 100%; margin: 0; }
+  .msg { font-size: 14px !important; color: var(--fg) !important; min-height: 1.5em; }
+  .msg.bad { color: var(--no) !important; font-weight: 650; }
+  .msg.win { color: var(--a) !important; font-weight: 700; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
+  .chips li { border: 1px dashed var(--line); border-radius: 999px; padding: 2px 10px; font-family: var(--math); font-size: 16px; color: var(--muted); }
+  .chips li.got { border: 1px solid var(--a); color: var(--a); font-weight: 700; }
+  .count { font-size: 14px; color: var(--fg); margin: 0 0 8px; }
+  table.val { border-collapse: collapse; width: 100%; font-size: 14px; margin: 2px 0 10px; }
+  table.val th, table.val td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  table.val td.n { font-family: var(--math); font-size: 17px; font-weight: 700; color: var(--a); text-align: center; }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 560 400"></svg>
+      <div class="controls" id="benchCtl">
+        <div class="palette" role="group" data-t-aria="palAria">
+          <button type="button" class="pa pa-H" data-el="H">H</button>
+          <button type="button" class="pa pa-C" data-el="C">C</button>
+          <button type="button" class="pa pa-N" data-el="N">N</button>
+          <button type="button" class="pa pa-O" data-el="O">O</button>
+          <span class="sp"></span>
+          <button type="button" class="small" id="remove" data-t="remove"></button>
+          <button type="button" class="small" id="clear" data-t="clear"></button>
+        </div>
+        <p class="hint" data-t="hint"></p>
+        <p class="hint" data-t="keys"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="targetsBox">
+        <p class="count" id="count"></p>
+        <ul class="chips" id="chips"></ul>
+      </div>
+      <div id="ruleBox">
+        <table class="val" id="valTable"></table>
+        <p id="ruleCount"></p>
+      </div>
+      <p class="msg" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — pure molecule-graph logic, no DOM (checked in node)
+const VALENCE = { H: 1, C: 4, N: 3, O: 2 };
+const ELEMENTS = ["H", "C", "N", "O"];
+const MAX_ATOMS = 16, MAX_ORDER = 3;
+function newGraph() { return { atoms: [], bonds: [], next: 1 }; }
+function addAtom(g, el, x, y) {
+  if (!(el in VALENCE) || g.atoms.length >= MAX_ATOMS) return null;
+  const a = { id: g.next++, el, x, y };
+  g.atoms.push(a);
+  return a;
+}
+const atom = (g, id) => g.atoms.find((a) => a.id === id) || null;
+const bondOf = (g, a, b) => g.bonds.find((x) => (x.a === a && x.b === b) || (x.a === b && x.b === a)) || null;
+function used(g, id) { return g.bonds.reduce((s, x) => s + (x.a === id || x.b === id ? x.n : 0), 0); }
+function free(g, id) { const a = atom(g, id); return a ? VALENCE[a.el] - used(g, id) : 0; }
+// Try to add one bond between a and b. Never over-bonds.
+function tryBond(g, a, b) {
+  if (a === b || !atom(g, a) || !atom(g, b)) return { ok: false, why: "same" };
+  if (free(g, a) <= 0) return { ok: false, why: "full", who: a };
+  if (free(g, b) <= 0) return { ok: false, why: "full", who: b };
+  const x = bondOf(g, a, b);
+  if (x && x.n >= MAX_ORDER) return { ok: false, why: "max" };
+  if (x) x.n++; else g.bonds.push({ a, b, n: 1 });
+  return { ok: true, n: x ? x.n : 1 };
+}
+function unbond(g, a, b) {
+  const x = bondOf(g, a, b);
+  if (!x) return false;
+  if (--x.n <= 0) g.bonds.splice(g.bonds.indexOf(x), 1);
+  return true;
+}
+function removeAtom(g, id) {
+  const i = g.atoms.findIndex((a) => a.id === id);
+  if (i < 0) return false;
+  g.atoms.splice(i, 1);
+  g.bonds = g.bonds.filter((x) => x.a !== id && x.b !== id);
+  return true;
+}
+function neighbours(g, id) {
+  return g.bonds.filter((x) => x.a === id || x.b === id).map((x) => ({ id: x.a === id ? x.b : x.a, n: x.n }));
+}
+function components(g) {
+  const seen = new Set(), out = [];
+  g.atoms.forEach((a) => {
+    if (seen.has(a.id)) return;
+    const comp = [], q = [a.id];
+    seen.add(a.id);
+    while (q.length) {
+      const id = q.shift();
+      comp.push(id);
+      neighbours(g, id).forEach((nb) => { if (!seen.has(nb.id)) { seen.add(nb.id); q.push(nb.id); } });
+    }
+    out.push(comp);
+  });
+  return out;
+}
+// Hill order: with carbon, C then H then the rest alphabetically; without carbon, all alphabetically.
+function hill(counts) {
+  const els = Object.keys(counts).filter((e) => counts[e] > 0);
+  let order;
+  if (counts.C > 0) order = ["C"].concat(els.includes("H") ? ["H"] : [], els.filter((e) => e !== "C" && e !== "H").sort());
+  else order = els.slice().sort();
+  return order.map((e) => e + (counts[e] > 1 ? counts[e] : "")).join("");
+}
+const SUBS = "₀₁₂₃₄₅₆₇₈₉";
+const pretty = (s) => s.replace(/\d/g, (d) => SUBS[+d]);
+const BOND_SYM = ["", "-", "=", "#"];
+function analyse(g, ids) {
+  const set = new Set(ids), counts = {};
+  let hands = 0, freeTotal = 0;
+  ids.forEach((id) => {
+    const a = atom(g, id);
+    counts[a.el] = (counts[a.el] || 0) + 1;
+    hands += VALENCE[a.el];
+    freeTotal += free(g, id);
+  });
+  const inner = g.bonds.filter((x) => set.has(x.a) && set.has(x.b));
+  const bonds = inner.reduce((s, x) => s + x.n, 0);
+  // heavy-atom skeleton tells isomers apart (ethanol vs dimethyl ether)
+  const heavy = inner.map((x) => {
+    const p = [atom(g, x.a).el, atom(g, x.b).el];
+    if (p.includes("H")) return null;
+    p.sort();
+    return p[0] + BOND_SYM[x.n] + p[1];
+  }).filter(Boolean).sort();
+  const f = hill(counts);
+  return { counts, hill: f, key: f + "|" + heavy.join(","), complete: ids.length > 0 && freeTotal === 0, freeTotal, hands, bonds };
+}
+// key → [display formula, English name, Chinese name, target?]
+const KNOWN = {
+  "H2|": ["H₂", "hydrogen", "氢气", 1],
+  "O2|O=O": ["O₂", "oxygen", "氧气", 1],
+  "N2|N#N": ["N₂", "nitrogen", "氮气", 1],
+  "H2O|": ["H₂O", "water", "水", 1],
+  "CO2|C=O,C=O": ["CO₂", "carbon dioxide", "二氧化碳", 1],
+  "CH4|": ["CH₄", "methane", "甲烷", 1],
+  "H3N|": ["NH₃", "ammonia", "氨", 1],
+  "CHN|C#N": ["HCN", "hydrogen cyanide", "氰化氢", 1],
+  "C2H6|C-C": ["C₂H₆", "ethane", "乙烷", 1],
+  "C2H4|C=C": ["C₂H₄", "ethene", "乙烯", 1],
+  "C2H2|C#C": ["C₂H₂", "ethyne", "乙炔", 1],
+  "CH4O|C-O": ["CH₃OH", "methanol", "甲醇", 1],
+  "H2O2|O-O": ["H₂O₂", "hydrogen peroxide", "过氧化氢", 1],
+  "CH2O|C=O": ["CH₂O", "formaldehyde", "甲醛", 0],
+  "H4N2|N-N": ["N₂H₄", "hydrazine", "肼", 0],
+  "CH5N|C-N": ["CH₃NH₂", "methylamine", "甲胺", 0],
+  "C2H6O|C-C,C-O": ["C₂H₅OH", "ethanol", "乙醇", 0],
+  "C2H6O|C-O,C-O": ["CH₃OCH₃", "dimethyl ether", "二甲醚", 0],
+  "C3H8|C-C,C-C": ["C₃H₈", "propane", "丙烷", 0],
+};
+const TARGETS = Object.keys(KNOWN).filter((k) => KNOWN[k][3]);
+function display(an) { return KNOWN[an.key] ? KNOWN[an.key][0] : pretty(an.hill); }
+// Angles (degrees) of the free "hands": spread the bond directions and hands evenly around the atom.
+function handAngles(g, id) {
+  const a = atom(g, id), f = free(g, id);
+  if (!a || f <= 0) return [];
+  const nbs = neighbours(g, id).map((nb) => { const b = atom(g, nb.id); return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI; });
+  const m = nbs.length + f, step = 360 / m, base = nbs.length ? nbs[0] : -90;
+  const slots = Array.from({ length: m }, (_, k) => base + k * step), taken = new Set();
+  const dist = (p, q) => { const d = Math.abs(((p - q) % 360 + 540) % 360 - 180); return d; };
+  nbs.forEach((ang) => {
+    let best = -1, bd = 1e9;
+    slots.forEach((s, k) => { if (!taken.has(k) && dist(s, ang) < bd) { bd = dist(s, ang); best = k; } });
+    taken.add(best);
+  });
+  return slots.filter((_, k) => !taken.has(k));
+}
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "Snap atoms into molecules", eyebrow: "Chemistry · Stage 3", h1: "Each atom has a fixed number of hands",
+    intro: "Build molecules from H, C, N and O. Every atom shows its free hands; a molecule is finished when no hand is left empty.",
+    reset: "Reset", palAria: "Atoms to add", remove: "Remove atom", clear: "Clear bench",
+    hint: "Tap an atom below to add it (it joins the selected atom if that one has a free hand). Tap two atoms to bond them, again for a double or triple bond. Drag an atom onto another to bond, onto empty space to move. Tap a bond to break it.",
+    keys: "Keyboard: Tab to an atom, Enter to select it, Tab to a partner, Enter to bond. − breaks a bond, Delete removes, arrows move, Esc deselects.",
+    figBench: "Workbench with {n} atoms. {c} complete molecules.", figRule: "The four atoms with their hands: hydrogen 1, oxygen 2, nitrogen 3, carbon 4",
+    s1: "Guess", s2: "Build", s3: "Rule",
+    k1: "Predict first", t1: "How many hydrogens fit on one carbon?",
+    b1: "Pick an answer. Then select the carbon atom and tap H in the palette again and again until something stops you.",
+    q: "How many hydrogen atoms can one carbon atom hold on to?",
+    o1: "As many as fit around it", o2: "2", o3: "4",
+    right: "Yes. Carbon always makes 4 bonds. Its hands are now visible: add H's and see it stop at four.",
+    wrong: "Test it: the hands are now visible. Keep adding H to the carbon and see where it stops.",
+    k2: "Hands on", t2: "Build the molecules on the list",
+    b2: "Try to give one oxygen three hydrogens, or a carbon five. Then build each formula below. Some need double or triple bonds.",
+    k3: "The rule", t3: "Hydrogen 1, oxygen 2, nitrogen 3, carbon 4",
+    b3: "Every kind of atom makes a fixed number of bonds. A molecule is finished only when every hand holds another hand, so only certain combinations exist: H₂O but not H₃O, CH₄ but not CH₅.",
+    count: "Targets: {n} of {t}. Other molecules that follow the rule: {o}.",
+    ruleCount: "Different molecules you built: {n}. In each one, the hands add up to twice the bonds, because every bond uses one hand from each of two atoms.",
+    ruleNone: "Build molecules in step 2 and they will be counted here.",
+    thEl: "Atom", thN: "Bonds", thEx: "In your molecules",
+    nameH: "hydrogen", nameC: "carbon", nameN: "nitrogen", nameO: "oxygen",
+    aAtom: "{name} {el}, free hands: {f}{sel}", aSel: ", selected",
+    mSel: "{el} selected (free hands: {f}). Now pick a partner.", mDesel: "Nothing selected.",
+    mFull: "Refused: this {el} has no free hand left ({name} makes {v}).",
+    mMax: "Refused: two atoms share at most a triple bond.",
+    mBond: "{a}–{b}: {kind} bond.", ord1: "single", ord2: "double", ord3: "triple",
+    mBreak: "Bond broken.", mRemoved: "{el} removed.", mNoSel: "Select an atom first.",
+    mBenchFull: "The bench holds {max} atoms. Remove some first.",
+    mAlone: "The selected {el} has no free hand, so the new {n} sits on its own.",
+    mDone: "Complete: {f}, {name}!", mDoneNew: "Complete: {f}. Every hand is used, so it follows the rule (not on our list).",
+    mCleared: "Bench cleared.",
+    myMols: "Your molecules: hands = 2 × bonds", handsEq: "{f}: {h} hands = 2 × {b} bonds",
+    resultTitle: "What we found", resultMain: "H 1 · O 2 · N 3 · C 4 bonds",
+    resultNote: "That is why water is H₂O and never H₃O: oxygen has only two hands, and both are already holding hydrogen.",
+    explainK: "Explain it", explainQ: "Why can you build H₂O₂ but never H₃O as a neutral molecule? Use the number of bonds each atom makes.",
+    homeK: "Try at home", homeQ: "Use balls of play dough and toothpicks. Give every ball a fixed number of toothpicks: 1 for H, 2 for O, 3 for N, 4 for C. Which molecules can you build with every toothpick joined?",
+    foot: "Bond counts are the usual ones for neutral molecules in which every electron is paired (each atom ends with a full outer shell: 2 electrons for H, 8 for C, N, O). The simple rule has exceptions: ions such as H₃O⁺ and NH₄⁺, carbon monoxide CO (C≡O, carbon makes 3), ozone O₃ and nitrogen oxides NO, NO₂. Real molecules are 3-D (CH₄ is a tetrahedron, water is bent at about 104.5°); here they are drawn flat. Formulas are worked out in Hill order (C, then H, then the rest A–Z) and shown in their usual written form. Atom colours follow the common CPK convention: H white, C grey, N blue, O red. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "原子拼分子", eyebrow: "化学 · 阶段 3", h1: "每种原子的「手」是固定的",
+    intro: "用 H、C、N、O 拼分子。每个原子都露出空着的手；所有手都牵上了，分子才算拼完。",
+    reset: "重置", palAria: "可添加的原子", remove: "删除原子", clear: "清空台面",
+    hint: "点下面的原子把它放上台（如果选中的原子还有空手，新原子会直接连上）。依次点两个原子把它们连起来，再连一次就是双键、三键。把原子拖到另一个原子上也能连，拖到空地就是挪位置。点一根键可以拆掉它。",
+    keys: "键盘：Tab 到一个原子按 Enter 选中，再 Tab 到另一个原子按 Enter 成键。− 拆键，Delete 删除，方向键移动，Esc 取消选择。",
+    figBench: "台面上有 {n} 个原子，{c} 个完整分子。", figRule: "四种原子和它们的手：氢 1、氧 2、氮 3、碳 4",
+    s1: "先猜", s2: "动手拼", s3: "规律",
+    k1: "先猜一猜", t1: "一个碳上能挂几个氢？",
+    b1: "先选一个答案。然后选中碳原子，在下面一次次点 H，直到被拦住。",
+    q: "一个碳原子最多能连几个氢原子？",
+    o1: "围得下几个就连几个", o2: "2 个", o3: "4 个",
+    right: "对。碳总是连 4 个键。现在手已经显示出来了：往上加 H，看它是不是停在 4 个。",
+    wrong: "动手试试：现在手已经显示出来了。一直往碳上加 H，看在哪里停下。",
+    k2: "动手", t2: "把清单上的分子都拼出来",
+    b2: "先试试给一个氧连三个氢，或者给一个碳连五个氢。再把下面每个化学式拼出来，有的要用双键或三键。",
+    k3: "规律", t3: "氢 1、氧 2、氮 3、碳 4",
+    b3: "每种原子能连的键数是固定的。只有每只手都牵上另一只手，分子才算完整，所以只有某些组合能成立：有 H₂O 没有 H₃O，有 CH₄ 没有 CH₅。",
+    count: "清单：{n} / {t}。其他符合规则的分子：{o} 个。",
+    ruleCount: "你拼出了 {n} 种不同的分子。每一个里面，手的总数都是键数的 2 倍，因为每根键用掉两个原子各一只手。",
+    ruleNone: "在第 2 步拼出分子后，这里会统计。",
+    thEl: "原子", thN: "键数", thEx: "你拼的分子里",
+    nameH: "氢", nameC: "碳", nameN: "氮", nameO: "氧",
+    aAtom: "{name}原子 {el}，空手 {f} 只{sel}", aSel: "，已选中",
+    mSel: "选中了 {el}：还有 {f} 只空手。再选一个要连的原子。", mDesel: "取消选择。",
+    mFull: "不行：这个 {el} 已经没有空手了（{name}只连 {v} 个键）。",
+    mMax: "不行：两个原子之间最多是三键。",
+    mBond: "{a}–{b}：{kind}。", ord1: "单键", ord2: "双键", ord3: "三键",
+    mBreak: "拆掉了一根键。", mRemoved: "删除了 {el}。", mNoSel: "先选中一个原子。",
+    mBenchFull: "台面最多放 {max} 个原子，先删掉一些。",
+    mAlone: "选中的 {el} 已经没有空手，新的 {n} 只好单独放着。",
+    mDone: "拼好了：{f}，{name}！", mDoneNew: "拼好了：{f}。所有手都牵上了，符合规则（不在我们的清单里）。",
+    mCleared: "台面清空了。",
+    myMols: "你拼的分子：手的总数 = 2 × 键数", handsEq: "{f}：{h} 只手 = 2 × {b} 根键",
+    resultTitle: "我们发现", resultMain: "H 1 · O 2 · N 3 · C 4 个键",
+    resultNote: "所以水是 H₂O，永远不会是 H₃O：氧只有两只手，都已经牵着氢了。",
+    explainK: "说一说", explainQ: "为什么能拼出 H₂O₂，却拼不出中性的 H₃O 分子？用每种原子能连的键数来解释。",
+    homeK: "家里做一做", homeQ: "用橡皮泥团和牙签。给每个泥团插固定数量的牙签：H 1 根、O 2 根、N 3 根、C 4 根。所有牙签都要连上，你能拼出哪些分子？",
+    foot: "键数取中性分子、电子全部成对时的常见值（每个原子最外层填满：H 2 个电子，C、N、O 8 个）。这条简单规则有例外：离子如 H₃O⁺、NH₄⁺，一氧化碳 CO（C≡O，碳只连 3 个键），臭氧 O₃，以及氮氧化物 NO、NO₂。真实分子是立体的（CH₄ 是正四面体，水分子约弯成 104.5°），这里画成平面。化学式按 Hill 顺序计算（C、H，其余按字母），显示时用常见写法。原子颜色沿用常见的 CPK 配色：H 白、C 灰、N 蓝、O 红。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent);
+const R = { H: 16, C: 22, N: 21, O: 21 };
+let W = 560, H = 400;
+const PAD = 8;
+const state = { step: 0, g: newGraph(), sel: null, shown: false, found: new Map(), msg: "", cls: "" };
+const nameOf = (el) => P.t("name" + el);
+const molName = (an) => (KNOWN[an.key] ? KNOWN[an.key][P.lang === "zh" ? 2 : 1] : "");
+
+function seed() {
+  state.g = newGraph();
+  fitSize();
+  const c = addAtom(state.g, "C", W / 2, H / 2);
+  state.sel = c.id;
+}
+function say(text, cls) { state.msg = text; state.cls = cls || ""; }
+
+/* ---------- placement ---------- */
+function clear(x, y, r, skip) {
+  return state.g.atoms.every((a) => a.id === skip || Math.hypot(a.x - x, a.y - y) > R[a.el] + r + 10);
+}
+const inside = (x, y, r) => x > PAD + r && x < W - PAD - r && y > PAD + r && y < H - PAD - r;
+function spotNear(parent, el) {
+  const r = R[el], L = R[parent.el] + r + 30;
+  const prefs = handAngles(state.g, parent.id);
+  for (let k = 0; k < 12; k++) prefs.push(-90 + k * 30);
+  let best = null, bestD = -1;
+  for (const deg of prefs) {
+    const t = deg * Math.PI / 180, x = parent.x + L * Math.cos(t), y = parent.y + L * Math.sin(t);
+    if (!inside(x, y, r)) continue;
+    if (clear(x, y, r)) return { x, y };
+    const d = Math.min(...state.g.atoms.map((a) => Math.hypot(a.x - x, a.y - y)));
+    if (d > bestD) { bestD = d; best = { x, y }; }
+  }
+  return best || spotFree(el);
+}
+function spotFree(el) {
+  const r = R[el];
+  for (let y = 60; y <= H - 40; y += 70) for (let x = 60; x <= W - 40; x += 70) if (clear(x, y, r + 14)) return { x, y };
+  return { x: 40 + Math.random() * (W - 80), y: 40 + Math.random() * (H - 80) };
+}
+
+/* ---------- actions ---------- */
+function afterBond(id) {
+  const comp = components(state.g).find((c) => c.includes(id));
+  const an = analyse(state.g, comp);
+  if (!an.complete) return false;
+  const isNew = !state.found.has(an.key);
+  state.found.set(an.key, { f: display(an), hands: an.hands, bonds: an.bonds, counts: an.counts });
+  if (KNOWN[an.key]) say(P.t("mDone", { f: display(an), name: molName(an) }), "win");
+  else say(P.t("mDoneNew", { f: display(an) }), "win");
+  if (isNew) Play.live($("live"), state.msg);
+  return true;
+}
+function bond(a, b) {
+  const res = tryBond(state.g, a, b);
+  if (!res.ok) {
+    if (res.why === "full") { const x = atom(state.g, res.who); say(P.t("mFull", { el: x.el, name: nameOf(x.el), v: VALENCE[x.el] }), "bad"); }
+    else if (res.why === "max") say(P.t("mMax"), "bad");
+    return false;
+  }
+  say(P.t("mBond", { a: atom(state.g, a).el, b: atom(state.g, b).el, kind: P.t("ord" + res.n) }));
+  afterBond(a);
+  return true;
+}
+function addFromPalette(el, at) {
+  if (state.g.atoms.length >= MAX_ATOMS) { say(P.t("mBenchFull", { max: MAX_ATOMS }), "bad"); render(); return; }
+  const parent = state.sel != null ? atom(state.g, state.sel) : null;
+  let pos, attach = false;
+  if (at) {
+    pos = at;
+    const target = hitAtom(at.x, at.y, null);
+    if (target) { attach = target; pos = spotNear(target, el); }
+  } else if (parent && free(state.g, parent.id) > 0) { attach = parent; pos = spotNear(parent, el); }
+  else pos = spotFree(el);
+  const r = R[el];
+  const a = addAtom(state.g, el, Play.clamp(pos.x, PAD + r, W - PAD - r), Play.clamp(pos.y, PAD + r, H - PAD - r));
+  if (attach) bond(attach.id, a.id);
+  else {
+    if (parent && !at) say(P.t("mAlone", { el: parent.el, n: el }), "bad");
+    else say(P.t("mSel", { el, f: VALENCE[el] }));
+    state.sel = a.id;   // a new loose atom becomes the one the next atom attaches to
+  }
+  render();
+}
+function tapAtom(id) {
+  if (state.sel === id) { state.sel = null; say(P.t("mDesel")); }
+  else if (state.sel == null || !atom(state.g, state.sel)) { state.sel = id; const a = atom(state.g, id); say(P.t("mSel", { el: a.el, f: free(state.g, id) })); }
+  else bond(state.sel, id);
+  render();
+}
+function breakBond(a, b) { if (unbond(state.g, a, b)) say(P.t("mBreak")); render(); }
+function remove(id) {
+  const a = atom(state.g, id);
+  if (!a) { say(P.t("mNoSel"), "bad"); render(); return; }
+  const refocus = document.activeElement && document.activeElement.closest && document.activeElement.closest(".atomg");
+  removeAtom(state.g, id);
+  if (state.sel === id) state.sel = null;
+  say(P.t("mRemoved", { el: a.el }));
+  render();
+  if (refocus) { const nx = fig.querySelector(".atomg"); if (nx) nx.focus(); }
+}
+
+/* ---------- drawing ---------- */
+function drawBench() {
+  const g = state.g;
+  S("rect", { class: "bench", x: 2, y: 2, width: W - 4, height: H - 4, rx: 14 }, fig);
+  g.bonds.forEach((x) => {
+    const A = atom(g, x.a), B = atom(g, x.b);
+    const dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+    const hit = S("line", { class: "bondhit", x1: A.x, y1: A.y, x2: B.x, y2: B.y }, fig);
+    hit.addEventListener("pointerdown", (e) => { e.stopPropagation(); });
+    hit.addEventListener("click", () => breakBond(x.a, x.b));
+    const grp = S("g", {}, fig);
+    for (let k = 0; k < x.n; k++) {
+      const o = (k - (x.n - 1) / 2) * 7;
+      S("line", { class: "bond", x1: A.x + nx * o, y1: A.y + ny * o, x2: B.x + nx * o, y2: B.y + ny * o }, grp);
+    }
+  });
+  g.atoms.forEach((a) => {
+    const f = free(g, a.id), r = R[a.el];
+    const grp = S("g", { class: "atomg" + (state.sel === a.id ? " sel" : "") + (f === 0 ? " full" : ""), tabindex: 0, role: "button", "data-id": a.id,
+      "aria-label": P.t("aAtom", { name: nameOf(a.el), el: a.el, f: state.shown ? f : "?", sel: state.sel === a.id ? P.t("aSel") : "" }) }, fig);
+    if (state.shown) handAngles(g, a.id).forEach((deg) => {
+      const t = deg * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+      S("line", { class: "hand", x1: a.x + c * r, y1: a.y + s * r, x2: a.x + c * (r + 13), y2: a.y + s * (r + 13) }, grp);
+      S("circle", { class: "handtip", cx: a.x + c * (r + 15), cy: a.y + s * (r + 15), r: 4 }, grp);
+    });
+    S("circle", { class: "ring", cx: a.x, cy: a.y, r: r + 5 }, grp);
+    S("circle", { class: "atom at-" + a.el, cx: a.x, cy: a.y, r }, grp);
+    S("text", { class: "sym sym-" + a.el, x: a.x, y: a.y + 6, "text-anchor": "middle" }, grp).textContent = a.el;
+    grp.addEventListener("pointerdown", (e) => startDrag(e, a.id));
+    grp.addEventListener("keydown", (e) => atomKey(e, a.id));
+  });
+  let nDone = 0;
+  components(g).forEach((comp) => {
+    const an = analyse(g, comp);
+    if (!an.complete) return;
+    nDone++;
+    const pts = comp.map((id) => atom(g, id));
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+    let y = Math.max(...pts.map((p) => p.y + R[p.el])) + 20, anchor = "middle";
+    if (y > H - 8) y = Math.min(...pts.map((p) => p.y - R[p.el])) - 10;
+    const x = Play.clamp(cx, 80, W - 80);
+    const nm = molName(an);
+    S("text", { class: "done", x, y, "text-anchor": anchor }, fig).textContent = "✓ " + display(an) + (nm ? " · " + nm : "");
+  });
+  fig.setAttribute("aria-label", P.t("figBench", { n: g.atoms.length, c: nDone }));
+}
+function drawRule() {
+  fig.setAttribute("aria-label", P.t("figRule"));
+  S("rect", { class: "bench", x: 2, y: 2, width: W - 4, height: H - 4, rx: 14 }, fig);
+  ["H", "O", "N", "C"].forEach((el, i) => {
+    const x = 56 + i * (W - 112) / 3, y = 100, r = R[el] * (W > 400 ? 1.3 : 1), v = VALENCE[el];
+    for (let k = 0; k < v; k++) {
+      const t = (-90 + k * 360 / v) * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+      S("line", { class: "hand", x1: x + c * r, y1: y + s * r, x2: x + c * (r + 16), y2: y + s * (r + 16) }, fig);
+      S("circle", { class: "handtip", cx: x + c * (r + 19), cy: y + s * (r + 19), r: 5 }, fig);
+    }
+    S("circle", { class: "atom at-" + el, cx: x, cy: y, r }, fig);
+    S("text", { class: "sym sym-" + el, x, y: y + 6, "text-anchor": "middle" }, fig).textContent = el;
+    S("text", { class: "big", x, y: y + 78, "text-anchor": "middle" }, fig).textContent = v;
+  });
+  S("text", { class: "lbl", x: 24, y: 230 }, fig).textContent = P.t("myMols");
+  const list = [...state.found.values()];
+  if (!list.length) { S("text", { class: "lbl-m", x: 24, y: 262 }, fig).textContent = P.t("ruleNone"); return; }
+  list.slice(0, 12).forEach((m, i) => {
+    const per = W > 400 ? 2 : 1, col = i % per, row = Math.floor(i / per);
+    if (row > 6) return;
+    S("text", { class: "lbl-m", x: 24 + col * 270, y: 260 + row * 24 }, fig).textContent = P.t("handsEq", { f: m.f, h: m.hands, b: m.bonds });
+  });
+}
+
+function renderPanel() {
+  const got = TARGETS.filter((k) => state.found.has(k)).length;
+  const other = [...state.found.keys()].filter((k) => !TARGETS.includes(k)).length;
+  $("count").textContent = P.t("count", { n: got, t: TARGETS.length, o: other });
+  const ul = $("chips");
+  ul.innerHTML = "";
+  TARGETS.forEach((k) => {
+    const li = document.createElement("li");
+    const has = state.found.has(k);
+    li.textContent = (has ? "✓ " : "") + KNOWN[k][0];
+    li.title = KNOWN[k][P.lang === "zh" ? 2 : 1];
+    if (has) li.className = "got";
+    ul.appendChild(li);
+  });
+  const tb = $("valTable");
+  tb.innerHTML = "";
+  const tr0 = document.createElement("tr");
+  ["thEl", "thN", "thEx"].forEach((k) => { const th = document.createElement("th"); th.textContent = P.t(k); tr0.appendChild(th); });
+  tb.appendChild(tr0);
+  ["H", "O", "N", "C"].forEach((el) => {
+    const tr = document.createElement("tr");
+    const ex = [...state.found.values()].filter((m) => m.counts[el]).map((m) => m.f).slice(0, 4).join(", ") || "—";
+    [el + " " + nameOf(el), VALENCE[el], ex].forEach((v, i) => { const td = document.createElement("td"); td.textContent = v; if (i === 1) td.className = "n"; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+  $("ruleCount").textContent = state.found.size ? P.t("ruleCount", { n: state.found.size }) : P.t("ruleNone");
+  const lv = $("live");
+  lv.className = "msg" + (state.cls ? " " + state.cls : "");
+  Play.live(lv, state.msg);
+}
+// Narrow screens get a narrower drawing area, so atoms and labels stay at full size.
+function fitSize() {
+  const narrow = (fig.clientWidth || 560) < 480, w = narrow ? 360 : 560, h = narrow ? 440 : 400;
+  if (w === W && h === H && fig.getAttribute("viewBox")) return;
+  W = w; H = h;
+  fig.setAttribute("viewBox", "0 0 " + W + " " + H);
+  fig.style.aspectRatio = W + " / " + H;
+  state.g.atoms.forEach((a) => { a.x = Play.clamp(a.x, PAD + R[a.el], W - PAD - R[a.el]); a.y = Play.clamp(a.y, PAD + R[a.el], H - PAD - R[a.el]); });
+}
+function render() {
+  fitSize();
+  const act = document.activeElement, fid = act && act.closest && act.closest(".atomg") ? +act.getAttribute("data-id") : null;
+  fig.innerHTML = "";
+  const rule = state.step === 2;
+  $("benchCtl").hidden = rule;
+  $("targetsBox").hidden = state.step !== 1;
+  $("ruleBox").hidden = !rule;
+  if (rule) drawRule(); else drawBench();
+  renderPanel();
+  if (fid != null) { const el = fig.querySelector('[data-id="' + fid + '"]'); if (el) el.focus(); }
+}
+
+/* ---------- pointer ---------- */
+let drag = null;
+function hitAtom(x, y, skip) {
+  let best = null, bd = 1e9;
+  state.g.atoms.forEach((a) => { const d = Math.hypot(a.x - x, a.y - y); if (a.id !== skip && d < R[a.el] + 14 && d < bd) { bd = d; best = a; } });
+  return best;
+}
+function startDrag(e, id) {
+  e.stopPropagation();
+  const a = atom(state.g, id), p = Play.pointer(fig, e);
+  drag = { id, sx: a.x, sy: a.y, px: p.x, py: p.y, moved: false, pid: e.pointerId };
+  try { fig.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  e.preventDefault();
+}
+fig.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = Play.pointer(fig, e), a = atom(state.g, drag.id);
+  if (!a) { drag = null; return; }
+  if (!drag.moved && Math.hypot(p.x - drag.px, p.y - drag.py) < 6) return;
+  drag.moved = true;
+  const r = R[a.el];
+  a.x = Play.clamp(drag.sx + p.x - drag.px, PAD + r, W - PAD - r);
+  a.y = Play.clamp(drag.sy + p.y - drag.py, PAD + r, H - PAD - r);
+  render();
+});
+function endDrag(e, cancel) {
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  const a = atom(state.g, d.id);
+  if (!a) return;
+  if (cancel) { a.x = d.sx; a.y = d.sy; render(); return; }
+  if (!d.moved) { tapAtom(d.id); const el = fig.querySelector('[data-id="' + d.id + '"]'); if (el) el.focus(); return; }
+  const target = hitAtom(a.x, a.y, d.id);
+  if (target) {
+    if (bond(target.id, d.id)) {
+      const ang = Math.atan2(a.y - target.y, a.x - target.x) || 0, L = R[a.el] + R[target.el] + 30, r = R[a.el];
+      let pos = null;
+      for (let k = 0; k < 12 && !pos; k++) {
+        const t = ang + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 6, x = target.x + L * Math.cos(t), y = target.y + L * Math.sin(t);
+        if (inside(x, y, r) && clear(x, y, r, a.id)) pos = { x, y };
+      }
+      pos = pos || { x: target.x + L * Math.cos(ang), y: target.y + L * Math.sin(ang) };
+      a.x = Play.clamp(pos.x, PAD + r, W - PAD - r);
+      a.y = Play.clamp(pos.y, PAD + r, H - PAD - r);
+    } else { a.x = d.sx; a.y = d.sy; }
+  }
+  render();
+}
+fig.addEventListener("pointerup", (e) => endDrag(e, false));
+fig.addEventListener("pointercancel", (e) => endDrag(e, true));
+addEventListener("resize", () => { if (!drag) render(); });
+fig.addEventListener("pointerdown", () => { if (state.step < 2 && state.sel != null) { state.sel = null; say(P.t("mDesel")); render(); } });
+
+/* palette: tap to add, or drag onto the bench */
+document.querySelectorAll(".pa").forEach((b) => {
+  let pd = null, suppress = false;
+  b.addEventListener("pointerdown", (e) => { pd = { x: e.clientX, y: e.clientY }; try { b.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ } });
+  b.addEventListener("pointerup", (e) => {
+    if (!pd) return;
+    const moved = Math.hypot(e.clientX - pd.x, e.clientY - pd.y) > 8;
+    pd = null;
+    if (!moved) return;
+    suppress = true;
+    const rc = fig.getBoundingClientRect();
+    if (e.clientX >= rc.left && e.clientX <= rc.right && e.clientY >= rc.top && e.clientY <= rc.bottom) addFromPalette(b.dataset.el, Play.pointer(fig, e));
+  });
+  b.addEventListener("click", () => { if (suppress) { suppress = false; return; } addFromPalette(b.dataset.el, null); });
+});
+
+/* keyboard */
+function atomKey(e, id) {
+  const a = atom(state.g, id);
+  if (!a) return;
+  const k = e.key, stepPx = e.shiftKey ? 30 : 10, r = R[a.el];
+  if (k === "Enter" || k === " ") tapAtom(id);
+  else if (k === "Escape") { state.sel = null; say(P.t("mDesel")); render(); }
+  else if (k === "-" || k === "_") { if (state.sel != null && state.sel !== id) breakBond(state.sel, id); else { say(P.t("mNoSel"), "bad"); render(); } }
+  else if (k === "Delete" || k === "Backspace") remove(id);
+  else if (k.startsWith("Arrow")) {
+    const dx = k === "ArrowLeft" ? -stepPx : k === "ArrowRight" ? stepPx : 0, dy = k === "ArrowUp" ? -stepPx : k === "ArrowDown" ? stepPx : 0;
+    a.x = Play.clamp(a.x + dx, PAD + r, W - PAD - r); a.y = Play.clamp(a.y + dy, PAD + r, H - PAD - r);
+    render();
+  } else return;
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+$("remove").addEventListener("click", () => remove(state.sel));
+$("clear").addEventListener("click", () => { state.g = newGraph(); state.sel = null; say(P.t("mCleared")); render(); });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { state.shown = true; render(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  state.step = i;
+  if (i > 0) state.shown = true;
+  say("");
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  drag = null; state.found = new Map(); state.shown = false; say("");
+  seed(); pr.reset(); st.go(0);
+});
+seed();
+render();
+</script>
+</body>
+</html>
