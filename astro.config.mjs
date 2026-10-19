@@ -1,8 +1,8 @@
 import { defineConfig } from "astro/config";
 
-// `site` is a placeholder until the publishing location is decided (design/k12-subjects.md §6).
+// Published from the boxi-learn/boxi-learn.github.io repo (tools/publish.sh in peiyuK12).
 export default defineConfig({
-  site: "https://example.invalid",
+  site: "https://boxi-learn.github.io",
   trailingSlash: "always",
   i18n: {
     locales: ["en", "zh"],
