@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build a word from parts</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .visual { padding: 14px 12px 8px; }
+  .slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; text-align: center; }
+  .slot { display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; }
+  .slot .sl { font-size: 13px; color: var(--muted); }
+  .slot .arr { padding: 4px 0; font-size: 14px; line-height: 1.2; }
+  .tile { font-family: var(--serif); font-size: 22px; line-height: 1.2; min-height: 64px; padding: 8px 2px; border-width: 2px; touch-action: none; overflow-wrap: anywhere; transition: border-color .15s, background .15s; }
+  .tile.pre { color: var(--c); border-color: var(--c); }
+  .tile.root { color: var(--fg); border-color: var(--fg); }
+  .tile.suf { color: var(--b); border-color: var(--b); }
+  .tile.empty { color: var(--muted); border-style: dashed; border-color: var(--line); }
+  .tile.flash { background: var(--soft); }
+  .slot .pg { font-size: 13px; color: var(--muted); line-height: 1.35; min-height: 2.7em; }
+  .wordbox { text-align: center; padding: 10px 4px 2px; }
+  .word { font-family: var(--serif); font-size: 46px; line-height: 1.15; overflow-wrap: anywhere; }
+  .word .pre { color: var(--c); }
+  .word .suf { color: var(--b); }
+  .word .chg { color: var(--no); text-decoration: underline; text-underline-offset: 6px; }
+  .word.no { opacity: .75; }
+  .status { display: inline-block; margin: 6px 0 4px; padding: 4px 12px; border-radius: 999px; font-size: 14px; font-weight: 650; border: 1px solid var(--line); background: var(--soft); max-width: 100%; }
+  .status.real { border-color: var(--a); color: var(--a); }
+  .status.cav { border-color: var(--b); color: var(--b); }
+  .status.no { color: var(--muted); }
+  .wbtns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0 2px; }
+  .box2 { border-top: 1px solid var(--line); margin: 10px 2px 0; padding: 10px 4px 4px; font-size: 14px; }
+  .box2 .ft { color: var(--muted); margin-bottom: 6px; font-size: 13px; font-weight: 650; }
+  .chain { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  .chain li { line-height: 1.5; }
+  .chain .eq { color: var(--muted); }
+  .w { font-family: var(--serif); color: var(--fg); font-size: 1.07em; }
+  .cls { display: inline-block; font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; margin-left: 4px; color: var(--muted); vertical-align: 1px; }
+  .rules { margin: 0; padding-left: 18px; color: var(--muted); }
+  .rules li.fire { color: var(--fg); }
+  .rules .chgm { color: var(--no); font-weight: 700; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { font-family: var(--serif); font-size: 16px; padding: 2px 10px; border-radius: 999px; }
+  .chips button.now { border-color: var(--a); color: var(--a); }
+  .targets { font-size: 14px; color: var(--muted); margin: 0 0 10px; }
+  .targets .w { margin-right: 2px; }
+  .targets .ok { color: var(--a); font-weight: 700; }
+  .rootpick { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2px 0 8px; }
+  .rootpick .rp { font-family: var(--serif); font-size: 30px; min-width: 4.5em; text-align: center; }
+  .tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+  .tree ul { margin-left: 12px; padding-left: 12px; border-left: 2px solid var(--line); }
+  .tree li { margin: 5px 0; }
+  .tree .node { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; text-align: left; padding: 4px 9px; max-width: 100%; }
+  .tree .node .w { font-size: 18px; }
+  .tree .node .add { color: var(--b); font-weight: 700; }
+  .tree .node .gl { font-size: 13px; color: var(--muted); }
+  .tree .node.cav { border-style: dashed; border-color: var(--b); }
+  .parts { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 14px; color: var(--muted); margin: 4px 0 12px; }
+  .parts .w { color: var(--c); }
+  .parts .w.s { color: var(--b); }
+  .cav-list { display: grid; gap: 6px; margin: 4px 0 10px; }
+  .cav-list .row { display: flex; gap: 10px; align-items: baseline; font-size: 14px; color: var(--muted); }
+  .cav-list button { font-family: var(--serif); font-size: 17px; min-width: 96px; flex: none; }
+  .play .note { font-size: 14px !important; }
+  .result .math { font-family: var(--serif); white-space: normal; overflow-wrap: anywhere; }
+  .foot { font-size: 13px; }
+  @media (max-width: 560px) {
+    .tile { font-size: 18px; min-height: 56px; }
+    .word { font-size: 36px; }
+    .cav-list .row { flex-direction: column; gap: 2px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div id="builder" role="group" data-t-aria="figAria">
+        <div class="slots" id="slots"></div>
+        <div class="wordbox">
+          <div class="word" id="word" lang="en"></div>
+          <div class="status" id="status"></div>
+          <div class="wbtns"><button type="button" id="say" data-t="sayWord"></button></div>
+        </div>
+        <div class="box2" id="meanBox">
+          <div class="ft" data-t="meanT"></div>
+          <ol class="chain" id="chain"></ol>
+        </div>
+        <div class="box2">
+          <div class="ft" data-t="spellT"></div>
+          <ul class="rules" id="rules"></ul>
+        </div>
+        <div class="box2">
+          <div class="ft" id="foundT"></div>
+          <div class="chips" id="chips" lang="en"></div>
+        </div>
+      </div>
+      <div id="treeBox" hidden>
+        <div class="rootpick">
+          <button type="button" id="rPrev" data-t-aria="rPrev">◀</button>
+          <span class="rp" id="rootName" lang="en"></span>
+          <button type="button" id="rNext" data-t-aria="rNext">▶</button>
+        </div>
+        <p class="note" id="treeNote" style="text-align:center;margin:0 0 6px"></p>
+        <ul class="tree" id="tree"></ul>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="targets" id="targets" hidden></p>
+      <div id="ruleBox" hidden>
+        <div class="parts" id="parts"></div>
+        <p><strong data-t="cavT"></strong></p>
+        <div class="cav-list" id="cavList"></div>
+      </div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain" lang="en"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Build a word from parts", eyebrow: "English · Stage 2", h1: "Long words are built from parts",
+    intro: "Put a prefix in front of a root and suffixes after it. A handful of parts unlocks a lot of words.",
+    reset: "Reset", figAria: "Word builder: prefix, root and two suffix slots",
+    s1: "Guess", s2: "Build", s3: "Rule",
+    k1: "Predict first", t1: "You know happy. Now: unhappiness", b1: "Pick an answer. The builder will then show the word part by part.",
+    q: "You know the word happy. What does unhappiness ({n} letters) mean?",
+    o1: "Can't tell — a long word has to be memorised as a whole",
+    o2: "The state of not being happy",
+    o3: "Very, very happy",
+    right: "Yes! un- means not and -ness means the state of being. You read it from parts you already knew.",
+    wrong: "Look at the builder: un- (not) + happy + -ness (the state of being). The parts tell you — no need to memorise {n} letters one by one.",
+    k2: "Hands on", t2: "Build words from parts",
+    b2: "Change a slot with ▲ ▼, by tapping or swiping a tile, or with the arrow keys (↑ ↓ change the part, ← → move between slots). When the word is in our list, read how its meaning adds up, one part at a time.",
+    tgt: "Can you build these?",
+    k3: "The rule", t3: "Find the root, then read the parts",
+    b3: "Prefixes change the meaning; suffixes mostly change the word class. {parts} parts on {roots} roots already make {n} words in our list. Use ◀ ▶ to change the root and see its word family.",
+    cavT: "But a word is not always the sum of its parts:",
+    cUnderstand: "under + stand, but it means “get the meaning of”.",
+    cHardly: "hard + -ly, but it means “almost not” (I can hardly see).",
+    cLikely: "like + -ly, but it means “probably going to happen”.",
+    slot0: "prefix", slot1: "root", slot2: "suffix", slot3: "suffix 2",
+    up: "Previous part for the {slot} slot", down: "Next part for the {slot} slot",
+    tileAria: "{slot}: {part}. Up or down arrow to change.", none: "none",
+    sayWord: "▶ Say the word",
+    real: "in our list ✓", no: "not a word in our list", cav: "real word, but not the sum of its parts",
+    meanT: "Meaning, part by part", spellT: "Spelling when the parts join",
+    meanNone: "Not in our list, so no meaning is shown. Some real words are missing from our list — check a dictionary.",
+    misfit: "{part} usually goes with {need}; {w} is {have}.",
+    cavMean: "Parts say “{lit}”, but it really means: {real}",
+    g_un: "not", g_re: "again", g_dis: "not, opposite", g_pre: "before",
+    g_ness: "the state of being", g_ful: "full of", g_less: "without", g_ly: "in a … way", g_er: "one who does; more", g_able: "can be …ed",
+    m_un: "not {X}", m_re: "{X} again", m_dis: "the opposite of {X}; not {X}", m_pre: "{X} ahead of time",
+    m_ness: "the state of being {X}", m_ful: "full of {X}", m_less: "without {X}", m_ly: "in a {X} way",
+    m_erV: "a person or thing that {S}", m_erA: "more {X}", m_able: "can be {PP}",
+    rootLine: "{X}: {g}",
+    c_noun: "noun", c_verb: "verb", c_adj: "adjective", c_adverb: "adverb", c_prep: "preposition",
+    r_y2i: "y → i after a consonant: {a} + -{s} → {b}",
+    r_keepY: "y stays after a vowel: {a} + -{s} → {b}",
+    r_dropE: "drop the silent e before a vowel: {a} + -{s} → {b}",
+    r_keepE: "keep the e before a consonant: {a} + -{s} → {b}",
+    r_double: "double the last letter (one short vowel + one consonant): {a} + -{s} → {b}",
+    r_le: "-le + -ly → -ly: {a} + -{s} → {b}",
+    r_none: "No change — just join the parts.",
+    found: "Words found: {n} of {m} in our list", foundNone: "Words found: none yet — keep building.",
+    treeNote: "{n} words in our list grow from {X}. Tap a word to hear it.",
+    rPrev: "Previous root", rNext: "Next root",
+    liveW: "{w}: {status}",
+    resultTitle: "This word, part by part",
+    rnote: "{parts} parts + {roots} roots → {n} words in our list. English has thousands of roots, and the same few parts fit many of them.",
+    explainK: "Explain it", explainQ: "A friend says long English words must be memorised letter by letter. Take carelessness and show them how to read it from its parts.",
+    homeK: "Try at home", homeQ: "Write un-, re-, -ful, -less, -ness and -ly on sticky notes. Find root words in a book (help, kind, play…), stick the parts on, say the new word, and check a dictionary: is it real?",
+    foot: "Our list holds {n} common words ({d} of them with parts) from {roots} roots, chosen by hand; a real word that is missing shows as “not a word in our list”, so look it up. Meanings shown are literal, built from the parts; dictionary meanings can be narrower or have extra uses (kindly, hopefully). -er after an adjective means “more” (happier); after a verb, “one who does it” (teacher). Spelling rules applied: y → i after a consonant; drop silent e before a vowel; double one final consonant after one short vowel in a one-syllable word; -le + -ly → -ly. Speech uses your browser's built-in voice. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "用零件拼出一个词", eyebrow: "英语 · 阶段 2", h1: "长单词是用零件拼出来的",
+    intro: "在词根前面加前缀、后面加后缀。认识一小把零件，就能读懂一大批词。",
+    reset: "重置", figAria: "拼词台：前缀、词根和两个后缀槽",
+    s1: "先猜", s2: "拼词", s3: "规律",
+    k1: "先猜一猜", t1: "你认识 happy。那 unhappiness 呢？", b1: "先选一个答案。拼词台会把这个词一块一块拆给你看。",
+    q: "你认识 happy 这个词。unhappiness（{n} 个字母）是什么意思？",
+    o1: "猜不出——这么长的词只能整个背下来",
+    o2: "不快乐（的状态）",
+    o3: "非常非常快乐",
+    right: "对！un- 是「不」，-ness 是「……的状态」。你是用已经认识的零件读出来的。",
+    wrong: "看拼词台：un-（不）+ happy + -ness（……的状态）。零件已经告诉你意思了，不用把 {n} 个字母一个个背下来。",
+    k2: "动手", t2: "用零件拼词",
+    b2: "用 ▲ ▼、点或上下滑动零件牌、或方向键（↑ ↓ 换零件，← → 换槽位）来换零件。拼出的词在我们的词表里时，看它的意思怎样一块一块加起来。",
+    tgt: "试试拼出这些：",
+    k3: "规律", t3: "先找词根，再读零件",
+    b3: "前缀改变意思；后缀多半改变词性。{parts} 个零件配 {roots} 个词根，在我们的词表里就有 {n} 个词。用 ◀ ▶ 换词根，看它的词族。",
+    cavT: "不过，词义不一定等于零件相加：",
+    cUnderstand: "under + stand，意思却是「理解」。",
+    cHardly: "hard + -ly，意思却是「几乎不」（I can hardly see）。",
+    cLikely: "like + -ly，意思却是「很可能的」。",
+    slot0: "前缀", slot1: "词根", slot2: "后缀", slot3: "后缀 2",
+    up: "{slot}槽换成上一个零件", down: "{slot}槽换成下一个零件",
+    tileAria: "{slot}：{part}。按上下方向键换零件。", none: "空",
+    sayWord: "▶ 读这个词",
+    real: "在我们的词表里 ✓", no: "不在我们的词表里", cav: "是真词，但意思不等于零件相加",
+    meanT: "意思，一块一块加", spellT: "零件连起来时的拼写",
+    meanNone: "不在我们的词表里，所以不给意思。有些真词词表里没收——查查词典。",
+    misfit: "{part} 通常接{need}；{w} 是{have}。",
+    cavMean: "按零件是「{lit}」，真正的意思是：{real}",
+    g_un: "不", g_re: "再、重新", g_dis: "不、相反", g_pre: "预先",
+    g_ness: "……的状态", g_ful: "充满……的", g_less: "没有……的", g_ly: "……地", g_er: "做……的人；更……", g_able: "能被……的",
+    m_un: "不 {X}", m_re: "再 {X} 一次", m_dis: "不 {X}；与 {X} 相反", m_pre: "预先 {X}",
+    m_ness: "{X} 的状态", m_ful: "充满 {X} 的", m_less: "没有 {X} 的", m_ly: "以 {X} 的方式",
+    m_erV: "{X} 的人或东西", m_erA: "更 {X}", m_able: "能被 {X} 的",
+    rootLine: "{X}：{g}",
+    c_noun: "名词", c_verb: "动词", c_adj: "形容词", c_adverb: "副词", c_prep: "介词",
+    r_y2i: "辅音后的 y 变 i：{a} + -{s} → {b}",
+    r_keepY: "元音后的 y 不变：{a} + -{s} → {b}",
+    r_dropE: "元音开头的后缀前，去掉不发音的 e：{a} + -{s} → {b}",
+    r_keepE: "辅音开头的后缀前，保留 e：{a} + -{s} → {b}",
+    r_double: "一个短元音 + 一个辅音结尾，双写末尾字母：{a} + -{s} → {b}",
+    r_le: "-le 加 -ly 变成 -ly：{a} + -{s} → {b}",
+    r_none: "不用变——直接连起来。",
+    found: "找到的词：{n} 个（词表共 {m} 个）", foundNone: "找到的词：还没有——继续拼。",
+    treeNote: "我们的词表里有 {n} 个词从 {X} 长出来。点一下听读音。",
+    rPrev: "上一个词根", rNext: "下一个词根",
+    liveW: "{w}：{status}",
+    resultTitle: "这个词，一块一块拆开",
+    rnote: "{parts} 个零件 + {roots} 个词根 → 词表里 {n} 个词。英语有成千上万个词根，同样这几个零件能接上其中很多。",
+    explainK: "说一说", explainQ: "朋友说英语长单词只能一个字母一个字母地背。拿 carelessness 给他演示一下，怎样从零件读出它的意思。",
+    homeK: "家里做一做", homeQ: "把 un-、re-、-ful、-less、-ness、-ly 写在便利贴上。从书里找词根（help、kind、play……），贴上零件读出新词，再查词典：它是真词吗？",
+    foot: "词表收了 {n} 个常用词（其中 {d} 个带零件），来自 {roots} 个词根，逐个人工挑选；词表里没有的真词会显示「不在我们的词表里」，请查词典。这里的意思是按零件直译拼出来的；词典里的意思可能更窄，或另有用法（kindly、hopefully）。-er 接形容词是「更……」（happier），接动词是「做这件事的人或东西」（teacher）。用到的拼写规则：辅音后的 y 变 i；元音开头的后缀前去掉不发音的 e；单音节词一个短元音加一个辅音结尾时双写末尾字母；-le 加 -ly 变 -ly。发音用浏览器自带的语音。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---- logic ----
+// Roots: classes, 3rd-person and past participle (verbs), gloss in each UI language.
+const ROOTS = [
+  ["happy", "adj", "", "", "glad, feeling good", "快乐的"],
+  ["kind", "adj", "", "", "nice to others", "友善的"],
+  ["sad", "adj", "", "", "feeling down", "难过的"],
+  ["dark", "adj", "", "", "with little or no light", "黑暗的"],
+  ["hard", "adj", "", "", "firm; difficult", "硬的；难的"],
+  ["help", "verb noun", "helps", "helped", "make things easier for someone", "帮助"],
+  ["care", "verb noun", "cares", "cared", "attention; to worry about", "小心；在乎"],
+  ["hope", "verb noun", "hopes", "hoped", "want something and expect it", "希望"],
+  ["use", "verb noun", "uses", "used", "do something with a thing", "使用；用处"],
+  ["power", "noun", "", "", "strength, force", "力量"],
+  ["play", "verb noun", "plays", "played", "have fun; play a game or music", "玩；播放"],
+  ["read", "verb", "reads", "read", "look at words and understand them", "读"],
+  ["write", "verb", "writes", "written", "put words on paper", "写"],
+  ["teach", "verb", "teaches", "taught", "show someone how", "教"],
+  ["paint", "verb noun", "paints", "painted", "colour with a brush", "画；涂漆"],
+  ["like", "verb", "likes", "liked", "enjoy", "喜欢"],
+  ["agree", "verb", "agrees", "agreed", "think the same", "同意"],
+  ["view", "verb noun", "views", "viewed", "look at", "观看"],
+  ["heat", "verb noun", "heats", "heated", "make warm", "加热；热"],
+  ["test", "verb noun", "tests", "tested", "try out, check", "测试"],
+].map(([w, c, s3, pp, en, zh]) => ({ w, c: c.split(" "), s3, pp, g: { en, zh } }));
+const ROOT = Object.fromEntries(ROOTS.map((r) => [r.w, r]));
+// Affixes: which word class they attach to, and what comes out.
+const AFF = {
+  un: { pre: 1, in: ["adj"], out: "adj" }, re: { pre: 1, in: ["verb"], out: "verb" },
+  dis: { pre: 1, in: ["verb"], out: "verb" }, pre: { pre: 1, in: ["verb"], out: "verb" },
+  ful: { in: ["noun", "verb"], out: "adj" }, less: { in: ["noun", "verb"], out: "adj" },
+  able: { in: ["verb"], out: "adj" }, er: { in: ["verb", "adj"], out: "?" },
+  ness: { in: ["adj"], out: "noun" }, ly: { in: ["adj"], out: "adverb" },
+};
+const PRE = ["", "un", "re", "dis", "pre"];
+const SA = ["", "ful", "less", "able", "er", "ness", "ly"];
+const SB = ["", "ness", "ly"];
+const OPTS = [PRE, ROOTS.map((r) => r.w), SA, SB];
+// Real words we are sure of, typed out independently of the spelling rules (a test checks they are reachable).
+const LIST = new Set((
+  "happy unhappy happiness unhappiness happily unhappily happier " +
+  "kind unkind kindness unkindness kindly unkindly kinder sad sadness sadly sadder " +
+  "dark darkness darkly darker hard hardness harder " +
+  "help helper helpful helpless helpfully helplessly helpfulness helplessness unhelpful unhelpfully unhelpfulness " +
+  "care careful careless carefully carelessly carefulness carelessness " +
+  "hope hopeful hopeless hopefully hopelessly hopefulness hopelessness " +
+  "use useful useless usefully uselessly usefulness uselessness user reuse usable reusable unusable " +
+  "power powerful powerless powerfully powerlessness " +
+  "play player playful playfully playfulness replay playable unplayable " +
+  "read reader reread readable unreadable write writer rewrite teach teacher teachable unteachable " +
+  "paint painter repaint like dislike agree disagree view viewer preview review reviewer " +
+  "heat heater preheat reheat test tester pretest retest"
+).split(" "));
+// Real words whose meaning is NOT the sum of the parts.
+const CAVEAT = {
+  hardly: { parent: "hard", c: "adverb", en: "almost not (I can hardly see)", zh: "几乎不（I can hardly see）" },
+  likely: { parent: "like", c: "adj", en: "probably going to happen", zh: "很可能的" },
+  unlikely: { parent: "likely", c: "adj", en: "probably not going to happen", zh: "不太可能的" },
+  unlike: { parent: "like", c: "prep", en: "different from", zh: "不像；和……不同" },
+};
+const isVowel = (ch) => "aeiou".includes(ch);
+
+// Join prefix + root + suffixes, applying the usual spelling rules. Returns word, coloured segments, rules fired.
+function build(pre, root, sufs) {
+  const segs = [];
+  if (pre) segs.push({ t: pre, k: "pre" });
+  segs.push({ t: root, k: "root" });
+  const rules = [];
+  for (let suf of sufs) {
+    const stem = segs.map((s) => s.t).join("");
+    let last = segs[segs.length - 1];
+    const v = isVowel(suf[0]);
+    let r = null;
+    if (/[^aeiou]y$/.test(stem) && suf[0] !== "i") {
+      last.t = last.t.slice(0, -1); segs.push({ t: "i", k: "chg" }); r = "y2i";
+    } else if (/[aeiou]y$/.test(stem)) r = "keepY";
+    else if (/[^aeiou]le$/.test(stem) && suf === "ly") { last.t = last.t.slice(0, -1); suf = "y"; r = "le"; }
+    else if (/ee$/.test(stem) && suf[0] === "e") suf = suf.slice(1);
+    else if (/[^aeiou]e$/.test(stem)) {
+      if (v) { last.t = last.t.slice(0, -1); r = "dropE"; } else r = "keepE";
+    } else if (v && /^[^aeiou]*[aeiou][^aeiouwxy]$/.test(stem)) {
+      segs.push({ t: stem.slice(-1), k: "chg" }); r = "double";
+    }
+    segs.push({ t: suf, k: "suf" });
+    if (r) rules.push({ r, a: stem, s: r === "le" ? "ly" : suf, b: segs.map((s) => s.t).join("") });
+  }
+  return { word: segs.map((s) => s.t).join(""), segs: segs.filter((s) => s.t), rules };
+}
+const sufsOf = (a, b) => [a, b].filter(Boolean);
+
+// The meaning chain: add one part at a time; every in-between word must be in the list.
+// Tries the prefix at each position (before suffix 1, after it, …) and keeps the first that works.
+function chainOf(pre, root, sufs) {
+  const R = ROOT[root];
+  const tries = pre ? sufs.map((_, k) => k).concat(sufs.length) : [sufs.length];
+  for (const k of tries) {
+    const seq = sufs.slice();
+    if (pre) seq.splice(k, 0, pre);
+    let cls = R.c.slice(), s3 = R.s3, pp = R.pp, usedPre = "", usedSuf = [], prev = root, ok = true;
+    const steps = [];
+    for (let i = 0; i < seq.length; i++) {
+      const a = seq[i], A = AFF[a];
+      const hit = A.in.find((c) => cls.includes(c));
+      if (!hit) { ok = false; break; }
+      if (A.pre) usedPre = a; else usedSuf = usedSuf.concat(a);
+      const w = build(usedPre, root, usedSuf).word;
+      if (i < seq.length - 1 && !LIST.has(w)) { ok = false; break; }
+      let key = "m_" + a, out = A.out;
+      if (a === "er") { key = hit === "verb" ? "m_erV" : "m_erA"; out = hit === "verb" ? "noun" : "adj"; }
+      steps.push({ w, prev, a, key, vars: { X: prev, S: s3, PP: pp }, cls: out });
+      if (A.pre && out === "verb") { s3 = a + s3; pp = a + pp; }
+      cls = [out]; prev = w;
+    }
+    if (ok) return steps;
+  }
+  return null;
+}
+// First affix that does not fit the word class it is attached to (for words not in the list).
+function misfit(pre, root, sufs) {
+  let cls = ROOT[root].c, prev = root, usedSuf = [];
+  for (const a of sufs) {
+    if (!AFF[a].in.some((c) => cls.includes(c))) return { a, need: AFF[a].in, have: cls, w: prev };
+    cls = [a === "er" ? (cls.includes("verb") ? "noun" : "adj") : AFF[a].out];
+    usedSuf = usedSuf.concat(a); prev = build("", root, usedSuf).word;
+  }
+  if (pre && !AFF[pre].in.some((c) => ROOT[root].c.includes(c)) && !(pre === "un" && cls.includes("adj")))
+    return { a: pre, need: AFF[pre].in, have: ROOT[root].c, w: root };
+  return null;
+}
+function kindOf(w) { return CAVEAT[w] ? "cav" : LIST.has(w) ? "real" : "no"; }
+// Every listed or caveat word reachable from the slots, with its parent in the family tree.
+function family() {
+  const map = new Map();
+  for (const r of ROOTS) for (const p of PRE) for (const a of SA) for (const b of SB) {
+    if (b && !a) continue;
+    const sufs = sufsOf(a, b), w = build(p, r.w, sufs).word, k = kindOf(w);
+    if (k === "no" || map.has(w)) continue;
+    let parent = null, add = "", cls = r.c.join(" ");
+    if (k === "cav") { parent = CAVEAT[w].parent; add = [p, ...sufs].join("+"); cls = CAVEAT[w].c; }
+    else if (sufs.length || p) {
+      const ch = chainOf(p, r.w, sufs);
+      if (!ch) continue;
+      const last = ch[ch.length - 1];
+      parent = last.prev; add = last.a; cls = last.cls;
+    }
+    map.set(w, { w, root: r.w, parent, add, k, cls, pre: p, sufs });
+  }
+  return map;
+}
+const FAM = family();
+const N_LIST = [...FAM.values()].length;
+const N_DERIVED = [...FAM.values()].filter((f) => f.parent).length;
+const N_PARTS = PRE.length - 1 + SA.length - 1;
+
+// ---- ui ----
+const $ = (id) => document.getElementById(id);
+const L = P.lang;
+const START = [0, 0, 0, 0]; // happy
+let idx = START.slice(), found = new Set(), treeRoot = ROOTS.findIndex((r) => r.w === "help");
+const TARGETS = ["unhappiness", "helpless", "carefully", "replay", "teacher", "dislike", "preview"];
+const cur = () => ({ pre: PRE[idx[0]], root: ROOTS[idx[1]].w, sufs: sufsOf(SA[idx[2]], SB[idx[3]]) });
+// Build a fragment from a template; {X}-style vars become English word spans.
+function frag(key, vars, plain) {
+  const f = document.createDocumentFragment();
+  P.t(key).split(/(\{\w+\})/).forEach((piece) => {
+    const m = piece.match(/^\{(\w+)\}$/);
+    if (m && m[1] in vars) {
+      if (plain && plain.includes(m[1])) { f.append(String(vars[m[1]])); return; }
+      const s = document.createElement("span");
+      s.className = "w"; s.lang = "en"; s.textContent = vars[m[1]];
+      f.append(s);
+    } else if (piece) f.append(piece);
+  });
+  return f;
+}
+const partLabel = (s, v) => (!v ? "—" : s === 0 ? v + "-" : s === 1 ? v : "-" + v);
+const clsName = (c) => c.split(" ").map((x) => P.t("c_" + x)).join(" · ");
+const glossOf = (s, v) => (!v ? "" : s === 1 ? ROOT[v].g[L] : P.t("g_" + v));
+function tag(c) { const s = document.createElement("span"); s.className = "cls"; s.textContent = clsName(c); return s; }
+
+const slotEls = [0, 1, 2, 3].map((s) => {
+  const box = document.createElement("div");
+  box.className = "slot";
+  const lab = document.createElement("div"); lab.className = "sl"; lab.textContent = P.t("slot" + s);
+  const up = document.createElement("button"); up.type = "button"; up.className = "arr"; up.textContent = "▲";
+  up.setAttribute("aria-label", P.t("up", { slot: P.t("slot" + s) }));
+  const tile = document.createElement("button"); tile.type = "button"; tile.lang = "en";
+  const pg = document.createElement("div"); pg.className = "pg";
+  const dn = document.createElement("button"); dn.type = "button"; dn.className = "arr"; dn.textContent = "▼";
+  dn.setAttribute("aria-label", P.t("down", { slot: P.t("slot" + s) }));
+  up.addEventListener("click", () => spin(s, -1));
+  dn.addEventListener("click", () => spin(s, 1));
+  let y0 = null, swiped = false;
+  tile.addEventListener("pointerdown", (e) => { y0 = e.clientY; swiped = false; });
+  tile.addEventListener("pointermove", (e) => {
+    if (y0 === null) return;
+    const dy = e.clientY - y0;
+    if (Math.abs(dy) > 28) { spin(s, dy < 0 ? -1 : 1); y0 = e.clientY; swiped = true; }
+  });
+  const end = () => { y0 = null; };
+  tile.addEventListener("pointerup", end); tile.addEventListener("pointercancel", end); tile.addEventListener("pointerleave", end);
+  tile.addEventListener("click", () => { if (swiped) { swiped = false; return; } spin(s, 1); });
+  tile.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp") { spin(s, -1); e.preventDefault(); }
+    else if (e.key === "ArrowDown") { spin(s, 1); e.preventDefault(); }
+    else if (e.key === "ArrowLeft" && s > 0) { slotEls[s - 1].tile.focus(); e.preventDefault(); }
+    else if (e.key === "ArrowRight" && s < 3) { slotEls[s + 1].tile.focus(); e.preventDefault(); }
+  });
+  box.append(lab, up, tile, pg, dn);
+  $("slots").appendChild(box);
+  return { tile, pg };
+});
+
+function spin(s, dir) {
+  const n = OPTS[s].length;
+  idx[s] = (idx[s] + dir + n) % n;
+  const t = slotEls[s].tile;
+  t.classList.add("flash");
+  setTimeout(() => t.classList.remove("flash"), 220);
+  draw();
+}
+function setWord(w) {
+  const f = FAM.get(w);
+  if (!f) return;
+  const sa = f.sufs[0] || "", sb = f.sufs[1] || "";
+  idx = [PRE.indexOf(f.pre), ROOTS.findIndex((r) => r.w === f.root), SA.indexOf(sa), SB.indexOf(sb)];
+  if (idx[3] < 0) { idx[2] = SA.indexOf(sa); idx[3] = 0; }
+  draw();
+}
+
+function draw() {
+  const { pre, root, sufs } = cur();
+  const b = build(pre, root, sufs), w = b.word, k = kindOf(w);
+  if (k !== "no" && (pre || sufs.length)) found.add(w);
+  [pre, root, SA[idx[2]], SB[idx[3]]].forEach((v, s) => {
+    const t = slotEls[s].tile;
+    t.textContent = partLabel(s, v);
+    t.className = "tile " + (!v ? "empty" : s === 0 ? "pre" : s === 1 ? "root" : "suf");
+    t.setAttribute("aria-label", P.t("tileAria", { slot: P.t("slot" + s), part: v ? partLabel(s, v) + " — " + glossOf(s, v) : P.t("none") }));
+    slotEls[s].pg.textContent = glossOf(s, v);
+  });
+  // word with coloured parts
+  const wEl = $("word");
+  wEl.innerHTML = "";
+  b.segs.forEach((sg) => { const sp = document.createElement("span"); sp.className = sg.k; sp.textContent = sg.t; wEl.append(sp); });
+  wEl.classList.toggle("no", k === "no");
+  const st = $("status");
+  st.className = "status " + k;
+  st.textContent = P.t(k);
+  // meaning chain
+  const ch = $("chain");
+  ch.innerHTML = "";
+  const li0 = document.createElement("li");
+  li0.append(frag("rootLine", { X: root, g: ROOT[root].g[L] }, ["g"]), tag(ROOT[root].c.join(" ")));
+  if (k === "real") {
+    ch.append(li0);
+    (chainOf(pre, root, sufs) || []).forEach((stp) => {
+      const li = document.createElement("li");
+      const ws = document.createElement("span"); ws.className = "w"; ws.lang = "en"; ws.textContent = stp.w;
+      const eq = document.createElement("span"); eq.className = "eq"; eq.lang = "en";
+      eq.textContent = " = " + (AFF[stp.a].pre ? stp.a + "- + " + stp.prev : stp.prev + " + -" + stp.a) + " → ";
+      li.append(ws, eq, frag(stp.key, stp.vars), tag(stp.cls));
+      ch.append(li);
+    });
+  } else if (k === "cav") {
+    ch.append(li0);
+    const li = document.createElement("li");
+    const lit = [pre && P.t("g_" + pre), root, ...sufs.map((x) => P.t("g_" + x))].filter(Boolean).join(" + ");
+    li.append(frag("cavMean", { lit, real: CAVEAT[w][L] }, ["lit", "real"]), tag(CAVEAT[w].c));
+    ch.append(li);
+  } else {
+    const li = document.createElement("li");
+    li.textContent = P.t("meanNone");
+    const mf = misfit(pre, root, sufs);
+    if (mf) {
+      const li2 = document.createElement("li");
+      li2.append(frag("misfit", {
+        part: AFF[mf.a].pre ? mf.a + "-" : "-" + mf.a, w: mf.w,
+        need: mf.need.map((c) => P.t("c_" + c)).join(" / "), have: clsName(mf.have.join(" ")),
+      }, ["need", "have"]));
+      ch.append(li2);
+    }
+    ch.append(li);
+  }
+  // spelling rules
+  const rl = $("rules");
+  rl.innerHTML = "";
+  if (!b.rules.length) { const li = document.createElement("li"); li.textContent = P.t("r_none"); rl.append(li); }
+  b.rules.forEach((r) => {
+    const li = document.createElement("li");
+    if (r.r !== "keepY" && r.r !== "keepE") li.className = "fire";
+    li.append(frag("r_" + r.r, r));
+    rl.append(li);
+  });
+  // found
+  const derivedTotal = N_DERIVED;
+  $("foundT").textContent = found.size ? P.t("found", { n: found.size, m: derivedTotal }) : P.t("foundNone");
+  const chips = $("chips");
+  chips.innerHTML = "";
+  [...found].sort().forEach((f) => {
+    const bt = document.createElement("button");
+    bt.type = "button"; bt.textContent = f;
+    if (f === w) bt.className = "now";
+    bt.addEventListener("click", () => setWord(f));
+    chips.append(bt);
+  });
+  // targets
+  const tg = $("targets");
+  tg.innerHTML = "";
+  tg.append(P.t("tgt") + " ");
+  TARGETS.forEach((x, i) => {
+    const sp = document.createElement("span"); sp.className = "w"; sp.lang = "en"; sp.textContent = x;
+    tg.append(sp);
+    if (found.has(x)) { const ok = document.createElement("span"); ok.className = "ok"; ok.textContent = " ✓"; tg.append(ok); }
+    if (i < TARGETS.length - 1) tg.append(" · ");
+  });
+  // result bar
+  const parts = [pre && pre + "-", root, ...sufs.map((x) => "-" + x)].filter(Boolean);
+  $("resultMain").textContent = parts.join(" + ") + " → " + w + (k === "no" ? " ?" : "");
+  Play.live($("live"), P.t("liveW", { w, status: P.t(k) }));
+}
+
+function drawTree() {
+  const r = ROOTS[treeRoot].w;
+  $("rootName").textContent = r;
+  const kids = new Map();
+  let n = 0;
+  FAM.forEach((f) => {
+    if (f.root !== r || !f.parent) return;
+    n++;
+    if (!kids.has(f.parent)) kids.set(f.parent, []);
+    kids.get(f.parent).push(f);
+  });
+  $("treeNote").textContent = "";
+  $("treeNote").append(frag("treeNote", { n, X: r }, ["n"]));
+  function node(f, isRoot) {
+    const li = document.createElement("li");
+    const bt = document.createElement("button");
+    bt.type = "button"; bt.className = "node" + (f.k === "cav" ? " cav" : "");
+    const ws = document.createElement("span"); ws.className = "w"; ws.lang = "en"; ws.textContent = f.w;
+    bt.append(ws);
+    if (!isRoot) {
+      const ad = document.createElement("span"); ad.className = "add"; ad.lang = "en";
+      ad.textContent = f.k === "cav" ? "⚠" : AFF[f.add].pre ? f.add + "-" : "-" + f.add;
+      bt.append(ad);
+    }
+    const gl = document.createElement("span"); gl.className = "gl";
+    if (isRoot) gl.textContent = ROOT[r].g[L];
+    else if (f.k === "cav") gl.textContent = CAVEAT[f.w][L];
+    else { const st = (chainOf(f.pre, f.root, f.sufs) || []).slice(-1)[0]; if (st) gl.append(frag(st.key, st.vars)); }
+    bt.append(gl, tag(f.cls));
+    bt.addEventListener("click", () => Play.speak(f.w, "en-US"));
+    li.append(bt);
+    const ks = (kids.get(f.w) || []).sort((a, b) => (a.k === "cav") - (b.k === "cav") || a.w.length - b.w.length || a.w.localeCompare(b.w));
+    if (ks.length) { const ul = document.createElement("ul"); ks.forEach((x) => ul.append(node(x))); li.append(ul); }
+    return li;
+  }
+  const t = $("tree");
+  t.innerHTML = "";
+  t.append(node({ w: r, root: r, k: "real", cls: ROOT[r].c.join(" ") }, true));
+}
+$("rPrev").addEventListener("click", () => { treeRoot = (treeRoot - 1 + ROOTS.length) % ROOTS.length; drawTree(); });
+$("rNext").addEventListener("click", () => { treeRoot = (treeRoot + 1) % ROOTS.length; drawTree(); });
+$("say").addEventListener("click", () => Play.speak(build(cur().pre, cur().root, cur().sufs).word, "en-US"));
+
+// step 3 static content: parts table and caveats
+(function () {
+  const box = $("parts");
+  Object.keys(AFF).forEach((a) => {
+    const w = document.createElement("span"); w.className = "w" + (AFF[a].pre ? "" : " s"); w.lang = "en";
+    w.textContent = AFF[a].pre ? a + "-" : "-" + a;
+    const g = document.createElement("span");
+    const out = a === "er" ? P.t("c_noun") + " / " + P.t("c_adj") : P.t("c_" + AFF[a].out);
+    g.textContent = P.t("g_" + a) + (AFF[a].pre ? "" : " → " + out);
+    box.append(w, g);
+  });
+  [["understand", "cUnderstand"], ["hardly", "cHardly"], ["likely", "cLikely"]].forEach(([w, key]) => {
+    const row = document.createElement("div"); row.className = "row";
+    const bt = document.createElement("button"); bt.type = "button"; bt.textContent = w; bt.lang = "en";
+    bt.addEventListener("click", () => Play.speak(w, "en-US"));
+    const sp = document.createElement("span"); sp.textContent = P.t(key);
+    row.append(bt, sp);
+    $("cavList").append(row);
+  });
+  $("resultNote").textContent = P.t("rnote", { parts: N_PARTS, roots: ROOTS.length, n: N_LIST });
+  $("foot").textContent = P.t("foot", { n: N_LIST, d: N_DERIVED, roots: ROOTS.length });
+})();
+
+const NLET = "unhappiness".length;
+const pr = Play.predict($("predict"), {
+  q: P.t("q", { n: NLET }),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong", { n: NLET }),
+}, () => setWord("unhappiness"));
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k, { parts: N_PARTS, roots: ROOTS.length, n: N_LIST });
+  $("predict").hidden = i !== 0;
+  $("targets").hidden = i !== 1;
+  $("ruleBox").hidden = i !== 2;
+  $("builder").hidden = i === 2;
+  $("treeBox").hidden = i !== 2;
+  if (i === 2) { treeRoot = idx[1]; drawTree(); }
+});
+$("reset").addEventListener("click", () => {
+  if ("speechSynthesis" in window) { try { speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+  idx = START.slice(); found = new Set(); treeRoot = ROOTS.findIndex((r) => r.w === "help"); pr.reset(); st.go(0); draw();
+});
+draw();
+</script>
+</body>
+</html>

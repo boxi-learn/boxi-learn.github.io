@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One sound, several spellings</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .visual { padding: 14px 12px 12px; }
+  .sounds { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sounds button { flex: 1 1 0; min-width: 0; font-size: 14px; padding: 6px 6px; line-height: 1.3; }
+  .sounds button .ex { display: block; font-family: var(--serif); font-size: 13px; opacity: .8; }
+  .hearrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0 8px; font-size: 14px; }
+  .score { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .bin { border: 2px dashed var(--line); border-radius: 12px; background: var(--soft); min-height: 150px; display: flex; flex-direction: column; transition: border-color .15s, background .15s; }
+  .bin.ready { border-color: var(--a); }
+  .bin.over { border-style: solid; border-color: var(--a); background: var(--surface); }
+  .bin.bad { border-color: var(--no); border-style: solid; }
+  .binhead { border: 0; border-bottom: 1px solid var(--line); border-radius: 10px 10px 0 0; background: transparent; padding: 6px 4px 4px; width: 100%; text-align: center; }
+  .binhead .pat { display: block; font-family: var(--serif); font-size: 26px; line-height: 1.15; color: var(--a); }
+  .binhead .cnt { display: block; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .got { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; align-content: flex-start; }
+  .got button { font-family: var(--serif); font-size: 15px; padding: 1px 7px; border-radius: 999px; }
+  .m { color: var(--a); font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }
+  .fb { font-size: 14px; min-height: 2.6em; margin: 8px 2px 6px; color: var(--muted); }
+  .fb.ok { color: var(--a); }
+  .fb.no { color: var(--no); }
+  .deck { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 8px 0 2px; border-top: 1px solid var(--line); min-height: 56px; }
+  .card { font-family: var(--serif); font-size: 21px; padding: 6px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.08); touch-action: none; user-select: none; -webkit-user-select: none; position: relative; }
+  .card.sel { border-color: var(--a); box-shadow: 0 0 0 3px var(--a); }
+  .card.drag { z-index: 10; cursor: grabbing; box-shadow: 0 6px 18px rgba(0,0,0,.2); transition: none; }
+  .card.shake { animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  @media (prefers-reduced-motion: reduce) { .card.shake { animation: none; } }
+  .done { text-align: center; font-size: 14px; color: var(--muted); padding: 6px; }
+  .ex1 { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+  .ex1 button, .exc button { font-family: var(--serif); font-size: 17px; }
+  table.counts { width: 100%; border-collapse: collapse; font-size: 14px; margin: 2px 0 10px; }
+  table.counts th, table.counts td { border-bottom: 1px solid var(--line); padding: 4px 4px; text-align: left; vertical-align: top; }
+  table.counts th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  table.counts td.p { font-family: var(--serif); font-size: 17px; color: var(--a); white-space: nowrap; }
+  table.counts td.n { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--fg); }
+  table.counts .w { display: block; white-space: normal; overflow-wrap: anywhere; font-family: var(--serif); color: var(--muted); font-size: 13px; }
+  .rule { color: var(--fg) !important; font-weight: 600; }
+  .exc { display: grid; gap: 6px; margin: 4px 0 10px; }
+  .exc .row { display: flex; gap: 10px; align-items: baseline; font-size: 14px; color: var(--muted); }
+  .exc button { min-width: 70px; flex: none; }
+  .play .note { font-size: 14px !important; }
+  .result .math { font-family: var(--serif); white-space: normal; overflow-wrap: anywhere; }
+  .foot { font-size: 13px; }
+  @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 560px) {
+    .binhead .pat { font-size: 22px; }
+    .card { font-size: 19px; padding: 5px 11px; }
+    .got button { font-size: 14px; }
+  }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="sounds" id="sounds" role="group" data-t-aria="soundsAria"></div>
+      <div class="hearrow">
+        <button type="button" class="small" id="hearS"></button>
+        <span class="score" id="score"></span>
+      </div>
+      <div class="bins" id="bins"></div>
+      <p class="fb" id="fb" aria-live="polite"></p>
+      <div class="deck" id="deck" lang="en" role="group" data-t-aria="deckAria"></div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <div class="ex1" id="ex1" lang="en"></div>
+      <p id="stepBody"></p>
+      <div id="countsBox" hidden>
+        <p class="rule" id="rule"></p>
+        <table class="counts" id="counts"></table>
+        <p><strong data-t="excT"></strong></p>
+        <div class="exc" id="exc"></div>
+      </div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "One sound, several spellings", eyebrow: "English · Stage 1", h1: "One sound, several spellings",
+    intro: "rain, play and cake share one vowel sound, but it is written three ways. Sort the word cards by spelling and listen as you go.",
+    reset: "Reset", soundsAria: "Choose a vowel sound", deckAria: "Word cards to sort",
+    s1: "Guess", s2: "Sort", s3: "Rule",
+    k1: "Predict first", t1: "rain · play · cake",
+    b1: "Tap each word to hear it. Listen to the middle of the word: the vowel sound.",
+    q: "The letters ai, ay and a_e look different. What do they sound like in rain, play and cake?",
+    o1: "Three different sounds — different letters, different sound", o2: "The same sound, written three ways", o3: "Only ai is long a; the others are silent",
+    right: "Yes! All three say long a /ā/. One sound can have more than one spelling.",
+    wrong: "Listen again: rain, play, cake. The vowel is the same long a /ā/ each time — only the spelling changes.",
+    k2: "Hands on", t2: "Sort the cards by spelling",
+    b2: "Drag a card into the bin with its spelling — or tap a card (you hear it), then tap a bin. Keyboard: Tab to a card, Enter to hear it, then 1, 2 or 3 to drop it; ← → move between cards. All the cards in one set say the same sound. Try all three sounds.",
+    k3: "The rule", t3: "Several spellings — and where they sit",
+    b3: "One sound can be spelled several ways. For long a, choose by position: ay usually ends a word, ai sits inside it, and a_e has the e at the end. The table counts the cards in this set (switch sounds above).",
+    snd_a: "long a /ā/", snd_e: "long e /ē/", snd_o: "long o /ō/",
+    hearS: "▶ Hear {w}",
+    binAria: "Bin {p}: {n} of {m} sorted", binPut: "Put {w} in bin {p}",
+    cardAria: "{w}. Enter to hear and pick; 1, 2 or 3 to drop in a bin.",
+    score: "Sorted {n} / {m} · right first time {f}",
+    pick: "{w} picked — now tap a bin.", pickFirst: "Pick a card first, then tap a bin.",
+    okMsg: "Yes: {w} is spelled with {p}.", noMsg: "Not {b}: listen and look again — {w} is spelled with {p}. It went back to the cards.",
+    done: "All {m} sorted, {f} right first time. Try another sound above, or go to step 3.",
+    doneDeck: "Every card sorted.",
+    liveS: "{snd}: sorted {n} of {m}.",
+    thP: "spelling", thEnd: "at the end", thIn: "inside the word",
+    splitN: "e is the last letter: {e} of {n}",
+    singleN: "alone at the end: {e} of {n}",
+    ruleSplit: "Counted: {A} is at the end in {ea} of {na} words; {B} is at the end in {eb} of {nb} — it sits inside the word.",
+    ruleBoth: "Counted: {A} ends {ea} of {na} words and {B} ends {eb} of {nb}. Both turn up at the end and inside, so position does not decide here — learn these words.",
+    resEnd: "{p} at the end: {e} of {n}",
+    excT: "Honest exceptions — tap to hear",
+    xThey: "long a spelled ey.", xGreat: "long a spelled ea.", xEight: "long a spelled eigh.",
+    xBread: "ea here says short e, as in bed.", xCow: "ow here says /ow/, as in now — not long o.",
+    xPlayer: "play + er: the ay ends the word play, then -er is added.",
+    resultTitle: "Where each spelling sits (counted from the cards)",
+    resultNote: "Same sound, different letters. Position is a strong hint, not a law: they, great and eight spell long a other ways.",
+    explainK: "Explain it", explainQ: "A friend writes \"plai\" and \"rayn\". Using what you counted, explain which spelling goes where — and why both look possible.",
+    homeK: "Try at home", homeQ: "Make three paper bins labelled ai, ay and a_e. Hunt for long a words in a picture book and drop a slip with each word in the right bin. Which bin fills fastest?",
+    foot: "Sound marks follow phonics books (/ā/ = long a as in rain), not IPA. The spellings are the alternative vowel spellings taught in UK Letters and Sounds (2007), Phase 5, and in US first-grade phonics. Counts are of the cards on this page only, not of all English words; a word made from a shorter one (player) is counted where the letters sit. Long o is /oʊ/ in American and /əʊ/ in southern British English. Speech uses your browser's built-in voice. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "一个音，几种写法", eyebrow: "英语 · 阶段 1", h1: "一个音，几种写法",
+    intro: "rain、play、cake 里是同一个元音，却有三种写法。按拼写给单词卡分类，边分边听。",
+    reset: "重置", soundsAria: "选一个元音", deckAria: "待分类的单词卡",
+    s1: "先猜", s2: "分类", s3: "规律",
+    k1: "先猜一猜", t1: "rain · play · cake",
+    b1: "点每个词听一听。注意听词中间的元音。",
+    q: "ai、ay、a_e 长得不一样。在 rain、play、cake 里它们读什么音？",
+    o1: "三个不同的音——字母不同，音就不同", o2: "同一个音，三种写法", o3: "只有 ai 读长音 a，另外两个不发音",
+    right: "对！三个都读长音 a /ā/。一个音可以有不止一种写法。",
+    wrong: "再听一遍：rain、play、cake。元音每次都是同一个长音 a /ā/，变的只是写法。",
+    k2: "动手", t2: "按拼写给卡片分类",
+    b2: "把卡片拖进写着它拼法的桶里；也可以先点卡片（会读出来），再点桶。键盘：Tab 到卡片，Enter 听读，再按 1、2、3 放进对应的桶；← → 在卡片间移动。同一组卡片读的是同一个音。三个音都试试。",
+    k3: "规律", t3: "几种写法——各在什么位置",
+    b3: "一个音可以有几种拼法。长音 a 怎么选，看位置：ay 通常在词尾，ai 在词中间，a_e 的 e 在最后。下表数的是这一组卡片（在上面换音）。",
+    snd_a: "长音 a /ā/", snd_e: "长音 e /ē/", snd_o: "长音 o /ō/",
+    hearS: "▶ 听 {w}",
+    binAria: "{p} 桶：已放 {n}/{m}", binPut: "把 {w} 放进 {p} 桶",
+    cardAria: "{w}。Enter 听读并选中；按 1、2、3 放进桶。",
+    score: "已分 {n}/{m} · 一次放对 {f}",
+    pick: "选中了 {w}——再点一个桶。", pickFirst: "先选一张卡片，再点桶。",
+    okMsg: "对：{w} 的拼法是 {p}。", noMsg: "不是 {b}：再听再看——{w} 用的是 {p}。卡片退回去了。",
+    done: "{m} 张全部分好，一次放对 {f} 张。在上面换个音，或者去第 3 步。",
+    doneDeck: "卡片都分完了。",
+    liveS: "{snd}：已分 {n}/{m}。",
+    thP: "拼法", thEnd: "在词尾", thIn: "在词里面",
+    splitN: "e 是最后一个字母：{e}/{n}",
+    singleN: "单独一个 e 在词尾：{e}/{n}",
+    ruleSplit: "数一数：{A} 在词尾的有 {ea}/{na} 个；{B} 在词尾的只有 {eb}/{nb} 个——它在词里面。",
+    ruleBoth: "数一数：{A} 在词尾 {ea}/{na} 个，{B} 在词尾 {eb}/{nb} 个。两种在词尾、词中都有，这里位置定不了——这些词要记。",
+    resEnd: "{p} 在词尾：{e}/{n}",
+    excT: "老实说，有例外——点一下听",
+    xThey: "长音 a 写成 ey。", xGreat: "长音 a 写成 ea。", xEight: "长音 a 写成 eigh。",
+    xBread: "这里的 ea 读短音 e，像 bed 里的。", xCow: "这里的 ow 读 /ow/，像 now——不是长音 o。",
+    xPlayer: "play + er：ay 在 play 的词尾，后面再加 -er。",
+    resultTitle: "每种写法在哪儿（从卡片数出来）",
+    resultNote: "同一个音，不同的字母。位置是很强的提示，但不是铁律：they、great、eight 用别的写法拼长音 a。",
+    explainK: "说一说", explainQ: "朋友写成了 \"plai\" 和 \"rayn\"。用你数出来的结果，跟他讲讲哪种写法放在哪儿——以及为什么两种看起来都像对的。",
+    homeK: "家里做一做", homeQ: "做三个纸桶，分别写 ai、ay、a_e。在绘本里找读长音 a 的词，每找到一个就写在纸条上放进对应的桶。哪个桶装得最快？",
+    foot: "音标按自然拼读书的写法（/ā/ 是 rain 里的长音 a），不是国际音标。这些拼法是英国 Letters and Sounds（2007）第 5 阶段、美国一年级自然拼读里教的元音替代拼法。表里只数本页的卡片，不代表全部英语单词；由短词变来的词（player）按字母实际所在位置计数。长音 o 美式读 /oʊ/，英国南部读 /əʊ/。发音用浏览器自带的语音。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---- data: every word says the set's long vowel; the bin is computed by spellingOf() ----
+const SOUNDS = [
+  { id: "a", v: "a", ex: ["rain", "play", "cake"], pats: [
+    { p: "ai", type: "team", words: ["rain", "tail", "train", "paint", "snail", "wait"] },
+    { p: "ay", type: "team", words: ["play", "day", "say", "tray", "stay", "way", "player"] },
+    { p: "a_e", type: "split", words: ["cake", "game", "name", "gate", "lake", "plane"] },
+  ] },
+  { id: "e", v: "e", ex: ["tree", "sea", "me"], pats: [
+    { p: "ee", type: "team", words: ["tree", "see", "bee", "feet", "green", "sleep"] },
+    { p: "ea", type: "team", words: ["sea", "tea", "eat", "leaf", "beach", "dream"] },
+    { p: "e", type: "single", words: ["me", "he", "we", "she", "be"] },
+  ] },
+  { id: "o", v: "o", ex: ["boat", "snow", "home"], pats: [
+    { p: "oa", type: "team", words: ["boat", "coat", "road", "soap", "goat", "toast"] },
+    { p: "ow", type: "team", words: ["snow", "grow", "show", "slow", "blow", "bowl"] },
+    { p: "o_e", type: "split", words: ["home", "bone", "rope", "nose", "stone", "note"] },
+  ] },
+];
+const VOW = /[aeiou]/g;
+// Which spelling of sound s does word w use? Teams first, then vowel-consonant-e, then a lone vowel at the end.
+function spellingOf(w, s) {
+  for (const q of s.pats) if (q.type === "team" && w.includes(q.p)) return q.p;
+  for (const q of s.pats) if (q.type === "split" && new RegExp(s.v + "[^aeiou]e$").test(w)) return q.p;
+  for (const q of s.pats) if (q.type === "single" && w.endsWith(s.v) && (w.match(VOW) || []).length === 1) return q.p;
+  return null;
+}
+// Where the spelling sits: "start" | "middle" | "end".
+function positionOf(w, q) {
+  if (q.type !== "team") return "end";
+  const i = w.indexOf(q.p);
+  if (i < 0) return null;
+  if (i + q.p.length === w.length) return "end";
+  return i === 0 ? "start" : "middle";
+}
+function countSound(s) {
+  return s.pats.map((q) => {
+    const c = { p: q.p, type: q.type, n: 0, end: 0, inside: 0, endW: [], inW: [] };
+    s.pats.forEach((q2) => q2.words.forEach((w) => {
+      if (spellingOf(w, s) !== q.p) return;
+      c.n++;
+      if (positionOf(w, q) === "end") { c.end++; c.endW.push(w); } else { c.inside++; c.inW.push(w); }
+    }));
+    return c;
+  });
+}
+// Compare the two letter-team spellings of a sound by how often they end the word.
+function ruleOf(s) {
+  const t = countSound(s).filter((c) => c.type === "team" && c.n > 0);
+  if (t.length < 2) return null;
+  t.sort((x, y) => y.end / y.n - x.end / x.n);
+  const [A, B] = t, rA = A.end / A.n, rB = B.end / B.n;
+  return { kind: rA >= 0.75 && rB <= 0.25 ? "ruleSplit" : "ruleBoth", A: A.p, B: B.p, ea: A.end, na: A.n, eb: B.end, nb: B.n };
+}
+// The marked letters of w for spelling q (indexes).
+function markIdx(w, q) {
+  if (q.type === "team") { const i = w.indexOf(q.p); return i < 0 ? [] : [i, i + 1]; }
+  if (q.type === "split") return [w.length - 3, w.length - 1];
+  return [w.length - 1];
+}
+if (typeof module !== "undefined") module.exports = { SOUNDS, spellingOf, positionOf, countSound, ruleOf, markIdx };
+
+// ---- state ----
+const $ = (id) => document.getElementById(id);
+let cur = 0, state, sel = null;
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function fresh() {
+  state = SOUNDS.map((s) => ({ deck: shuffle(s.pats.flatMap((q) => q.words)), placed: {}, first: 0, missed: new Set() }));
+  sel = null;
+}
+const total = (i) => SOUNDS[i].pats.reduce((k, q) => k + q.words.length, 0);
+const nPlaced = (i) => Object.keys(state[i].placed).length;
+
+function marked(w, q) {
+  const idx = markIdx(w, q), frag = document.createDocumentFragment();
+  [...w].forEach((ch, i) => {
+    if (idx.includes(i)) { const s = document.createElement("span"); s.className = "m"; s.textContent = ch; frag.appendChild(s); }
+    else frag.appendChild(document.createTextNode(ch));
+  });
+  return frag;
+}
+
+// ---- sound tabs ----
+const sBtns = SOUNDS.map((s, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.innerHTML = "";
+  b.append(P.t("snd_" + s.id));
+  const ex = document.createElement("span"); ex.className = "ex"; ex.lang = "en"; ex.textContent = s.ex.join(" · ");
+  b.appendChild(ex);
+  b.addEventListener("click", () => { cur = i; sel = null; setFb("", ""); draw(); });
+  $("sounds").appendChild(b);
+  return b;
+});
+$("hearS").addEventListener("click", () => Play.speak(SOUNDS[cur].ex.join(". ") + ".", "en-US"));
+
+// ---- bins ----
+let binEls = [];
+function buildBins() {
+  $("bins").innerHTML = "";
+  binEls = SOUNDS[cur].pats.map((q, k) => {
+    const bin = document.createElement("div");
+    bin.className = "bin"; bin.dataset.k = k;
+    const head = document.createElement("button");
+    head.type = "button"; head.className = "binhead";
+    head.innerHTML = '<span class="pat" lang="en"></span><span class="cnt"></span>';
+    head.querySelector(".pat").textContent = (k + 1) + " · " + q.p;
+    head.addEventListener("click", (e) => {
+      if (!sel) { setFb(P.t("pickFirst"), ""); return; }
+      place(sel, k, e.detail === 0);
+    });
+    const got = document.createElement("div"); got.className = "got"; got.lang = "en";
+    bin.append(head, got);
+    $("bins").appendChild(bin);
+    return { bin, head, got };
+  });
+}
+
+// ---- cards (tap, drag, keyboard) ----
+let drag = null, suppressClick = false;
+function cardEl(w) {
+  const c = document.createElement("button");
+  c.type = "button"; c.className = "card"; c.textContent = w; c.dataset.w = w;
+  c.setAttribute("aria-pressed", "false");
+  c.setAttribute("aria-label", P.t("cardAria", { w }));
+  c.addEventListener("click", () => {
+    if (suppressClick) { suppressClick = false; return; }
+    pick(w);
+  });
+  c.addEventListener("keydown", (e) => {
+    const k = ["1", "2", "3"].indexOf(e.key);
+    if (k >= 0 && k < SOUNDS[cur].pats.length) { place(w, k, true); e.preventDefault(); return; }
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      const cs = [...$("deck").querySelectorAll(".card")], i = cs.indexOf(c);
+      const j = Play.clamp(i + (e.key === "ArrowRight" ? 1 : -1), 0, cs.length - 1);
+      cs[j].focus(); e.preventDefault();
+    }
+    if (e.key === "Escape") { sel = null; markSel(); }
+  });
+  c.addEventListener("pointerdown", (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    drag = { c, w, x: e.clientX, y: e.clientY, id: e.pointerId, on: false };
+    try { c.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  });
+  c.addEventListener("pointermove", (e) => {
+    if (!drag || drag.c !== c) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.on && Math.hypot(dx, dy) > 8) { drag.on = true; c.classList.add("drag"); }
+    if (!drag.on) return;
+    c.style.transform = "translate(" + dx + "px," + dy + "px)";
+    const k = binAt(e.clientX, e.clientY);
+    binEls.forEach((b, i) => b.bin.classList.toggle("over", i === k));
+  });
+  const end = (e, cancel) => {
+    if (!drag || drag.c !== c) return;
+    const d = drag; drag = null;
+    if (!d.on) return;
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+    c.classList.remove("drag"); c.style.transform = "";
+    binEls.forEach((b) => b.bin.classList.remove("over"));
+    const k = cancel ? -1 : binAt(e.clientX, e.clientY);
+    if (k >= 0) place(d.w, k, false);
+  };
+  c.addEventListener("pointerup", (e) => end(e, false));
+  c.addEventListener("pointercancel", (e) => end(e, true));
+  return c;
+}
+function binAt(x, y) {
+  const els = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [];
+  for (const el of els) { const b = el.closest && el.closest(".bin"); if (b) return +b.dataset.k; }
+  return -1;
+}
+function pick(w) {
+  sel = w;
+  Play.speak(w, "en-US");
+  markSel();
+  setFb(P.t("pick", { w }), "");
+}
+function markSel() {
+  $("deck").querySelectorAll(".card").forEach((c) => {
+    const on = c.dataset.w === sel;
+    c.classList.toggle("sel", on); c.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  binEls.forEach((b, k) => {
+    b.bin.classList.toggle("ready", !!sel);
+    const q = SOUNDS[cur].pats[k];
+    b.head.setAttribute("aria-label", sel ? P.t("binPut", { w: sel, p: q.p }) : P.t("binAria", { p: q.p, n: countIn(k), m: q.words.length }));
+  });
+}
+const countIn = (k) => Object.values(state[cur].placed).filter((x) => x === k).length;
+
+function place(w, k, fromKey) {
+  const s = SOUNDS[cur], st = state[cur], q = s.pats[k];
+  if (!q || !st.deck.includes(w)) return;
+  const right = spellingOf(w, s);
+  if (right === q.p) {
+    const i = st.deck.indexOf(w);
+    st.deck.splice(i, 1);
+    st.placed[w] = k;
+    if (!st.missed.has(w)) st.first++;
+    sel = null;
+    Play.speak(w, "en-US");
+    setFb(P.t("okMsg", { w, p: q.p }), "ok");
+    draw();
+    if (fromKey) {
+      const cs = $("deck").querySelectorAll(".card");
+      if (cs.length) cs[Math.min(i, cs.length - 1)].focus(); else binEls[k].head.focus();
+    }
+  } else {
+    st.missed.add(w);
+    sel = null;
+    setFb(P.t("noMsg", { w, p: right, b: q.p }), "no");
+    const b = binEls[k].bin;
+    b.classList.add("bad"); setTimeout(() => b.classList.remove("bad"), 600);
+    const c = $("deck").querySelector('.card[data-w="' + w + '"]');
+    if (c && !Play.reduced) { c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); }
+    Play.speak(w, "en-US");
+    markSel(); score();
+  }
+}
+function setFb(text, cls) { const f = $("fb"); f.textContent = text; f.className = "fb" + (cls ? " " + cls : ""); }
+function score() {
+  const n = nPlaced(cur), m = total(cur);
+  $("score").textContent = P.t("score", { n, m, f: state[cur].first });
+  Play.live($("live"), P.t("liveS", { snd: P.t("snd_" + SOUNDS[cur].id), n, m }));
+}
+
+// ---- step 3: counts ----
+function drawCounts() {
+  const s = SOUNDS[cur], cs = countSound(s), tb = $("counts");
+  tb.innerHTML = "";
+  const hr = tb.insertRow();
+  [P.t("thP"), P.t("thEnd"), P.t("thIn")].forEach((h) => { const th = document.createElement("th"); th.textContent = h; hr.appendChild(th); });
+  cs.forEach((c) => {
+    const r = tb.insertRow();
+    const p = r.insertCell(); p.className = "p"; p.textContent = c.p; p.lang = "en";
+    if (c.type === "team") {
+      [[c.end, c.endW], [c.inside, c.inW]].forEach(([n, ws]) => {
+        const td = r.insertCell(); td.className = "n";
+        td.textContent = n + " / " + c.n;
+        const sp = document.createElement("span"); sp.className = "w"; sp.lang = "en"; sp.textContent = ws.join(" · ");
+        td.appendChild(sp);
+      });
+    } else {
+      const td = r.insertCell(); td.colSpan = 2; td.className = "n";
+      td.textContent = P.t(c.type === "split" ? "splitN" : "singleN", { e: c.end, n: c.n });
+      const sp = document.createElement("span"); sp.className = "w"; sp.lang = "en"; sp.textContent = c.endW.join(" · ");
+      td.appendChild(sp);
+    }
+  });
+  const r = ruleOf(s);
+  $("rule").textContent = r ? P.t(r.kind, r) : "";
+  $("resultMain").textContent = cs.filter((c) => c.type === "team").map((c) => P.t("resEnd", { p: c.p, e: c.end, n: c.n })).join("  ·  ");
+}
+[["they", "xThey"], ["great", "xGreat"], ["eight", "xEight"], ["player", "xPlayer"], ["bread", "xBread"], ["cow", "xCow"]].forEach(([w, key]) => {
+  const row = document.createElement("div"); row.className = "row";
+  const b = document.createElement("button"); b.type = "button"; b.textContent = w; b.lang = "en";
+  b.addEventListener("click", () => Play.speak(w, "en-US"));
+  const sp = document.createElement("span"); sp.textContent = P.t(key);
+  row.append(b, sp); $("exc").appendChild(row);
+});
+
+// ---- draw ----
+let builtFor = -1;
+function draw() {
+  const s = SOUNDS[cur], st = state[cur];
+  sBtns.forEach((b, i) => { b.classList.toggle("on", i === cur); b.setAttribute("aria-pressed", i === cur ? "true" : "false"); });
+  $("hearS").textContent = P.t("hearS", { w: s.ex.join(", ") });
+  if (builtFor !== cur) { buildBins(); builtFor = cur; }
+  binEls.forEach((b, k) => {
+    const q = s.pats[k];
+    b.got.innerHTML = "";
+    q.words.filter((w) => st.placed[w] === k).forEach((w) => {
+      const c = document.createElement("button"); c.type = "button";
+      c.appendChild(marked(w, q));
+      c.setAttribute("aria-label", w);
+      c.addEventListener("click", () => Play.speak(w, "en-US"));
+      b.got.appendChild(c);
+    });
+    b.head.querySelector(".cnt").textContent = countIn(k) + " / " + q.words.length;
+  });
+  const deck = $("deck");
+  deck.innerHTML = "";
+  st.deck.forEach((w) => deck.appendChild(cardEl(w)));
+  if (!st.deck.length) {
+    const d = document.createElement("div"); d.className = "done"; d.textContent = P.t("doneDeck"); deck.appendChild(d);
+    if (!$("fb").textContent || $("fb").classList.contains("ok")) setFb(P.t("done", { m: total(cur), f: st.first }), "ok");
+  }
+  markSel(); score(); drawCounts();
+}
+
+// ---- steps ----
+SOUNDS[0].ex.forEach((w) => {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = "▶ " + w;
+  b.addEventListener("click", () => Play.speak(w, "en-US"));
+  $("ex1").appendChild(b);
+});
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => Play.speak("rain. play. cake.", "en-US"));
+const stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("ex1").hidden = i !== 0;
+  $("countsBox").hidden = i !== 2;
+});
+$("reset").addEventListener("click", () => {
+  if ("speechSynthesis" in window) { try { speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+  fresh(); cur = 0; builtFor = -1; setFb("", ""); pr.reset(); stp.go(0); draw();
+});
+fresh();
+draw();
+</script>
+</body>
+</html>

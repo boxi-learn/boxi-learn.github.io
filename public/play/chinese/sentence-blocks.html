@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentence blocks</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .han { font-family: "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", "Songti SC", serif; }
+  .board { padding: 16px 14px 14px; display: flex; flex-direction: column; gap: 12px; min-height: 360px; }
+  .pickrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .pickrow button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .line { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
+  .tile { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; padding: 6px 9px 5px; min-width: 52px; border-radius: 10px; border: 2px solid var(--line); background: var(--surface); touch-action: none; }
+  .tile .w { font-size: 22px; color: var(--fg); }
+  .tile .g { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .tile.S, .tile.V, .tile.O { background: var(--a); border-color: var(--a); }
+  .tile.S .w, .tile.V .w, .tile.O .w, .tile.S .g, .tile.V .g, .tile.O .g { color: var(--surface); }
+  .tile.a { border-color: var(--c); }
+  .tile.a .g { color: var(--c); }
+  .tile.d { border-color: var(--b); }
+  .tile.d .g { color: var(--b); }
+  .tile.plain { background: var(--surface); border-color: var(--line); }
+  .tile.plain .w { color: var(--fg); } .tile.plain .g { color: var(--muted); }
+  .tile.off { opacity: .28; border-style: dashed; background: transparent; }
+  .tile.off .w, .tile.off .g { color: var(--muted); }
+  .tile.broken { opacity: 1; background: transparent; border: 2px dashed var(--no); }
+  .tile.broken .w, .tile.broken .g { color: var(--no); }
+  .tile.sel { outline: 3px solid var(--hl); outline-offset: 2px; }
+  .tile.shake { animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  @media (prefers-reduced-motion: reduce) { .tile.shake { animation: none; } }
+  .readout { background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+  .readout .zh { font-size: 21px; line-height: 1.5; }
+  .readout .en { font-size: 14px; color: var(--muted); }
+  .readout .lab { font-size: 13px; color: var(--muted); }
+  .status { font-size: 14px; font-weight: 650; }
+  .status.ok { color: var(--fg); }
+  .status.no { color: var(--no); }
+  .legend .dot.k { background: var(--a); } .legend .dot.ac { background: var(--c); } .legend .dot.dc { background: var(--b); }
+  .slot { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: flex-end; min-width: 44px; min-height: 60px; padding: 4px; border: 2px dashed var(--line); border-radius: 12px; background: transparent; }
+  .slot .plus { align-self: center; font-size: 20px; color: var(--muted); padding: 0 6px; }
+  .slot.ready { border-color: var(--hl); }
+  .slot.over { border-color: var(--a); background: var(--soft); }
+  .slot .tile { min-width: 40px; padding: 4px 6px 3px; }
+  .tray { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line); min-height: 64px; }
+  .ghost { position: fixed; z-index: 9; pointer-events: none; transform: translate(-50%, -60%); opacity: .9; }
+  .rules { display: flex; flex-direction: column; gap: 10px; }
+  .pair { border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  .pair .full { font-size: 17px; line-height: 1.6; }
+  .pair .full .k { color: var(--a); font-weight: 700; }
+  .pair .full .m { color: var(--muted); }
+  .pair .sk { font-size: 14px; color: var(--muted); }
+  .pair .sk b { color: var(--a); font-weight: 700; }
+  .fb3 { font-size: 14px; min-height: 1.4em; }
+  @media (max-width: 560px) {
+    .tile { min-width: 44px; padding: 5px 6px 4px; }
+    .tile .w { font-size: 19px; }
+    .readout .zh { font-size: 18px; }
+  }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="board" id="board" role="group" data-t-aria="boardAria">
+        <div class="pickrow" id="pick"><span data-t="pickLabel"></span></div>
+        <div class="line han" id="tiles" role="group" data-t-aria="tilesAria"></div>
+        <div class="pickrow" id="tools2">
+          <button type="button" class="small" id="strip" aria-pressed="false" data-t="strip"></button>
+          <button type="button" class="small" id="say" data-t="say"></button>
+        </div>
+        <div class="readout" id="readout"></div>
+        <div class="tray han" id="tray" role="group" data-t-aria="trayAria"></div>
+        <div class="rules" id="rules"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="fb3" id="fb3" aria-live="polite"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math han" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// Original sentences written for this page (not from any textbook). Chinese stays Chinese in both UI languages.
+// Roles: S = subject (谁), V = predicate verb (做什么), O = object (什么) — the skeleton;
+//        a = describes a thing, placed before a noun (定语); d = describes an action, placed before the verb (状语).
+// `to` = index of the skeleton word a describing word belongs to.
+const SENTS = [
+  { en: "The chubby little tabby cat by the door is lazily basking in the sun.", skelEn: "The cat is basking in the sun.", t: [
+    { w: "门口", r: "a", to: 3 }, { w: "那只", r: "a", to: 3 }, { w: "胖胖的", r: "a", to: 3 }, { w: "小花猫", r: "S" },
+    { w: "懒洋洋地", r: "d", to: 5 }, { w: "晒着", r: "V" }, { w: "太阳", r: "O" }] },
+  { en: "My little brother happily ate a big bowl of steaming-hot noodles.", skelEn: "Little brother ate noodles.", t: [
+    { w: "我的", r: "a", to: 1 }, { w: "弟弟", r: "S" }, { w: "高高兴兴地", r: "d", to: 3 }, { w: "吃了", r: "V" },
+    { w: "一大碗", r: "a", to: 6 }, { w: "热乎乎的", r: "a", to: 6 }, { w: "面条", r: "O" }] },
+  { en: "A troop of hard-working little ants slowly carried off the biscuit crumbs on the ground.", skelEn: "The ants carried off the crumbs.", t: [
+    { w: "一群", r: "a", to: 2 }, { w: "勤劳的", r: "a", to: 2 }, { w: "小蚂蚁", r: "S" }, { w: "慢慢地", r: "d", to: 4 },
+    { w: "搬走了", r: "V" }, { w: "地上的", r: "a", to: 6 }, { w: "饼干渣", r: "O" }] },
+  { en: "The grandpa in the park carefully practises tai chi every day.", skelEn: "Grandpa practises tai chi.", t: [
+    { w: "公园里的", r: "a", to: 1 }, { w: "老爷爷", r: "S" }, { w: "每天", r: "d", to: 4 }, { w: "认真地", r: "d", to: 4 },
+    { w: "打", r: "V" }, { w: "太极拳", r: "O" }] },
+  { en: "That soft white cloud in the sky gently drifted away.", skelEn: "The cloud drifted away.", t: [
+    { w: "天上", r: "a", to: 3 }, { w: "那朵", r: "a", to: 3 }, { w: "白白的", r: "a", to: 3 }, { w: "云", r: "S" },
+    { w: "轻轻地", r: "d", to: 5 }, { w: "飘走了", r: "V" }] },
+];
+const CORE = ["S", "V", "O"];
+const isCore = (tok) => CORE.includes(tok.r);
+
+// ---- pure logic (also tested in node) ----
+// Which skeleton roles are missing when the set `hidden` of token indices is removed?
+function missingRoles(s, hidden) {
+  return CORE.filter((r) => s.t.some((tok, i) => tok.r === r && hidden.has(i)));
+}
+const sentenceText = (s, keep) => s.t.filter((_, i) => keep(i)).map((x) => x.w).join("") + "。";
+const skeletonText = (s) => sentenceText(s, (i) => isCore(s.t[i]));
+const fullText = (s) => sentenceText(s, () => true);
+const decoIdx = (s) => s.t.map((x, i) => (isCore(x) ? -1 : i)).filter((i) => i >= 0);
+// Placing describing word `ti` into the slot in front of skeleton word `hi`: "ok" | "kind" | "head".
+function placeCheck(s, ti, hi) {
+  const tok = s.t[ti], head = s.t[hi];
+  if (!tok || !head || isCore(tok) || !isCore(head)) return "kind";
+  const wantNoun = tok.r === "a";
+  const isNoun = head.r === "S" || head.r === "O";
+  if (wantNoun !== isNoun) return "kind";
+  return tok.to === hi ? "ok" : "head";
+}
+// Deterministic shuffle so the tray order is not the answer order.
+function shuffled(arr, seed) {
+  const a = arr.slice();
+  let x = seed * 9301 + 49297;
+  for (let i = a.length - 1; i > 0; i--) {
+    x = (x * 9301 + 49297) % 233280;
+    const j = Math.floor((x / 233280) * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const P = Play.setup({
+  en: {
+    title: "Sentence blocks", eyebrow: "Chinese · Stage 1", h1: "Sentence blocks: find the skeleton",
+    intro: "A Chinese sentence is built from blocks. A few blocks hold it up; the rest decorate. Take the decorations off and see what still stands.",
+    reset: "Reset", boardAria: "Sentence building board", tilesAria: "Word tiles of the sentence", trayAria: "Describing words to add",
+    pickLabel: "Sentence", strip: "Remove describing words", stripOn: "Put them back", say: "▶ Read aloud",
+    s1: "Guess", s2: "Take apart", s3: "Build up", s4: "Rule",
+    k1: "Predict first", t1: "Which words does this sentence really need?",
+    b1: "Pick an answer. Then go to step 2 and take the sentence apart yourself.",
+    k2: "Hands on", t2: "Tap words to hide them",
+    b2: "Tap any tile (keyboard: arrow keys, then Enter) to hide or show it, or remove all describing words at once. Watch whether the sentence can still stand.",
+    k3: "Hands on", t3: "Build a sentence back up from its skeleton",
+    b3: "Pick a describing word from the tray, then tap the gap where it belongs (or drag it there). Words that say what kind go before a thing; words that say how go before the action.",
+    k4: "The rule", t4: "Subject + predicate (+ object) hold the sentence up",
+    b4: "In every sentence on this page, removing all the describing words still leaves a complete sentence. Adding them back makes it say more, but the skeleton — and what the sentence is about — does not change.",
+    q: "In 「门口那只胖胖的小花猫懒洋洋地晒着太阳。」, which words does the sentence need to still be a sentence?",
+    o1: "All of them — every word is equally important", o2: "Only a few: who + does what (+ what)", o3: "The longest words",
+    right: "Yes. Take off the decorations and 「{skel}」 is still a whole sentence.",
+    wrong: "Try it in step 2: take off 门口, 那只, 胖胖的, 懒洋洋地 — 「{skel}」 is still a whole sentence.",
+    S: "subject · who", V: "predicate · does what", O: "object · what", a: "describes a thing", d: "describes an action",
+    S_: "subject", V_: "predicate", O_: "object",
+    legK: "skeleton: subject · predicate · object", legA: "describing words: what kind (before a thing)", legD: "describing words: how / when (before an action)",
+    now: "Now it reads", gloss: "Full sentence", glossSk: "Skeleton",
+    ok: "✓ It still stands: {k} of {n} words, skeleton complete.", okFull: "✓ The whole sentence: {n} words.",
+    broken: "✗ The sentence can't stand any more — the {miss} is missing.", and: " and the ",
+    skel: "Skeleton: {s}", skelSame: "The skeleton is the same as before: {s}",
+    hideCore: "You hid a skeleton word ({w}). The sentence can't stand without it.",
+    pickFirst: "Pick a describing word from the tray first.",
+    selected: "Picked 「{w}」. Now tap the gap it belongs in.",
+    fbOk: "Yes — 「{w}」 tells us more about 「{h}」.",
+    fbKindA: "「{w}」 says what kind of thing, so it goes in front of a thing (who / what), not in front of the action.",
+    fbKindD: "「{w}」 says how or when the action happens, so it goes in front of the action (the predicate).",
+    fbHead: "Right kind of gap, wrong word: 「{w}」 describes 「{t}」, not 「{h}」.",
+    done: "Done! {k} describing words added. The sentence says more, but its skeleton is still 「{s}」.",
+    progress: "{k} of {n} describing words placed.",
+    ruleCount: "{n} sentences · {w} words in all · {k} are skeleton words · {s} of {n} skeletons stand on their own.",
+    resultTitle: "What we found", resultMain: "谁 + 做什么 (+ 什么)",
+    resultNote: "Subject + predicate (+ object) is the skeleton. Describing words add detail; they don't change what the sentence is about.",
+    explainK: "Explain it", explainQ: "Pick a long sentence from a storybook. Tell someone its skeleton — who does what — and say which words you took off and why the sentence still works.",
+    homeK: "Try at home", homeQ: "Write a three-word skeleton on a strip of paper (e.g. 小狗 / 追 / 球). Take turns with someone adding one describing word at a time on sticky notes. Who can make it longest while it still makes sense?",
+    foot: "For teachers: skeleton = 主语 + 谓语 (+ 宾语); words describing a noun = 定语, before the noun; words describing a verb = 状语, before the verb. On this page 'what kind' also covers which / whose / how many / where, and 'how' covers when. Complements (补语) are left out at this stage. All sentences are original. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "句子积木", eyebrow: "语文 · 阶段 1", h1: "句子积木：找出句子的骨架",
+    intro: "句子是一块一块搭起来的。有几块撑着整句话，其余的是装饰。把装饰拿掉，看看还剩什么站着。",
+    reset: "重置", boardAria: "搭句子的台子", tilesAria: "句子里的词块", trayAria: "可以加上去的修饰词",
+    pickLabel: "句子", strip: "去掉修饰词", stripOn: "放回修饰词", say: "▶ 读一读",
+    s1: "先猜", s2: "拆句子", s3: "搭句子", s4: "规律",
+    k1: "先猜一猜", t1: "这句话真正离不开哪些词？",
+    b1: "先选一个答案，再到第 2 步亲手拆一拆。",
+    k2: "动手", t2: "点一个词，把它藏起来",
+    b2: "点任意一块（键盘：方向键选，回车确认）就能藏起或放回，也可以一下去掉全部修饰词。看看句子还站不站得住。",
+    k3: "动手", t3: "从骨架开始，把句子搭回去",
+    b3: "先从下面挑一个修饰词，再点它该去的空位（也可以直接拖过去）。说「什么样的」词放在东西前面；说「怎么样地」词放在动作前面。",
+    k4: "规律", t4: "「谁 + 做什么（+ 什么）」撑起一句话",
+    b4: "这一页的每个句子，去掉全部修饰词，剩下的照样是完整的一句话。把修饰词加回去，句子说得更多，可骨架没变，说的还是同一件事。",
+    q: "「门口那只胖胖的小花猫懒洋洋地晒着太阳。」这句话离不开哪些词？",
+    o1: "每个词都一样重要，少一个都不行", o2: "只有几个：谁 + 做什么（+ 什么）", o3: "最长的那几个词",
+    right: "对。拿掉装饰，「{skel}」照样是一句完整的话。",
+    wrong: "到第 2 步试试：拿掉「门口、那只、胖胖的、懒洋洋地」，「{skel}」照样是一句完整的话。",
+    S: "谁", V: "做什么", O: "什么", a: "什么样的", d: "怎么样地",
+    S_: "谁", V_: "做什么", O_: "什么",
+    legK: "骨架（主干）：谁 · 做什么 · 什么", legA: "修饰：什么样的（放在东西前面）", legD: "修饰：怎么样地 / 什么时候（放在动作前面）",
+    now: "现在读作", gloss: "整句", glossSk: "骨架",
+    ok: "✓ 句子站得住：用了 {k} / {n} 个词，骨架完整。", okFull: "✓ 完整的句子：{n} 个词。",
+    broken: "✗ 句子站不住了：缺了「{miss}」。", and: "」和「",
+    skel: "骨架：{s}", skelSame: "骨架和原来一样：{s}",
+    hideCore: "你藏起了骨架上的「{w}」，句子站不住了。",
+    pickFirst: "先从下面挑一个修饰词。",
+    selected: "选中了「{w}」，再点它该去的空位。",
+    fbOk: "对，「{w}」让「{h}」说得更清楚。",
+    fbKindA: "「{w}」说的是「什么样的」，要放在东西（谁 / 什么）前面，不放在动作前面。",
+    fbKindD: "「{w}」说的是「怎么样地」或「什么时候」，要放在动作（做什么）前面。",
+    fbHead: "空位的种类对了，可「{w}」说的是「{t}」，不是「{h}」。",
+    done: "搭好了！加了 {k} 个修饰词，句子说得更多，骨架还是「{s}」。",
+    progress: "已经放好 {k} / {n} 个修饰词。",
+    ruleCount: "{n} 个句子 · 一共 {w} 个词 · 其中 {k} 个是骨架 · {s} / {n} 个骨架能单独站住。",
+    resultTitle: "我们发现", resultMain: "谁 + 做什么（+ 什么）",
+    resultNote: "「谁 + 做什么（+ 什么）」是句子的骨架。修饰词让句子说得更多、更具体，但不会把它变成另一件事。",
+    explainK: "说一说", explainQ: "从故事书里找一个长句子，说出它的骨架——谁做什么，再讲讲你拿掉了哪些词，为什么句子还通。",
+    homeK: "家里做一做", homeQ: "在纸条上写一个三块的骨架（比如「小狗 / 追 / 球」），和家人轮流在便利贴上加一个修饰词贴上去。谁能让句子最长、又还说得通？",
+    foot: "给老师：骨架即主语 + 谓语（+ 宾语）；修饰名词的是定语，放在名词前；修饰动词的是状语，放在动词前。本页「什么样的」也包括哪个、谁的、几个、哪里的，「怎么样地」也包括什么时候；补语在这一阶段不讲。所有例句均为原创。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const tilesEl = $("tiles"), trayEl = $("tray"), readout = $("readout"), rulesEl = $("rules"), fb3 = $("fb3"), liveEl = $("live");
+
+let step = 0, si = 0, guessed = false;
+let hidden = new Set();
+let placed = new Set(), sel = null;
+
+function tile(tok, extra) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tile " + tok.r + (extra ? " " + extra : "");
+  const w = document.createElement("span");
+  w.className = "w";
+  w.textContent = tok.w;
+  w.lang = "zh-CN";
+  const g = document.createElement("span");
+  g.className = "g";
+  g.textContent = P.t(tok.r);
+  b.append(w, g);
+  return b;
+}
+// Arrow keys move focus between the buttons of a group.
+function arrowNav(el) {
+  el.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const bs = [...el.querySelectorAll("button")];
+    const i = bs.indexOf(document.activeElement);
+    if (i < 0) return;
+    const j = Play.clamp(i + (e.key === "ArrowRight" ? 1 : -1), 0, bs.length - 1);
+    bs[j].focus();
+    e.preventDefault();
+  });
+}
+arrowNav(tilesEl); arrowNav(trayEl);
+function shake(el) { if (!Play.reduced && el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); } }
+
+// ---- sentence picker ----
+const pick = $("pick");
+const pickBtns = SENTS.map((s, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "small";
+  b.textContent = String(i + 1);
+  b.setAttribute("aria-label", fullText(s));
+  b.addEventListener("click", () => { si = i; hidden = new Set(); placed = new Set(); sel = null; fb3.textContent = ""; render(); });
+  pick.appendChild(b);
+  return b;
+});
+
+function legend() {
+  const lg = $("legend");
+  lg.innerHTML = "";
+  [["k", "legK"], ["ac", "legA"], ["dc", "legD"]].forEach(([c, k]) => {
+    const s = document.createElement("span");
+    s.innerHTML = '<span class="dot ' + c + '"></span>';
+    s.appendChild(document.createTextNode(P.t(k)));
+    lg.appendChild(s);
+  });
+}
+
+function missText(miss) { return miss.map((r) => P.t(r + "_")).join(P.t("and")); }
+
+function readoutBox(zh, status, cls, extra) {
+  readout.innerHTML = "";
+  const lab = document.createElement("div");
+  lab.className = "lab";
+  lab.textContent = P.t("now");
+  const z = document.createElement("div");
+  z.className = "zh han";
+  z.lang = "zh-CN";
+  z.textContent = zh;
+  readout.append(lab, z);
+  if (extra) {
+    const e = document.createElement("div");
+    e.className = "en";
+    e.textContent = extra;
+    readout.appendChild(e);
+  }
+  const st = document.createElement("div");
+  st.className = "status " + cls;
+  st.textContent = status;
+  readout.appendChild(st);
+}
+
+// ---- step 1 & 2: take apart ----
+function renderTiles() {
+  const s = SENTS[si];
+  tilesEl.innerHTML = "";
+  s.t.forEach((tok, i) => {
+    const off = hidden.has(i);
+    const extra = step === 0 && !guessed ? "plain" : off ? (isCore(tok) ? "off broken" : "off") : "";
+    const b = tile(tok, extra);
+    if (step === 0 && !guessed) b.querySelector(".g").textContent = " ";
+    b.setAttribute("aria-pressed", off ? "false" : "true");
+    b.setAttribute("aria-label", tok.w + " · " + P.t(tok.r));
+    b.addEventListener("click", () => {
+      if (step !== 1) { st.go(1); return; }
+      if (hidden.has(i)) hidden.delete(i); else hidden.add(i);
+      if (hidden.has(i) && isCore(tok)) fb3.textContent = P.t("hideCore", { w: tok.w });
+      else fb3.textContent = "";
+      render();
+      const again = tilesEl.querySelectorAll("button")[i];
+      if (again) { again.focus(); if (hidden.has(i) && isCore(tok)) shake(again); }
+    });
+    tilesEl.appendChild(b);
+  });
+  const miss = missingRoles(s, hidden);
+  const k = s.t.length - hidden.size;
+  const shown = sentenceText(s, (i) => !hidden.has(i));
+  const allDeco = decoIdx(s).every((i) => hidden.has(i));
+  const gloss = L !== "en" || miss.length ? "" : allDeco ? P.t("glossSk") + ": " + s.skelEn : P.t("gloss") + ": " + s.en;
+  if (miss.length) readoutBox(k ? shown : "……", P.t("broken", { miss: missText(miss) }), "no", gloss);
+  else if (!hidden.size) readoutBox(shown, P.t("okFull", { n: s.t.length }), "ok", gloss);
+  else readoutBox(shown, P.t("ok", { k, n: s.t.length }) + " " + P.t("skelSame", { s: skeletonText(s) }), "ok", gloss);
+  const strip = $("strip");
+  strip.setAttribute("aria-pressed", allDeco ? "true" : "false");
+  strip.textContent = P.t(allDeco ? "stripOn" : "strip");
+  Play.live(liveEl, miss.length ? P.t("broken", { miss: missText(miss) }) : shown);
+}
+
+$("strip").addEventListener("click", () => {
+  if (step !== 1) st.go(1);
+  const s = SENTS[si];
+  const allDeco = decoIdx(s).every((i) => hidden.has(i));
+  hidden = new Set(hidden);
+  decoIdx(s).forEach((i) => (allDeco ? hidden.delete(i) : hidden.add(i)));
+  fb3.textContent = "";
+  render();
+});
+$("say").addEventListener("click", () => {
+  const s = SENTS[si];
+  const text = step === 2 ? builtText() : sentenceText(s, (i) => !hidden.has(i));
+  Play.speak(text, "zh-CN");
+});
+
+// ---- step 3: build up ----
+function builtText() { const s = SENTS[si]; return sentenceText(s, (i) => isCore(s.t[i]) || placed.has(i)); }
+function tryPlace(ti, hi) {
+  const s = SENTS[si];
+  const res = placeCheck(s, ti, hi);
+  const tok = s.t[ti], head = s.t[hi];
+  if (res === "ok") {
+    placed.add(ti);
+    sel = null;
+    const total = decoIdx(s).length;
+    fb3.textContent = placed.size === total
+      ? P.t("done", { k: total, s: skeletonText(s).slice(0, -1) })
+      : P.t("fbOk", { w: tok.w, h: head.w }) + " " + P.t("progress", { k: placed.size, n: total });
+  } else {
+    fb3.textContent = res === "kind" ? P.t(tok.r === "a" ? "fbKindA" : "fbKindD", { w: tok.w }) : P.t("fbHead", { w: tok.w, h: head.w, t: s.t[tok.to].w });
+  }
+  render();
+  if (res !== "ok") shake(trayEl.querySelector('[data-i="' + ti + '"]'));
+  const slot = tilesEl.querySelector('[data-slot="' + hi + '"]');
+  if (res === "ok" && slot) slot.focus();
+  else { const t = trayEl.querySelector('[data-i="' + ti + '"]'); if (t) t.focus(); }
+  return res;
+}
+function renderBuild() {
+  const s = SENTS[si];
+  tilesEl.innerHTML = "";
+  s.t.forEach((tok, i) => {
+    if (!isCore(tok)) return;
+    const slot = document.createElement("button");
+    slot.type = "button";
+    slot.className = "slot" + (sel !== null ? " ready" : "");
+    slot.dataset.slot = i;
+    slot.setAttribute("aria-label", "+ → " + tok.w);
+    const inSlot = s.t.map((x, j) => j).filter((j) => placed.has(j) && s.t[j].to === i);
+    if (!inSlot.length) { const p = document.createElement("span"); p.className = "plus"; p.textContent = "+"; slot.appendChild(p); }
+    inSlot.forEach((j) => {
+      const tt = tile(s.t[j]);
+      const span = document.createElement("span");
+      span.className = tt.className;
+      span.innerHTML = tt.innerHTML;
+      slot.appendChild(span);
+    });
+    slot.addEventListener("click", () => {
+      if (sel === null) { fb3.textContent = P.t("pickFirst"); return; }
+      tryPlace(sel, i);
+    });
+    tilesEl.appendChild(slot);
+    const core = tile(tok);
+    core.tabIndex = -1;
+    core.disabled = true;
+    core.style.cursor = "default";
+    tilesEl.appendChild(core);
+  });
+  trayEl.innerHTML = "";
+  shuffled(decoIdx(s), si + 1).filter((i) => !placed.has(i)).forEach((i) => {
+    const b = tile(s.t[i], sel === i ? "sel" : "");
+    b.dataset.i = i;
+    b.setAttribute("aria-pressed", sel === i ? "true" : "false");
+    b.addEventListener("click", () => {
+      if (b.dataset.dragged) { delete b.dataset.dragged; return; }
+      sel = sel === i ? null : i;
+      fb3.textContent = sel === null ? "" : P.t("selected", { w: s.t[i].w });
+      render();
+      const again = trayEl.querySelector('[data-i="' + i + '"]');
+      if (again) again.focus();
+    });
+    dragify(b, i);
+    trayEl.appendChild(b);
+  });
+  const total = decoIdx(s).length;
+  readoutBox(builtText(), P.t("progress", { k: placed.size, n: total }), "ok", L === "en" ? (placed.size === total ? P.t("gloss") + ": " + s.en : P.t("glossSk") + ": " + s.skelEn) : "");
+  Play.live(liveEl, builtText());
+}
+// Pointer drag from the tray onto a slot (mouse and touch); a plain tap still selects.
+function dragify(b, i) {
+  let start = null, ghost = null, over = null;
+  b.addEventListener("pointerdown", (e) => { start = { x: e.clientX, y: e.clientY }; b.setPointerCapture(e.pointerId); });
+  b.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    if (!ghost && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) {
+      ghost = b.cloneNode(true);
+      ghost.classList.add("ghost");
+      document.body.appendChild(ghost);
+    }
+    if (!ghost) return;
+    ghost.style.left = e.clientX + "px";
+    ghost.style.top = e.clientY + "px";
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const slot = el && el.closest("[data-slot]");
+    if (over && over !== slot) over.classList.remove("over");
+    over = slot;
+    if (over) over.classList.add("over");
+  });
+  const end = (e, cancel) => {
+    if (!start) return;
+    start = null;
+    if (!ghost) return;
+    ghost.remove(); ghost = null;
+    b.dataset.dragged = "1";
+    setTimeout(() => delete b.dataset.dragged, 0);
+    if (over) over.classList.remove("over");
+    const slot = over;
+    over = null;
+    if (!cancel && slot) tryPlace(i, +slot.dataset.slot);
+  };
+  b.addEventListener("pointerup", (e) => end(e, false));
+  b.addEventListener("pointercancel", (e) => end(e, true));
+}
+
+// ---- step 4: rule ----
+function renderRules() {
+  rulesEl.innerHTML = "";
+  let words = 0, skel = 0, stand = 0;
+  SENTS.forEach((s) => {
+    words += s.t.length;
+    skel += s.t.filter(isCore).length;
+    if (!missingRoles(s, new Set(decoIdx(s))).length) stand++;
+    const d = document.createElement("div");
+    d.className = "pair";
+    const f = document.createElement("div");
+    f.className = "full han";
+    f.lang = "zh-CN";
+    s.t.forEach((tok) => { const sp = document.createElement("span"); sp.className = isCore(tok) ? "k" : "m"; sp.textContent = tok.w; f.appendChild(sp); });
+    f.appendChild(document.createTextNode("。"));
+    const k = document.createElement("div");
+    k.className = "sk";
+    k.appendChild(document.createTextNode(P.t("skel", { s: "" })));
+    const b = document.createElement("b");
+    b.lang = "zh-CN";
+    b.textContent = s.t.filter(isCore).map((x) => x.w).join(" + ");
+    k.appendChild(b);
+    if (L === "en") k.appendChild(document.createTextNode(" — " + s.skelEn));
+    d.append(f, k);
+    rulesEl.appendChild(d);
+  });
+  const c = document.createElement("div");
+  c.className = "status ok";
+  c.textContent = P.t("ruleCount", { n: SENTS.length, s: stand, w: words, k: skel });
+  rulesEl.appendChild(c);
+  Play.live(liveEl, c.textContent);
+}
+
+function render() {
+  pickBtns.forEach((b, i) => b.setAttribute("aria-pressed", i === si ? "true" : "false"));
+  const build = step === 2, rule = step === 3;
+  pick.hidden = rule || (step === 0);
+  tilesEl.hidden = rule;
+  $("tools2").hidden = rule;
+  $("strip").hidden = step !== 1;
+  readout.hidden = rule || (step === 0 && !guessed);
+  trayEl.hidden = !build;
+  rulesEl.hidden = !rule;
+  if (rule) renderRules();
+  else if (build) renderBuild();
+  else renderTiles();
+}
+
+const skel0 = skeletonText(SENTS[0]).replace("。", "");
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right", { skel: skel0 }), wrong: P.t("wrong", { skel: skel0 }),
+}, () => { guessed = true; render(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  if (i === 0) si = 0;
+  if (i === 2) { sel = null; }
+  fb3.textContent = "";
+  render();
+});
+$("reset").addEventListener("click", () => {
+  si = 0; hidden = new Set(); placed = new Set(); sel = null; guessed = false;
+  pr.reset(); fb3.textContent = ""; st.go(0);
+});
+legend();
+render();
+</script>
+</body>
+</html>

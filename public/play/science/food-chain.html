@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who eats whom, and where the energy goes</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  #fig { height: auto; aspect-ratio: 600 / 392; max-height: 460px; }
+  #fig .lab { fill: var(--fg); font-family: var(--font); }
+  #fig .num { font-family: var(--font); font-variant-numeric: tabular-nums; }
+  #fig .hd { fill: var(--muted); font-family: var(--font); font-weight: 650; }
+  #fig g.slot { outline: none; }
+  #fig g.slot.act { cursor: pointer; }
+  #fig g.slot.act:hover .box, #fig g.slot:focus-visible .box { stroke: var(--a); stroke-width: 3; }
+  #fig g.slot:focus-visible .box { stroke: var(--hl); }
+  #fig g.slot.drop .box { stroke: var(--a); stroke-width: 3; stroke-dasharray: none; }
+  #fig .bars { transition: opacity .5s; }
+  @media (prefers-reduced-motion: reduce) { #fig .bars { transition: none; } }
+  .tray { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 14px 8px; }
+  .tray button { display: inline-flex; align-items: center; gap: 5px; font-size: 14px; padding: 4px 10px 4px 6px; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .tray button svg { width: 24px; height: 24px; flex: none; }
+  .tray button.fits { border-color: var(--a); background: var(--soft); }
+  .ghost { position: fixed; z-index: 10; pointer-events: none; background: var(--surface); border: 2px solid var(--a); border-radius: 999px; padding: 4px 12px; font-size: 14px; transform: translate(-50%, -120%); box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 3.2em; }
+  .hint { font-size: 13px; color: var(--muted); padding: 0 14px 4px; margin: 0; }
+  table.res { width: 100%; border-collapse: collapse; font-size: 14px; margin: 2px 0 10px; }
+  table.res th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 650; border-bottom: 1px solid var(--line); padding: 3px 4px; }
+  table.res td { padding: 4px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  table.res .r { text-align: right; white-space: nowrap; }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 392" role="group" data-t-aria="figAria"></svg>
+      <div id="c2" hidden>
+        <p class="hint" data-t="trayHint"></p>
+        <div class="tray" id="tray" role="toolbar" data-t-aria="trayAria"></div>
+        <div class="controls">
+          <label for="eff" data-t="effLabel"></label>
+          <input type="range" id="eff" min="5" max="20" step="1" value="10">
+          <output id="effVal" for="eff"></output>
+          <button type="button" class="small" id="clear" data-t="clear"></button>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="predict3"></div>
+      <div id="extra"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" id="data"></p>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Who eats whom, and where the energy goes", eyebrow: "Science · Stage 2",
+    h1: "Each step up a food chain keeps only about a tenth of the energy",
+    intro: "Guess first, then build food chains from a field and watch how much energy reaches each link.",
+    reset: "Reset", clear: "Clear chain",
+    figAria: "A food chain drawn from the bottom up, with a bar for the energy each link gets",
+    trayAria: "Plants and animals of the field",
+    trayHint: "Tap to add to the chain, or drag onto a link.",
+    s1: "Guess", s2: "Build", s3: "Rule",
+    hdChain: "Food chain", hdEnergy: "Energy per year (units)",
+    k1: "Predict first", t1: "Why are there so few hawks?",
+    b1: "This is one food chain from a field. Grass is eaten by grasshoppers, grasshoppers by frogs, frogs by snakes, snakes by hawks. Pick an answer, then the bars show how much energy each link gets.",
+    b1done: "The grass holds {e0} units; by the hawk only {e4} is left. The field can feed about {g} grasshoppers, but one hawk needs about {f} fields like it. Being at the top only means nothing in this chain eats you: an elephant is far stronger than a hawk, yet it eats plants and stands on the second step.",
+    q: "What puts the hawk at the top, with so few of them?",
+    o1: "It is the strongest animal in the field", o2: "Little energy is left by the time food reaches it", o3: "It is the biggest animal", o4: "Other animals chase hawks away",
+    right: "Yes. Look at the bars.", wrong: "Strength is not what puts it there. Look at the bars.",
+    k2: "Hands on", t2: "Build a chain, then change the efficiency",
+    b2: "Each link must eat the one below it, and a chain starts with a plant. Tap a link in the picture to remove it and everything above it. Then slide how much energy passes up each step.",
+    k3: "The rule", t3: "Each step up keeps about a tenth",
+    b3: "Each link passes on only about a tenth of its energy. The rest is used for living (moving, growing, keeping warm) and leaves as heat, or sits in parts that never get eaten. The dashed outlines show what the link below had. And 10 % is an average: real steps pass on roughly 5–20 %. Try both ends of the slider.",
+    effLabel: "Energy passed up each step", pctVal: "{p} %",
+    slotNext: "+ add link {k}", slotEmpty: "link {k}",
+    slotAria: "Link {k}: {x}, {e} units. Press Enter to remove it and the links above.",
+    slotAriaNext: "Link {k} is empty. Press Enter to choose from the tray.",
+    thLink: "Link", thWho: "Who", thE: "Energy", thFeeds: "Can live here", thUp: "Passed up", thLost: "Used or lost",
+    feedsN: "≈ {n}", feedsF: "1 per {f} fields", plantRow: "makes food",
+    msgAdd: "{x} eats {y}: it goes in link {k}.", msgPlant: "{x} makes its own food from sunlight, so it starts the chain.",
+    msgNo: "{x} does not eat {y}. {x} eats: {list}.", msgNeedPlant: "A food chain starts with a plant. Put grass or wheat in link 1 first.",
+    msgFull: "The chain is full. Tap a link in the picture to remove it first.", msgDup: "{x} is already in the chain.",
+    msgRemoved: "Removed link {k} and everything above it.", msgCut: "Links above it that no longer fit were taken off.", msgEmpty: "Put a plant in link 1.",
+    sumFeeds: "At {p} % per step: {x}: {a}. {y}: {b}.", sumOne1: "At {p} % per step: {x}: {a}.",
+    sumOne: "one needs about {f} fields like this", sumMany: "about {n} can live here",
+    q3: "In “grass → grasshopper”, what does the arrow mean?",
+    p3a: "Energy goes from the grass into the grasshopper", p3b: "The grass eats the grasshopper", p3c: "The grasshopper points at its dinner",
+    right3: "Yes. Arrows point from the eaten to the eater, the way the energy flows, so in this picture they all point up.",
+    wrong3: "Many people read the arrow as ‘eats’ or ‘points to food’. In a food chain it shows where the energy goes: from the one that is eaten into the one that eats it.",
+    n_grass: "Grass", n_wheat: "Wheat", n_grasshopper: "Grasshopper", n_mouse: "Mouse", n_rabbit: "Rabbit", n_sparrow: "Sparrow",
+    n_frog: "Frog", n_snake: "Snake", n_fox: "Fox", n_hawk: "Hawk", listSep: ", ", sp: " ",
+    resultTitle: "What we found", resultMain: "each step up: energy × about 1/10",
+    resultNote: "At {p} %, the {e0} units in the grass shrink to {e4} by the fifth link. That is why a field holds about {g} grasshoppers, while one hawk needs about {f} such fields to hunt over.",
+    explainK: "Explain it", explainQ: "A field has thousands of grasshoppers but only a few hawks. Explain why to a friend without using the words ‘strong’ or ‘weak’.",
+    homeK: "Try at home", homeQ: "Count out 100 grains of rice for the grass. Pass a tenth to a ‘grasshopper’ cup, then a tenth of that to a ‘frog’ cup. What is left for a snake? Then look in a park or garden: who eats whom?",
+    dataNote: "Numbers are illustrative. The field’s plants capture {e0} units of energy a year from sunlight; each step passes on the slider’s share ({p} % to start). Energy each animal needs per year (illustrative, bigger and warm-blooded animals need more): {needs}. ‘Can live here’ = energy at that link ÷ one animal’s need. Who eats whom is simplified; real animals eat many things and form a food web. The ‘ten percent’ idea goes back to R. Lindeman’s 1942 study of a lake (Ecology 23, 399–417); measured transfer efficiencies mostly fall between about 5 % and 20 %, with about 10 % a common average (e.g. Pauly & Christensen 1995, Nature 374, 255–257).",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "谁吃谁，能量去了哪儿", eyebrow: "科学 · 阶段 2",
+    h1: "食物链每往上一级，只留下大约十分之一的能量",
+    intro: "先猜，再用田野里的动植物搭食物链，看每一级能分到多少能量。",
+    reset: "重置", clear: "清空",
+    figAria: "从下往上画的食物链，每一级旁边一根柱子表示它得到的能量",
+    trayAria: "田野里的植物和动物",
+    trayHint: "点一下加到链上，或者拖到某一级上。",
+    s1: "先猜", s2: "动手", s3: "规律",
+    hdChain: "食物链", hdEnergy: "每年的能量（单位）",
+    k1: "先猜一猜", t1: "为什么鹰这么少？",
+    b1: "这是田野里的一条食物链：草被蚱蜢吃，蚱蜢被青蛙吃，青蛙被蛇吃，蛇被鹰吃。先选一个答案，柱子会显示每一级分到多少能量。",
+    b1done: "草里有 {e0} 单位能量，到鹰只剩 {e4}。这块地能养大约 {g} 只蚱蜢，一只鹰却要大约 {f} 块这样的地。在顶端只说明这条链里没有谁吃它：大象比鹰强壮得多，可它吃草，站在第二级。",
+    q: "鹰为什么在顶端，而且数量这么少？",
+    o1: "它是田野里最强的动物", o2: "食物传到它那里时，能量已经剩得很少", o3: "它是最大的动物", o4: "别的动物把鹰赶走了",
+    right: "对。看柱子。", wrong: "让它在顶端的不是力气。看柱子。",
+    k2: "动手", t2: "搭一条链，再改传递比例",
+    b2: "每一级都要吃下面那一级，链要从植物开始。点图里的某一级，可以把它和上面的都拿掉。然后拖滑块，改每一级往上传多少能量。",
+    k3: "规律", t3: "每往上一级，只留下大约十分之一",
+    b3: "每一级只把大约十分之一的能量传给上一级。其余的用来活着（走动、长大、保持体温），最后变成热散掉，或者留在没被吃掉的部分里。虚线框是下面一级原有的能量。10 % 只是平均数：实际每一级大约传 5%–20%。把滑块拖到两头试试。",
+    effLabel: "每级往上传的能量", pctVal: "{p}%",
+    slotNext: "+ 第 {k} 级", slotEmpty: "第 {k} 级",
+    slotAria: "第 {k} 级：{x}，{e} 单位。按回车把它和上面的拿掉。",
+    slotAriaNext: "第 {k} 级是空的。按回车去下面挑一个。",
+    thLink: "级", thWho: "谁", thE: "能量", thFeeds: "能养多少", thUp: "传上去", thLost: "用掉或散失",
+    feedsN: "约 {n} 只", feedsF: "每 {f} 块地 1 只", plantRow: "自己造养料",
+    msgAdd: "{x}吃{y}：放在第 {k} 级。", msgPlant: "{x}靠阳光自己造养料，所以它是链的起点。",
+    msgNo: "{x}不吃{y}。{x}吃：{list}。", msgNeedPlant: "食物链从植物开始。先在第 1 级放草或麦子。",
+    msgFull: "链满了。先点图里的某一级把它拿掉。", msgDup: "{x}已经在链上了。",
+    msgRemoved: "拿掉了第 {k} 级和它上面的。", msgCut: "上面接不上的几级被拿掉了。", msgEmpty: "先在第 1 级放一种植物。",
+    sumFeeds: "每级传 {p}% 时：{x}，{a}；{y}，{b}。", sumOne1: "每级传 {p}% 时：{x}，{a}。",
+    sumOne: "一只要大约 {f} 块这样的地", sumMany: "这块地能养大约 {n} 只",
+    q3: "「草 → 蚱蜢」里的箭头是什么意思？",
+    p3a: "能量从草流进蚱蜢", p3b: "草吃蚱蜢", p3c: "蚱蜢指着它的食物",
+    right3: "对。箭头从被吃的指向吃它的，就是能量流动的方向，所以图里的箭头都朝上。",
+    wrong3: "很多人把箭头读成「吃」或者「指向食物」。在食物链里，箭头表示能量去哪儿：从被吃的流进吃它的。",
+    n_grass: "草", n_wheat: "麦子", n_grasshopper: "蚱蜢", n_mouse: "老鼠", n_rabbit: "兔子", n_sparrow: "麻雀",
+    n_frog: "青蛙", n_snake: "蛇", n_fox: "狐狸", n_hawk: "鹰", listSep: "、", sp: "",
+    resultTitle: "我们发现", resultMain: "每往上一级：能量 × 约 1/10",
+    resultNote: "每级传 {p}% 时，草里的 {e0} 单位能量到第五级只剩 {e4}。所以一块地能养大约 {g} 只蚱蜢，一只鹰却要在大约 {f} 块这样的地上捕食。",
+    explainK: "说一说", explainQ: "田野里蚱蜢成千上万，鹰却只有几只。不用「强」「弱」这两个字，给朋友讲讲为什么。",
+    homeK: "家里做一做", homeQ: "数 100 粒米当作草。把十分之一放进「蚱蜢」杯，再把它的十分之一放进「青蛙」杯。还剩多少给蛇？再去公园或花园看看：谁吃谁？",
+    dataNote: "数字是示意。田里的植物每年从阳光固定 {e0} 单位能量；每一级往上传滑块上的比例（开始是 {p}%）。每只动物每年需要的能量（示意值，个子大、恒温的动物要得多）：{needs}。「能养多少」= 这一级的能量 ÷ 一只动物的需要。谁吃谁做了简化，真实的动物吃很多种东西，连成食物网。「十分之一」的说法来自林德曼 1942 年对一个湖的研究（Ecology 23, 399–417）；实测的传递效率大多在 5%–20% 之间，常见平均约 10%（如 Pauly & Christensen 1995，Nature 374, 255–257）。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- pure logic (tested in node) ----------
+const E0 = 10000, SLOTS = 5, DEF_EFF = 10;
+// eats: what each animal eats in this simplified field. need: energy units per animal per year (illustrative).
+const ORG = {
+  grass: { plant: true }, wheat: { plant: true },
+  grasshopper: { eats: ["grass", "wheat"], need: 2 },
+  mouse: { eats: ["wheat", "grass"], need: 20 },
+  rabbit: { eats: ["grass"], need: 100 },
+  sparrow: { eats: ["wheat", "grasshopper"], need: 15 },
+  frog: { eats: ["grasshopper"], need: 5 },
+  snake: { eats: ["frog", "mouse", "sparrow"], need: 20 },
+  fox: { eats: ["rabbit", "mouse", "sparrow"], need: 300 },
+  hawk: { eats: ["snake", "mouse", "rabbit", "sparrow", "frog"], need: 100 },
+};
+const ORDER = ["grass", "wheat", "grasshopper", "mouse", "rabbit", "sparrow", "frog", "snake", "fox", "hawk"];
+const DEFAULT = ["grass", "grasshopper", "frog", "snake", "hawk"];
+const fits = (chain, k, id) => (k === 0 ? !!ORG[id].plant : !ORG[id].plant && ORG[id].eats.includes(chain[k - 1]));
+// put id at link k; keep the old links above it while they still fit
+function placeAt(chain, k, id) {
+  k = Math.min(k, chain.length);
+  if (k >= SLOTS || !fits(chain, k, id)) return null;
+  const out = chain.slice(0, k).concat(id);
+  for (let j = k + 1; j < chain.length && j < SLOTS; j++) { if (fits(out, j, chain[j]) && !out.includes(chain[j])) out.push(chain[j]); else break; }
+  return out;
+}
+// tap: append; else a plant replaces link 1; else replace the highest link it can eat from
+function tapAdd(chain, id) {
+  if (chain.includes(id)) return { chain, msg: "dup" };
+  if (ORG[id].plant) return { chain: placeAt(chain, 0, id), msg: "plant", k: 0 };
+  if (!chain.length) return { chain, msg: "needPlant" };
+  if (chain.length < SLOTS && fits(chain, chain.length, id)) return { chain: placeAt(chain, chain.length, id), msg: "add", k: chain.length };
+  for (let k = Math.min(chain.length, SLOTS) - 1; k >= 1; k--) if (fits(chain, k, id)) return { chain: placeAt(chain, k, id), msg: "add", k };
+  return { chain, msg: chain.length >= SLOTS ? "full" : "no" };
+}
+const energies = (n, eff) => Array.from({ length: n }, (_, k) => E0 * Math.pow(eff / 100, k));
+const sig2 = (x) => Number(x.toPrecision(2));
+function feeds(E, need) { // {n} animals, or 1 per {f} fields
+  if (!(E > 0) || !(need > 0)) return { n: 0 };
+  const n = E / need;
+  return n >= 1 ? { n: Math.floor(n) } : { f: sig2(need / E) };
+}
+function group(n) { const s = String(Math.round(n)); return s.replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+function fmtE(E) {
+  if (!Number.isFinite(E)) return "—";
+  if (E >= 10) return group(E);
+  if (E >= 1) return String(Number(E.toFixed(1)));
+  return String(sig2(E));
+}
+// ---------- end pure logic ----------
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), effIn = $("eff"), tray = $("tray");
+const name = (id) => P.t("n_" + id);
+const W = 600, TOP = 44, ROW = 68, SL = { x: 8, w: 192, h: 48 }, BAR = { cx: 402, max: 376, h: 32 };
+const rowTop = (k) => TOP + (SLOTS - 1 - k) * ROW;
+
+let cur = 0, chain = ["grass", "grasshopper"], answered = false, msg = "", fs = 14, dropK = -1;
+
+function updateFs() {
+  const r = fig.getBoundingClientRect();
+  const sc = Math.min(r.width / 600, r.height / 392);
+  fs = sc > 0 ? Math.max(14, 13.5 / sc) : 14;
+}
+
+// ---------- icons (32 × 32 box) ----------
+function icon(id, g) {
+  const S = (t, a) => Play.svg(t, a, g), st = (c, w) => ({ fill: "none", stroke: c, "stroke-width": w, "stroke-linecap": "round", "stroke-linejoin": "round" });
+  if (id === "grass") ["M8 31Q7 18 3 7", "M16 31Q16 16 16 2", "M24 31Q25 18 30 9"].forEach((d) => S("path", Object.assign({ d }, st("var(--a)", 3.2))));
+  else if (id === "wheat") {
+    S("path", Object.assign({ d: "M16 31V5" }, st("var(--b)", 2)));
+    [8, 14, 20].forEach((y) => { S("ellipse", { cx: 12.5, cy: y, rx: 3, ry: 4.6, fill: "var(--hl)", transform: `rotate(-25 12.5 ${y})` }); S("ellipse", { cx: 19.5, cy: y, rx: 3, ry: 4.6, fill: "var(--hl)", transform: `rotate(25 19.5 ${y})` }); });
+  } else if (id === "grasshopper") {
+    S("ellipse", { cx: 14, cy: 20, rx: 11, ry: 4.5, fill: "var(--hl)" });
+    S("circle", { cx: 25.5, cy: 18, r: 4.2, fill: "var(--hl)" });
+    S("path", Object.assign({ d: "M9 19L17 9L21 25" }, st("var(--b)", 2.4)));
+    S("path", Object.assign({ d: "M27 14Q29 6 23 3" }, st("var(--fg)", 1.3)));
+  } else if (id === "mouse") {
+    S("path", Object.assign({ d: "M6 23Q0 27 3 31" }, st("var(--muted)", 1.8)));
+    S("ellipse", { cx: 16, cy: 21, rx: 11, ry: 7.5, fill: "var(--muted)" });
+    S("circle", { cx: 22, cy: 12.5, r: 4.5, fill: "var(--muted)" });
+    S("circle", { cx: 25, cy: 19, r: 1.3, fill: "var(--surface)" });
+  } else if (id === "rabbit") {
+    S("ellipse", { cx: 21, cy: 6.5, rx: 2.3, ry: 6.5, fill: "var(--c)", transform: "rotate(-10 21 6.5)" });
+    S("ellipse", { cx: 26, cy: 7, rx: 2.3, ry: 6.5, fill: "var(--c)", transform: "rotate(15 26 7)" });
+    S("ellipse", { cx: 13, cy: 23, rx: 10.5, ry: 8, fill: "var(--c)" });
+    S("circle", { cx: 23.5, cy: 16.5, r: 6, fill: "var(--c)" });
+    S("circle", { cx: 3.5, cy: 21, r: 3, fill: "var(--surface)", stroke: "var(--c)", "stroke-width": 1.5 });
+    S("circle", { cx: 25.5, cy: 15.5, r: 1.2, fill: "var(--surface)" });
+  } else if (id === "sparrow") {
+    S("path", { d: "M8 18L1 12L3 22Z", fill: "var(--b)" });
+    S("ellipse", { cx: 15, cy: 20, rx: 10, ry: 7, fill: "var(--b)" });
+    S("circle", { cx: 23.5, cy: 12, r: 5, fill: "var(--b)" });
+    S("path", { d: "M28 10.5L32 12.5L28 14Z", fill: "var(--hl)" });
+    S("path", Object.assign({ d: "M9 18Q15 23 21 18" }, st("var(--surface)", 1.6)));
+    S("path", Object.assign({ d: "M13 27V31M18 27V31" }, st("var(--fg)", 1.3)));
+  } else if (id === "frog") {
+    S("ellipse", { cx: 16, cy: 22, rx: 13.5, ry: 8, fill: "var(--a)" });
+    [9.5, 22.5].forEach((x) => { S("circle", { cx: x, cy: 13, r: 4.6, fill: "var(--a)" }); S("circle", { cx: x, cy: 12.5, r: 1.8, fill: "var(--fg)" }); });
+    S("path", Object.assign({ d: "M10 23Q16 27 22 23" }, st("var(--surface)", 1.6)));
+  } else if (id === "snake") {
+    S("path", Object.assign({ d: "M2 26C8 12 13 13 15 20S23 30 27 15" }, st("var(--c)", 5.5)));
+    S("circle", { cx: 27.5, cy: 13, r: 3.8, fill: "var(--c)" });
+    S("path", Object.assign({ d: "M29 9.5L30.5 6M30.5 6L29 4.5M30.5 6L32 5" }, st("var(--no)", 1.1)));
+  } else if (id === "fox") {
+    S("path", { d: "M3 7L16 30L29 7Z", fill: "var(--no)" });
+    S("path", { d: "M3 7L5 0L12 7Z M29 7L27 0L20 7Z", fill: "var(--no)" });
+    S("path", { d: "M9 15L16 30L23 15Q16 19 9 15Z", fill: "var(--surface)", opacity: 0.85 });
+    S("circle", { cx: 16, cy: 28.5, r: 1.8, fill: "var(--fg)" });
+    S("circle", { cx: 11, cy: 12, r: 1.4, fill: "var(--fg)" }); S("circle", { cx: 21, cy: 12, r: 1.4, fill: "var(--fg)" });
+  } else if (id === "hawk") {
+    S("path", { d: "M16 13L1 6L5 13L0 16L16 20L32 16L27 13L31 6Z", fill: "var(--fg)", opacity: 0.85 });
+    S("path", { d: "M13 19L16 30L19 19Z", fill: "var(--fg)", opacity: 0.85 });
+    S("circle", { cx: 16, cy: 10.5, r: 3.6, fill: "var(--fg)" });
+    S("path", { d: "M14.5 13.5L16 16.5L17.5 13.5Z", fill: "var(--hl)" });
+  }
+}
+
+// ---------- figure ----------
+const showChain = () => (cur === 0 ? DEFAULT : chain);
+const effNow = () => (cur === 0 ? DEF_EFF : +effIn.value);
+
+function fitText(t, max) {
+  try { const w = t.getComputedTextLength(); if (w > max) { t.setAttribute("textLength", max); t.setAttribute("lengthAdjust", "spacingAndGlyphs"); } } catch (e) { /* not rendered yet */ }
+}
+
+function draw() {
+  while (fig.firstChild) fig.removeChild(fig.firstChild);
+  const ch = showChain(), E = energies(ch.length, effNow());
+  const hfs = Math.max(12, fs * 0.9);
+  Play.svg("text", { class: "hd", x: SL.x + 2, y: 20, "font-size": hfs.toFixed(1) }, fig).textContent = P.t("hdChain");
+  Play.svg("text", { class: "hd", x: W - 8, y: 20, "text-anchor": "end", "font-size": hfs.toFixed(1) }, fig).textContent = P.t("hdEnergy");
+  const bars = Play.svg("g", { class: "bars", opacity: cur === 0 && !answered ? 0 : 1 }, fig);
+  const edit = cur > 0;
+  for (let k = 0; k < SLOTS; k++) {
+    const y = rowTop(k) + (ROW - SL.h) / 2, cy = y + SL.h / 2, id = ch[k];
+    // arrow from link k-1 up to link k: energy flows from the eaten to the eater
+    if (k > 0 && id) {
+      const x = SL.x + SL.w / 2, y1 = y + SL.h + (ROW - SL.h) - 2, y2 = y + SL.h + 3;
+      Play.svg("path", { d: `M${x} ${y1}V${y2 + 6}`, stroke: "var(--a)", "stroke-width": 3, fill: "none" }, fig);
+      Play.svg("path", { d: `M${x - 6} ${y2 + 8}L${x} ${y2}L${x + 6} ${y2 + 8}Z`, fill: "var(--a)" }, fig);
+    }
+    const isNext = !id && k === ch.length;
+    const g = Play.svg("g", { class: "slot" + (edit && (id || isNext) ? " act" : "") + (k === dropK ? " drop" : "") }, fig);
+    g.dataset.k = k;
+    Play.svg("rect", { class: "box", x: SL.x, y, width: SL.w, height: SL.h, rx: 10, fill: id ? "var(--surface)" : "none", stroke: id ? "var(--line)" : "var(--muted)", "stroke-width": 1.5, "stroke-dasharray": id ? "" : "5 5", opacity: id || isNext ? 1 : 0.45 }, g);
+    if (id) {
+      const ig = Play.svg("g", { transform: `translate(${SL.x + 8} ${cy - 16})` }, g);
+      icon(id, ig);
+      const t = Play.svg("text", { class: "lab", x: SL.x + 48, y: cy + fs * 0.35, "font-size": fs.toFixed(1) }, g);
+      t.textContent = name(id);
+      fitText(t, SL.w - 54);
+      if (edit) { g.setAttribute("tabindex", "0"); g.setAttribute("role", "button"); g.setAttribute("aria-label", P.t("slotAria", { k: k + 1, x: name(id), e: fmtE(E[k]) })); }
+      // bar
+      const w = Math.max(2, (E[k] / E0) * BAR.max), bx = BAR.cx - w / 2, by = cy - BAR.h / 2;
+      if (cur === 2 && k > 0) Play.svg("rect", { x: BAR.cx - Math.max(2, (E[k - 1] / E0) * BAR.max) / 2, y: by - 3, width: Math.max(2, (E[k - 1] / E0) * BAR.max), height: BAR.h + 6, rx: 5, fill: "none", stroke: "var(--muted)", "stroke-width": 1.5, "stroke-dasharray": "5 4" }, bars);
+      Play.svg("rect", { x: bx, y: by, width: w, height: BAR.h, rx: 4, fill: ORG[id].plant ? "var(--a)" : "var(--b)" }, bars);
+      const hide = cur === 0 && !answered, label = hide ? "?" : fmtE(E[k]), tw = label.length * 0.6 * fs;
+      const inside = !hide && w > tw + 14;
+      const lt = Play.svg("text", { class: "num", x: inside || hide ? BAR.cx : bx + w + 6, y: cy + fs * 0.35, "text-anchor": inside || hide ? "middle" : "start", "font-size": fs.toFixed(1), fill: inside ? "var(--surface)" : "var(--fg)", "font-weight": 700 }, hide ? fig : bars);
+      lt.textContent = label;
+    } else if (isNext && edit) {
+      g.setAttribute("tabindex", "0"); g.setAttribute("role", "button");
+      g.setAttribute("aria-label", P.t("slotAriaNext", { k: k + 1 }));
+      const t = Play.svg("text", { class: "lab", x: SL.x + SL.w / 2, y: cy + fs * 0.35, "text-anchor": "middle", "font-size": fs.toFixed(1), fill: "var(--a)" }, g);
+      t.style.fill = "var(--a)"; t.textContent = P.t("slotNext", { k: k + 1 });
+      fitText(t, SL.w - 16);
+    } else {
+      const t = Play.svg("text", { class: "lab", x: SL.x + SL.w / 2, y: cy + fs * 0.35, "text-anchor": "middle", "font-size": fs.toFixed(1), opacity: 0.45 }, g);
+      t.textContent = P.t("slotEmpty", { k: k + 1 });
+    }
+  }
+}
+
+// ---------- slot interaction (remove / focus tray) ----------
+function slotAct(k) {
+  if (cur === 0) return;
+  if (k < chain.length) { chain = chain.slice(0, k); msg = P.t("msgRemoved", { k: k + 1 }); update(); focusSlot(k); }
+  else if (k === chain.length) { const b = tray.querySelector("button.fits") || tray.querySelector("button"); if (b) b.focus(); }
+}
+function focusSlot(k) { const g = fig.querySelector(`g.slot[data-k="${k}"][tabindex]`); if (g) g.focus(); }
+fig.addEventListener("click", (e) => { const g = e.target.closest && e.target.closest("g.slot"); if (g) slotAct(+g.dataset.k); });
+fig.addEventListener("keydown", (e) => {
+  const g = e.target.closest && e.target.closest("g.slot");
+  if (!g) return;
+  const k = +g.dataset.k;
+  if (e.key === "Enter" || e.key === " " || e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); slotAct(k); }
+  if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); focusSlot(Play.clamp(k + (e.key === "ArrowUp" ? 1 : -1), 0, SLOTS - 1)); }
+});
+
+// ---------- tray: tap or drag ----------
+const chips = {};
+function say(r, id) {
+  const ch = r.chain;
+  if (r.msg === "add") msg = P.t("msgAdd", { x: name(id), y: name(ch[r.k - 1]), k: r.k + 1 });
+  else if (r.msg === "plant") msg = P.t("msgPlant", { x: name(id) });
+  else if (r.msg === "dup") msg = P.t("msgDup", { x: name(id) });
+  else if (r.msg === "needPlant") msg = P.t("msgNeedPlant");
+  else if (r.msg === "full") msg = P.t("msgFull");
+  else msg = P.t("msgNo", { x: name(id), y: name(ch[ch.length - 1]), list: ORG[id].eats.map(name).join(P.t("listSep")) });
+}
+function cutNote(old) { if (chain.length < old.length) msg += P.t("sp") + P.t("msgCut"); }
+function tap(id) { const old = chain, r = tapAdd(chain, id); chain = r.chain; say(r, id); cutNote(old); update(); }
+function dropOn(k, id) {
+  if (chain.includes(id) && chain.indexOf(id) !== Math.min(k, chain.length)) { say({ msg: "dup", chain }, id); update(); return; }
+  if (!ORG[id].plant && !chain.length) { say({ msg: "needPlant", chain }, id); update(); return; }
+  const kk = Math.min(k, chain.length), out = placeAt(chain, kk, id);
+  if (out) { const old = chain; chain = out; say({ msg: kk === 0 ? "plant" : "add", chain, k: kk }, id); cutNote(old); }
+  else if (kk >= SLOTS) say({ msg: "full", chain }, id);
+  else if (kk === 0) say({ msg: "needPlant", chain }, id);
+  else msg = P.t("msgNo", { x: name(id), y: name(chain[kk - 1]), list: ORG[id].eats.map(name).join(P.t("listSep")) });
+  update();
+}
+function slotAtPoint(e) {
+  const r = fig.getBoundingClientRect();
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return -1;
+  const p = Play.pointer(fig, e);
+  return Play.clamp(SLOTS - 1 - Math.floor((p.y - TOP) / ROW), 0, SLOTS - 1);
+}
+ORDER.forEach((id) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  const s = Play.svg("svg", { viewBox: "-1 -1 34 34", "aria-hidden": "true" });
+  icon(id, s);
+  b.append(s, document.createTextNode(name(id)));
+  tray.appendChild(b); chips[id] = b;
+  let start = null, drag = false, ghost = null, skip = false;
+  b.addEventListener("pointerdown", (e) => { start = { x: e.clientX, y: e.clientY }; drag = false; try { b.setPointerCapture(e.pointerId); } catch (x) { /* ok */ } });
+  b.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    if (!drag && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) {
+      drag = true; ghost = document.createElement("div"); ghost.className = "ghost"; ghost.textContent = name(id); document.body.appendChild(ghost);
+    }
+    if (ghost) {
+      ghost.style.left = e.clientX + "px"; ghost.style.top = e.clientY + "px";
+      const k = slotAtPoint(e), kk = k < 0 ? -1 : Math.min(k, chain.length);
+      if (kk !== dropK) { dropK = kk; draw(); }
+    }
+  });
+  const end = (e, ok) => {
+    if (!start) return;
+    if (drag) { skip = true; const k = slotAtPoint(e); if (ok && k >= 0) dropOn(k, id); }
+    if (ghost) ghost.remove();
+    ghost = null; start = null; drag = false;
+    if (dropK !== -1) { dropK = -1; draw(); }
+  };
+  b.addEventListener("pointerup", (e) => end(e, true));
+  b.addEventListener("pointercancel", (e) => end(e, false));
+  b.addEventListener("click", () => { if (skip) { skip = false; return; } tap(id); });
+  b.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const i = ORDER.indexOf(id), n = ORDER.length;
+    chips[ORDER[(i + (e.key === "ArrowRight" ? 1 : n - 1)) % n]].focus();
+  });
+});
+
+// ---------- text ----------
+function el(tag, txt, cls) { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; }
+function feedsText(E, id) {
+  if (ORG[id].plant) return P.t("plantRow");
+  const f = feeds(E, ORG[id].need);
+  return f.f ? P.t("feedsF", { f: group(f.f) }) : P.t("feedsN", { n: group(f.n) });
+}
+function table(ch, E, mode) {
+  const tb = el("table", null, "res"), hr = el("tr");
+  const heads = mode === 3 ? ["thLink", "thWho", "thE", "thUp", "thLost"] : ["thLink", "thWho", "thE", "thFeeds"];
+  heads.forEach((h, i) => hr.appendChild(el("th", P.t(h), i > 1 ? "r" : "")));
+  tb.appendChild(hr);
+  for (let k = ch.length - 1; k >= 0; k--) {
+    const tr = el("tr");
+    tr.append(el("td", String(k + 1)), el("td", name(ch[k])), el("td", fmtE(E[k]), "r"));
+    if (mode === 3) {
+      const up = k < ch.length - 1 ? E[k + 1] : 0;
+      tr.append(el("td", k < ch.length - 1 ? fmtE(up) : "—", "r"), el("td", fmtE(E[k] - up), "r"));
+    } else tr.append(el("td", feedsText(E[k], ch[k]), "r"));
+    tb.appendChild(tr);
+  }
+  return tb;
+}
+function summary(ch, E, p) {
+  if (ch.length < 2) return "";
+  const lo = ch[1], hi = ch[ch.length - 1], a = feeds(E[1], ORG[lo].need), b = feeds(E[ch.length - 1], ORG[hi].need);
+  const part = (f) => (f.f ? P.t("sumOne", { f: group(f.f) }) : P.t("sumMany", { n: group(f.n) }));
+  if (ch.length === 2) return P.t("sumOne1", { p, x: name(lo), a: part(a) });
+  return P.t("sumFeeds", { p, x: name(lo), a: part(a), y: name(hi), b: part(b) });
+}
+function text() {
+  const k = cur + 1, extra = $("extra");
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  extra.innerHTML = "";
+  if (cur === 0) {
+    const E = energies(5, DEF_EFF), g = feeds(E[1], ORG.grasshopper.need), h = feeds(E[4], ORG.hawk.need);
+    $("stepBody").textContent = answered ? P.t("b1done", { e0: fmtE(E[0]), e4: fmtE(E[4]), g: group(g.n || 0), f: group(h.f || 1) }) : P.t("b1");
+    Play.live($("live"), "");
+    return;
+  }
+  const p = +effIn.value, E = energies(chain.length, p);
+  $("effVal").textContent = P.t("pctVal", { p });
+  $("stepBody").textContent = P.t(cur === 1 ? "b2" : "b3");
+  if (chain.length) extra.appendChild(table(chain, E, cur === 1 ? 2 : 3));
+  const s = summary(chain, E, p);
+  Play.live($("live"), [msg, chain.length ? s : P.t("msgEmpty")].filter(Boolean).join(P.t("sp")));
+}
+function markTray() {
+  ORDER.forEach((id) => chips[id].classList.toggle("fits", !chain.includes(id) && chain.length < SLOTS && fits(chain, chain.length, id)));
+}
+function update() { draw(); text(); markTray(); }
+
+// ---------- steps ----------
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }, { label: P.t("o4") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { answered = true; update(); });
+const pr3 = Play.predict($("predict3"), {
+  q: P.t("q3"),
+  options: [{ label: P.t("p3a"), right: true }, { label: P.t("p3b") }, { label: P.t("p3c") }],
+  right: P.t("right3"), wrong: P.t("wrong3"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  cur = i; msg = "";
+  $("predict").hidden = i !== 0; $("predict3").hidden = i !== 2; $("c2").hidden = i === 0;
+  updateFs(); update();
+});
+effIn.addEventListener("input", () => { msg = ""; update(); });
+$("clear").addEventListener("click", () => { chain = []; msg = ""; update(); });
+$("reset").addEventListener("click", () => {
+  chain = ["grass", "grasshopper"]; effIn.value = DEF_EFF; answered = false; msg = ""; pr.reset(); pr3.reset(); st.go(0);
+});
+window.addEventListener("resize", () => { const o = fs; updateFs(); if (o !== fs) draw(); });
+
+(function notes() {
+  const E = energies(5, DEF_EFF), g = feeds(E[1], ORG.grasshopper.need), h = feeds(E[4], ORG.hawk.need);
+  $("resultNote").textContent = P.t("resultNote", { p: DEF_EFF, e0: fmtE(E0), e4: fmtE(E[4]), g: group(g.n || 0), f: group(h.f || 1) });
+  const needs = ORDER.filter((id) => !ORG[id].plant).map((id) => name(id) + " " + ORG[id].need).join(P.t("listSep"));
+  $("data").textContent = P.t("dataNote", { e0: fmtE(E0), p: DEF_EFF, needs });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tap the beat of a Tang poem</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .han { font-family: "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", "Songti SC", serif; }
+  .poemwrap { padding: 14px 14px 10px; }
+  .pick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .pick button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .ptitle { text-align: center; margin: 4px 0 8px; }
+  .ptitle .h { font-size: 22px; }
+  .ptitle .by { font-size: 13px; color: var(--muted); margin-left: 8px; }
+  .ptitle .en { display: block; font-size: 13px; color: var(--muted); }
+  .pline { display: flex; align-items: flex-start; gap: 6px; margin: 2px 0 8px; }
+  .pline .sp { flex: none; margin-top: 8px; padding: 4px 8px; }
+  .pbody { flex: 1 1 auto; min-width: 0; }
+  .chars { display: flex; align-items: stretch; justify-content: center; flex-wrap: nowrap; }
+  .ch { font-size: 28px; line-height: 44px; width: 1.25em; text-align: center; flex: none; border-radius: 8px; }
+  button.ch { padding: 0; border: 1px solid transparent; background: transparent; font-size: 28px; line-height: 42px; }
+  button.ch[aria-disabled=true] { cursor: default; }
+  .rhymeon button.ch { border: 1px dashed var(--line); }
+  button.ch.mine { background: var(--soft); border: 1px solid var(--fg); }
+  button.ch.rok { background: var(--c); color: var(--surface); border-color: var(--c); }
+  button.ch.rno { border: 2px solid var(--no); }
+  button.ch.rmiss { border: 2px dashed var(--c); }
+  .gap { flex: none; width: 20px; min-width: 20px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--a); font-size: 24px; font-weight: 700; line-height: 44px; }
+  .gap:hover { background: var(--soft); }
+  .gap { position: relative; }
+  .gap::before { content: ""; position: absolute; left: 50%; top: 10px; bottom: 10px; border-left: 2px dotted var(--line); }
+  .gap[aria-pressed=true]::before, .gap.g-miss::before { display: none; }
+  .gap .s { display: inline-block; }
+  .gap.g-cut { color: var(--no); background: color-mix(in srgb, var(--no) 14%, transparent); }
+  .gap.g-miss .s { color: var(--muted); opacity: .6; }
+  .gap.g-ok { color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+  .py { text-align: center; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .gl { text-align: center; font-size: 13px; color: var(--fg); font-style: italic; line-height: 1.4; }
+  .fbk { text-align: center; font-size: 13px; line-height: 1.4; min-height: 0; }
+  .fbk.ok { color: var(--c); } .fbk.no { color: var(--no); }
+  .fbk .std { font-family: "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", serif; font-size: 16px; color: var(--fg); }
+  .fbk .mj { color: var(--c); font-weight: 700; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 4px 0 4px; }
+  table.rt { width: 100%; border-collapse: collapse; font-size: 14px; margin: 6px 0 4px; }
+  table.rt th, table.rt td { border-bottom: 1px solid var(--line); padding: 4px 4px; text-align: center; }
+  table.rt th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  table.rt td.c { font-size: 22px; }
+  table.rt tr.yes td { color: var(--c); font-weight: 650; }
+  #fig text { fill: var(--fg); }
+  .stage svg.main#fig { height: auto; aspect-ratio: 2 / 1; max-height: 360px; }
+  #fig .lab { fill: var(--muted); font-size: 24px; }
+  #fig .box { fill: var(--soft); stroke: var(--line); stroke-width: 1.5; }
+  #fig .slash { fill: var(--a); font-weight: 700; }
+  #fig .brace { stroke: var(--a); stroke-width: 2.5; fill: none; }
+  #fig .num { fill: var(--a); font-size: 24px; font-weight: 700; }
+  #fig .sub { fill: var(--muted); font-size: 23px; }
+  .result .math { white-space: normal; line-height: 1.35; }
+  #stats { margin: 0 0 10px; padding-left: 18px; font-size: 14px; color: var(--fg); }
+  @media (max-width: 560px) {
+    .poemwrap { padding: 12px 6px 8px; }
+    .ch, button.ch { font-size: 24px; }
+    .gap { width: 16px; min-width: 16px; font-size: 20px; }
+    .pline .sp { padding: 4px 6px; }
+  }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 300" role="img" data-t-aria="figAria" hidden></svg>
+      <div class="poemwrap" id="poemwrap">
+        <div class="pick" id="pick" role="group" data-t-aria="pickAria"></div>
+        <div class="ptitle han" id="ptitle"></div>
+        <div id="lines"></div>
+        <div class="actions" id="beatAct">
+          <button type="button" class="small" id="check" data-t="check"></button>
+          <button type="button" class="small" id="std" data-t="std"></button>
+          <button type="button" class="small" id="clear" data-t="clear"></button>
+        </div>
+        <div class="actions">
+          <button type="button" class="small" id="sayAll" data-t="sayAll"></button>
+          <button type="button" class="small" id="sayFlat" data-t="sayFlat"></button>
+        </div>
+        <div class="actions" id="rhymeAct" hidden>
+          <button type="button" class="small" id="checkR" data-t="checkR"></button>
+          <button type="button" class="small" id="clearR" data-t="clearR"></button>
+        </div>
+        <div id="rtable"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <ul id="stats" hidden></ul>
+      <p class="note" id="live"></p>
+      <p class="note" data-t="voiceNote"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math han" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// Poems: public-domain Tang texts. Beat marks inside each line:
+//   "|" main pause (五言 after char 2, 七言 after char 4), "/" standard secondary pause, "," acceptable optional pause.
+const POEMS = [
+  { t: "静夜思", by: "李白", en: "Quiet Night Thoughts — Li Bai",
+    l: ["床前|明月/光", "疑是|地上/霜", "举头|望/明月", "低头|思/故乡"],
+    g: ["Before my bed, the bright moonlight —", "I took it for frost on the ground.", "I lift my head and look at the bright moon,", "I lower my head and think of home."] },
+  { t: "登鹳雀楼", by: "王之涣", en: "Climbing Stork Tower — Wang Zhihuan",
+    l: ["白日|依山/尽", "黄河|入海/流", "欲穷|千里/目", "更上|一层/楼"],
+    g: ["The white sun sinks behind the hills,", "the Yellow River flows into the sea.", "If you want to see a thousand li farther,", "climb one more floor."] },
+  { t: "春晓", by: "孟浩然", en: "Spring Morning — Meng Haoran",
+    l: ["春眠|不觉/晓", "处处|闻/啼鸟", "夜来|风雨/声", "花落|知/多少"],
+    g: ["Sleeping in spring, I miss the dawn;", "everywhere I hear birds singing.", "Last night, the sound of wind and rain —", "how many flowers fell?"] },
+  { t: "绝句", by: "杜甫", en: "Quatrain — Du Fu",
+    l: ["两个/黄鹂|鸣,翠柳", "一行/白鹭|上,青天", "窗含/西岭|千秋雪", "门泊/东吴|万里船"],
+    g: ["Two orioles sing in the green willow;", "a line of white egrets climbs the blue sky.", "My window frames the snow of the Western Hills, a thousand autumns old;", "at my gate are moored boats from Eastern Wu, ten thousand li away."] },
+];
+// Pinyin table (Putonghua citation readings as used in these poems; no tone sandhi for 一 / 不).
+const PY = {
+  床: "chuáng", 前: "qián", 明: "míng", 月: "yuè", 光: "guāng", 疑: "yí", 是: "shì", 地: "dì", 上: "shàng", 霜: "shuāng",
+  举: "jǔ", 头: "tóu", 望: "wàng", 低: "dī", 思: "sī", 故: "gù", 乡: "xiāng", 静: "jìng", 夜: "yè",
+  白: "bái", 日: "rì", 依: "yī", 山: "shān", 尽: "jìn", 黄: "huáng", 河: "hé", 入: "rù", 海: "hǎi", 流: "liú",
+  欲: "yù", 穷: "qióng", 千: "qiān", 里: "lǐ", 目: "mù", 更: "gèng", 一: "yī", 层: "céng", 楼: "lóu", 登: "dēng", 鹳: "guàn", 雀: "què",
+  春: "chūn", 眠: "mián", 不: "bù", 觉: "jué", 晓: "xiǎo", 处: "chù", 闻: "wén", 啼: "tí", 鸟: "niǎo", 来: "lái",
+  风: "fēng", 雨: "yǔ", 声: "shēng", 花: "huā", 落: "luò", 知: "zhī", 多: "duō", 少: "shǎo",
+  两: "liǎng", 个: "gè", 鹂: "lí", 鸣: "míng", 翠: "cuì", 柳: "liǔ", 行: "háng", 鹭: "lù", 青: "qīng", 天: "tiān",
+  窗: "chuāng", 含: "hán", 西: "xī", 岭: "lǐng", 秋: "qiū", 雪: "xuě", 门: "mén", 泊: "bó", 东: "dōng", 吴: "wú", 万: "wàn", 船: "chuán",
+  绝: "jué", 句: "jù",
+};
+
+// ---- pure logic ----
+// Parse "床前|明月/光" → { chars, gaps } where gaps[i] (1..n-1) is the mark between chars[i-1] and chars[i].
+function parseLine(s) {
+  const chars = [], gaps = {};
+  for (const c of s) {
+    if (c === "|") gaps[chars.length] = "major";
+    else if (c === "/") gaps[chars.length] = "minor";
+    else if (c === ",") gaps[chars.length] = "opt";
+    else chars.push(c);
+  }
+  return { chars, gaps };
+}
+// Pinyin syllable → tone, written final, full final (standard 韵母), rhyme part (final without glide i/u/ü).
+const TONES = { "̄": 1, "́": 2, "̌": 3, "̀": 4 };
+function sylInfo(py) {
+  const d = String(py || "").normalize("NFD");
+  let tone = 5;
+  for (const ch of d) if (TONES[ch]) tone = TONES[ch];
+  const base = d.replace(/[̀́̄̌]/g, "").normalize("NFC").replace(/v/g, "ü");
+  const m = base.match(/^(zh|ch|sh|[bpmfdtnlgkhjqxrzcsyw])?(.*)$/);
+  const ini = m[1] || "", written = m[2];
+  let full = written;
+  if (ini === "y") {
+    const Y = { i: "i", in: "in", ing: "ing", u: "ü", ue: "üe", uan: "üan", un: "ün" };
+    full = written in Y ? Y[written] : "i" + written;
+  } else if (ini === "w") {
+    full = written === "u" ? "u" : "u" + written;
+  } else if ("jqx".includes(ini) && ini && written[0] === "u") {
+    full = "ü" + written.slice(1);
+  }
+  full = full.replace(/^iu$/, "iou").replace(/^ui$/, "uei").replace(/^un$/, "uen");
+  if (ini === "y" && written === "ou") full = "iou";
+  if (ini === "w" && written === "ei") full = "uei";
+  if (ini === "w" && written === "en") full = "uen";
+  if (ini === "w" && written === "o") full = "uo";
+  const writtenShow = full.replace(/^iou$/, "iu").replace(/^uei$/, "ui").replace(/^uen$/, "un");
+  let rhyme = full;
+  if (/^[iuü][aoeê]/.test(full)) rhyme = full.slice(1);
+  return { tone, base, ini, written: writtenShow, full, rhyme };
+}
+// Evaluate a set of placed breaks against the marks of one line.
+function evalLine(parsed, placed) {
+  const n = parsed.chars.length, res = { gaps: {}, mainOK: false, cuts: [], missingMain: false, exact: true };
+  let major = 0;
+  for (let i = 1; i < n; i++) {
+    const mark = parsed.gaps[i] || null, on = placed.has(i);
+    if (mark === "major") major = i;
+    let st = "";
+    if (on && mark === "major") st = "major";
+    else if (on && (mark === "minor" || mark === "opt")) st = "ok";
+    else if (on) { st = "cut"; res.cuts.push(segmentAt(parsed, i)); }
+    else if (mark === "major") { st = "missMajor"; res.missingMain = true; }
+    else if (mark === "minor") st = "miss";
+    res.gaps[i] = st;
+    if ((on && !mark) || (!on && (mark === "major" || mark === "minor"))) res.exact = false;
+  }
+  res.mainOK = major > 0 && placed.has(major) && res.cuts.length === 0;
+  return res;
+}
+// The standard word group that a non-standard break at gap i would cut in half.
+function segmentAt(parsed, i) {
+  let a = i - 1, b = i;
+  while (a > 0 && !parsed.gaps[a]) a--;
+  while (b < parsed.chars.length && !parsed.gaps[b]) b++;
+  return parsed.chars.slice(a, b).join("");
+}
+// Beat groups from the standard marks (major + minor): e.g. [2, 2, 1].
+function groups(parsed, withMinor) {
+  const out = [];
+  let run = 0;
+  parsed.chars.forEach((c, i) => {
+    if (i > 0) {
+      const m = parsed.gaps[i];
+      if (m === "major" || (withMinor && m === "minor")) { out.push(run); run = 0; }
+    }
+    run++;
+  });
+  out.push(run);
+  return out;
+}
+function withBreaks(chars, set, sep) {
+  return chars.map((c, i) => (i > 0 && set.has(i) ? sep : "") + c).join("");
+}
+function endInfo(poem) {
+  const ends = poem.l.map((s) => { const p = parseLine(s); const c = p.chars[p.chars.length - 1]; return { c, py: PY[c], ...sylInfo(PY[c]) }; });
+  const key = ends[1].rhyme;
+  ends.forEach((e, i) => { e.rhymes = e.rhyme === key; e.i = i; });
+  return ends;
+}
+
+const P = Play.setup({
+  en: {
+    title: "Tap the beat of a Tang poem", eyebrow: "Chinese · Stage 2", h1: "A Tang poem has a beat: 2 + 3, 4 + 3, and rhymes on lines 2 and 4",
+    intro: "Classical Chinese poems are made to be read aloud. Tap the gaps to mark where you pause, check it, and find the characters that rhyme.",
+    reset: "Reset", figAria: "A five-character line in beat groups 2 + 3 next to a seven-character line in groups 4 + 3",
+    pickAria: "Choose a poem", s1: "Guess", s2: "Beats", s3: "Rhyme", s4: "Rule",
+    k1: "Predict first", t1: "Does it matter how you read it aloud?", b1: "Pick an answer. Then read 床前明月光 aloud both ways yourself.",
+    k2: "Hands on", t2: "Tap between characters to place the breaks",
+    b2: "Tap a gap to put a / there (keyboard: Tab to a gap, Enter to toggle, arrow keys to move). Then press Check. Try all four poems — the last one has seven characters per line.",
+    k3: "Hands on", t3: "Which line endings rhyme?",
+    b3: "Tap the last character of each line that you think rhymes, then press Check rhymes. The table shows each ending's modern pinyin final.",
+    k4: "The rule", t4: "Five: 2 + 3. Seven: 4 + 3. Rhyme: end of lines 2 and 4.",
+    b4: "A five-character line breaks after character 2 (often 2 + 2 + 1 or 2 + 1 + 2); a seven-character line after character 4 (2 + 2 + 3). The pauses fall between word groups, so they help you hear the meaning. In a four-line 绝句 (and an eight-line 律诗) the rhyme sits at the end of the even-numbered lines; line 1 may rhyme too.",
+    q: "How should you read 床前明月光 aloud?", o1: "It doesn't matter — read every character at the same speed", o2: "床前 / 明月光 — a pause after the 2nd character", o3: "床前明 / 月光 — a pause after the 3rd character",
+    right: "Yes. A five-character line falls into 2 + 3: 床前 / 明月光 ('before the bed' / 'bright moonlight').",
+    wrong: "Try it aloud: flat, it sounds like a list of syllables; 床前明 / 月光 splits 明月 'bright moon' in half. Most readers pause after 床前 — check it in step 2.",
+    check: "Check", std: "Show standard", clear: "Clear breaks", checkR: "Check rhymes", clearR: "Clear picks",
+    sayAll: "▶ Whole poem", sayFlat: "▶ One character at a time", sayLine: "Read line {n} with your breaks",
+    gapAria: "Break after {c} in line {n}", endAria: "Line {n} ends with {c}: tap if you think it rhymes",
+    fbMain: "✓ Main pause right.", fbStd: "Standard:", fbMiss: "Missing the main pause after {w}.", fbCut: "✗ That break cuts {w} in half.",
+    liveCheck: "{ok} of {n} lines have the main pause in the right place.", liveCuts: "{k} break(s) cut a word apart.", liveExact: "Every line matches the standard reading.",
+    liveR: "Rhymes: {chars} — they share the sound -{r}. You picked {right} right, {wrong} wrong.",
+    thLine: "Line", thChar: "Char", thPy: "Pinyin", thFin: "Final", thRhy: "Rhyme part", thYes: "Rhymes?", yes: "yes", no: "—",
+    statMain5: "Five-character lines with the main pause after character 2: {k} of {n}.", statMain7: "Seven-character lines with the main pause after character 4: {k} of {n}.",
+    stat24: "Poems whose lines 2 and 4 rhyme: {k} of {n}.", stat1: "…where line 1 also rhymes: {k} of {n} ({list}).", stat3: "…where line 3 rhymes: {k} of {n}.",
+    five: "5 chars", seven: "7 chars",
+    voiceNote: "▶ uses your browser's Chinese voice. Your breaks are sent as commas; the voice won't follow pauses exactly, so read it aloud yourself too.",
+    resultTitle: "What we found", resultMain: "五言 2 + 3 · 七言 4 + 3 · rhyme ends lines 2 & 4",
+    resultNote: "The pauses follow word groups (床前 · 明月), so a wrong break cuts a word in half. Good readers differ in small ways, but the main pause rarely moves.",
+    explainK: "Explain it", explainQ: "A friend reads 白日依山尽 one character at a time, all at the same speed. Show them where the main pause goes and why. Then tell them which lines of 登鹳雀楼 rhyme and how you can tell.",
+    homeK: "Try at home", homeQ: "Pick a Tang poem you know. Read it to someone at home, clapping once for each beat group, and write a / at each main pause. Do the rhyming characters fall at the end of lines 2 and 4?",
+    foot: "Texts: 静夜思 in the widely taught version (as in 唐诗三百首); early editions such as the Song-dynasty 李太白文集 read 床前看月光 … 举头望山月. 登鹳雀楼: Wang Zhihuan (688–742); 春晓: Meng Haoran (689–740); 绝句: Du Fu (712–770), third of 绝句四首; Li Bai (701–762). Beat marks follow common recitation practice; other good readings exist. Pinyin: Putonghua citation readings (no tone sandhi for 一/不); iu is short for iou. Rhyme part = the final without its glide i/u/ü. Rhymes are checked with modern sounds: they still work in these four poems, but not in every old poem. Modern tones are not a reliable guide to the Tang tone pattern (平仄): the old entering tone (入声) has disappeared, e.g. 白, 日, 目, 雪 were all 入声. English glosses are our own plain translations. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "古诗节奏点读", eyebrow: "语文 · 阶段 2", h1: "古诗有节奏：五言二三、七言四三，双数句押韵",
+    intro: "古诗是写来读出声的。点字和字之间的空隙标出停顿，检查一下，再找找押韵的字。",
+    reset: "重置", figAria: "五言句按二加三分组，七言句按四加三分组",
+    pickAria: "选一首诗", s1: "先猜", s2: "停顿", s3: "韵脚", s4: "规律",
+    k1: "先猜一猜", t1: "诗怎么读出来，有没有关系？", b1: "先选一个答案。再自己用两种读法念一念「床前明月光」。",
+    k2: "动手", t2: "点字和字之间，画上停顿",
+    b2: "点一个空隙，那里就出现一条 /（键盘：Tab 到空隙，回车切换，方向键移动）。画好按「检查」。四首都试试——最后一首每句七个字。",
+    k3: "动手", t3: "哪几句的最后一个字押韵？",
+    b3: "点你觉得押韵的句末字，再按「检查韵脚」。表里列出每个句末字今天普通话的韵母。",
+    k4: "规律", t4: "五言二三，七言四三；韵脚在双数句末",
+    b4: "五言句在第 2 个字后停（细分常是二二一或二一二）；七言句在第 4 个字后停（二二三）。停顿落在词和词之间，读对了，意思也就听清了。四句的绝句（和八句的律诗）韵脚落在双数句的句末；第一句也可以押韵。",
+    q: "「床前明月光」应该怎么读？", o1: "怎么读都一样——每个字一样快地念", o2: "床前 / 明月光——第 2 个字后停一下", o3: "床前明 / 月光——第 3 个字后停一下",
+    right: "对。五言句分成二加三：床前 / 明月光。",
+    wrong: "念出来听听：一字一字平着念，像在报字；「床前明 / 月光」把「明月」拆开了。一般在「床前」后停——第 2 步验证一下。",
+    check: "检查", std: "看标准读法", clear: "清除停顿", checkR: "检查韵脚", clearR: "清除选择",
+    sayAll: "▶ 读全诗", sayFlat: "▶ 一字一顿地读", sayLine: "按你的停顿读第 {n} 句",
+    gapAria: "第 {n} 句「{c}」后停顿", endAria: "第 {n} 句末字「{c}」：觉得押韵就点它",
+    fbMain: "✓ 主停顿对了。", fbStd: "标准：", fbMiss: "「{w}」后面少了主停顿。", fbCut: "✗ 这一停把「{w}」拆开了。",
+    liveCheck: "{n} 句里有 {ok} 句主停顿位置对。", liveCuts: "有 {k} 处停顿把词拆开了。", liveExact: "每一句都和标准读法一致。",
+    liveR: "押韵的是：{chars}——都带 -{r} 的音。你选对 {right} 个，选错 {wrong} 个。",
+    thLine: "句", thChar: "字", thPy: "拼音", thFin: "韵母", thRhy: "韵（去掉介音）", thYes: "押韵？", yes: "押", no: "—",
+    statMain5: "五言句主停顿在第 2 个字后：{n} 句里 {k} 句。", statMain7: "七言句主停顿在第 4 个字后：{n} 句里 {k} 句。",
+    stat24: "第 2、4 句押韵的诗：{n} 首里 {k} 首。", stat1: "……其中第 1 句也押韵：{n} 首里 {k} 首（{list}）。", stat3: "……第 3 句押韵：{n} 首里 {k} 首。",
+    five: "五言", seven: "七言",
+    voiceNote: "▶ 用浏览器自带的中文语音。你的停顿会变成逗号送给它，但它不一定完全照着停——自己也要读出声。",
+    resultTitle: "我们发现", resultMain: "五言 二 + 三 · 七言 四 + 三 · 韵在二、四句末",
+    resultNote: "停顿跟着词走（床前 · 明月），停错了就把词拆开了。不同的人读法会有小差别，但主停顿基本不动。",
+    explainK: "说一说", explainQ: "同学把「白日依山尽」一字一字、一样快地念。告诉他主停顿在哪里、为什么；再说说《登鹳雀楼》哪几句押韵，你是怎么听出来的。",
+    homeK: "家里做一做", homeQ: "挑一首你会背的唐诗，读给家里人听，每个节拍拍一下手，在主停顿处画 /。押韵的字是不是落在第 2、4 句末？",
+    foot: "诗文：《静夜思》用通行的教学版本（同《唐诗三百首》）；宋本《李太白文集》等早期版本作「床前看月光……举头望山月」。《登鹳雀楼》王之涣（688–742）；《春晓》孟浩然（689–740）；《绝句》杜甫（712–770），《绝句四首》其三；李白（701–762）。停顿按通行朗读习惯标注，别的读法也可以。拼音为普通话单字本调（一、不不标变调）；iu 是 iou 的省写。「韵」指去掉介音 i/u/ü 后的韵母部分。押韵按今天的读音检查：这四首今天读仍然押韵，但不是每首古诗都这样。今天的声调也不能直接判断唐诗的平仄：古代的入声在普通话里已经消失，比如「白、日、目、雪」当时都是入声。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const S = Play.svg;
+
+let step = 0, cur = 0, checked = false, rChecked = false;
+let breaks = POEMS.map((p) => p.l.map(() => new Set()));
+let picks = POEMS.map(() => new Set());
+const parsedAll = POEMS.map((p) => p.l.map(parseLine));
+
+// ---- poem picker ----
+const pickBtns = POEMS.map((p, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small han"; b.textContent = p.t;
+  b.addEventListener("click", () => { cur = i; checked = false; rChecked = false; render(); });
+  $("pick").appendChild(b);
+  return b;
+});
+
+function lineSpeak(i) {
+  const pr = parsedAll[cur][i];
+  Play.speak(withBreaks(pr.chars, breaks[cur][i], "，"), "zh-CN");
+}
+
+function render() {
+  const poem = POEMS[cur], pa = parsedAll[cur];
+  pickBtns.forEach((b, i) => b.setAttribute("aria-pressed", i === cur ? "true" : "false"));
+  const pt = $("ptitle");
+  pt.innerHTML = "";
+  const h = document.createElement("span"); h.className = "h"; h.textContent = "《" + poem.t + "》"; pt.appendChild(h);
+  const by = document.createElement("span"); by.className = "by"; by.textContent = "唐 · " + poem.by; pt.appendChild(by);
+  const tpy = document.createElement("span"); tpy.className = "en";
+  tpy.textContent = [...poem.t].map((c) => PY[c]).join(" ") + (L === "en" ? " · " + poem.en : "");
+  pt.appendChild(tpy);
+
+  const box = $("lines");
+  box.innerHTML = "";
+  box.classList.toggle("rhymeon", step === 2);
+  const ends = endInfo(poem);
+  pa.forEach((pr, li) => {
+    const row = document.createElement("div"); row.className = "pline";
+    const sp = document.createElement("button");
+    sp.type = "button"; sp.className = "small sp"; sp.textContent = "▶";
+    sp.setAttribute("aria-label", P.t("sayLine", { n: li + 1 }));
+    sp.addEventListener("click", () => lineSpeak(li));
+    const body = document.createElement("div"); body.className = "pbody";
+    const cs = document.createElement("div"); cs.className = "chars han";
+    const ev = checked ? evalLine(pr, breaks[cur][li]) : null;
+    const n = pr.chars.length;
+    pr.chars.forEach((c, ci) => {
+      if (ci > 0) {
+        const g = document.createElement("button");
+        g.type = "button"; g.className = "gap"; g.dataset.l = li; g.dataset.g = ci;
+        const on = breaks[cur][li].has(ci);
+        g.setAttribute("aria-pressed", on ? "true" : "false");
+        g.setAttribute("aria-label", P.t("gapAria", { c: pr.chars[ci - 1], n: li + 1 }));
+        const s = document.createElement("span"); s.className = "s";
+        s.textContent = on ? "/" : "";
+        if (ev) {
+          const st = ev.gaps[ci];
+          if (st === "major") g.classList.add("g-ok");
+          else if (st === "ok") g.classList.add("g-ok");
+          else if (st === "cut") g.classList.add("g-cut");
+          else if (st === "missMajor" || st === "miss") { g.classList.add("g-miss"); s.textContent = "/"; }
+        }
+        g.appendChild(s);
+        g.addEventListener("click", () => toggleGap(li, ci));
+        g.addEventListener("keydown", gapKey);
+        cs.appendChild(g);
+      }
+      if (ci === n - 1) {
+        const e = document.createElement("button");
+        e.type = "button"; e.className = "ch"; e.textContent = c;
+        const active = step === 2;
+        e.setAttribute("aria-disabled", active ? "false" : "true");
+        e.tabIndex = active ? 0 : -1;
+        e.setAttribute("aria-label", P.t("endAria", { n: li + 1, c }));
+        const mine = picks[cur].has(li);
+        if (active) e.setAttribute("aria-pressed", mine ? "true" : "false");
+        if (active && rChecked) {
+          if (ends[li].rhymes) e.classList.add(mine ? "rok" : "rmiss");
+          else if (mine) e.classList.add("rno");
+        } else if (active && mine) e.classList.add("mine");
+        e.addEventListener("click", () => { if (step !== 2) return; togglePick(li); });
+        cs.appendChild(e);
+      } else {
+        const sc = document.createElement("span"); sc.className = "ch"; sc.textContent = c; cs.appendChild(sc);
+      }
+    });
+    body.appendChild(cs);
+    const py = document.createElement("div"); py.className = "py";
+    py.textContent = pr.chars.map((c) => PY[c]).join(" ");
+    body.appendChild(py);
+    if (L === "en") { const gl = document.createElement("div"); gl.className = "gl"; gl.textContent = poem.g[li]; body.appendChild(gl); }
+    if (ev) {
+      const fb = document.createElement("div");
+      fb.className = "fbk " + (ev.mainOK ? "ok" : "no");
+      let msg;
+      if (ev.cuts.length) msg = P.t("fbCut", { w: ev.cuts[0] });
+      else if (ev.missingMain) msg = P.t("fbMiss", { w: pr.chars.slice(0, Object.keys(pr.gaps).find((k) => pr.gaps[k] === "major")).join("") });
+      else msg = P.t("fbMain");
+      fb.appendChild(document.createTextNode(msg + " " + P.t("fbStd") + " "));
+      const std = document.createElement("span"); std.className = "std";
+      pr.chars.forEach((c, ci) => {
+        if (ci > 0 && (pr.gaps[ci] === "major" || pr.gaps[ci] === "minor")) {
+          const sl = document.createElement("span"); sl.textContent = pr.gaps[ci] === "major" ? " / " : " / ";
+          if (pr.gaps[ci] === "major") sl.className = "mj";
+          std.appendChild(sl);
+        }
+        std.appendChild(document.createTextNode(c));
+      });
+      fb.appendChild(std);
+      body.appendChild(fb);
+    }
+    row.append(sp, body);
+    box.appendChild(row);
+  });
+  $("beatAct").hidden = step === 2;
+  $("rhymeAct").hidden = step !== 2;
+  renderTable(ends);
+  if (step === 3) drawCompare();
+}
+
+function renderTable(ends) {
+  const t = $("rtable");
+  t.innerHTML = "";
+  if (step !== 2 || !rChecked) return;
+  const tb = document.createElement("table"); tb.className = "rt";
+  const hr = document.createElement("tr");
+  ["thLine", "thChar", "thPy", "thFin", "thRhy", "thYes"].forEach((k) => { const th = document.createElement("th"); th.textContent = P.t(k); hr.appendChild(th); });
+  tb.appendChild(hr);
+  ends.forEach((e) => {
+    const tr = document.createElement("tr"); if (e.rhymes) tr.className = "yes";
+    [String(e.i + 1), e.c, e.py, "-" + e.written, "-" + e.rhyme, e.rhymes ? P.t("yes") : P.t("no")].forEach((v, j) => {
+      const td = document.createElement("td"); td.textContent = v; if (j === 1) td.className = "c han"; tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+}
+
+function toggleGap(li, gi) {
+  const s = breaks[cur][li];
+  if (s.has(gi)) s.delete(gi); else s.add(gi);
+  checked = false;
+  render();
+  focusGap(li, gi);
+}
+function focusGap(li, gi) {
+  const el = document.querySelector('.gap[data-l="' + li + '"][data-g="' + gi + '"]');
+  if (el) el.focus();
+}
+function gapKey(e) {
+  const li = +this.dataset.l, gi = +this.dataset.g, pa = parsedAll[cur];
+  let nl = li, ng = gi;
+  if (e.key === "ArrowRight") { ng++; if (ng >= pa[li].chars.length) { if (li < pa.length - 1) { nl++; ng = 1; } else ng--; } }
+  else if (e.key === "ArrowLeft") { ng--; if (ng < 1) { if (li > 0) { nl--; ng = pa[nl].chars.length - 1; } else ng = 1; } }
+  else if (e.key === "ArrowDown") nl = Math.min(li + 1, pa.length - 1);
+  else if (e.key === "ArrowUp") nl = Math.max(li - 1, 0);
+  else return;
+  e.preventDefault();
+  ng = Play.clamp(ng, 1, pa[nl].chars.length - 1);
+  focusGap(nl, ng);
+}
+function togglePick(li) {
+  const s = picks[cur];
+  if (s.has(li)) s.delete(li); else s.add(li);
+  rChecked = false;
+  render();
+  const el = document.querySelectorAll("button.ch")[li];
+  if (el) el.focus();
+}
+
+$("check").addEventListener("click", () => {
+  checked = true;
+  render();
+  const pa = parsedAll[cur], evs = pa.map((pr, i) => evalLine(pr, breaks[cur][i]));
+  const ok = evs.filter((e) => e.mainOK).length, cuts = evs.reduce((a, e) => a + e.cuts.length, 0);
+  let msg = P.t("liveCheck", { ok, n: pa.length });
+  if (cuts) msg += " " + P.t("liveCuts", { k: cuts });
+  if (evs.every((e) => e.exact)) msg += " " + P.t("liveExact");
+  Play.live($("live"), msg);
+});
+$("std").addEventListener("click", () => {
+  breaks[cur] = parsedAll[cur].map((pr) => new Set(Object.keys(pr.gaps).filter((k) => pr.gaps[k] !== "opt").map(Number)));
+  checked = true; render();
+});
+$("clear").addEventListener("click", () => { breaks[cur] = parsedAll[cur].map(() => new Set()); checked = false; render(); Play.live($("live"), ""); });
+$("checkR").addEventListener("click", () => {
+  rChecked = true; render();
+  const ends = endInfo(POEMS[cur]), mine = picks[cur];
+  const rhy = ends.filter((e) => e.rhymes);
+  const right = rhy.filter((e) => mine.has(e.i)).length, wrong = [...mine].filter((i) => !ends[i].rhymes).length;
+  Play.live($("live"), P.t("liveR", { chars: rhy.map((e) => e.c + " " + e.py).join(" / "), r: ends[1].rhyme, right, wrong }));
+});
+$("clearR").addEventListener("click", () => { picks[cur] = new Set(); rChecked = false; render(); Play.live($("live"), ""); });
+$("sayAll").addEventListener("click", () => {
+  const ls = parsedAll[cur].map((pr) => pr.chars.join(""));
+  Play.speak(ls.map((s, i) => s + (i % 2 ? "。" : "，")).join(""), "zh-CN");
+});
+$("sayFlat").addEventListener("click", () => {
+  Play.speak(parsedAll[cur].map((pr) => pr.chars.join("，")).join("。") + "。", "zh-CN");
+});
+
+// ---- step 4: compare 五言 vs 七言, numbers computed from the marks ----
+function drawCompare() {
+  const fig = $("fig");
+  fig.innerHTML = "";
+  const fivePoem = parsedAll[cur][0].chars.length === 5 ? cur : 0;
+  const sevenPoem = POEMS.findIndex((p) => parseLine(p.l[0]).chars.length === 7);
+  const rows = [[P.t("five"), parsedAll[fivePoem][0]], [P.t("seven"), parsedAll[sevenPoem][0]]];
+  rows.forEach(([lab, pr], r) => {
+    const y = 30 + r * 140, cw = 46, minor = 10, major = 34;
+    S("text", { x: 8, y: y + 32, class: "lab", "text-anchor": "start" }, fig).textContent = lab;
+    let x = 112;
+    const xs = [];
+    pr.chars.forEach((c, i) => {
+      if (i > 0) {
+        const m = pr.gaps[i];
+        if (m === "major") { S("text", { x: x + major / 2, y: y + 34, class: "slash", "font-size": 30, "text-anchor": "middle" }, fig).textContent = "/"; x += major; }
+        else if (m === "minor") x += minor;
+        else x += 2;
+      }
+      S("rect", { x, y, width: cw, height: 46, rx: 8, class: "box" }, fig);
+      S("text", { x: x + cw / 2, y: y + 34, class: "han", "font-size": 30, "text-anchor": "middle" }, fig).textContent = c;
+      xs.push(x);
+      x += cw;
+    });
+    // braces under the two main groups, labelled with their sizes
+    const main = groups(pr, false), sub = groups(pr, true);
+    let k = 0;
+    main.forEach((len) => {
+      const x0 = xs[k] + 2, x1 = xs[k + len - 1] + cw - 2, by = y + 58;
+      S("path", { d: `M${x0} ${by} v8 H${x1} v-8`, class: "brace" }, fig);
+      S("text", { x: (x0 + x1) / 2, y: by + 34, class: "num", "text-anchor": "middle" }, fig).textContent = len;
+      k += len;
+    });
+    S("text", { x: 112, y: y + 120, class: "sub", "text-anchor": "start" }, fig).textContent =
+      main.join(" + ") + "   (" + sub.join(" + ") + ")";
+  });
+  const st = $("stats");
+  st.innerHTML = "";
+  const all = parsedAll.flat();
+  const f = all.filter((p) => p.chars.length === 5), s = all.filter((p) => p.chars.length === 7);
+  const ends = POEMS.map(endInfo);
+  const r24 = ends.filter((e) => e[3].rhymes).length, r1 = ends.filter((e) => e[0].rhymes), r3 = ends.filter((e) => e[2].rhymes).length;
+  [
+    P.t("statMain5", { k: f.filter((p) => p.gaps[2] === "major").length, n: f.length }),
+    P.t("statMain7", { k: s.filter((p) => p.gaps[4] === "major").length, n: s.length }),
+    P.t("stat24", { k: r24, n: POEMS.length }),
+    P.t("stat1", { k: r1.length, n: POEMS.length, list: r1.map((e) => e[0].c).join("、") }),
+    P.t("stat3", { k: r3, n: POEMS.length }),
+  ].forEach((x) => { const li = document.createElement("li"); li.textContent = x; st.appendChild(li); });
+}
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("fig").toggleAttribute("hidden", i !== 3);
+  $("stats").hidden = i !== 3;
+  Play.live($("live"), "");
+  render();
+});
+$("reset").addEventListener("click", () => {
+  try { speechSynthesis.cancel(); } catch (e) { /* no speech */ }
+  cur = 0; checked = false; rChecked = false;
+  breaks = POEMS.map((p) => p.l.map(() => new Set()));
+  picks = POEMS.map(() => new Set());
+  pr.reset();
+  steps.go(0);
+});
+</script>
+</body>
+</html>

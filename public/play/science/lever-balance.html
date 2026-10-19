@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why a long lever helps</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  #fig { height: auto; aspect-ratio: 600 / 380; max-height: 440px; --fs: 14px; }
+  #fig text { font-size: var(--fs); font-family: var(--font); fill: var(--fg); }
+  #fig text.halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  #fig text.big { font-weight: 750; }
+  #fig .blk text { fill: var(--surface); font-weight: 750; pointer-events: none; }
+  #fig .blk { cursor: grab; touch-action: none; }
+  #fig .blk.fixed { cursor: default; }
+  #fig .blk.fixed rect { stroke: var(--fg); stroke-width: 2; stroke-dasharray: 4 3; }
+  #fig g.peg { cursor: pointer; }
+  #fig g.peg:focus { outline: none; }
+  #fig g.peg .ring { fill: none; stroke: transparent; stroke-width: 3; }
+  #fig g.peg:focus-visible .ring, #fig g.peg.hot .ring { stroke: var(--hl); }
+  #fig .fulc { cursor: ew-resize; touch-action: none; }
+  #fig .fulc:focus { outline: none; }
+  #fig .fulc:focus-visible polygon { stroke: var(--hl); stroke-width: 4; }
+  .tray { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 2px 14px 12px; font-size: 13px; color: var(--muted); }
+  .tray button { min-width: 44px; font-weight: 750; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .tray button[aria-pressed="true"] { border-color: var(--a); background: var(--soft); box-shadow: inset 0 0 0 1px var(--a); }
+  .tray .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .ghost { position: fixed; z-index: 10; pointer-events: none; color: var(--surface); font-weight: 750; border-radius: 6px; padding: 4px 10px; transform: translate(-50%, -120%); box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 4.2em; }
+  #c3 .controls input[type=range] { flex: 1 1 90px; }
+  @media (min-width: 561px) { #c3 .controls label { min-width: 9em; } }
+  table.res { width: 100%; border-collapse: collapse; font-size: 14px; margin: 2px 0 8px; }
+  table.res th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 650; border-bottom: 1px solid var(--line); padding: 3px 4px; }
+  table.res td { padding: 4px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  table.res td.m { font-family: var(--math); overflow-wrap: anywhere; }
+  table.res td.num { text-align: right; font-weight: 700; white-space: nowrap; }
+  .status { font-weight: 700; color: var(--fg) !important; }
+  .status.ok { color: var(--a) !important; }
+  #chText { color: var(--fg); }
+  .win { color: var(--a) !important; font-weight: 650; }
+  .choices button.cur { border-color: var(--a); box-shadow: inset 0 0 0 1px var(--a); }
+  .mathline { overflow-wrap: anywhere; }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="pause" aria-pressed="false"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 380" role="group"></svg>
+      <div id="c1" class="controls"><button type="button" id="letgo"></button></div>
+      <div id="c2" hidden>
+        <div class="tray" id="tray" role="toolbar" data-t-aria="trayAria"><span data-t="trayLabel"></span></div>
+      </div>
+      <div id="c3" hidden>
+        <div class="controls">
+          <label for="fulc" data-t="fulcLabel"></label>
+          <input type="range" id="fulc" min="0.1" max="1" step="0.05" value="0.3">
+          <output id="fulcVal" for="fulc"></output>
+        </div>
+        <div class="controls">
+          <label for="mass" data-t="massLabel"></label>
+          <input type="range" id="mass" min="20" max="200" step="10" value="60">
+          <output id="massVal" for="mass"></output>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="s2box" hidden>
+        <div class="choices" id="chs" role="group" data-t-aria="chAria"></div>
+        <p id="chText"></p>
+        <div id="tbl"></div>
+        <p class="status" id="status"></p>
+        <p id="chWin" class="win"></p>
+      </div>
+      <div id="s3box" hidden><div class="mathline"><div id="cmath"></div><div id="cmath2"></div></div></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" style="white-space:normal" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" id="data"></p>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Why a long lever helps", eyebrow: "Science · Stage 2",
+    h1: "A lever balances when weight × distance is the same on both sides",
+    intro: "Guess first, then hang blocks on the beam until it balances. Last, use a crowbar to lift a rock.",
+    reset: "Reset", pause: "Pause", play: "Play",
+    figBeam: "A beam on a pivot with pegs 1 to 6 on each side. Left: weight × distance {l}. Right: {r}.",
+    figCrow: "A crowbar on a pivot lifting a {m} kg rock; the hand pushes with the weight of {e} kg.",
+    trayAria: "Blocks to hang", trayLabel: "Blocks:", chAria: "Challenges",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "A heavy block near, a light block far",
+    b1: "Left: a {wl}-block hangs at peg {dl}. Right: a {wr}-block hangs at peg {dr}. The beam is held level. What happens when we let go?",
+    b1done: "It stays level. Left: {wl} × {dl} = {tl}. Right: {wr} × {dr} = {tr}. The weights are not equal, but weight × distance is.",
+    q: "When we let go, the beam…", o1: "tips left: it only balances when both sides weigh the same", o2: "stays level", o3: "tips right: the right block is farther out",
+    right: "Yes. The left block is {k} times heavier, but the right one is {k} times farther from the pivot.", wrong: "Watch what really happens.",
+    letGo: "Let go", hold: "Hold it level",
+    k2: "Hands on", t2: "Balance the beam",
+    b2: "Drag a block from the tray onto a peg, or pick a block and tap a peg. Tap a hanging block to take it off. Keyboard: Tab to the pegs, arrows to move, 1, 2 or 3 to hang a block, Delete to take one off.",
+    blockAria: "Block of weight {w}",
+    pegAria: "{side} peg {d}: {list}", empty: "empty", sideL: "Left", sideR: "Right",
+    thSide: "Side", thCalc: "weight × distance", thSum: "Total",
+    balanced: "Balanced: {l} = {r}", tipsL: "Tips left: {l} > {r}", tipsR: "Tips right: {l} < {r}", emptyBeam: "Nothing hanging yet.",
+    weights: "Total weight: left {wl}, right {wr}.",
+    ch0: "Free play", ch1: "Challenge 1", ch2: "Challenge 2", ch3: "Challenge 3",
+    chT0: "Free play: hang anything anywhere.",
+    chT1: "A {w}-block hangs at peg {d} on the left. Balance it with one single block on the right. There are {n} ways. Find them all.",
+    chT2: "Two 1-blocks hang at peg {d} on the left. Balance them using only peg 1 on the right.",
+    chT3: "Make the beam balance with a different total weight on each side.",
+    found: "Found {k} of {n}: {list}", foundAll: "All {n} ways found. The farther out, the lighter the block.",
+    win2: "Balanced: {w} at peg 1 against {l} at peg {d}. {d} times closer to the pivot needs {d} times the weight.",
+    win3: "Balanced with {wl} on the left and {wr} on the right: unequal weights, equal weight × distance.",
+    leftSet: "In this challenge the left side is set. Work on the right.", full: "That peg is full ({n} blocks).", fixedMsg: "That block belongs to the challenge.",
+    k3: "The rule", t3: "Weight × distance, and a crowbar",
+    b3: "A lever balances when weight × distance from the pivot is the same on both sides. A crowbar uses this: the rock sits close to the pivot, your hand pushes far from it. Drag the pivot or use the sliders.",
+    fulcLabel: "Pivot from rock end", massLabel: "Rock", mUnit: "{v} m", kgUnit: "{v} kg",
+    loadArm: "load arm {v} m", effortArm: "effort arm {v} m", push: "push {v} kg", pivotAria: "Pivot, {v} m from the rock end. Use arrow keys to move it.",
+    crowLess: "Push with the weight of {e} kg to hold up a {m} kg rock: {k} times less. But your hand moves {k} times farther: push down 10 cm and the rock rises {r} cm.",
+    crowMore: "The pivot is past the middle: you must push with {e} kg, more than the {m} kg rock. Push down 10 cm and the rock rises {r} cm.",
+    crowSame: "The arms are equal, so you push with the full {m} kg, like a balance.",
+    resultTitle: "What we found", resultMain: "weight × distance (left) = weight × distance (right)",
+    resultNote: "Equal weights balance only at equal distances. Twice as far out, half the weight does the same job.",
+    explainK: "Explain it", explainQ: "A child and a grown-up on a seesaw: where should each sit so it balances? Explain with weight × distance, not just ‘heavier’.",
+    homeK: "Try at home", homeQ: "Balance a ruler on a round pencil at its middle. Put 2 coins 3 cm from the pencil on one side. Where must 1 coin go on the other side? Then try 3 coins.",
+    dataNote: "Model: an ideal lever, a rigid beam with no weight of its own, turning on a pivot with no friction. Blocks weigh 1, 2 or 3 units; distance is counted in pegs from the pivot, all pegs equally spaced; up to {n} blocks per peg. A real ideal lever tips all the way to its stop at any difference at all; here the tilt grows with the difference ({deg}° per unit, at most {max}°) so you can see how far off you are, like a balance scale whose beam hangs just below its pivot. Crowbar: a straight, rigid {L} m bar, its weight ignored, pushed straight down at its end; forces are given as the weight of so many kilograms. The law of the lever was written down by Archimedes in the 3rd century BC.",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "为什么长杠杆省力", eyebrow: "科学 · 阶段 2",
+    h1: "两边「重量 × 距离」一样，杠杆就平衡",
+    intro: "先猜，再往横杆上挂木块，挂到平衡为止。最后用撬棍撬一块石头。",
+    reset: "重置", pause: "暂停", play: "播放",
+    figBeam: "支点上的横杆，两边各有 1 到 6 号挂钩。左边重量 × 距离 {l}，右边 {r}。",
+    figCrow: "撬棍架在支点上撬一块 {m} 千克的石头，手用相当于 {e} 千克的力往下压。",
+    trayAria: "可以挂的木块", trayLabel: "木块：", chAria: "挑战",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "重的挂近，轻的挂远",
+    b1: "左边 {dl} 号钩挂一块重 {wl} 的木块，右边 {dr} 号钩挂一块重 {wr} 的木块。现在用手扶平了横杆。松手会怎样？",
+    b1done: "它一动不动，保持水平。左边 {wl} × {dl} = {tl}，右边 {wr} × {dr} = {tr}。两边不一样重，但「重量 × 距离」一样。",
+    q: "松手以后，横杆会……", o1: "往左倒：两边一样重才会平衡", o2: "保持水平", o3: "往右倒：右边的木块挂得远",
+    right: "对！左边的木块重 {k} 倍，可右边的离支点远 {k} 倍。", wrong: "看看实际会怎样。",
+    letGo: "松手", hold: "扶平",
+    k2: "动手", t2: "让横杆平衡",
+    b2: "把木块从下面拖到挂钩上，或者先点选木块再点挂钩。点一下挂着的木块就取下来。键盘：Tab 到挂钩，方向键移动，按 1、2、3 挂木块，Delete 取下。",
+    blockAria: "重 {w} 的木块",
+    pegAria: "{side} {d} 号钩：{list}", empty: "空", sideL: "左边", sideR: "右边",
+    thSide: "哪边", thCalc: "重量 × 距离", thSum: "合计",
+    balanced: "平衡：{l} = {r}", tipsL: "往左倒：{l} > {r}", tipsR: "往右倒：{l} < {r}", emptyBeam: "还没挂东西。",
+    weights: "总重量：左边 {wl}，右边 {wr}。",
+    ch0: "自由玩", ch1: "挑战 1", ch2: "挑战 2", ch3: "挑战 3",
+    chT0: "自由玩：想挂哪儿就挂哪儿。",
+    chT1: "左边 {d} 号钩挂着一块重 {w} 的木块。只在右边挂一块木块让它平衡。一共有 {n} 种挂法，全找出来。",
+    chT2: "左边 {d} 号钩挂着两块重 1 的木块。右边只许用 1 号钩，让横杆平衡。",
+    chT3: "让横杆平衡，但两边的总重量不一样。",
+    found: "找到 {k} / {n}：{list}", foundAll: "{n} 种全找到了。挂得越远，木块越轻。",
+    win2: "平衡了：1 号钩挂 {w}，对左边 {d} 号钩的 {l}。离支点近 {d} 倍，重量就要 {d} 倍。",
+    win3: "平衡了：左边总重 {wl}，右边 {wr}。重量不等，「重量 × 距离」相等。",
+    leftSet: "这个挑战左边是定好的，只改右边。", full: "这个钩挂满了（{n} 块）。", fixedMsg: "这块是挑战给的，不能拿走。",
+    k3: "规律", t3: "重量 × 距离，还有撬棍",
+    b3: "杠杆平衡时，两边「重量 × 到支点的距离」相等。撬棍就是这么用的：石头离支点近，手离支点远。拖动支点，或者用滑块。",
+    fulcLabel: "支点离石头一端", massLabel: "石头", mUnit: "{v} 米", kgUnit: "{v} 千克",
+    loadArm: "阻力臂 {v} 米", effortArm: "动力臂 {v} 米", push: "压 {v} 千克", pivotAria: "支点，离石头一端 {v} 米。用方向键移动。",
+    crowLess: "用相当于 {e} 千克的力，就能撑起 {m} 千克的石头：省力 {k} 倍。可手要多走 {k} 倍的路：手压下 10 厘米，石头只抬起 {r} 厘米。",
+    crowMore: "支点过了中间：要用相当于 {e} 千克的力，比 {m} 千克的石头还大。手压下 10 厘米，石头抬起 {r} 厘米。",
+    crowSame: "两边力臂一样长，要用相当于整整 {m} 千克的力，就像天平。",
+    resultTitle: "我们发现", resultMain: "左边 重量 × 距离 = 右边 重量 × 距离",
+    resultNote: "一样重的东西，只有挂得一样远才平衡。挂远一倍，重量减半就够了。",
+    explainK: "说一说", explainQ: "小孩和大人坐跷跷板，各坐哪儿才能平衡？用「重量 × 距离」讲给别人听，别只说「谁更重」。",
+    homeK: "家里做一做", homeQ: "把一把尺子的中间架在圆铅笔上放平。一边离铅笔 3 厘米放 2 枚硬币，另一边 1 枚硬币要放在哪儿？再试试 3 枚。",
+    dataNote: "模型：理想杠杆，横杆坚硬、本身不计重量，支点没有摩擦。木块重 1、2、3 个单位；距离按挂钩数，从支点数起，挂钩间距相等；每个钩最多挂 {n} 块。真正的理想杠杆只要两边差一点点就会一直倒到底；这里倾角随差值变大（每差 1 倾 {deg}°，最多 {max}°），方便看出差多少，就像横梁挂在支点稍下方的天平。撬棍：一根 {L} 米长的直棍，坚硬、不计自重，在末端竖直往下压；力用「相当于多少千克的重量」表示。杠杆原理由阿基米德在公元前 3 世纪写下。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// PURE-BEGIN: numbers only, tested in node
+const NP = 6, MAXN = 4, DEG = 3, MAXDEG = 12, BAR = 1.5, WS = [1, 2, 3];
+const clampN = (x, a, b) => Math.min(b, Math.max(a, x));
+function newPegs() { const m = () => Array.from({ length: NP + 1 }, () => []); return { L: m(), R: m() }; }
+const sumW = (st) => st.reduce((a, b) => a + b.w, 0);
+function torque(pg, s) { let t = 0; for (let d = 1; d <= NP; d++) t += d * sumW(pg[s][d]); return t; }
+function weight(pg, s) { let t = 0; for (let d = 1; d <= NP; d++) t += sumW(pg[s][d]); return t; }
+function count(pg, s) { let t = 0; for (let d = 1; d <= NP; d++) t += pg[s][d].length; return t; }
+const targetDeg = (pg) => clampN((torque(pg, "R") - torque(pg, "L")) * DEG, -MAXDEG, MAXDEG);
+function terms(pg, s) {
+  const out = [];
+  for (let d = 1; d <= NP; d++) {
+    const ws = pg[s][d].map((b) => b.w);
+    if (ws.length) out.push((ws.length > 1 ? "(" + ws.join("+") + ")" : ws[0]) + "×" + d);
+  }
+  return out;
+}
+function solutions(t) { const r = []; WS.forEach((w) => { for (let d = 1; d <= NP; d++) if (w * d === t) r.push({ w, d }); }); return r; }
+function crowbar(M, p) { const a = p, b = BAR - p, e = (M * a) / b; return { a, b, e, ratio: b / a, rise: (10 * a) / b }; }
+// challenges: preset left side, locked left, check(pegs) → result or null
+const CH = [
+  { pre: [] },
+  { pre: [[2, 3]], lock: true },
+  { pre: [[4, 1], [4, 1]], lock: true },
+  { pre: [] },
+];
+function checkCh(i, pg) {
+  const tl = torque(pg, "L"), tr = torque(pg, "R");
+  if (tl !== tr || tr === 0) return null;
+  if (i === 1) {
+    if (count(pg, "R") !== 1) return null;
+    for (let d = 1; d <= NP; d++) if (pg.R[d].length) return { w: pg.R[d][0].w, d };
+  }
+  if (i === 2) { for (let d = 2; d <= NP; d++) if (pg.R[d].length) return null; return { w: sumW(pg.R[1]) }; }
+  if (i === 3) { const wl = weight(pg, "L"), wr = weight(pg, "R"); return wl !== wr ? { wl, wr } : null; }
+  return null;
+}
+// PURE-END
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), S = Play.svg;
+const PX = 300, PY = 120, SP = 42, HALF = NP * SP + 32, GROUND = 360;
+const BW = { 1: 26, 2: 32, 3: 38 }, COL = { 1: "var(--c)", 2: "var(--b)", 3: "var(--a)" };
+const fmtN = (x) => (Math.abs(x - Math.round(x)) < 1e-9 ? Play.fmt(x, 0) : Play.fmt(x, 1));
+
+// ---------- state ----------
+let cur = 0, paused = false, raf = 0, last = 0, ch = 1, pick = 1, focusPeg = 6;
+let found = new Set();
+const S1 = { L: [2, 3], R: [6, 1] }; // step 1: [peg, weight]
+let scn;
+function buildScenes() {
+  const a = { pg: newPegs(), a: 0, v: 0, locked: true };
+  a.pg.L[S1.L[0]].push({ w: S1.L[1], fixed: true });
+  a.pg.R[S1.R[0]].push({ w: S1.R[1], fixed: true });
+  scn = [a, { pg: newPegs(), a: 0, v: 0, locked: false }];
+  loadCh(ch);
+}
+function loadCh(i) {
+  ch = i;
+  const b = scn[1];
+  b.pg = newPegs();
+  CH[i].pre.forEach(([d, w]) => b.pg.L[d].push({ w, fixed: true }));
+  if (Play.reduced) { b.a = targetDeg(b.pg); b.v = 0; }
+}
+const beam = () => scn[cur];
+const tgt = (B) => (B.locked ? 0 : targetDeg(B.pg));
+
+// ---------- beam drawing ----------
+const beamScene = S("g", {}, fig), crowScene = S("g", {}, fig);
+S("line", { x1: 10, x2: 590, y1: GROUND, y2: GROUND, stroke: "var(--muted)", "stroke-width": 2 }, beamScene);
+const labL = S("text", { class: "big", x: 150, y: 30, "text-anchor": "middle" }, beamScene);
+const labM = S("text", { class: "big", x: 300, y: 30, "text-anchor": "middle" }, beamScene);
+const labR = S("text", { class: "big", x: 450, y: 30, "text-anchor": "middle" }, beamScene);
+S("path", { d: `M${PX} ${PY}L${PX - 9} ${GROUND - 10}H${PX - 30}V${GROUND}H${PX + 30}V${GROUND - 10}H${PX + 9}Z`, fill: "var(--muted)" }, beamScene);
+const supports = S("g", {}, beamScene);
+[-1, 1].forEach((s) => S("rect", { x: PX + s * (HALF - 8) - 5, y: PY + 6, width: 10, height: GROUND - PY - 6, fill: "var(--line)", stroke: "var(--muted)", "stroke-width": 1.5 }, supports));
+const beamG = S("g", {}, beamScene);
+S("rect", { x: PX - HALF, y: PY - 6, width: 2 * HALF, height: 12, rx: 5, fill: "var(--b)" }, beamG);
+const pegNums = [];
+["L", "R"].forEach((s) => {
+  for (let d = 1; d <= NP; d++) {
+    const x = PX + (s === "L" ? -1 : 1) * d * SP;
+    S("circle", { cx: x, cy: PY, r: 3.5, fill: "var(--surface)" }, beamG);
+    pegNums.push(S("text", { x, y: PY - 14, "text-anchor": "middle", class: "halo" }, beamG));
+    pegNums[pegNums.length - 1].textContent = d;
+  }
+});
+S("circle", { cx: PX, cy: PY, r: 7, fill: "var(--fg)" }, beamScene);
+const hangL = S("g", {}, beamScene);
+const pegs = []; // x order: L6..L1, R1..R6
+for (let d = NP; d >= 1; d--) pegs.push({ s: "L", d });
+for (let d = 1; d <= NP; d++) pegs.push({ s: "R", d });
+pegs.forEach((p, i) => {
+  p.g = S("g", { class: "peg", tabindex: i === focusPeg ? 0 : -1, role: "button" }, hangL);
+  p.g.addEventListener("click", () => { if (pick) addBlock(p, pick); });
+  p.g.addEventListener("focus", () => { focusPeg = i; rove(); });
+  p.g.addEventListener("keydown", (e) => pegKey(e, i));
+});
+function rove() { pegs.forEach((p, i) => p.g.setAttribute("tabindex", i === focusPeg ? 0 : -1)); }
+function pegPos(p, aDeg) {
+  const r = (aDeg * Math.PI) / 180, k = (p.s === "L" ? -1 : 1) * p.d * SP;
+  return { x: PX + k * Math.cos(r), y: PY + k * Math.sin(r) };
+}
+function buildPeg(p) {
+  const g = p.g, st = beam().pg[p.s][p.d];
+  while (g.firstChild) g.removeChild(g.firstChild);
+  S("rect", { x: -SP / 2, y: -18, width: SP, height: 190, fill: "var(--a)", "fill-opacity": 0 }, g);
+  S("circle", { class: "ring", cx: 0, cy: 0, r: 13 }, g);
+  let y = 0;
+  if (st.length) { S("line", { x1: 0, x2: 0, y1: 0, y2: 10, stroke: "var(--fg)", "stroke-width": 1.5 }, g); y = 10; }
+  st.forEach((b, j) => {
+    const w = BW[b.w], bg = S("g", { class: "blk" + (b.fixed ? " fixed" : "") }, g);
+    S("rect", { x: -w / 2, y, width: w, height: w, rx: 4, fill: COL[b.w] }, bg);
+    const t = S("text", { x: 0, y: y + w / 2, "text-anchor": "middle", "dominant-baseline": "central" }, bg);
+    t.textContent = b.w;
+    blockDrag(bg, p, j);
+    y += w + 2;
+  });
+  const list = st.length ? st.map((b) => b.w).join(", ") : P.t("empty");
+  g.setAttribute("aria-label", P.t("pegAria", { side: P.t(p.s === "L" ? "sideL" : "sideR"), d: p.d, list }));
+}
+function renderBeam() {
+  const B = beam();
+  beamG.setAttribute("transform", `rotate(${B.a.toFixed(3)} ${PX} ${PY})`);
+  pegNums.forEach((t) => t.setAttribute("transform", `rotate(${(-B.a).toFixed(3)} ${t.getAttribute("x")} ${PY - 14 - 5})`));
+  pegs.forEach((p) => { const q = pegPos(p, B.a); p.g.setAttribute("transform", `translate(${q.x.toFixed(2)} ${q.y.toFixed(2)})`); });
+  supports.style.display = B.locked ? "" : "none";
+  const tl = torque(B.pg, "L"), tr = torque(B.pg, "R");
+  labL.textContent = P.t("sideL") + " " + tl;
+  labR.textContent = P.t("sideR") + " " + tr;
+  labM.textContent = B.locked ? "" : tl === tr ? "=" : tl > tr ? ">" : "<";
+  fig.setAttribute("aria-label", P.t("figBeam", { l: tl, r: tr }));
+}
+function rebuild() { pegs.forEach(buildPeg); renderBeam(); }
+
+// ---------- animation ----------
+function moving() { const B = beam(); return cur < 2 && (Math.abs(tgt(B) - B.a) > 0.01 || Math.abs(B.v) > 0.01); }
+function wake() {
+  if (Play.reduced && cur < 2) { const B = beam(); B.a = tgt(B); B.v = 0; renderBeam(); return; }
+  if (!raf && !paused && moving()) { last = 0; raf = requestAnimationFrame(tick); }
+}
+function tick(ts) {
+  raf = 0;
+  if (paused || cur > 1) return;
+  const dt = last ? Math.min((ts - last) / 1000, 0.05) : 1 / 60;
+  last = ts;
+  const B = beam(), T = tgt(B);
+  for (let k = 0; k < 4; k++) { const h = dt / 4; B.v += (40 * (T - B.a) - 6 * B.v) * h; B.a += B.v * h; }
+  B.a = clampN(B.a, -MAXDEG - 3, MAXDEG + 3);
+  if (Math.abs(T - B.a) < 0.01 && Math.abs(B.v) < 0.01) { B.a = T; B.v = 0; }
+  renderBeam();
+  if (moving()) raf = requestAnimationFrame(tick);
+}
+
+// ---------- editing blocks ----------
+const note = (s) => Play.live($("live"), s);
+function canEdit(p, quiet) {
+  if (cur !== 1) return false;
+  if (p.s === "L" && CH[ch].lock) { if (!quiet) note(P.t("leftSet")); return false; }
+  return true;
+}
+function addBlock(p, w) {
+  if (!canEdit(p)) return false;
+  const st = scn[1].pg[p.s][p.d];
+  if (st.length >= MAXN) { note(P.t("full", { n: MAXN })); return false; }
+  st.push({ w });
+  changed(p);
+  return true;
+}
+function removeBlock(p, j) {
+  const st = scn[1].pg[p.s][p.d];
+  if (j < 0 || j >= st.length) return false;
+  if (st[j].fixed) { note(P.t("fixedMsg")); return false; }
+  if (!canEdit(p)) return false;
+  st.splice(j, 1);
+  changed(p);
+  return true;
+}
+function changed(p) {
+  if (p) buildPeg(p);
+  renderBeam(); text(); wake();
+}
+function pegKey(e, i) {
+  const p = pegs[i];
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+    e.preventDefault();
+    focusPeg = clampN(i + (e.key === "ArrowRight" ? 1 : -1), 0, pegs.length - 1);
+    rove(); pegs[focusPeg].g.focus();
+  } else if (["1", "2", "3"].includes(e.key)) { e.preventDefault(); addBlock(p, +e.key); p.g.focus(); }
+  else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); addBlock(p, pick); p.g.focus(); }
+  else if (e.key === "Delete" || e.key === "Backspace") {
+    e.preventDefault();
+    const st = scn[1].pg[p.s][p.d];
+    for (let j = st.length - 1; j >= 0; j--) if (!st[j].fixed) { removeBlock(p, j); break; }
+    p.g.focus();
+  }
+}
+function dropPeg(e) {
+  const pt = Play.pointer(fig, e), B = beam();
+  let best = null, bd = SP / 2;
+  pegs.forEach((p) => { const q = pegPos(p, B.a), dx = Math.abs(pt.x - q.x); if (dx < bd && pt.y > q.y - 50 && pt.y < q.y + 200) { bd = dx; best = p; } });
+  return best;
+}
+function hot(p) { pegs.forEach((x) => x.g.classList.toggle("hot", x === p)); }
+// generic drag: from an element; onDrop(peg|null, wasDrag)
+function dragFrom(el, w, onEnd) {
+  el.addEventListener("pointerdown", (e) => {
+    if (e.button > 0) return;
+    e.preventDefault(); e.stopPropagation();
+    const start = { x: e.clientX, y: e.clientY };
+    let drag = false, ghost = null;
+    const mv = (ev) => {
+      if (!drag && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 8) {
+        drag = true; ghost = document.createElement("div"); ghost.className = "ghost"; ghost.textContent = w(); ghost.style.background = COL[w()]; document.body.appendChild(ghost);
+      }
+      if (ghost) { ghost.style.left = ev.clientX + "px"; ghost.style.top = ev.clientY + "px"; hot(dropPeg(ev)); }
+    };
+    const up = (ev, ok) => {
+      removeEventListener("pointermove", mv); removeEventListener("pointerup", upOk); removeEventListener("pointercancel", upNo);
+      if (ghost) ghost.remove();
+      hot(null);
+      if (ok) onEnd(drag ? dropPeg(ev) : null, drag);
+    };
+    const upOk = (ev) => up(ev, true), upNo = (ev) => up(ev, false);
+    addEventListener("pointermove", mv); addEventListener("pointerup", upOk); addEventListener("pointercancel", upNo);
+  });
+}
+function blockDrag(bg, p, j) {
+  bg.addEventListener("click", (e) => e.stopPropagation());
+  const st = () => scn[1].pg[p.s][p.d];
+  dragFrom(bg, () => (st()[j] ? st()[j].w : 1), (to, wasDrag) => {
+    if (cur !== 1) return;
+    const b = st()[j];
+    if (!b) return;
+    if (b.fixed) { note(P.t("fixedMsg")); return; }
+    if (!wasDrag) { removeBlock(p, j); return; }
+    if (to === p) return;
+    if (to && (!canEdit(to) || scn[1].pg[to.s][to.d].length >= MAXN)) { if (to && canEdit(to, true)) note(P.t("full", { n: MAXN })); return; }
+    if (!canEdit(p)) return;
+    st().splice(j, 1); buildPeg(p);
+    if (to) scn[1].pg[to.s][to.d].push({ w: b.w });
+    changed(to);
+  });
+}
+
+// ---------- tray ----------
+const tray = $("tray"), chips = {};
+WS.forEach((w) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.setAttribute("aria-label", P.t("blockAria", { w }));
+  const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = COL[w];
+  b.append(sw, document.createTextNode(String(w)));
+  tray.appendChild(b); chips[w] = b;
+  dragFrom(b, () => w, (to, wasDrag) => {
+    if (!wasDrag) { setPick(w); return; }
+    setPick(w);
+    if (to) addBlock(to, w);
+  });
+  b.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPick(w); }
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); chips[WS[(WS.indexOf(w) + (e.key === "ArrowRight" ? 1 : 2)) % 3]].focus(); }
+  });
+});
+function setPick(w) { pick = w; WS.forEach((x) => chips[x].setAttribute("aria-pressed", x === w ? "true" : "false")); }
+
+// ---------- challenges ----------
+const chs = $("chs"), chBtns = [0, 1, 2, 3].map((i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t("ch" + i);
+  b.addEventListener("click", () => { loadCh(i); rebuild(); text(); wake(); });
+  chs.appendChild(b);
+  return b;
+});
+const SOL1 = () => solutions(CH[1].pre[0][0] * CH[1].pre[0][1]);
+
+// ---------- crowbar (step 3) ----------
+const fulc = $("fulc"), mass = $("mass");
+const CX0 = 80, CX1 = 560, CK = (CX1 - CX0) / BAR, CY = 236, CG = 304;
+S("line", { x1: 10, x2: 590, y1: CG, y2: CG, stroke: "var(--muted)", "stroke-width": 2 }, crowScene);
+const rock = S("path", { fill: "var(--muted)" }, crowScene);
+const rockT = S("text", { "text-anchor": "middle", "dominant-baseline": "central", class: "big", style: "fill:var(--surface)" }, crowScene);
+const fg = S("g", { class: "fulc", tabindex: 0, role: "slider", "aria-valuemin": 0.1, "aria-valuemax": 1 }, crowScene);
+S("polygon", { points: `0,${CY + 5} -28,${CG} 28,${CG}`, fill: "var(--fg)", stroke: "transparent" }, fg);
+S("rect", { x: CX0, y: CY - 5, width: CX1 - CX0, height: 10, rx: 4, fill: "var(--b)" }, crowScene);
+const loadArr = S("path", { fill: "var(--no)" }, crowScene), effArr = S("path", { fill: "var(--a)" }, crowScene);
+const effT = S("text", { "text-anchor": "end", class: "big halo" }, crowScene);
+const dim = S("path", { fill: "none", stroke: "var(--muted)", "stroke-width": 1.5 }, crowScene);
+const dimA = S("text", { x: CX0, y: 356, "text-anchor": "start", class: "halo" }, crowScene);
+const dimB = S("text", { x: CX1, y: 356, "text-anchor": "end", class: "halo" }, crowScene);
+const arrow = (x, y0, y1) => { const h = Math.sign(y1 - y0) * Math.min(12, Math.abs(y1 - y0)); return `M${x - 3} ${y0}V${y1 - h}H${x - 9}L${x} ${y1}L${x + 9} ${y1 - h}H${x + 3}V${y0}Z`; };
+function drawCrow() {
+  const M = +mass.value, p = clampN(+fulc.value, 0.1, 1), c = crowbar(M, p), fx = CX0 + p * CK;
+  const r = 20 + Math.sqrt(M) * 2.8, top = CY - 5;
+  rock.setAttribute("d", `M${CX0 - r} ${top}C${CX0 - r} ${top - r * 1.3} ${CX0 - r * 0.4} ${top - r * 2} ${CX0 + r * 0.15} ${top - r * 1.9}C${CX0 + r} ${top - r * 1.8} ${CX0 + r * 1.1} ${top - r * 0.6} ${CX0 + r} ${top}Z`);
+  rockT.setAttribute("x", CX0); rockT.setAttribute("y", top - r * 0.9);
+  rockT.textContent = P.t("kgUnit", { v: M });
+  fg.setAttribute("transform", `translate(${fx.toFixed(1)} 0)`);
+  const sc = 64 / Math.max(M, c.e), ll = Math.max(6, M * sc), le = Math.max(6, c.e * sc);
+  loadArr.setAttribute("d", arrow(CX0, CY + 6, CY + 6 + ll));
+  effArr.setAttribute("d", arrow(CX1 - 4, top - 14 - le, top - 2));
+  effT.setAttribute("x", CX1); effT.setAttribute("y", top - 22 - le);
+  effT.textContent = P.t("push", { v: Play.fmt(c.e, 1) });
+  dim.setAttribute("d", `M${CX0} 316V332M${fx} 316V332M${CX1} 316V332M${CX0} 324H${CX1}`);
+  dimA.textContent = P.t("loadArm", { v: Play.fmt(c.a, 2) });
+  dimB.textContent = P.t("effortArm", { v: Play.fmt(c.b, 2) });
+  fg.setAttribute("aria-valuenow", p);
+  fg.setAttribute("aria-label", P.t("pivotAria", { v: Play.fmt(p, 2) }));
+  $("fulcVal").textContent = P.t("mUnit", { v: Play.fmt(p, 2) });
+  $("massVal").textContent = P.t("kgUnit", { v: M });
+  if (cur === 2) fig.setAttribute("aria-label", P.t("figCrow", { m: M, e: Play.fmt(c.e, 1) }));
+  return c;
+}
+function setFulc(v) { fulc.value = Math.round(clampN(v, 0.1, 1) * 20) / 20; drawCrow(); text(); }
+fulc.addEventListener("input", () => { drawCrow(); text(); });
+mass.addEventListener("input", () => { drawCrow(); text(); });
+fg.addEventListener("keydown", (e) => {
+  const d = { ArrowLeft: -0.05, ArrowDown: -0.05, ArrowRight: 0.05, ArrowUp: 0.05 }[e.key];
+  if (d) { e.preventDefault(); setFulc(+fulc.value + d); }
+  if (e.key === "Home") { e.preventDefault(); setFulc(0.1); }
+  if (e.key === "End") { e.preventDefault(); setFulc(1); }
+});
+let fdrag = false;
+fig.addEventListener("pointerdown", (e) => {
+  if (cur !== 2) return;
+  const pt = Play.pointer(fig, e);
+  if (pt.y < CY - 30) return;
+  fdrag = true; fig.setPointerCapture(e.pointerId); fg.focus();
+  setFulc((pt.x - CX0) / CK);
+});
+fig.addEventListener("pointermove", (e) => { if (fdrag) setFulc((Play.pointer(fig, e).x - CX0) / CK); });
+["pointerup", "pointercancel"].forEach((t) => fig.addEventListener(t, () => (fdrag = false)));
+
+// ---------- text ----------
+function el(tag, txt, cls) { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; }
+function text() {
+  const k = cur + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("s2box").hidden = cur !== 1; $("s3box").hidden = cur !== 2;
+  if (cur === 0) {
+    const B = scn[0], v = { wl: S1.L[1], dl: S1.L[0], wr: S1.R[1], dr: S1.R[0], tl: torque(B.pg, "L"), tr: torque(B.pg, "R") };
+    $("stepBody").textContent = P.t(B.locked ? "b1" : "b1done", v);
+    $("letgo").textContent = P.t(B.locked ? "letGo" : "hold");
+    if (!B.locked) note(P.t("balanced", { l: v.tl, r: v.tr })); else note("");
+  } else if (cur === 1) {
+    const pg = scn[1].pg, tl = torque(pg, "L"), tr = torque(pg, "R");
+    $("stepBody").textContent = P.t("b2");
+    chBtns.forEach((b, i) => { b.classList.toggle("cur", i === ch); b.setAttribute("aria-pressed", i === ch ? "true" : "false"); });
+    const pre = CH[ch].pre;
+    $("chText").textContent = P.t("chT" + ch, ch === 1 ? { w: pre[0][1], d: pre[0][0], n: SOL1().length } : ch === 2 ? { d: pre[0][0] } : {});
+    const tb = el("table", null, "res"), hr = el("tr");
+    ["thSide", "thCalc", "thSum"].forEach((h) => hr.appendChild(el("th", P.t(h))));
+    tb.appendChild(hr);
+    [["L", tl], ["R", tr]].forEach(([s, t]) => {
+      const tr_ = el("tr");
+      tr_.append(el("td", P.t(s === "L" ? "sideL" : "sideR")), el("td", terms(pg, s).join(" + ") || "0", "m"), el("td", String(t), "num"));
+      tb.appendChild(tr_);
+    });
+    $("tbl").replaceChildren(tb);
+    const any = count(pg, "L") + count(pg, "R") > 0;
+    const stTxt = !any ? P.t("emptyBeam") : tl === tr ? P.t("balanced", { l: tl, r: tr }) : P.t(tl > tr ? "tipsL" : "tipsR", { l: tl, r: tr });
+    $("status").textContent = stTxt + (any ? " " + P.t("weights", { wl: weight(pg, "L"), wr: weight(pg, "R") }) : "");
+    $("status").classList.toggle("ok", any && tl === tr);
+    const res = checkCh(ch, pg);
+    let win = "";
+    if (ch === 1) {
+      if (res) found.add(res.w + "@" + res.d);
+      const sols = SOL1(), got = sols.filter((s) => found.has(s.w + "@" + s.d));
+      if (got.length === sols.length) win = P.t("foundAll", { n: sols.length });
+      else if (got.length) win = P.t("found", { k: got.length, n: sols.length, list: got.map((s) => s.w + "×" + s.d).join(", ") });
+    } else if (ch === 2 && res) win = P.t("win2", { w: res.w, l: weight(pg, "L"), d: pre[0][0] });
+    else if (ch === 3 && res) win = P.t("win3", res);
+    $("chWin").textContent = win;
+    note(stTxt);
+  } else {
+    $("stepBody").textContent = P.t("b3");
+    const M = +mass.value, c = crowbar(M, +fulc.value);
+    const lhs = Play.fmt(M * c.a, 1), rhs = Play.fmt(c.e * c.b, 1);
+    const kg = (v) => P.t("kgUnit", { v }), m = (v) => P.t("mUnit", { v });
+    $("cmath").textContent = `${kg(M)} × ${m(Play.fmt(c.a, 2))} = ${kg(Play.fmt(c.e, 1))} × ${m(Play.fmt(c.b, 2))}`;
+    $("cmath2").textContent = `${lhs} = ${rhs}`;
+    const v = { e: Play.fmt(c.e, 1), m: M, k: fmtN(Math.round(c.ratio * 10) / 10), r: Play.fmt(c.rise, 1) };
+    note(P.t(Math.abs(c.ratio - 1) < 1e-9 ? "crowSame" : c.ratio > 1 ? "crowLess" : "crowMore", v));
+  }
+}
+
+// ---------- step 1 ----------
+function setLock(l) { scn[0].locked = l; if (l) { scn[0].a = 0; scn[0].v = 0; } renderBeam(); text(); wake(); }
+$("letgo").addEventListener("click", () => setLock(!scn[0].locked));
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right", { k: S1.L[1] / S1.R[1] }), wrong: P.t("wrong"),
+}, () => { if (cur === 0) setLock(false); });
+
+const pauseBtn = $("pause");
+function setPause(p) {
+  paused = p; pauseBtn.textContent = P.t(p ? "play" : "pause"); pauseBtn.setAttribute("aria-pressed", p ? "true" : "false");
+  if (!p) wake();
+}
+pauseBtn.addEventListener("click", () => setPause(!paused));
+
+function updateFs() {
+  const r = fig.getBoundingClientRect(), sc = Math.min(r.width / 600, r.height / 380);
+  fig.style.setProperty("--fs", (sc > 0 ? Math.max(14, 13.5 / sc) : 14).toFixed(1) + "px");
+}
+
+buildScenes(); setPick(1); setPause(false);
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  cur = i;
+  $("predict").hidden = i !== 0;
+  $("c1").hidden = i !== 0; $("c2").hidden = i !== 1; $("c3").hidden = i !== 2;
+  beamScene.style.display = i < 2 ? "" : "none"; crowScene.style.display = i === 2 ? "" : "none";
+  pegs.forEach((p) => p.g.setAttribute("tabindex", i === 1 && pegs.indexOf(p) === focusPeg ? 0 : -1));
+  fg.setAttribute("tabindex", i === 2 ? 0 : -1);
+  updateFs();
+  if (i < 2) rebuild(); else drawCrow();
+  text(); wake();
+});
+pegs.forEach((p) => p.g.addEventListener("focus", () => { if (cur !== 1) p.g.blur(); }));
+
+$("reset").addEventListener("click", () => {
+  if (raf) cancelAnimationFrame(raf);
+  raf = 0; found = new Set(); ch = 1;
+  fulc.value = 0.3; mass.value = 60;
+  buildScenes(); setPick(1); pr.reset(); setPause(false); st.go(0);
+});
+addEventListener("resize", () => { updateFs(); if (cur < 2) renderBeam(); });
+
+$("data").textContent = P.t("dataNote", { n: MAXN, deg: DEG, max: MAXDEG, L: BAR });
+</script>
+</body>
+</html>

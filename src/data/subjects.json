@@ -306,20 +306,28 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Sentence blocks: find the skeleton",
       "zh": "句子积木"
      },
      "insight": {
-      "en": "Remove the describing words and a sentence still stands on 'who + does what'; add them back and it says more, not something else.",
-      "zh": "去掉修饰词，句子靠「谁 + 做什么」照样站得住；加回去，句子说得更多，但骨架不变。"
+      "en": "Remove the describing words and a sentence still stands on 'who + does what (+ what)'; add them back and it says more, not something else.",
+      "zh": "去掉修饰词，句子靠「谁 + 做什么（+ 什么）」照样站得住；加回去，句子说得更多，但骨架不变。"
      },
      "misconception": {
       "en": "Every word in a sentence is equally important.",
       "zh": "句子里每个词都一样重要。"
      },
-     "play": null
+     "play": "sentence-blocks.html",
+     "explain": {
+      "en": "Pick a long sentence from a storybook. Tell someone its skeleton — who does what — and say which words you took off and why the sentence still works.",
+      "zh": "从故事书里找一个长句子，说出它的骨架——谁做什么，再讲讲你拿掉了哪些词，为什么句子还通。"
+     },
+     "home": {
+      "en": "Write a three-word skeleton on a strip of paper (e.g. 小狗 / 追 / 球). Take turns with someone adding one describing word at a time on sticky notes. Who can make it longest while it still makes sense?",
+      "zh": "在纸条上写一个三块的骨架（比如「小狗 / 追 / 球」），和家人轮流在便利贴上加一个修饰词贴上去。谁能让句子最长、又还说得通？"
+     }
     },
     {
      "slug": "poem-rhythm",
@@ -333,20 +341,28 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Tap the beat of a Tang poem",
       "zh": "古诗节奏点读"
      },
      "insight": {
-      "en": "A five-character line usually breaks into 2 + 3 beats and a seven-character line into 4 + 3; the rhyme falls at the end of the even lines.",
-      "zh": "五言句一般按「二三」停顿，七言句按「四三」停顿；韵脚落在双数句的句末。"
+      "en": "A five-character line is read in beats 2 + 3 (often 2 + 2 + 1 or 2 + 1 + 2) and a seven-character line 4 + 3 (2 + 2 + 3); in 绝句 and 律诗 the rhyme falls at the end of the even-numbered lines, and line 1 may rhyme too.",
+      "zh": "五言句一般按「二三」停顿（细分常为二二一或二一二），七言句按「四三」（二二三）；绝句、律诗的韵脚落在双数句末，第一句也可以押韵。"
      },
      "misconception": {
-      "en": "How you read a poem aloud doesn't change anything.",
-      "zh": "诗怎么读出来都一样。"
+      "en": "How you read a poem aloud doesn't matter — just read every character at the same speed.",
+      "zh": "诗怎么读都一样，一个字一个字平着念就行。"
      },
-     "play": null
+     "play": "poem-rhythm.html",
+     "explain": {
+      "en": "A friend reads 白日依山尽 one character at a time, all at the same speed. Show them where the main pause goes and why. Then tell them which lines of 登鹳雀楼 rhyme and how you can tell.",
+      "zh": "同学把「白日依山尽」一字一字、一样快地念。告诉他主停顿在哪里、为什么；再说说《登鹳雀楼》哪几句押韵，你是怎么听出来的。"
+     },
+     "home": {
+      "en": "Pick a Tang poem you know. Read it to someone at home, clapping once for each beat group, and write a / at each main pause. Do the rhyming characters fall at the end of lines 2 and 4?",
+      "zh": "挑一首你会背的唐诗，读给家里人听，每个节拍拍一下手，在主停顿处画 /。押韵的字是不是落在第 2、4 句末？"
+     }
     },
     {
      "slug": "paragraph-reorder",
@@ -624,20 +640,28 @@
       "us": "1",
       "uk": "2"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "One sound, several spellings",
       "zh": "一个音，几种写法"
      },
      "insight": {
-      "en": "The same sound can be written in more than one way: rain, play and cake share one vowel sound.",
-      "zh": "同一个音可以有几种写法：rain、play、cake 里是同一个元音。"
+      "en": "The same sound can be written in more than one way: rain, play and cake share one vowel sound, and position helps choose — ay usually ends a word, ai sits inside.",
+      "zh": "同一个音可以有几种写法：rain、play、cake 里是同一个元音；位置能帮你选——ay 通常在词尾，ai 在词里面。"
      },
      "misconception": {
       "en": "Each sound has only one spelling.",
       "zh": "一个音只有一种写法。"
      },
-     "play": null
+     "play": "one-sound-many-spellings.html",
+     "explain": {
+      "en": "A friend writes \"plai\" and \"rayn\". Using what you counted, explain which spelling goes where — and why both look possible.",
+      "zh": "朋友写成了 \"plai\" 和 \"rayn\"。用你数出来的结果，跟他讲讲哪种写法放在哪儿——以及为什么两种看起来都像对的。"
+     },
+     "home": {
+      "en": "Make three paper bins labelled ai, ay and a_e. Hunt for long a words in a picture book and drop a slip with each word in the right bin. Which bin fills fastest?",
+      "zh": "做三个纸桶，分别写 ai、ay、a_e。在绘本里找读长音 a 的词，每找到一个就写在纸条上放进对应的桶。哪个桶装得最快？"
+     }
     },
     {
      "slug": "affix-builder",
@@ -651,20 +675,28 @@
       "us": "3",
       "uk": "4"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Build a word from parts",
       "zh": "用零件拼出一个词"
      },
      "insight": {
-      "en": "A long word is often a root with parts added: un- flips the meaning, -ness turns it into a thing.",
-      "zh": "长词常常是词根加零件：un- 把意思反过来，-ness 把它变成一样东西。"
+      "en": "A long word is often a root with parts added: prefixes change the meaning (un- = not, re- = again), suffixes mostly change the word class (-ness → noun, -ful/-less → adjective, -ly → adverb).",
+      "zh": "长单词常常是词根加零件：前缀改意思（un- 是「不」，re- 是「再」），后缀多半改词性（-ness 变名词，-ful/-less 变形容词，-ly 变副词）。"
      },
      "misconception": {
       "en": "Long words are hard because each one must be learnt as a whole.",
       "zh": "长单词难，因为每个都得整个背下来。"
      },
-     "play": null
+     "play": "affix-builder.html",
+     "explain": {
+      "en": "A friend says long English words must be memorised letter by letter. Take carelessness and show them how to read it from its parts.",
+      "zh": "朋友说英语长单词只能一个字母一个字母地背。拿 carelessness 给他演示一下，怎样从零件读出它的意思。"
+     },
+     "home": {
+      "en": "Write un-, re-, -ful, -less, -ness and -ly on sticky notes. Find root words in a book (help, kind, play…), stick the parts on, say the new word, and check a dictionary: is it real?",
+      "zh": "把 un-、re-、-ful、-less、-ness、-ly 写在便利贴上。从书里找词根（help、kind、play……），贴上零件读出新词，再查词典：它是真词吗？"
+     }
     },
     {
      "slug": "tense-timeline",
@@ -943,20 +975,28 @@
       "us": "1",
       "uk": "3"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Where does a shadow go?",
       "zh": "影子跑到哪里去？"
      },
      "insight": {
-      "en": "A shadow is where light is blocked, so it always points away from the light.",
-      "zh": "影子是光被挡住的地方，所以总在背着光的那一边。"
+      "en": "A shadow is where light is blocked, so it always points away from the light; moving the light changes the shadow's direction and length.",
+      "zh": "影子是光被挡住的地方，所以总在背着光的那一边；灯一动，影子的方向和长短就跟着变。"
      },
      "misconception": {
       "en": "A shadow is a reflection of the object.",
       "zh": "影子是物体的倒影。"
      },
-     "play": null
+     "play": "shadows.html",
+     "explain": {
+      "en": "A friend says a shadow is a picture of you, like a reflection. Use two lights to show them it is not.",
+      "zh": "朋友说影子是你的像，就像倒影。用两盏灯给他看看，为什么不是。"
+     },
+     "home": {
+      "en": "In a dark room, shine a torch at a toy from the side, then from high up. Try two torches at once. Outside, mark a stick's shadow with chalk at 9:00, 12:00 and 15:00.",
+      "zh": "在暗房间里，用手电筒从旁边、再从高处照一个玩具；再试两支手电筒一起照。到户外，在 9 点、12 点、15 点用粉笔画下一根木棍的影子。"
+     }
     },
     {
      "slug": "particles-three-states",
@@ -996,7 +1036,7 @@
       "us": "5",
       "uk": "5"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why a long lever helps",
       "zh": "为什么长杠杆省力"
@@ -1009,7 +1049,15 @@
       "en": "A balance only balances when the weights are equal.",
       "zh": "两边一样重才会平衡。"
      },
-     "play": null
+     "play": "lever-balance.html",
+     "explain": {
+      "en": "A child and a grown-up on a seesaw: where should each sit so it balances? Explain with weight × distance, not just ‘heavier’.",
+      "zh": "小孩和大人坐跷跷板，各坐哪儿才能平衡？用「重量 × 距离」讲给别人听，别只说「谁更重」。"
+     },
+     "home": {
+      "en": "Balance a ruler on a round pencil at its middle. Put 2 coins 3 cm from the pencil on one side. Where must 1 coin go on the other side? Then try 3 coins.",
+      "zh": "把一把尺子的中间架在圆铅笔上放平。一边离铅笔 3 厘米放 2 枚硬币，另一边 1 枚硬币要放在哪儿？再试试 3 枚。"
+     }
     },
     {
      "slug": "food-chain",
@@ -1023,20 +1071,28 @@
       "us": "5",
       "uk": "4"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Who eats whom, and where the energy goes",
       "zh": "谁吃谁，能量去了哪儿"
      },
      "insight": {
-      "en": "Each step up a food chain keeps only about a tenth of the energy.",
-      "zh": "食物链每往上一级，只留下大约十分之一的能量。"
+      "en": "Each step up a food chain passes on only about a tenth of the energy; the rest is used for living and lost as heat.",
+      "zh": "食物链每往上一级，只传上去大约十分之一的能量，其余用来活着、变成热散掉。"
      },
      "misconception": {
       "en": "Predators are at the top because they are strongest.",
       "zh": "猛兽在顶端是因为它们最强。"
      },
-     "play": null
+     "play": "food-chain.html",
+     "explain": {
+      "en": "A field has thousands of grasshoppers but only a few hawks. Explain why to a friend without using the words ‘strong’ or ‘weak’.",
+      "zh": "田野里蚱蜢成千上万，鹰却只有几只。不用「强」「弱」这两个字，给朋友讲讲为什么。"
+     },
+     "home": {
+      "en": "Count out 100 grains of rice for the grass. Pass a tenth to a ‘grasshopper’ cup, then a tenth of that to a ‘frog’ cup. What is left for a snake? Then look in a park or garden: who eats whom?",
+      "zh": "数 100 粒米当作草。把十分之一放进「蚱蜢」杯，再把它的十分之一放进「青蛙」杯。还剩多少给蛇？再去公园或花园看看：谁吃谁？"
+     }
     }
    ]
   },

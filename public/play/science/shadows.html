@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where does a shadow go?</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  #fig { height: auto; aspect-ratio: 600 / 380; max-height: 420px; touch-action: none; }
+  #fig .lamp { cursor: grab; }
+  #fig .lamp:focus { outline: none; }
+  #fig .lamp:focus-visible .ring, #fig .lamp.on .ring { stroke: var(--a); }
+  #fig text { fill: var(--fg); }
+  #fig text.mut { fill: var(--muted); }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 3.6em; }
+  .controls .who { font-size: 13px; color: var(--fg); font-weight: 650; }
+  .timebtns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+  .live2 { margin: 0 0 6px; }
+  .result .math { white-space: normal; }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="pause" aria-pressed="false"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 380" role="group" data-t-aria="figAria"></svg>
+      <div id="c1" class="controls">
+        <button type="button" id="replay" data-t="replay" hidden></button>
+      </div>
+      <div id="c2" hidden>
+        <div class="controls">
+          <span class="who" id="who"></span>
+          <label class="check" id="twoWrap"><input type="checkbox" id="two"> <span data-t="twoLabel"></span></label>
+        </div>
+        <div class="controls">
+          <label for="lx" data-t="xLabel"></label>
+          <input type="range" id="lx" min="20" max="580" step="10" value="120">
+          <output id="lxVal" for="lx"></output>
+        </div>
+        <div class="controls">
+          <label for="ly" data-t="yLabel"></label>
+          <input type="range" id="ly" min="30" max="300" step="10" value="200">
+          <output id="lyVal" for="ly"></output>
+        </div>
+      </div>
+      <div id="c3" hidden>
+        <div class="controls">
+          <label for="time" data-t="timeLabel"></label>
+          <input type="range" id="time" min="6" max="18" step="0.25" value="7.5">
+          <output id="timeVal" for="time"></output>
+        </div>
+        <div class="controls">
+          <div class="timebtns">
+            <button type="button" class="small" data-time="7.5" data-t="morning"></button>
+            <button type="button" class="small" data-time="12" data-t="noon"></button>
+            <button type="button" class="small" data-time="16.5" data-t="evening"></button>
+            <button type="button" class="small" id="runDay" aria-pressed="false"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="note live2" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" id="data"></p>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Where does a shadow go?", eyebrow: "Science · Stage 1",
+    h1: "A shadow is where the light is blocked, so it always points away from the light",
+    intro: "Guess first, then move the light and the Sun and watch the child’s shadow.",
+    reset: "Reset", pause: "Pause", play: "Play", replay: "Move the light again",
+    figAria: "A child standing on the ground, lit by a light; the shadow lies on the ground",
+    s1: "Guess", s2: "Light", s3: "Sun", s4: "Rule",
+    k1: "Predict first", t1: "The light moves to the other side",
+    b1: "A light shines on the child from the left, so the shadow lies on the right. Now the light will move over to the right side.",
+    b1done: "The shadow swung to the left: it is always on the far side from the light. A reflection in a mirror or a puddle would not move like that. A shadow is not a picture of the child at all. It is the patch the light cannot reach.",
+    q: "When the light is on the right, where will the shadow be?",
+    o1: "On the left: it swings round, away from the light",
+    o2: "Still on the right: a shadow is a picture of the child, like a reflection",
+    o3: "Nowhere: it disappears",
+    right: "Yes. Watch it swing.", wrong: "Watch what really happens.",
+    k2: "Hands on", t2: "Drag the light",
+    b2: "Drag the light, tap the sky, or use the sliders or arrow keys. Bring it low and high, near and far. Then switch on a second light.",
+    b2two: "Two lights, two shadows, each pointing away from its own light. Where both lights are blocked the shadow is darkest. A reflection would never double like this.",
+    twoLabel: "Second light", xLabel: "Light: left–right", yLabel: "Light: height",
+    who: "Moving light {n}", lampAria: "Light {n}. Arrow keys move it.",
+    liveLamp: "Light {n}: {H} m high, {d} m to the {side} of the child. Shadow: {s}.",
+    liveLampOver: "Light {n}: {H} m high, straight above the child. Shadow: 0 m, just under the feet.",
+    sDir: "{s} m to the {away}", sOff: "{s} m to the {away}, off the edge of the picture", sInf: "no end, to the {away}: the light is lower than the head",
+    left: "left", right_: "right",
+    k3: "The Sun", t3: "Morning, noon, evening",
+    b3: "The Sun is a light too, just very far away, so its rays arrive side by side. Drag the time, tap a time, or run the whole day. A low Sun gives a long shadow; a high Sun gives a short one.",
+    timeLabel: "Time", morning: "Morning", noon: "Noon", evening: "Evening", runDay: "Run the day", stopDay: "Stop",
+    liveSun: "{time}: the Sun is {e}° above the {dir} horizon. Shadow: {s}.",
+    liveSunNoon: "{time}: the Sun is straight overhead. Shadow: 0 m, just under the feet.",
+    liveSunSet: "{time}: the Sun is on the {dir} horizon. Shadow: no end, to the {away}.",
+    east: "east", west: "west", East: "East", West: "West",
+    k4: "The rule", t4: "Follow the ray past the head",
+    b4: "Light travels in straight lines. The ray that just misses the top of the head lands at the tip of the shadow. Between the feet and that tip no light arrives: that patch is the shadow. So it always lies on the far side from the light, and a lower light makes it longer.",
+    liveRule: "Light {H} m high and {d} m away; child {h} m tall. The two triangles have the same shape, so shadow = {h} × {d} ÷ ({H} − {h}) = {s} m.",
+    liveRuleInf: "The light ({H} m) is lower than the head ({h} m). The ray over the head never comes back down, so the shadow has no end.",
+    liveRuleOver: "The light is straight above the head: shadow = {h} × 0 ÷ ({H} − {h}) = 0 m.",
+    resultTitle: "What we found", resultMain: "shadow = where light is blocked → away from the light",
+    resultNote: "Lower light, longer shadow. A light lower than the top: no end. Two lights: two shadows. A reflection does none of these.",
+    explainK: "Explain it", explainQ: "A friend says a shadow is a picture of you, like a reflection. Use two lights to show them it is not.",
+    homeK: "Try at home", homeQ: "In a dark room, shine a torch at a toy from the side, then from high up. Try two torches at once. Outside, mark a stick’s shadow with chalk at 9:00, 12:00 and 15:00.",
+    dataNote: "Scale: 1 m = 100 units in the picture; the child is {h} m tall. A light is treated as one point (a small bulb); real bulbs have a size, so real shadow edges are a little blurred. Shadow from a light at height H, a distance d to the side: s = h × d ÷ (H − h) when H > h (similar triangles); when H ≤ h the shadow has no end. The Sun is modelled for a place on the equator at the March or September equinox, where it rises due east, passes straight overhead at noon and sets due west, so its path lies in the picture; its height = 90° − 15° × hours from noon (ignoring the bending of light by air and clock offsets). Shadow from the Sun: s = h ÷ tan(height). Farther from the equator the noon Sun is lower and the noon shadow points toward the pole, out of this picture.",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "影子跑到哪里去？", eyebrow: "科学 · 阶段 1",
+    h1: "影子是光被挡住的地方，所以总在背着光的那一边",
+    intro: "先猜，再移动灯和太阳，看小朋友的影子怎么变。",
+    reset: "重置", pause: "暂停", play: "播放", replay: "再移一次灯",
+    figAria: "一个小朋友站在地上，被一盏灯照着，影子落在地上",
+    s1: "先猜", s2: "灯", s3: "太阳", s4: "规律",
+    k1: "先猜一猜", t1: "灯移到另一边",
+    b1: "灯从左边照着小朋友，影子落在右边。现在灯要移到右边去。",
+    b1done: "影子转到了左边：它总在背着光的那一边。镜子或水坑里的倒影不会这样跑。影子根本不是小朋友的像，它只是光照不到的那一块地方。",
+    q: "灯到了右边，影子会在哪里？",
+    o1: "在左边：转过去，背着灯",
+    o2: "还在右边：影子是小朋友的像，就像倒影",
+    o3: "哪儿都没有：消失了",
+    right: "对！看它转过去。", wrong: "看看实际会怎样。",
+    k2: "动手", t2: "拖动灯",
+    b2: "拖动灯，或者点天空，也可以用滑块或方向键。把灯放低、放高、放近、放远。再打开第二盏灯。",
+    b2two: "两盏灯，两个影子，各自背着自己的灯。两盏灯都被挡住的地方，影子最黑。倒影可不会这样变成两个。",
+    twoLabel: "第二盏灯", xLabel: "灯：左右", yLabel: "灯：高低",
+    who: "正在移动第 {n} 盏灯", lampAria: "第 {n} 盏灯，方向键可以移动。",
+    liveLamp: "第 {n} 盏灯：高 {H} 米，在小朋友{side}边 {d} 米。影子：{s}。",
+    liveLampOver: "第 {n} 盏灯：高 {H} 米，正好在小朋友头顶。影子：0 米，就在脚下。",
+    sDir: "向{away} {s} 米", sOff: "向{away} {s} 米，伸出了画面", sInf: "向{away}没有尽头：灯比头顶还低",
+    left: "左", right_: "右",
+    k3: "太阳", t3: "早上、中午、傍晚",
+    b3: "太阳也是一盏灯，只是离得特别远，所以照过来的光线是并排平行的。拖动时间、点一个时刻，或者让一整天跑一遍。太阳低，影子长；太阳高，影子短。",
+    timeLabel: "时间", morning: "早上", noon: "中午", evening: "傍晚", runDay: "跑一整天", stopDay: "停",
+    liveSun: "{time}：太阳在{dir}边地平线上方 {e}°。影子：{s}。",
+    liveSunNoon: "{time}：太阳正在头顶。影子：0 米，就在脚下。",
+    liveSunSet: "{time}：太阳在{dir}边地平线上。影子：向{away}没有尽头。",
+    east: "东", west: "西", East: "东", West: "西",
+    k4: "规律", t4: "顺着擦过头顶的光线走",
+    b4: "光沿直线走。刚好擦过头顶的那条光线，落地的地方就是影子的尖。从脚到这个尖，光都照不到：这一块就是影子。所以影子总在背着光的那一边，灯越低，影子越长。",
+    liveRule: "灯高 {H} 米、离开 {d} 米；小朋友高 {h} 米。两个三角形形状相同，所以影子 = {h} × {d} ÷ ({H} − {h}) = {s} 米。",
+    liveRuleInf: "灯（{H} 米）比头顶（{h} 米）还低。擦过头顶的光线不会再落回地面，所以影子没有尽头。",
+    liveRuleOver: "灯正好在头顶上：影子 = {h} × 0 ÷ ({H} − {h}) = 0 米。",
+    resultTitle: "我们发现", resultMain: "影子 = 光被挡住的地方 → 背着光",
+    resultNote: "灯越低，影子越长；灯比头顶低，影子没有尽头；两盏灯，两个影子。倒影一样也做不到。",
+    explainK: "说一说", explainQ: "朋友说影子是你的像，就像倒影。用两盏灯给他看看，为什么不是。",
+    homeK: "家里做一做", homeQ: "在暗房间里，用手电筒从旁边、再从高处照一个玩具；再试两支手电筒一起照。到户外，在 9 点、12 点、15 点用粉笔画下一根木棍的影子。",
+    dataNote: "比例：图中 100 个单位 = 1 米；小朋友高 {h} 米。灯当成一个点（小灯泡）；真的灯泡有大小，所以真影子的边缘有点模糊。灯高 H、横向离开 d 时，影子长 s = h × d ÷ (H − h)（H > h，相似三角形）；H ≤ h 时影子没有尽头。太阳按春分或秋分那天的赤道算：太阳从正东升起、中午正在头顶、从正西落下，路径正好在画面里；太阳高度 = 90° − 15° × 离中午的小时数（不计空气对光的折射和钟表时差）。太阳下的影子长 s = h ÷ tan(太阳高度)。离赤道越远，中午太阳越低，中午的影子指向南北极方向，在这幅图之外。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- geometry (pure; picture units, 100 = 1 m, y grows downward) ----------
+const W = 600, G = 320, X0 = 300, CH = 120;            // ground line, child position, child height (units)
+const TOP = G - CH, M = 100;                             // head top y, units per metre
+const LX_MIN = 20, LX_MAX = 580, LY_MIN = 20, LY_MAX = G - 30, GAP = 30, SNAP = 10; // lamp snaps to 0.1 m
+
+// Where a ray from point (px,py) in direction (dx,dy) first leaves the box [0,W]×[0,G].
+function exitPoint(px, py, dx, dy) {
+  let t = Infinity;
+  if (dx > 1e-12) t = Math.min(t, (W - px) / dx);
+  if (dx < -1e-12) t = Math.min(t, (0 - px) / dx);
+  if (dy > 1e-12) t = Math.min(t, (G - py) / dy);
+  if (dy < -1e-12) t = Math.min(t, (0 - py) / dy);
+  if (!Number.isFinite(t) || t < 0) t = 0;
+  return { x: Play.clamp(px + t * dx, 0, W), y: Play.clamp(py + t * dy, 0, G) };
+}
+// Shadow of a vertical object (base X0, top TOP) cast by rays in direction (dx,dy) through the top.
+// Returns the region of blocked light (polygon) and the shadow on the ground [from, to].
+function castShadow(dx, dy) {
+  const e = exitPoint(X0, TOP, dx, dy);
+  const onGround = e.y >= G - 1e-6;
+  const side = dx > 1e-9 ? 1 : dx < -1e-9 ? -1 : 0;
+  const edge = side > 0 ? W : 0;
+  let poly = [[X0, G], [X0, TOP], [e.x, e.y]];
+  if (!onGround) {
+    if (e.y <= 1e-6 && Math.abs(e.x - edge) > 1e-6) poly.push([edge, 0]);
+    poly.push([edge, G]);
+  }
+  const tipX = onGround ? e.x : edge;
+  return { poly, tipX, side, clipped: !onGround || tipX <= 0 || tipX >= W };
+}
+// Lamp at (lx, ly): shadow length in metres (Infinity when the lamp is not above the head).
+function lampShadowM(lx, ly) {
+  const H = (G - ly) / M, h = CH / M, d = Math.abs(X0 - lx) / M;
+  if (d < 1e-9) return 0;
+  if (H <= h + 1e-9) return Infinity;
+  return (h * d) / (H - h);
+}
+// Sun: time in hours (6..18) → height above horizon in degrees, side +1 = east (right)
+function sunAt(t) {
+  t = Play.clamp(t, 6, 18);
+  return { e: 90 - 15 * Math.abs(t - 12), side: t < 12 ? 1 : t > 12 ? -1 : 0 };
+}
+function sunShadowM(eDeg) {
+  if (eDeg <= 1e-9) return Infinity;
+  if (eDeg >= 90 - 1e-9) return 0;
+  return (CH / M) / Math.tan((eDeg * Math.PI) / 180);
+}
+function fixLamp(L) {
+  L.x = Play.clamp(Math.round(L.x / SNAP) * SNAP, LX_MIN, LX_MAX);
+  L.y = Play.clamp(Math.round(L.y / SNAP) * SNAP, LY_MIN, LY_MAX);
+  if (Math.abs(L.x - X0) < GAP && L.y > TOP - GAP) L.x = X0 + (L.x >= X0 ? GAP : -GAP); // never inside the child
+  return L;
+}
+
+// ---------- state ----------
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const DEF = [{ x: 120, y: 80 }, { x: 500, y: 60 }];
+let lamps = DEF.map((l) => ({ ...l })), two = false, active = 0, time = 7.5;
+let cur = 0, paused = false, raf = 0, last = 0, s1 = { x: 120, y: 80, from: 120, to: 480, t: 0, run: false, done: false }, dayRun = false;
+const fmtM = (v) => Play.fmt(v, 1);
+const fmtTime = (t) => { const h = Math.floor(t + 1e-9), m = Math.round((t - h) * 60); return h + ":" + String(m).padStart(2, "0"); };
+const sideWord = (s) => P.t(s < 0 ? "left" : "right_");
+
+// ---------- drawing ----------
+const sky = Play.svg("g", {}, fig), dyn = Play.svg("g", { "pointer-events": "none" }, fig), lampsL = Play.svg("g", {}, fig), labs = Play.svg("g", { "pointer-events": "none" }, fig);
+Play.svg("rect", { x: 0, y: G, width: W, height: 380 - G, fill: "var(--b)", opacity: 0.25 }, sky);
+Play.svg("line", { x1: 0, x2: W, y1: G, y2: G, stroke: "var(--muted)", "stroke-width": 2 }, sky);
+const hit = Play.svg("rect", { x: 0, y: 0, width: W, height: G, fill: "transparent" }, sky);
+
+let fs = 14;
+function updateFs() {
+  const r = fig.getBoundingClientRect();
+  const sc = Math.min(r.width / 600, r.height / 380);
+  fs = sc > 0 ? Math.max(14, 13.5 / sc) : 14;
+}
+function txt(x, y, s, attrs, parent) {
+  const t = Play.svg("text", Object.assign({ x, y, "font-size": fs.toFixed(1), "text-anchor": "middle" }, attrs || {}), parent || labs);
+  t.textContent = s;
+  return t;
+}
+function drawChild(p) {
+  const c = "var(--c)", hr = 11, x = X0;
+  Play.svg("circle", { cx: x, cy: TOP + hr, r: hr, fill: c }, p);
+  Play.svg("path", { d: `M${x - 13} ${TOP + 26}H${x + 13}L${x + 15} ${TOP + 74}H${x - 15}Z`, fill: c }, p);
+  Play.svg("path", { d: `M${x - 13} ${TOP + 28}L${x - 21} ${TOP + 66}M${x + 13} ${TOP + 28}L${x + 21} ${TOP + 66}`, stroke: c, "stroke-width": 6, "stroke-linecap": "round", fill: "none" }, p);
+  Play.svg("path", { d: `M${x - 7} ${TOP + 72}V${G - 2}M${x + 7} ${TOP + 72}V${G - 2}`, stroke: c, "stroke-width": 8, "stroke-linecap": "round", fill: "none" }, p);
+}
+function drawShadow(sh, op) {
+  Play.svg("polygon", { points: sh.poly.map((p) => p.join(",")).join(" "), fill: "var(--ink-panel)", opacity: 0.12 }, dyn);
+  const a = Math.min(X0, sh.tipX), b = Math.max(X0, sh.tipX);
+  if (b - a > 0.01) Play.svg("rect", { x: a, y: G - 3, width: b - a, height: 11, rx: 3, fill: "var(--ink-panel)", opacity: op }, dyn);
+}
+function ray(x1, y1, x2, y2) {
+  Play.svg("line", { x1, y1, x2, y2, stroke: "var(--b)", "stroke-width": 2, "stroke-dasharray": "6 5" }, dyn);
+}
+
+const lampEls = [0, 1].map((i) => {
+  const g = Play.svg("g", { class: "lamp", tabindex: "0", role: "button" }, lampsL);
+  Play.svg("circle", { r: 24, fill: "var(--hl)", opacity: 0.25 }, g);
+  Play.svg("circle", { class: "ring", r: 15, fill: "var(--hl)", stroke: "transparent", "stroke-width": 3 }, g);
+  const n = Play.svg("text", { y: 5, "font-size": 14, "text-anchor": "middle", "font-weight": 700 }, g);
+  n.style.fill = "var(--ink-panel)";
+  n.textContent = String(i + 1);
+  g.addEventListener("focus", () => { if (cur === 1 || cur === 3) setActive(i); });
+  g.addEventListener("keydown", (e) => {
+    const k = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (!k || !(cur === 1 || cur === 3)) return;
+    e.preventDefault();
+    const st = SNAP, L = lamps[i];
+    L.x += k[0] * st; L.y += k[1] * st;
+    if (k[0] && Math.abs(L.x - X0) < GAP && L.y > TOP - GAP) L.x = X0 + k[0] * GAP; // step past the child
+    fixLamp(L); setActive(i); draw();
+  });
+  return g;
+});
+
+function shownLamps() {
+  if (cur === 0) return [s1];
+  if (cur === 1) return two ? lamps : [lamps[0]];
+  if (cur === 3) return [lamps[0]];
+  return [];
+}
+
+function draw() {
+  updateFs();
+  while (dyn.firstChild) dyn.removeChild(dyn.firstChild);
+  while (labs.firstChild) labs.removeChild(labs.firstChild);
+  const child = Play.svg("g", {}, dyn);
+  const live = [];
+  if (cur === 2) {
+    const s = sunAt(time), R = 270, er = (s.e * Math.PI) / 180;
+    Play.svg("path", { d: `M${X0 + R} ${G}A${R} ${R} 0 0 0 ${X0 - R} ${G}`, fill: "none", stroke: "var(--line)", "stroke-width": 2, "stroke-dasharray": "3 6" }, dyn);
+    const sx = X0 + s.side * R * Math.cos(er), sy = G - R * Math.sin(er);
+    const dx = -s.side * Math.cos(er), dy = Math.sin(er);
+    const sh = castShadow(dx, dy);
+    drawShadow(sh, 0.65);
+    for (let k = -2; k <= 2; k++) { // parallel rays
+      const ox = -dy * k * 40, oy = dx * k * 40;
+      Play.svg("line", { x1: sx + ox, y1: sy + oy, x2: sx + ox + dx * 70, y2: sy + oy + dy * 70, stroke: "var(--hl)", "stroke-width": 2.5, "stroke-linecap": "round" }, dyn);
+    }
+    if (sh.side) ray(X0, TOP, sh.poly[2][0], sh.poly[2][1]);
+    Play.svg("circle", { cx: sx, cy: sy, r: 26, fill: "var(--hl)", opacity: 0.3 }, dyn);
+    Play.svg("circle", { cx: sx, cy: sy, r: 17, fill: "var(--hl)" }, dyn);
+    txt(fs * 0.6, fs * 1.3, "← " + P.t("West"), { "text-anchor": "start", class: "mut" });
+    txt(W - fs * 0.6, fs * 1.3, P.t("East") + " →", { "text-anchor": "end", class: "mut" });
+    const sm = sunShadowM(s.e), away = s.side > 0 ? P.t("west") : P.t("east"), dir = s.side > 0 ? P.t("east") : P.t("west");
+    if (s.side === 0) live.push(P.t("liveSunNoon", { time: fmtTime(time) }));
+    else if (!Number.isFinite(sm)) live.push(P.t("liveSunSet", { time: fmtTime(time), dir, away }));
+    else live.push(P.t("liveSun", { time: fmtTime(time), e: Play.fmt(s.e, 1).replace(/\.0$/, ""), dir, s: P.t(sh.clipped ? "sOff" : "sDir", { s: fmtM(sm), away }) }));
+    if (Number.isFinite(sm) && sm > 0) txt((X0 + sh.tipX) / 2, G + fs * 1.6, fmtM(sm) + " m");
+  } else {
+    const ls = shownLamps();
+    const op = ls.length > 1 ? 0.45 : 0.65, gl = [];
+    ls.forEach((L, i) => {
+      const sh = castShadow(X0 - L.x, TOP - L.y);
+      drawShadow(sh, op);
+      ray(L.x, L.y, sh.poly[2][0], sh.poly[2][1]);
+      const sm = lampShadowM(L.x, L.y), n = cur === 0 ? 1 : lamps.indexOf(L) + 1;
+      const H = (G - L.y) / M, d = Math.abs(X0 - L.x) / M, away = sideWord(sh.side);
+      let s;
+      if (!Number.isFinite(sm)) s = P.t("sInf", { away });
+      else s = P.t(sh.clipped ? "sOff" : "sDir", { s: fmtM(sm), away });
+      if (sm === 0) live.push(P.t("liveLampOver", { n, H: fmtM(H) }));
+      else live.push(P.t("liveLamp", { n, H: fmtM(H), d: fmtM(d), side: sideWord(-sh.side), s }));
+      if (Number.isFinite(sm) && sm > 0.05 && cur !== 0) {
+        const lx = sh.clipped ? (X0 + (sh.side > 0 ? W : 0)) / 2 : (X0 + sh.tipX) / 2;
+        const lab = (ls.length > 1 ? n + ": " : "") + fmtM(sm) + " m";
+        const prev = gl.find((q) => q.side === sh.side);
+        if (prev) prev.el.textContent += " · " + lab; // both shadows on one side: one label
+        else gl.push({ side: sh.side, el: txt(lx, G + fs * 1.6, lab) });
+      }
+      if (cur === 3) {
+        // measurements for the similar-triangle rule
+        Play.svg("line", { x1: L.x, y1: L.y + 18, x2: L.x, y2: G, stroke: "var(--muted)", "stroke-width": 1.5, "stroke-dasharray": "2 4" }, dyn);
+        const tx = L.x + (L.x < X0 ? -8 : 8), anc = L.x < X0 ? "end" : "start";
+        txt(Play.clamp(tx, 4, W - 4), (L.y + G) / 2, "H " + fmtM(H) + " m", { "text-anchor": anc });
+        txt(X0 + (sh.side >= 0 ? -28 : 28), TOP + fs * 0.4, "h " + fmtM(CH / M) + " m", { "text-anchor": sh.side >= 0 ? "end" : "start" });
+        if (d > 0.05) txt((L.x + X0) / 2, G - fs * 0.5, "d " + fmtM(d) + " m", { class: "mut" });
+        let r;
+        if (sm === 0) r = P.t("liveRuleOver", { h: fmtM(CH / M), H: fmtM(H) });
+        else if (!Number.isFinite(sm)) r = P.t("liveRuleInf", { h: fmtM(CH / M), H: fmtM(H) });
+        else r = P.t("liveRule", { h: fmtM(CH / M), H: fmtM(H), d: fmtM(d), s: fmtM(sm) });
+        live.length = 0; live.push(r);
+      }
+    });
+  }
+  drawChild(child);
+  // lamp handles
+  const ls = shownLamps();
+  lampEls.forEach((g, i) => {
+    const L = cur === 0 ? (i === 0 ? s1 : null) : ls.includes(lamps[i]) ? lamps[i] : null;
+    g.style.display = L ? "" : "none";
+    if (!L) return;
+    g.setAttribute("transform", `translate(${L.x} ${L.y})`);
+    g.classList.toggle("on", cur !== 0 && ls.length > 1 && i === active);
+    g.setAttribute("tabindex", cur === 0 ? "-1" : "0");
+    g.style.cursor = cur === 0 ? "default" : "";
+    g.setAttribute("aria-label", P.t("lampAria", { n: i + 1 }));
+  });
+  Play.live($("live"), live.join(" "));
+  syncControls();
+}
+
+// ---------- controls ----------
+const lx = $("lx"), ly = $("ly"), twoBox = $("two"), timeEl = $("time");
+function syncControls() {
+  const L = lamps[active];
+  lx.value = L.x; ly.value = G - L.y;
+  $("lxVal").textContent = fmtM((L.x - X0) / M) + " m";
+  $("lyVal").textContent = fmtM((G - L.y) / M) + " m";
+  $("who").textContent = P.t("who", { n: active + 1 });
+  $("who").hidden = !(two && cur === 1);
+  timeEl.value = time;
+  $("timeVal").textContent = fmtTime(time);
+}
+ly.min = G - LY_MAX; ly.max = G - LY_MIN;
+function setActive(i) { active = i; }
+lx.addEventListener("input", () => { const L = lamps[active]; L.x = +lx.value; fixLamp(L); draw(); });
+ly.addEventListener("input", () => { const L = lamps[active]; L.y = G - +ly.value; fixLamp(L); draw(); });
+twoBox.addEventListener("change", () => { two = twoBox.checked; if (!two) active = 0; else active = 1; text(); draw(); });
+timeEl.addEventListener("input", () => { time = +timeEl.value; stopDay(); draw(); });
+document.querySelectorAll("[data-time]").forEach((b) => b.addEventListener("click", () => { time = +b.dataset.time; stopDay(); draw(); }));
+
+// pointer: grab the nearest lamp, or move the active lamp to where you tap
+let dragging = -1;
+fig.addEventListener("pointerdown", (e) => {
+  if (!(cur === 1 || cur === 3)) return;
+  const p = Play.pointer(fig, e), ls = shownLamps();
+  let best = -1, bd = 70;
+  ls.forEach((L) => { const i = lamps.indexOf(L), dd = Math.hypot(L.x - p.x, L.y - p.y); if (dd < bd) { bd = dd; best = i; } });
+  if (best < 0) { if (p.y > G) return; best = active; }
+  setActive(best);
+  dragging = best;
+  fig.setPointerCapture(e.pointerId);
+  lamps[best].x = p.x; lamps[best].y = p.y; fixLamp(lamps[best]);
+  e.preventDefault();
+  draw();
+});
+fig.addEventListener("pointermove", (e) => {
+  if (dragging < 0) return;
+  const p = Play.pointer(fig, e), L = lamps[dragging];
+  L.x = p.x; L.y = p.y; fixLamp(L); draw();
+});
+const endDrag = () => { dragging = -1; };
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", endDrag);
+
+// ---------- animation ----------
+function anyAnim() { return (cur === 0 && s1.run) || (cur === 2 && dayRun); }
+function wake() { if (!raf && !paused && anyAnim()) { last = 0; raf = requestAnimationFrame(tick); } }
+function tick(ts) {
+  raf = 0;
+  if (paused) return;
+  const dt = last ? Math.min((ts - last) / 1000, 0.05) : 1 / 60;
+  last = ts;
+  if (cur === 0 && s1.run) {
+    s1.t = Math.min(1, s1.t + dt / 2);
+    const u = s1.t * s1.t * (3 - 2 * s1.t);
+    s1.x = s1.from + (s1.to - s1.from) * u;
+    if (s1.t >= 1) { s1.run = false; s1.done = true; text(); }
+  }
+  if (cur === 2 && dayRun) {
+    time += dt; // one hour of day per second
+    if (time >= 18) { time = 18; stopDay(); }
+  }
+  draw();
+  if (anyAnim()) raf = requestAnimationFrame(tick);
+}
+function moveLamp1() {
+  s1.from = s1.x < X0 ? 120 : 480; s1.to = s1.from < X0 ? 480 : 120; s1.t = 0;
+  if (Play.reduced) { s1.x = s1.to; s1.run = false; s1.done = true; text(); draw(); return; }
+  s1.run = true; wake();
+}
+const runBtn = $("runDay");
+function stopDay() { dayRun = false; runBtn.textContent = P.t("runDay"); runBtn.setAttribute("aria-pressed", "false"); }
+runBtn.addEventListener("click", () => {
+  if (dayRun) { stopDay(); return; }
+  if (time >= 18) time = 6;
+  dayRun = true; runBtn.textContent = P.t("stopDay"); runBtn.setAttribute("aria-pressed", "true");
+  if (paused) setPause(false);
+  wake();
+});
+const pauseBtn = $("pause");
+function setPause(p) {
+  paused = p; pauseBtn.textContent = P.t(p ? "play" : "pause"); pauseBtn.setAttribute("aria-pressed", p ? "true" : "false");
+  if (!p) wake();
+}
+pauseBtn.addEventListener("click", () => setPause(!paused));
+
+// ---------- text & steps ----------
+function text() {
+  const k = cur + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  let b = P.t("b" + k);
+  if (cur === 0 && s1.done) b = P.t("b1done");
+  if (cur === 1 && two) b = P.t("b2two");
+  $("stepBody").textContent = b;
+  $("replay").hidden = !(cur === 0 && s1.done);
+  $("twoWrap").hidden = cur !== 1;
+}
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1"), right: true }, { label: P.t("o2") }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { if (!s1.run) { s1.x = 120; moveLamp1(); } });
+$("replay").addEventListener("click", moveLamp1);
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  cur = i;
+  $("predict").hidden = i !== 0;
+  $("c1").hidden = i !== 0;
+  $("c2").hidden = !(i === 1 || i === 3);
+  $("c3").hidden = i !== 2;
+  if (i === 3) active = 0;
+  if (i !== 2) stopDay();
+  text(); draw(); wake();
+});
+
+$("reset").addEventListener("click", () => {
+  lamps = DEF.map((l) => ({ ...l })); two = false; twoBox.checked = false; active = 0; time = 7.5; stopDay();
+  s1.x = 120; s1.t = 0; s1.run = false; s1.done = false;
+  pr.reset(); setPause(false); st.go(0);
+});
+$("data").textContent = P.t("dataNote", { h: fmtM(CH / M) });
+setPause(false); stopDay();
+addEventListener("resize", draw);
+draw();
+</script>
+</body>
+</html>
