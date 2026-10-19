@@ -10,6 +10,7 @@
   .stage canvas.main { height: 300px; cursor: default; }
   .stage .vtitle { font-size: 13px; color: var(--fg); background: var(--surface); border-radius: 6px; padding: 1px 6px; }
   .stage .vtag { font-size: 12px; }
+  @media (max-width: 560px) { #chart text { font-size: 14px; } } /* ≥ 13 px on screen at 375 px wide */
   .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 5.2em; }
   .controls label { min-width: 6.5em; }
   .controls button[aria-pressed="true"] { border-color: var(--a); background: var(--soft); color: var(--fg); }
@@ -321,7 +322,7 @@ const PMAX = 0.15; // per kJ/mol; the curves start higher (up to 1/RT) and are c
 const cy = (p) => CY0 - (p / PMAX) * (CY0 - CY1);
 function curve(t, from) { const pts = []; for (let k = 0; k <= 60; k++) { const E = from + ((E_AX - from) * k) / 60; pts.push([cx(E), cy(pE(E, t))]); } return pts; }
 function drawChart() {
-  const w = Math.round(svg.getBoundingClientRect().width) || 600;
+  const w = Math.floor(svg.getBoundingClientRect().width) || 600;
   CX1 = w - 16;
   svg.setAttribute("viewBox", `0 0 ${w} ${CH}`);
   svg.innerHTML = "";

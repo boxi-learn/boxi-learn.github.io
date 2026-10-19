@@ -378,7 +378,7 @@ function draw() {
     const L = cur === 0 ? (i === 0 ? s1 : null) : ls.includes(lamps[i]) ? lamps[i] : null;
     g.style.display = L ? "" : "none";
     if (!L) return;
-    g.setAttribute("transform", `translate(${L.x} ${L.y})`);
+    g.setAttribute("transform", `translate(${L.x} ${L.y}) scale(${(fs / 14).toFixed(3)})`); // grow on phones so the number stays ≥ 13 px
     g.classList.toggle("on", cur !== 0 && ls.length > 1 && i === active);
     g.setAttribute("tabindex", cur === 0 ? "-1" : "0");
     g.style.cursor = cur === 0 ? "default" : "";

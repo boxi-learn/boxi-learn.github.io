@@ -24,10 +24,10 @@
   .bal { fill: var(--soft); stroke: var(--fg); stroke-width: 2.5; }
   .blk { stroke: var(--fg); stroke-width: 2; }
   .b-al, .b-al2 { fill: var(--muted); } .b-steel { fill: var(--fg); } .b-wood { fill: var(--b); }
-  .lbl { fill: var(--muted); font-size: 21px; }
-  .lbF { fill: var(--fg); font-size: 24px; font-weight: 700; }
-  .lbA { fill: var(--a); font-size: 24px; font-weight: 700; }
-  .lbC { fill: var(--c); font-size: 24px; font-weight: 700; }
+  .lbl { fill: var(--muted); font-size: calc(21px * var(--fk, 1)); }
+  .lbF { fill: var(--fg); font-size: calc(24px * var(--fk, 1)); font-weight: 700; }
+  .lbA { fill: var(--a); font-size: calc(24px * var(--fk, 1)); font-weight: 700; }
+  .lbC { fill: var(--c); font-size: calc(24px * var(--fk, 1)); font-weight: 700; }
   .ax { stroke: var(--muted); stroke-width: 1.5; fill: none; }
   .grid { stroke: var(--line); stroke-width: 1; }
   .theory { fill: none; stroke: var(--a); stroke-width: 3; stroke-dasharray: 8 6; }
@@ -474,6 +474,16 @@ function resetAll() {
   pr.reset(); stp.go(0); update();
 }
 $("reset").addEventListener("click", resetAll);
+// Phones: the 600-wide viewBox shrinks, so grow the label fonts to keep them ≥ 13 px on screen (GOAL 6).
+function sizeFonts() {
+  [scene, graph].forEach((svg) => {
+    const s = svg.getBoundingClientRect().width / 600;
+    svg.style.setProperty("--fk", s > 0 ? Math.max(1, 13.6 / (21 * s)).toFixed(3) : "1");
+  });
+}
+let rz = 0;
+addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(sizeFonts); });
+sizeFonts();
 resetAll();
 </script>
 </body>

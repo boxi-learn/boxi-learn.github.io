@@ -9,9 +9,11 @@
 <style>
   .fig { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; touch-action: none; cursor: ew-resize; }
   .fig.locked { cursor: default; touch-action: auto; }
-  .lb { font-size: 15px; fill: var(--muted); }
-  .lbf { font-size: 15px; fill: var(--fg); font-weight: 650; }
-  .lbn { font-size: 14px; fill: var(--fg); font-weight: 700; }
+  /* --k = on-screen px per viewBox unit (set in JS); labels grow on narrow screens so they stay ≥ 13.5 px */
+  .fig { --k: 1; }
+  .lb { font-size: max(15px, calc(13.5px / var(--k, 1))); fill: var(--muted); }
+  .lbf { font-size: max(15px, calc(13.5px / var(--k, 1))); fill: var(--fg); font-weight: 650; }
+  .lbn { font-size: max(14px, calc(13.5px / var(--k, 1))); fill: var(--fg); font-weight: 700; }
   .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
   .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 3.6em; }
   .read { display: grid; gap: 4px; margin: 0 0 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
@@ -261,6 +263,13 @@ const S = { step: 0, revealed: false, x: X_MIN, water: 0, flooding: false, match
 
 /* ---------- drawing helpers ---------- */
 const fig = $("fig");
+function fitLabels() {                   // on-screen scale of the main figure → CSS --k (labels ≥ 13.5 px on phones)
+  const w = fig.getBoundingClientRect().width;
+  if (w > 0) fig.style.setProperty("--k", (w / 400).toFixed(3));
+}
+if ("ResizeObserver" in window) new ResizeObserver(fitLabels).observe(fig);
+addEventListener("resize", fitLabels);
+fitLabels();
 function txt(x, y, s, cls, anchor, parent) {
   const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "start" }, parent || fig);
   t.textContent = s;

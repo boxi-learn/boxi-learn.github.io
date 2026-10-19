@@ -193,7 +193,26 @@ const extra = document.getElementById("extra"), liveEl = document.getElementById
 let step = 0, split = false, store = 1, raf = 0, last = 0, acc = 0, predictNote = "";
 let dots = [], H = null; // handles for the animated parts of step 2
 
-const C30 = Math.cos(Math.PI / 6), U = 13, OX = 165, OY = 182;
+const C30 = Math.cos(Math.PI / 6);
+let U = 13, OX = 165, OY = 182, narrow = false;
+// Wide figures are 600 × 360 units. When the figure is narrower than 600 px on screen, redraw in a
+// 340-unit-wide stacked layout so 13-unit labels stay at least 13 px.
+const NW_VB = 340, NW_H = [340, 612, 392];
+function sizeFig() {
+  narrow = fig.clientWidth > 0 && fig.clientWidth < 600;
+  const w = narrow ? NW_VB : 600, h = narrow ? NW_H[step] : 360;
+  fig.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  fig.style.height = narrow ? (fig.clientWidth * h / w).toFixed(0) + "px" : "";
+  if (narrow) { U = 10; OX = 170; OY = 132; } else { U = 13; OX = 165; OY = 182; }
+  CH = narrow ? { x0: 34, x1: 318, y0: 432, y1: 312, smax: 10, rmax: 6, ty: 290 }
+    : { x0: 352, x1: 584, y0: 196, y1: 54, smax: 10, rmax: 6, ty: 26 };
+}
+// narrow only: split "label: rest" into two lines
+const T2 = (x, y, txt, cls, parent) => {
+  const i = txt.search(/[:：]/);
+  if (!narrow || i < 0) return T(x, y, txt, cls, parent);
+  T(x, y, txt.slice(0, i + 1), cls, parent); T(x, y + 18, txt.slice(i + 1).trim(), cls, parent);
+};
 const proj = (x, y, z) => [OX + (x - y) * C30 * U, OY + (x + y) * 0.5 * U - z * U];
 const pts = (arr) => arr.map((p) => proj(...p).map((v) => v.toFixed(1)).join(",")).join(" ");
 const T = (x, y, txt, cls, parent, anchor) => { const e = Play.svg("text", { x, y, class: "lab " + (cls || ""), "text-anchor": anchor || "start" }, parent); e.textContent = txt; return e; };
@@ -227,16 +246,20 @@ function drawCube(parent, x0, y0, z0, a) {
 // ---------- step 1 figure ----------
 function drawGuess() {
   // mouse (small) and elephant (big), each with a zoom lens holding "?"
-  Play.svg("ellipse", { class: "body", cx: 110, cy: 250, rx: 26, ry: 15 }, fig);
-  Play.svg("circle", { class: "body", cx: 136, cy: 240, r: 10 }, fig);
-  Play.svg("path", { class: "lead", d: "M84 254 q-24 6 -30 -10" }, fig);
-  T(110, 292, P.t("fMouse", { m: DATA.mouseG }), "m", fig, "middle");
-  Play.svg("rect", { class: "body", x: 300, y: 170, width: 190, height: 100, rx: 44 }, fig);
-  Play.svg("circle", { class: "body", cx: 490, cy: 175, r: 42 }, fig);
-  Play.svg("path", { class: "body", d: "M512 200 q22 40 4 92 h-14 q12 -46 -8 -80 z" }, fig);
-  for (const x of [318, 350, 430, 462]) Play.svg("rect", { class: "body", x, y: 250, width: 26, height: 60, rx: 8 }, fig);
-  T(400, 336, P.t("fEle", { e: DATA.eleT }), "m", fig, "middle");
-  for (const [cx, cy, tx, ty] of [[110, 110, 110, 238], [390, 90, 390, 190]]) {
+  // narrow: mouse shapes shifted left, elephant shapes scaled to 0.7 (labels stay full size)
+  const mg = narrow ? Play.svg("g", { transform: "translate(-46 -40)" }, fig) : fig;
+  const eg = narrow ? Play.svg("g", { transform: "translate(-60 82) scale(.7)" }, fig) : fig;
+  Play.svg("ellipse", { class: "body", cx: 110, cy: 250, rx: 26, ry: 15 }, mg);
+  Play.svg("circle", { class: "body", cx: 136, cy: 240, r: 10 }, mg);
+  Play.svg("path", { class: "lead", d: "M84 254 q-24 6 -30 -10" }, mg);
+  T(narrow ? 64 : 110, narrow ? 252 : 292, P.t("fMouse", { m: DATA.mouseG }), "m", fig, "middle");
+  Play.svg("rect", { class: "body", x: 300, y: 170, width: 190, height: 100, rx: 44 }, eg);
+  Play.svg("circle", { class: "body", cx: 490, cy: 175, r: 42 }, eg);
+  Play.svg("path", { class: "body", d: "M512 200 q22 40 4 92 h-14 q12 -46 -8 -80 z" }, eg);
+  for (const x of [318, 350, 430, 462]) Play.svg("rect", { class: "body", x, y: 250, width: 26, height: 60, rx: 8 }, eg);
+  T(narrow ? 230 : 400, narrow ? 326 : 336, P.t("fEle", { e: DATA.eleT }), "m", fig, "middle");
+  const lenses = narrow ? [[64, 104, 64, 198], [218, 96, 213, 215]] : [[110, 110, 110, 238], [390, 90, 390, 190]];
+  for (const [cx, cy, tx, ty] of lenses) {
     Play.svg("line", { class: "lead", x1: cx, y1: cy + 46, x2: tx, y2: ty }, fig);
     Play.svg("circle", { class: "lens", cx, cy, r: 46 }, fig);
     T(cx, cy + 11, "?", "q", fig, "middle");
@@ -245,7 +268,7 @@ function drawGuess() {
 }
 
 // ---------- step 2 figure ----------
-const CH = { x0: 352, x1: 584, y0: 196, y1: 54, smax: 10, rmax: 6 };
+let CH = null; // chart box, set by sizeFig()
 const cx = (s) => CH.x0 + (s / CH.smax) * (CH.x1 - CH.x0);
 const cy = (r) => CH.y0 - (Math.min(r, CH.rmax) / CH.rmax) * (CH.y0 - CH.y1);
 
@@ -261,11 +284,12 @@ function drawGrow() {
     for (const [x, y, z] of list) cubes.push(drawCube(fig, x, y, z, h));
   }
   // scale bar: 1 unit
-  Play.svg("line", { class: "axis", x1: 20, y1: 344, x2: 20 + U, y2: 344, "stroke-width": 3 }, fig);
-  T(20 + U + 6, 348, P.t("cOne"), "m", fig);
+  const sy = narrow ? 262 : 344;
+  Play.svg("line", { class: "axis", x1: 20, y1: sy, x2: 20 + U, y2: sy, "stroke-width": 3 }, fig);
+  T(20 + U + 6, sy + 4, P.t("cOne"), "m", fig);
 
   // chart: surface:volume = 6/s
-  T(CH.x0, 26, P.t("cTitle") + " = 6 ÷ s", "b", fig);
+  T(narrow ? 20 : CH.x0, CH.ty, P.t("cTitle") + " = 6 ÷ s", "b", fig);
   Play.svg("path", { class: "axis", d: `M${CH.x0} ${CH.y1 - 6} V${CH.y0} H${CH.x1}` }, fig);
   let d = "";
   for (let i = 0; i <= 90; i++) { const x = 1 + i * 0.1; d += (i ? "L" : "M") + cx(x).toFixed(1) + " " + cy(6 / x).toFixed(1); }
@@ -283,17 +307,17 @@ function drawGrow() {
   }
 
   // food balance gauge
-  const gx = 352, gw = 232, mx = Math.max(c.supply, c.use, 1e-9);
+  const gx = narrow ? 20 : 352, gw = narrow ? 298 : 232, gy = narrow ? 500 : 252, mx = Math.max(c.supply, c.use, 1e-9);
   const row = (y, label, val, cls, frac) => {
     T(gx, y - 4, label + "  " + val, "m", fig);
     Play.svg("rect", { class: "barbg", x: gx, y, width: gw, height: 9, rx: 3 }, fig);
     return Play.svg("rect", { class: cls, x: gx, y, width: Math.max(0, gw * frac), height: 9, rx: 3 }, fig);
   };
-  row(252, P.t("gIn"), g(c.supply), "bIn", c.supply / mx);
-  row(284, P.t("gUse"), g(c.use), "bUse", c.use / mx);
-  const storeBar = row(316, P.t("gStore"), "", "bStore", store);
+  row(gy, P.t("gIn"), g(c.supply), "bIn", c.supply / mx);
+  row(gy + 32, P.t("gUse"), g(c.use), "bUse", c.use / mx);
+  const storeBar = row(gy + 64, P.t("gStore"), "", "bStore", store);
   const st = status(c.ratio);
-  const stText = T(gx, 346, "", st === "ok" ? "ok" : "no", fig);
+  const stText = T(gx, gy + 94, "", st === "ok" ? "ok" : "no", fig);
   H = { cubes, storeBar, stText, gw, c, s };
   paintStore();
 }
@@ -310,27 +334,31 @@ function paintStore() {
 
 // ---------- step 3 figure ----------
 function drawRule() {
-  const x0 = 110, x1 = 440, umax = 12, X = (u) => x0 + (u / umax) * (x1 - x0);
+  const x0 = narrow ? 84 : 110, x1 = narrow ? 300 : 440, xe = narrow ? 330 : 580, umax = 12, X = (u) => x0 + (u / umax) * (x1 - x0);
   T(20, 30, P.t("fRbc"), "b", fig);
   const rows = [["fMouseR", DATA.rbc.mouse], ["fHuman", DATA.rbc.human], ["fEleR", DATA.rbc.ele]];
+  const r0 = narrow ? 48 : 56;
   rows.forEach(([k, v], i) => {
-    const y = 56 + i * 30;
+    const y = r0 + i * 30;
     T(x0 - 8, y + 12, P.t(k), "", fig, "end");
     Play.svg("rect", { class: "rbc", x: x0, y, width: X(v) - x0, height: 16, rx: 4 }, fig);
     T(X(v) + 6, y + 13, g(v), "m", fig);
   });
-  const gy = 56 + 3 * 30, ghost = DATA.rbc.mouse * LEN_RATIO;
-  Play.svg("rect", { class: "ghost", x: x0, y: gy, width: 580 - x0, height: 16, rx: 4 }, fig);
-  T(x0 + 6, gy + 34, P.t("fIf", { g: big(sig2(ghost)) }), "m", fig);
+  const gy = r0 + 3 * 30, ghost = DATA.rbc.mouse * LEN_RATIO;
+  Play.svg("rect", { class: "ghost", x: x0, y: gy, width: xe - x0, height: 16, rx: 4 }, fig);
+  T(narrow ? 20 : x0 + 6, gy + 34, P.t("fIf", { g: big(sig2(ghost)) }), "m", fig);
   // exceptions: nerve cell (long, thin) and egg (big, mostly yolk)
-  Play.svg("circle", { class: "soma", cx: 40, cy: 262, r: 11 }, fig);
-  Play.svg("path", { class: "nerve", d: "M51 262 C150 250 250 274 400 262" }, fig);
-  Play.svg("path", { class: "nerve", d: "M400 262 l14 -10 M400 262 l16 4 M400 262 l10 12 M30 254 l-10 -10 M32 270 l-12 8" }, fig);
-  T(40, 296, P.t("fNerve", { nl: nerveText() }), "", fig);
-  Play.svg("circle", { class: "egg", cx: 520, cy: 270, r: 46 }, fig);
-  Play.svg("circle", { class: "yolk", cx: 520, cy: 270, r: 38 }, fig);
-  Play.svg("circle", { class: "soma", cx: 534, cy: 252, r: 5 }, fig);
-  T(580, 340, P.t("fEgg"), "", fig, "end");
+  const ny = narrow ? 222 : 262, ne = narrow ? 300 : 400, nx = narrow ? 30 : 40;
+  Play.svg("circle", { class: "soma", cx: nx, cy: ny, r: 11 }, fig);
+  Play.svg("path", { class: "nerve", d: `M${nx + 11} ${ny} C${nx + 0.27 * (ne - nx)} ${ny - 12} ${nx + 0.58 * (ne - nx)} ${ny + 12} ${ne} ${ny}` }, fig);
+  Play.svg("path", { class: "nerve", d: `M${ne} ${ny} l14 -10 M${ne} ${ny} l16 4 M${ne} ${ny} l10 12 M${nx - 10} ${ny - 8} l-10 -10 M${nx - 8} ${ny + 8} l-12 8` }, fig);
+  T2(nx, ny + 34, P.t("fNerve", { nl: nerveText() }), "", fig);
+  const ex = narrow ? 70 : 520, ey = narrow ? 334 : 270;
+  Play.svg("circle", { class: "egg", cx: ex, cy: ey, r: 46 }, fig);
+  Play.svg("circle", { class: "yolk", cx: ex, cy: ey, r: 38 }, fig);
+  Play.svg("circle", { class: "soma", cx: ex + 14, cy: ey - 18, r: 5 }, fig);
+  if (narrow) T2(130, ey - 4, P.t("fEgg"), "", fig);
+  else T(580, 340, P.t("fEgg"), "", fig, "end");
 }
 const nerveText = () => (P.lang === "zh" ? DATA.nerveM + " 米" : DATA.nerveM + " m");
 
@@ -358,6 +386,7 @@ function text() {
 function draw() {
   fig.innerHTML = "";
   dots = []; H = null;
+  sizeFig();
   if (step === 0) drawGuess(); else if (step === 1) drawGrow(); else drawRule();
   document.getElementById("sideVal").textContent = "s = " + g(+side.value);
   feedBtn.textContent = raf ? P.t("pause") : P.t("play");
@@ -404,6 +433,9 @@ feedBtn.addEventListener("click", () => {
 });
 splitBtn.addEventListener("click", () => { split = !split; store = 1; draw(); });
 side.addEventListener("input", () => { store = 1; draw(); });
+
+let rz = 0;
+addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { const was = narrow; sizeFig(); if (was !== narrow) draw(); }); });
 
 // ---------- steps ----------
 const pr = Play.predict(document.getElementById("predict"), {

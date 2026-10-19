@@ -300,54 +300,66 @@ const state = { A: Math.min(TODAY, MAX_A), guessed: false, sa: -2, sb: 4, task: 
 
 /* ---------- step 1: three tablets ---------- */
 function drawIntro() {
-  setView(300);
-  const A = 629, cards = [[yearText(A), "tabCE"], [gzLabel(A) + (ZH ? "年" : ""), "tabGZ"], [eraShort(A), "tabEra"]];
-  T(300, 24, P.t("sameYear"), "mut", "middle");
+  setView(300, 350);
+  const A = 629, cards = [[yearText(A), "tabCE"], [gzLabel(A) + (ZH ? "年" : ""), "tabGZ"], [eraShort(A), "tabEra"]], m = VW / 2;
+  T(m, 24, P.t("sameYear"), "mut", "middle");
   cards.forEach(([txt, k], i) => {
+    if (NARROW) {                                          // phone: tablets stacked, name inside
+      const y = 38 + i * 62;
+      S("rect", { x: 20, y, width: 300, height: 54, rx: 10, class: "tab" });
+      T(m, y + 25, txt, "big", "middle");
+      T(m, y + 45, P.t(k), "mut", "middle");
+      return;
+    }
     const x = 20 + i * 192;
     S("rect", { x, y: 40, width: 176, height: 96, rx: 10, class: "tab" });
     T(x + 88, 96, txt, "big", "middle");
     T(x + 88, 160, P.t(k), "mut", "middle");
   });
-  const y0 = 232, xs = [90, 230, 370, 510], lab = [-1, 0, 1, 2];
-  S("line", { x1: 40, y1: y0, x2: 560, y2: y0, class: "ax" });
+  const y0 = NARROW ? 252 : 232, xs = NARROW ? [42, 127, 213, 298] : [90, 230, 370, 510], lab = [-1, 0, 1, 2];
+  S("line", { x1: NARROW ? 8 : 40, y1: y0, x2: NARROW ? 332 : 560, y2: y0, class: "ax" });
   lab.forEach((A2, j) => {
     S("circle", { cx: xs[j], cy: y0, r: 5, class: "dotOn" });
     T(xs[j], y0 - 14, yearText(A2), "", "middle");
   });
   if (state.guessed) {
     S("path", { d: `M${xs[1]} ${y0 + 14} v8 H${xs[2]} v-8`, class: "brk" });
-    T(300, y0 + 42, P.t("yr1"), "acc", "middle");
-    T(300, y0 + 64, P.t("noZero"), "gap", "middle");
-  } else T(300, y0 + 40, "?", "huge", "middle");
+    T(m, y0 + 42, P.t("yr1"), "acc", "middle");
+    T(m, y0 + 64, P.t("noZero"), "gap", "middle");
+  } else T(m, y0 + 40, "?", "huge", "middle");
 }
 
 /* ---------- steps 2–3: the dials ---------- */
-const TICK = 84;
+let TICK = 84;
 function drawDials() {
-  setView(420);
+  const N = NARROW, m = VW / 2;
+  // phone: 5 years on the line, the wheel centred, the era list under it
+  const L = N ? { kk: 2, tick: 66, wcx: 170, wcy: 286, gzY: 146, eraY: 432, cnY: 454, row0: 478, jpY: 612, jrow0: 636, ex: 14, yrX: 150, barX: 156, barW: 168, rowW: 326, curY: 694, h: 708 }
+    : { kk: 3, tick: 84, wcx: 150, wcy: 282, gzY: 150, eraY: 150, cnY: 172, row0: 196, jpY: 330, jrow0: 354, ex: 318, yrX: 446, barX: 452, barW: 134, rowW: 278, curY: 410, h: 420 };
+  TICK = L.tick;
+  setView(420, L.h);
   const A = state.A, g = gz(A);
   // band 1: CE/BCE line
   T(14, 22, P.t("ce") + " / " + P.t("bce"), "mut");
-  S("line", { x1: 10, y1: 78, x2: 590, y2: 78, class: "ax" });
-  for (let k = -3; k <= 3; k++) {
+  S("line", { x1: 10, y1: 78, x2: VW - 10, y2: 78, class: "ax" });
+  for (let k = -L.kk; k <= L.kk; k++) {
     const B = A + k;
     if (B < MIN_A || B > MAX_A) continue;
-    const x = 300 + k * TICK, h = histYear(B), on = k === 0;
+    const x = m + k * TICK, h = histYear(B), on = k === 0;
     const grp = S("g", { class: "hot", "data-y": B });
     if (on) S("rect", { x: x - 38, y: 40, width: 76, height: 58, rx: 8, class: "cellOn" }, grp);
     S("circle", { cx: x, cy: 78, r: on ? 0 : 4, class: "dotOn" }, grp);
     T(x, 64, String(Math.abs(h)), on ? "onTx big" : "", "middle", grp);
     T(x, 94, h < 0 ? P.t("bce") : P.t("ce"), on ? "onTx" : "mut", "middle", grp);
-    if (B === 0 && k < 3) {                                // gap between 1 BCE and 1 CE
+    if (B === 0 && k < L.kk) {                             // gap between 1 BCE and 1 CE
       const gx = x + TICK / 2;
       S("line", { x1: gx, y1: 70, x2: gx, y2: 86, class: "gapL" });
-      T(gx, 116, P.t("noZero"), "gap", "middle");
+      T(N ? Play.clamp(gx, 60, VW - 60) : gx, 116, P.t("noZero"), "gap", "middle");
     }
   }
   // band 2: 干支 wheel
-  const cx = 150, cy = 282;
-  T(14, 150, P.t("gzHead"), "mut");
+  const cx = L.wcx, cy = L.wcy;
+  T(14, L.gzY, P.t("gzHead"), "mut");
   S("circle", { cx, cy, r: 110, class: "ring" });
   S("circle", { cx, cy, r: 72, class: "ring" });
   for (let i = 0; i < 10; i++) {
@@ -362,31 +374,33 @@ function drawDials() {
   }
   T(cx, cy + 6, g.name, "huge", "middle");
   T(cx, cy + 28, P.t("ofSixty", { i: g.i + 1 }), "mut", "middle");
-  // band 2: era list
-  T(318, 150, P.t("eraHead"), "mut");
-  const SC = 134 / 61;
-  T(318, 172, P.t("china"), "mut");
-  T(318, 330, P.t("japan"), "mut");
+  // band 2 (band 3 on phones): era list
+  T(L.ex, L.eraY, P.t("eraHead"), "mut");
+  const SC = L.barW / 61;
+  T(L.ex, L.cnY, P.t("china"), "mut");
+  T(L.ex, L.jpY, P.t("japan"), "mut");
   ERAS.forEach((e, i) => {
-    const y = i < 5 ? 196 + i * 27 : 354 + (i - 5) * 27, end = eraEnd(e), inE = A >= e.from && A <= end;
+    const y = i < 5 ? L.row0 + i * 27 : L.jrow0 + (i - 5) * 27, end = eraEnd(e), inE = A >= e.from && A <= end;
     const grp = S("g", { class: "hot", "data-y": e.from });
-    S("rect", { x: 312, y: y - 18, width: 278, height: 25, rx: 6, fill: "transparent" }, grp);
-    T(318, y, ZH ? e.zh : e.py, inE ? "acc" : "", "start", grp);
-    T(446, y, e.from + "–" + (e.to == null ? "" : e.to), inE ? "acc" : "mut", "end", grp);
+    S("rect", { x: L.ex - 6, y: y - 18, width: L.rowW, height: 25, rx: 6, fill: "transparent" }, grp);
+    T(L.ex, y, ZH ? e.zh : e.py, inE ? "acc" : "", "start", grp);
+    T(L.yrX, y, e.from + "–" + (e.to == null ? "" : e.to), inE ? "acc" : "mut", "end", grp);
     const w = Math.max(4, (end - e.from + 1) * SC);
-    S("rect", { x: 452, y: y - 10, width: w, height: 10, rx: 3, class: "barBg" }, grp);
-    if (inE) S("rect", { x: 452, y: y - 10, width: Math.max(3, (A - e.from + 1) * SC), height: 10, rx: 3, class: "barFg" }, grp);
+    S("rect", { x: L.barX, y: y - 10, width: w, height: 10, rx: 3, class: "barBg" }, grp);
+    if (inE) S("rect", { x: L.barX, y: y - 10, width: Math.max(3, (A - e.from + 1) * SC), height: 10, rx: 3, class: "barFg" }, grp);
   });
   const es = eraShort(A);
-  T(318, 410, es || P.t("noEra"), es ? "big" : "mut", "start");
+  T(L.ex, L.curY, es || P.t("noEra"), es ? "big" : "mut", "start");
 }
 
 /* ---------- step 4: span ruler ---------- */
-const SX = (A) => 30 + (A + 9) * (540 / 19);
+const RX0 = () => (NARROW ? 20 : 30), RDX = () => (NARROW ? 300 : 540) / 19;   // ruler start, tick spacing
+const SX = (A) => RX0() + (A + 9) * RDX();
 function drawSpan() {
-  setView(300);
+  const L = NARROW ? spanLines().flatMap((s, i) => wrap(s, i === 0 ? 17 : 13, VW - 24).map((w) => [w, i])) : spanLines().map((s, i) => [s, i]);
+  setView(300, 200 + L.length * 26);
   const a = state.sa, b = state.sb, sp = span(a, b), y0 = 120;
-  S("line", { x1: 20, y1: y0, x2: 580, y2: y0, class: "ax" });
+  S("line", { x1: NARROW ? 8 : 20, y1: y0, x2: VW - (NARROW ? 8 : 20), y2: y0, class: "ax" });
   for (let A = -9; A <= 10; A++) {
     const x = SX(A), h = histYear(A);
     S("line", { x1: x, y1: y0 - 6, x2: x, y2: y0 + 6, class: "ax" });
@@ -400,8 +414,21 @@ function drawSpan() {
   if (sp.n > 0) S("path", { d: `M${SX(sp.lo)} ${y0 - 34} v-8 H${SX(sp.hi)} v8`, class: "brk" });
   T((SX(sp.lo) + SX(sp.hi)) / 2, y0 - 50, sp.n === 0 ? P.t("yr0") : sp.n === 1 ? P.t("yr1") : P.t("yrs", { n: sp.n }), "acc", "middle");
   [[a, "dotOn", "sa"], [b, "dotB", "sb"]].forEach(([A, cls, id]) => S("circle", { cx: SX(A), cy: y0, r: 10, class: cls + " hot", "data-h": id }));
-  const L = spanLines();
-  L.forEach((s, i) => T(300, 200 + i * 28, s, i === 0 ? "big" : "mut", "middle"));
+  L.forEach(([s, k], i) => T(VW / 2, 200 + i * (NARROW ? 26 : 28), s, k === 0 ? "big" : "mut", "middle"));
+}
+/* phones: break a line into pieces no wider than maxW units (words in English, characters in Chinese) */
+let meas = null;
+function wrap(s, size, maxW) {
+  if (!meas) { meas = S("text", { x: -999, y: -999, "font-size": size }); }
+  meas.style.fontSize = size + "px"; meas.style.fontWeight = size > 13 ? "700" : "400";
+  fig.appendChild(meas);
+  const w = (t) => { meas.textContent = t; return meas.getComputedTextLength(); };
+  const parts = ZH ? Array.from(s) : s.split(" "), sep = ZH ? "" : " ", out = [];
+  let cur = "";
+  parts.forEach((p) => { const t = cur ? cur + sep + p : p; if (cur && w(t) > maxW) { out.push(cur); cur = p; } else cur = t; });
+  if (cur) out.push(cur);
+  meas.remove();
+  return out;
 }
 function spanLines() {
   const sp = span(state.sa, state.sb), hl = histYear(sp.lo), hh = histYear(sp.hi);
@@ -413,7 +440,11 @@ function spanLines() {
   return [P.t("rSame", { expr: ex })];
 }
 
-function setView(h) { fig.setAttribute("viewBox", "0 0 600 " + h); fig.style.aspectRatio = "600 / " + h; }
+/* Wide figures are 600 units across. When the figure is narrower than that on screen (phones),
+   redraw in a 340-unit layout so 13-unit labels stay ≥ 13 px. */
+let NARROW = false, VW = 600;
+function pickLayout() { NARROW = fig.clientWidth > 0 && fig.clientWidth < 600; VW = NARROW ? 340 : 600; }
+function setView(h, hn) { const H = NARROW ? hn : h; fig.setAttribute("viewBox", `0 0 ${VW} ${H}`); fig.style.aspectRatio = `${VW} / ${H}`; }
 
 /* ---------- side panel ---------- */
 function line(cls, text, parent) { const d = document.createElement("div"); d.className = cls; d.textContent = text; parent.appendChild(d); return d; }
@@ -465,6 +496,7 @@ function rules() {
 
 /* ---------- drawing + state ---------- */
 function draw() {
+  pickLayout();
   fig.innerHTML = "";
   const i = st ? st.i : 0;
   if (i === 0) drawIntro();
@@ -555,7 +587,7 @@ fig.addEventListener("pointerdown", (ev) => {
   try { fig.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ }
 });
 function moveHandle(id, x) {
-  const A = Play.clamp(Math.round((x - 30) / (540 / 19)) - 9, -9, 10);
+  const A = Play.clamp(Math.round((x - RX0()) / RDX()) - 9, -9, 10);
   if (state[id] === A) return;
   state[id] = A; draw(); Play.live($("live"), spanLines()[0]);
 }
@@ -594,6 +626,8 @@ $("reset").addEventListener("click", () => {
   pr.reset(); st.go(0);
 });
 
+let rz = 0;
+addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { const was = NARROW; pickLayout(); if (was !== NARROW) draw(); }); });
 $("resMain").textContent = P.t("resMain", { g: span(0, 1).n, zg: TASKS[0].targets()[0] });
 draw();
 </script>

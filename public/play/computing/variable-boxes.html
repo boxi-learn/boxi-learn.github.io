@@ -17,16 +17,16 @@
   .tag { fill: var(--a); }
   .tagtx { fill: var(--surface); font: 700 18px ui-monospace, "SF Mono", Menlo, Consolas, monospace; text-anchor: middle; dominant-baseline: central; }
   .valtx { fill: var(--fg); font: 700 32px var(--font); text-anchor: middle; dominant-baseline: central; }
-  .emptytx { fill: var(--muted); font: 15px var(--font); text-anchor: middle; dominant-baseline: central; }
-  .wanttx { fill: var(--muted); font: 15px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .emptytx { fill: var(--muted); font: calc(15px * var(--fk, 1)) var(--font); text-anchor: middle; dominant-baseline: central; }
+  .wanttx { fill: var(--muted); font: calc(15px * var(--fk, 1)) var(--font); text-anchor: middle; dominant-baseline: central; }
   .wanttx.ok { fill: var(--a); font-weight: 700; }
-  .gonelbl { fill: var(--muted); font: 15px var(--font); dominant-baseline: central; }
+  .gonelbl { fill: var(--muted); font: calc(15px * var(--fk, 1)) var(--font); dominant-baseline: central; }
   .gonetx { fill: var(--no); font: 700 18px var(--font); text-anchor: middle; dominant-baseline: central; }
   .gonex { stroke: var(--no); stroke-width: 2; }
   .bubble { fill: var(--surface); stroke: var(--c); stroke-width: 2; }
-  .bubtx { fill: var(--fg); font: 600 16px ui-monospace, "SF Mono", Menlo, Consolas, monospace; text-anchor: middle; dominant-baseline: central; }
+  .bubtx { fill: var(--fg); font: 600 calc(16px * var(--fk, 1)) ui-monospace, "SF Mono", Menlo, Consolas, monospace; text-anchor: middle; dominant-baseline: central; }
   .fly { fill: var(--a); font: 700 32px var(--font); text-anchor: middle; dominant-baseline: central; }
-  .iter { fill: var(--muted); font: 15px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .iter { fill: var(--muted); font: calc(15px * var(--fk, 1)) var(--font); text-anchor: middle; dominant-baseline: central; }
   .pane { padding: 10px 14px 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .lbl { font-size: 13px; color: var(--muted); font-weight: 650; margin-right: 2px; }
@@ -376,7 +376,16 @@ function centre(name) {
   const vars = ex.pg.vars, k = vars.indexOf(name);
   return { x: boxX(k, vars.length) + BW / 2, y: BY + BH / 2 + 4 };
 }
-let gVals = {};
+let gVals = {}, fk = 1;
+/* Phones: the 420-unit viewBox is scaled down, so grow the small labels to stay ≥ 13 px on screen. */
+function fitFonts() {
+  const w = fig.getBoundingClientRect().width;
+  const k = w > 0 && w < W ? Math.min(1.6, 13.4 / (15 * w / W)) : 1;
+  const nk = Math.max(1, Math.round(k * 100) / 100);
+  if (nk === fk) return false;
+  fk = nk; fig.style.setProperty("--fk", fk);
+  return true;
+}
 function draw(i, hiName, hideName) {
   fig.innerHTML = "";
   const vars = ex.pg.vars, env = envAt(i), goal = step === 1 ? lv().goal : null;
@@ -400,8 +409,11 @@ function draw(i, hiName, hideName) {
     }
   });
   const gone = goneAt(i);
-  Play.svg("text", { class: "gonelbl", x: 14, y: 222 }, fig).textContent = P.t("gone");
-  const show = gone.slice(-7), x0 = P.lang === "zh" ? 92 : 128;
+  const gl = Play.svg("text", { class: "gonelbl", x: 14, y: 222 }, fig);
+  gl.textContent = P.t("gone");
+  let x0 = P.lang === "zh" ? 92 : 128;
+  try { const gw = gl.getComputedTextLength(); if (gw > 0) x0 = Math.max(x0, 14 + gw + 24); } catch (e) { /* not rendered yet */ }
+  const show = gone.slice(-7);
   show.forEach((g, k) => {
     const x = x0 + k * 40;
     Play.svg("text", { class: "gonetx", x, y: 222 }, fig).textContent = g.v;
@@ -425,7 +437,7 @@ function animate(i, ms, done) {
   if (isCopy(op)) from = centre(op.terms[0].v);
   else {
     from = { x: Play.clamp(to.x, 70, W - 70), y: 24 };
-    const txt = op.terms.length > 1 ? exprText(op, before) + " = " + s.value : String(s.value), w = 10 * txt.length + 20;
+    const txt = op.terms.length > 1 ? exprText(op, before) + " = " + s.value : String(s.value), w = (10 * txt.length + 20) * fk;
     Play.svg("rect", { class: "bubble", x: from.x - w / 2, y: from.y - 15, width: w, height: 30, rx: 15 }, fig);
     Play.svg("text", { class: "bubtx", x: from.x, y: from.y }, fig).textContent = txt;
     from = { x: from.x, y: from.y + 22 };
@@ -625,6 +637,8 @@ function setScene() {
   $("stepBody").textContent = body;
   setMsg("");
 }
+fitFonts();
+window.addEventListener("resize", () => { if (fitFonts() && ex && !anim && !running) draw(ex.i); });
 fresh();
 const pr = Play.predict($("predict"), {
   q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],

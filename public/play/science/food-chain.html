@@ -227,15 +227,27 @@ function fmtE(E) {
 const $ = (id) => document.getElementById(id);
 const fig = $("fig"), effIn = $("eff"), tray = $("tray");
 const name = (id) => P.t("n_" + id);
-const W = 600, TOP = 44, ROW = 68, SL = { x: 8, w: 192, h: 48 }, BAR = { cx: 402, max: 376, h: 32 };
+// two layouts: wide (600 × 392) and, when the figure is narrower than 460 px on screen, a narrow one
+// about as wide as the phone, so labels stay ≥ 13 px without scaling the whole picture down
+const WIDE = { W: 600, H: 392, TOP: 44, ROW: 68, SL: { x: 8, w: 192, h: 48 }, BAR: { cx: 402, max: 376, h: 32 }, IX: 8, TX: 48 };
+const NARROW = { W: 350, H: 310, TOP: 34, ROW: 55, SL: { x: 3, w: 146, h: 42 }, BAR: { cx: 254, max: 184, h: 28 }, IX: 5, TX: 42 };
+let L = WIDE, W = L.W, TOP = L.TOP, ROW = L.ROW, SL = L.SL, BAR = L.BAR;
 const rowTop = (k) => TOP + (SLOTS - 1 - k) * ROW;
 
-let cur = 0, chain = ["grass", "grasshopper"], answered = false, msg = "", fs = 14, dropK = -1;
+let cur = 0, chain = ["grass", "grasshopper"], answered = false, msg = "", fs = 14, hfs = 13, dropK = -1;
 
 function updateFs() {
+  const pw = (fig.parentElement || fig).clientWidth;
+  const nl = pw > 0 && pw < 460 ? NARROW : WIDE;
+  if (nl !== L) {
+    L = nl; ({ W, TOP, ROW, SL, BAR } = L);
+    fig.setAttribute("viewBox", `0 0 ${L.W} ${L.H}`);
+    fig.style.aspectRatio = `${L.W} / ${L.H}`;
+  }
   const r = fig.getBoundingClientRect();
-  const sc = Math.min(r.width / 600, r.height / 392);
-  fs = sc > 0 ? Math.max(14, 13.5 / sc) : 14;
+  const sc = Math.min(r.width / L.W, r.height / L.H);
+  fs = sc > 0 ? Math.max(14, 13.6 / sc) : 14;
+  hfs = sc > 0 ? Math.max(13, 13.4 / sc) : 13;
 }
 
 // ---------- icons (32 × 32 box) ----------
@@ -302,7 +314,6 @@ function fitText(t, max) {
 function draw() {
   while (fig.firstChild) fig.removeChild(fig.firstChild);
   const ch = showChain(), E = energies(ch.length, effNow());
-  const hfs = Math.max(12, fs * 0.9);
   Play.svg("text", { class: "hd", x: SL.x + 2, y: 20, "font-size": hfs.toFixed(1) }, fig).textContent = P.t("hdChain");
   Play.svg("text", { class: "hd", x: W - 8, y: 20, "text-anchor": "end", "font-size": hfs.toFixed(1) }, fig).textContent = P.t("hdEnergy");
   const bars = Play.svg("g", { class: "bars", opacity: cur === 0 && !answered ? 0 : 1 }, fig);
@@ -320,11 +331,11 @@ function draw() {
     g.dataset.k = k;
     Play.svg("rect", { class: "box", x: SL.x, y, width: SL.w, height: SL.h, rx: 10, fill: id ? "var(--surface)" : "none", stroke: id ? "var(--line)" : "var(--muted)", "stroke-width": 1.5, "stroke-dasharray": id ? "" : "5 5", opacity: id || isNext ? 1 : 0.45 }, g);
     if (id) {
-      const ig = Play.svg("g", { transform: `translate(${SL.x + 8} ${cy - 16})` }, g);
+      const ig = Play.svg("g", { transform: `translate(${SL.x + L.IX} ${cy - 16})` }, g);
       icon(id, ig);
-      const t = Play.svg("text", { class: "lab", x: SL.x + 48, y: cy + fs * 0.35, "font-size": fs.toFixed(1) }, g);
+      const t = Play.svg("text", { class: "lab", x: SL.x + L.TX, y: cy + fs * 0.35, "font-size": fs.toFixed(1) }, g);
       t.textContent = name(id);
-      fitText(t, SL.w - 54);
+      fitText(t, SL.w - L.TX - 6);
       if (edit) { g.setAttribute("tabindex", "0"); g.setAttribute("role", "button"); g.setAttribute("aria-label", P.t("slotAria", { k: k + 1, x: name(id), e: fmtE(E[k]) })); }
       // bar
       const w = Math.max(2, (E[k] / E0) * BAR.max), bx = BAR.cx - w / 2, by = cy - BAR.h / 2;
@@ -504,7 +515,7 @@ $("clear").addEventListener("click", () => { chain = []; msg = ""; update(); });
 $("reset").addEventListener("click", () => {
   chain = ["grass", "grasshopper"]; effIn.value = DEF_EFF; answered = false; msg = ""; pr.reset(); pr3.reset(); st.go(0);
 });
-window.addEventListener("resize", () => { const o = fs; updateFs(); if (o !== fs) draw(); });
+window.addEventListener("resize", () => { const o = fs, ol = L; updateFs(); if (o !== fs || ol !== L) draw(); });
 
 (function notes() {
   const E = energies(5, DEF_EFF), g = feeds(E[1], ORG.grasshopper.need), h = feeds(E[4], ORG.hawk.need);

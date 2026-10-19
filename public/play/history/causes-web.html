@@ -10,7 +10,7 @@
   .stage svg.main.web, .stage svg.main.chart { height: auto; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
   svg.chart { border-top: 1px solid var(--line); }
   .web text, .chart text { font-size: 13px; }
-  .web .head { font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+  .web .head { font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
   .web .node.L rect { stroke: var(--c); } .web .head.L { fill: var(--c); }
   .web .node.T rect { stroke: var(--a); } .web .head.T { fill: var(--a); }
   .web .node.C rect { stroke: var(--b); } .web .head.C { fill: var(--b); }
@@ -31,7 +31,7 @@
   .chart .ax { stroke: var(--fg); stroke-width: 1.2px; } .chart .grid { stroke: var(--line); }
   .chart .tick { fill: var(--muted); }
   .chart .ref { stroke: var(--hl); stroke-width: 2px; stroke-dasharray: 6 5; }
-  .chart .refT { fill: var(--muted); font-size: 12px; }
+  .chart .refT { fill: var(--muted); font-size: 13px; }
   .chart .base { fill: none; stroke: var(--muted); stroke-width: 2px; stroke-dasharray: 3 4; }
   .chart .cur { fill: none; stroke: var(--a); stroke-width: 3px; }
   .chart .lab { fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
@@ -455,7 +455,11 @@ function drawChart() {
   }
   const rows = [{ k: P.t("rowAll"), n: SUM.all, c: "bAll" }, { k: P.t("rowOnly"), n: SUM.only, c: "bOne" }]
     .concat(SUM.without.map((w) => ({ k: P.t("rowNo", { c: P.t("short_" + w.id) }), n: w.n, c: "bNo" })));
-  const rh = 22, mt = 8, H = mt + rows.length * rh + 26, ml = W >= 480 ? 150 : 112, mr = 40;
+  /* left margin fits the longest row label (13 px text, measured) */
+  const probe = Play.svg("text", { class: "tick" }, chart);
+  const lw = Math.max(...rows.map((r) => { probe.textContent = r.k; return probe.getComputedTextLength(); }));
+  probe.remove();
+  const rh = 22, mt = 8, H = mt + rows.length * rh + 26, ml = Math.max(W >= 480 ? 150 : 0, Math.ceil(lw) + 16), mr = 40;
   chart.setAttribute("viewBox", "0 0 " + W + " " + H);
   chart.setAttribute("aria-label", P.t("chartBars", { e: END }));
   const X = (n) => ml + n / CAP * (W - ml - mr);
@@ -584,7 +588,7 @@ function render() {
   drawCard(); drawWeb(); drawChart(); renderInfo(); renderResult();
   $("whatif").hidden = mode !== 2;
 }
-function resize() { const w = $("visual").getBoundingClientRect().width; if (w < 10) return; const nw = Math.round(Play.clamp(w, 280, 900)); if (nw !== W) { W = nw; drawWeb(); drawChart(); } }
+function resize() { const w = $("visual").getBoundingClientRect().width; if (w < 10) return; const nw = Math.floor(Play.clamp(w, 280, 900)); if (nw !== W) { W = nw; drawWeb(); drawChart(); } }
 if (window.ResizeObserver) new ResizeObserver(resize).observe($("visual")); else window.addEventListener("resize", resize);
 
 $("allOn").addEventListener("click", () => { on = ALL(); Play.live($("live"), P.t("modelSays", { n: last(on), e: END, all: SUM.all })); render(); });

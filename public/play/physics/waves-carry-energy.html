@@ -27,6 +27,7 @@
   .lblF { fill: var(--fg); font-size: 22px; font-weight: 700; font-family: var(--font); }
   .lblA { fill: var(--a); font-size: 22px; font-weight: 700; font-family: var(--font); }
   .lblB { fill: var(--b); font-size: 22px; font-weight: 700; font-family: var(--font); }
+  @media (max-width: 560px) { #scene .lbl, #scene .lblF, #scene .lblA, #scene .lblB { font-size: 23.5px; } } /* ≥ 13 px on screen at 375 px wide */
   #scene text { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
   .modes { display: flex; gap: 4px; flex-wrap: wrap; flex: 1 1 100%; }
   .modes button { font-size: 13px; padding: 5px 10px; }
@@ -141,7 +142,7 @@ const P = Play.setup({
     resultNote: "Rope bits go up and down, spring coils go back and forth, and water goes round loops; none of them travels with the wave. Only the pattern and the energy do.",
     explainK: "Explain it", explainQ: "A surfer waits beyond the breaking waves and rises and falls as swells pass. Why isn’t she carried to the beach? What changes once she catches a breaking wave?",
     homeK: "Try at home", homeQ: "Float a bottle cap in a full bath or sink and make ripples at one end with a finger. Does the cap travel to the other end? Then tie a ribbon to the middle of a rope or slinky and send a pulse along it.",
-    foot: "Model: small sine waves. Rope y = A sin(ωt − kx), spring ξ = A sin(ωt − kx), both starting from rest at x = 0 so the front moves at v = ω/k. Deep water (linear Airy theory): ξ = −A·e^{kz}·sin(kx − ωt), ζ = A·e^{kz}·cos(kx − ωt), with λ = g/(2πf²), g = 9.81 m/s². Real waves of finite height leave each loop slightly open (Stokes drift, surface speed ≈ (kA)²·v): about 0.25% of the wave speed for ordinary swell with kA ≈ 0.05; breaking waves near the shore do throw water forward. Speed of sound in dry air: v = 331.3·√(1 + θ/273.15) m/s (343 m/s at 20 °C). · CC BY 4.0 · Boxi Yu",
+    foot: "Model: small sine waves. Rope y = A sin(ωt − kx), spring ξ = A sin(ωt − kx), both starting from rest at x = 0 so the front moves at v = ω/k. Deep water (linear Airy theory): ξ = −A·e^(kz)·sin(kx − ωt), ζ = A·e^(kz)·cos(kx − ωt), with λ = g/(2πf²), g = 9.81 m/s². Real waves of finite height leave each loop slightly open (Stokes drift, surface speed ≈ (kA)²·v): about 0.25% of the wave speed for ordinary swell with kA ≈ 0.05; breaking waves near the shore do throw water forward. Speed of sound in dry air: v = 331.3·√(1 + θ/273.15) m/s (343 m/s at 20 °C). · CC BY 4.0 · Boxi Yu",
   },
   zh: {
     title: "水会跟着波走吗？", eyebrow: "物理 · 阶段 4", h1: "水会跟着波走吗？",
@@ -184,7 +185,7 @@ const P = Play.setup({
     resultNote: "绳子上下动，弹簧前后动，水绕圈；它们都不跟着波走。往前走的只有波的样子和能量。",
     explainK: "说一说", explainQ: "冲浪的人在碎浪区外面等浪，涌浪经过时她一起一伏。为什么她没有被带到岸边？等她赶上一个正在破碎的浪，又有什么不同？",
     homeK: "家里做一做", homeQ: "在装满水的浴缸或水池里放一个瓶盖，用手指在一头拨出水波。瓶盖会漂到另一头吗？再在绳子或彩虹圈中间系一根丝带，沿着它甩出一个波。",
-    foot: "模型：小振幅正弦波。绳子 y = A sin(ωt − kx)，弹簧 ξ = A sin(ωt − kx)，都从 x = 0 处由静止开始，波前以 v = ω/k 前进。深水（线性艾里理论）：ξ = −A·e^{kz}·sin(kx − ωt)，ζ = A·e^{kz}·cos(kx − ωt)，λ = g/(2πf²)，g = 9.81 m/s²。真实的浪有一定高度，每个圈不完全闭合（斯托克斯漂移，水面漂移速度 ≈ (kA)²·v）：普通涌浪 kA ≈ 0.05，约为波速的 0.25%；近岸破碎的浪确实会把水往前推。干燥空气中的声速：v = 331.3·√(1 + θ/273.15) m/s（20 °C 时 343 m/s）。· CC BY 4.0 · Boxi Yu",
+    foot: "模型：小振幅正弦波。绳子 y = A sin(ωt − kx)，弹簧 ξ = A sin(ωt − kx)，都从 x = 0 处由静止开始，波前以 v = ω/k 前进。深水（线性艾里理论）：ξ = −A·e^(kz)·sin(kx − ωt)，ζ = A·e^(kz)·cos(kx − ωt)，λ = g/(2πf²)，g = 9.81 m/s²。真实的浪有一定高度，每个圈不完全闭合（斯托克斯漂移，水面漂移速度 ≈ (kA)²·v）：普通涌浪 kA ≈ 0.05，约为波速的 0.25%；近岸破碎的浪确实会把水往前推。干燥空气中的声速：v = 331.3·√(1 + θ/273.15) m/s（20 °C 时 343 m/s）。· CC BY 4.0 · Boxi Yu",
   },
 });
 

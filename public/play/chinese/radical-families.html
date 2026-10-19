@@ -284,13 +284,33 @@ function glossLine(x) {
 // ---- SVG figures (steps 1 and 3) ----
 function txt(x, y, s, cls, size, anchor) {
   const t = S("text", { x, y, "text-anchor": anchor || "middle", class: cls || "" }, fig);
-  if (size) t.setAttribute("font-size", size);
+  if (size) t.style.fontSize = size + "px";
   t.textContent = s;
   return t;
 }
+// Wide figures are 600 units across. When the figure is narrower than that on screen (phones),
+// redraw in a 340-unit layout so labels stay >= 13 px: guess cards get smaller, look-alike columns stack.
+const NW_VB = 340;
+let narrow = false;
+function sizeFig(h) {
+  narrow = fig.clientWidth > 0 && fig.clientWidth < 600;
+  const w = narrow ? NW_VB : 600, vh = narrow ? h : 360;
+  fig.setAttribute("viewBox", `0 0 ${w} ${vh}`);
+  fig.style.height = narrow ? (fig.clientWidth * vh / w).toFixed(0) + "px" : "";
+}
 function drawGuess() {
+  sizeFig(250);
   ["肚", "脸", "腿"].forEach((c, i) => {
-    const x = CH.find((y) => y.c === c), cx = 30 + i * 186;
+    const x = CH.find((y) => y.c === c);
+    if (narrow) {
+      const cx = 6 + i * 112;
+      S("rect", { x: cx, y: 8, width: 104, height: 234, rx: 14, class: "slot" + (revealed ? " got" : "") }, fig);
+      txt(cx + 52, 112, c, "han", 76);
+      txt(cx + 52, 172, revealed ? x.py + "  " + x.w : P.t("hidden"), "py han", 17);
+      txt(cx + 52, 208, revealed ? glossOf(x) : P.t("hidden"), "lab", 16);
+      return;
+    }
+    const cx = 30 + i * 186;
     S("rect", { x: cx, y: 40, width: 168, height: 270, rx: 16, class: "slot" + (revealed ? " got" : "") }, fig);
     txt(cx + 84, 160, c, "han", 104);
     txt(cx + 84, 222, revealed ? x.py + "  " + x.w : P.t("hidden"), "py han");
@@ -298,7 +318,31 @@ function drawGuess() {
   });
 }
 function drawPair() {
-  const pr = PAIRS[pair], n = pr.cols.length, w = 600 / n;
+  const pr = PAIRS[pair], n = pr.cols.length;
+  const PH = 182;
+  sizeFig(n * PH + 4);
+  if (narrow) {
+    pr.cols.forEach((col, j) => {
+      const y0 = 4 + j * PH, cls = j ? "alt" : "ra";
+      if (j > 0) S("line", { x1: 8, y1: y0 - 2, x2: NW_VB - 8, y2: y0 - 2, stroke: "var(--line)", "stroke-width": 2 }, fig);
+      S("rect", { x: 12, y: y0 + 8, width: 66, height: 66, rx: 10, class: "box" }, fig);
+      txt(45, y0 + 59, col.old, "han ra", 50);
+      S("path", { d: `M88 ${y0 + 41} h22 m-9 -8 l9 8 l-9 8`, class: "arrow" }, fig);
+      S("rect", { x: 120, y: y0 + 8, width: 66, height: 66, rx: 10, class: "box" }, fig);
+      txt(153, y0 + 59, col.side, "han " + cls, 50);
+      const label = col.cat ? catOf(col.cat)[L] : P.t(col.pos === "L" ? "left" : "rightE");
+      txt(198, y0 + 47, label, "lab " + cls, 16, "start");
+      col.ex.forEach((c, i) => {
+        const ex0 = NW_VB / 2 + (i - (col.ex.length - 1) / 2) * 104;
+        const d = CH.find((y) => y.c === c) || EAR.find((y) => y.c === c);
+        txt(ex0, y0 + 120, c, "han", 42);
+        txt(ex0, y0 + 153, d.py, "lab", 15);
+        txt(ex0, y0 + 174, d.w, "lab han", 15);
+      });
+    });
+    return;
+  }
+  const w = 600 / n;
   pr.cols.forEach((col, j) => {
     const x0 = j * w, cx = x0 + w / 2;
     if (j > 0) S("line", { x1: x0, y1: 20, x2: x0, y2: 340, stroke: "var(--line)", "stroke-width": 2 }, fig);
@@ -549,6 +593,9 @@ const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], 
   tell(i === 1 || i === 3 ? P.t("idle") : "");
   draw();
 });
+
+let rz = 0;
+addEventListener("resize", () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if (step === 0 || step === 2) draw(); }); });
 
 $("reset").addEventListener("click", () => {
   revealed = false; pair = 0; sel = null; last = null; ti = 0; tAnswered = false;

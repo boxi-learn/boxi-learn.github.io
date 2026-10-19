@@ -31,6 +31,7 @@
   .q { fill: var(--muted); font: 700 44px var(--serif); }
   .lbl { fill: var(--fg); font: 650 15px var(--font); }
   .lbl-m { fill: var(--muted); font: 13px var(--font); }
+  @media (max-width: 560px) { #fig .lbl { font-size: 16.5px; } #fig .lbl-m { font-size: 16px; } } /* ≥ 13 px on screen at 375 px wide */
   .arrow { stroke: var(--a); stroke-width: 4; stroke-linecap: round; fill: none; }
   .arrowhead { fill: var(--a); }
   .viewbar { display: flex; gap: 5px; flex-wrap: wrap; width: 100%; }

@@ -20,10 +20,12 @@
   .bulb.out { stroke-dasharray: 5 5; opacity: .6; }
   .meter { fill: var(--surface); stroke: var(--a); stroke-width: 3; }
   .slot { fill: transparent; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 4; }
-  .lbl { fill: var(--muted); font-size: 22px; font-family: var(--font); }
-  .lblA { fill: var(--a); font-size: 23px; font-weight: 700; font-family: var(--font); }
-  .lblM { fill: var(--fg); font-size: 20px; font-weight: 700; font-family: var(--font); }
-  .lblR { fill: var(--fg); font-size: 23px; font-weight: 700; font-family: var(--math); }
+  /* --k = viewBox units per screen px (set by fitLabels); on phones labels grow so they stay >= 13.5 px on screen */
+  #fig { --k: 1; }
+  .lbl { fill: var(--muted); font-size: max(22px, calc(13.5px * var(--k))); font-family: var(--font); }
+  .lblA { fill: var(--a); font-size: max(23px, calc(13.5px * var(--k))); font-weight: 700; font-family: var(--font); }
+  .lblM { fill: var(--fg); font-size: max(20px, calc(13.5px * var(--k))); font-weight: 700; font-family: var(--font); }
+  .lblR { fill: var(--fg); font-size: max(23px, calc(13.5px * var(--k))); font-weight: 700; font-family: var(--math); }
   .hit { cursor: pointer; outline: none; }
   .hit:focus-visible .ring { stroke: var(--hl); stroke-width: 4; fill: none; }
   .hit .ring { fill: none; stroke: none; }
@@ -322,8 +324,9 @@ function draw() {
       sv("circle", { class: "bulb out", cx: b.x + ox, cy: b.y + oy, r: 18 }, g);
     }
     sv("rect", { class: "ring", x: b.x - 26, y: b.y - 26, width: 52, height: 52, rx: 26 }, g);
-    const lx = h ? b.x : b.x - 30, ly = h ? b.y + (isIn ? 50 : 92) : b.y + 8;
-    sv("text", { class: "lbl", x: lx, y: ly, "text-anchor": h ? "middle" : "end" }, g).textContent = "L" + (b.i + 1);
+    // unscrewed series bulb: label left of the dropped bulb, clear of the A3 reading on the right wire
+    const hOut = h && !isIn, lx = hOut ? b.x - 24 : h ? b.x : b.x - 30, ly = hOut ? b.y + 50 : h ? b.y + 50 : b.y + 8;
+    sv("text", { class: "lbl", x: lx, y: ly, "text-anchor": h && isIn ? "middle" : "end" }, g).textContent = "L" + (b.i + 1);
   });
   // ammeters
   L.slots.forEach((s, k) => {
@@ -438,6 +441,13 @@ function resetAll() {
   setPlaying(!Play.reduced);
 }
 $("reset").addEventListener("click", resetAll);
+function fitLabels() {
+  const w = fig.getBoundingClientRect().width;
+  fig.style.setProperty("--k", w > 0 ? (600 / w).toFixed(3) : "1");
+}
+fitLabels();
+if (window.ResizeObserver) new ResizeObserver(fitLabels).observe(fig);
+else window.addEventListener("resize", fitLabels);
 resetAll();
 </script>
 </body>

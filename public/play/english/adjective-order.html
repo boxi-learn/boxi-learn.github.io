@@ -80,7 +80,7 @@
             <circle cx="120" cy="88" r="62" fill="var(--no)"></circle>
             <path d="M78 60 q20 -22 52 -18" stroke="var(--surface)" stroke-width="6" fill="none" stroke-linecap="round" opacity=".55"></path>
             <circle cx="300" cy="122" r="26" fill="var(--c)"></circle>
-            <text x="120" y="166" text-anchor="middle" id="ballL"></text>
+            <text x="120" y="163" text-anchor="middle" id="ballL"></text>
           </svg>
           <div class="pickrow" id="hear1"></div>
         </div>
@@ -341,6 +341,15 @@ const hear1 = $("hear1");
   hear1.appendChild(b);
 });
 $("ballL").textContent = "?";
+// Keep the ball label ≥ 13 px on screen: the 420-unit viewBox shrinks on phones, so grow the font by 1/scale.
+const ballsSvg = document.querySelector(".balls");
+function fitBallLabel() {
+  const w = ballsSvg.getBoundingClientRect().width;
+  if (w > 0) $("ballL").style.fontSize = Math.max(15, 13.5 * 420 / w).toFixed(2) + "px";
+}
+if ("ResizeObserver" in window) new ResizeObserver(fitBallLabel).observe(ballsSvg);
+addEventListener("resize", fitBallLabel);
+fitBallLabel();
 function renderGuess() {
   const list = usual(BALL);
   $("ballL").textContent = guess < 0 ? "?" : phrase(BALL, list);
