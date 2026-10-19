@@ -506,6 +506,144 @@
       "en": "Take a song, nursery rhyme or slogan your family knows and find a version that rewrites it (a parody, a cover, an advert). Write both out side by side, mark 同 / 改 / 弃, and say what the rewriter wanted to say.",
       "zh": "找一首家里人都熟悉的歌、童谣或广告语，再找一个改编它的版本（仿写、翻唱、段子都行）。并排写下来，标出同、改、弃，说说改编的人想说什么。"
      }
+    },
+    {
+     "slug": "radical-families",
+     "stage": 1,
+     "seeds": [
+      "CN-1",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "2",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Radical families: what the left side means",
+      "zh": "偏旁家族分一分"
+     },
+     "insight": {
+      "en": "A meaning radical names a category, often in an older form: 月 in 肚 脸 腿 is flesh (肉), not the moon; 王 in 玩 珠 球 is jade (玉); 衤 is clothing but 礻 is worship.",
+      "zh": "形旁标的是一个意义类别，而且常是古字的变形：肚、脸、腿里的「月」是肉，不是月亮；玩、珠、球里的「王」是玉；「衤」管衣服，「礻」管祭祀。"
+     },
+     "misconception": {
+      "en": "A radical means exactly what it looks like: 月 always means the moon.",
+      "zh": "偏旁长什么样就是什么意思：带「月」的字都跟月亮有关。"
+     },
+     "play": null
+    },
+    {
+     "slug": "polyphone-context",
+     "stage": 1,
+     "seeds": [
+      "CN-4",
+      "CN-5",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "2",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "One character, two sounds: let the sentence decide",
+      "zh": "多音字，看句子"
+     },
+     "insight": {
+      "en": "Many characters have more than one reading, and each reading goes with its own meaning: 长 is cháng in 长江 (long) but zhǎng in 长大 (grow); the words around it tell you which.",
+      "zh": "不少字有几个读音，读音跟着意思走：「长江」的长读 cháng（长短），「长大」的长读 zhǎng（生长）；该读哪个，看它前后的词。"
+     },
+     "misconception": {
+      "en": "Each character has only one sound; once you know it, you can read it everywhere.",
+      "zh": "一个字只有一个读音，认识了就到处都这么读。"
+     },
+     "play": null
+    },
+    {
+     "slug": "punctuation-meaning",
+     "stage": 2,
+     "seeds": [
+      "CN-2",
+      "CN-5",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "3",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Move a comma, change the meaning",
+      "zh": "标点一挪，意思就变"
+     },
+     "insight": {
+      "en": "Punctuation is part of the meaning: it decides where the pauses fall, who is speaking and what is asked, so the same characters can say opposite things.",
+      "zh": "标点也是意思的一部分：它决定在哪里停、谁在说话、是不是在问，同样几个字可以说出相反的意思。"
+     },
+     "misconception": {
+      "en": "Punctuation is just for pausing to breathe; the words carry all the meaning.",
+      "zh": "标点只是换气用的，意思全在字里。"
+     },
+     "play": null
+    },
+    {
+     "slug": "metaphor-choice",
+     "stage": 2,
+     "seeds": [
+      "CN-3",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Pick the comparison: what does the reader see?",
+      "zh": "比喻怎么选"
+     },
+     "insight": {
+      "en": "A metaphor lends the reader features of a familiar thing: call the moon a 白玉盘 (jade plate) and they see round and bright, call it a boat and they see a thin curve; choosing what to compare to is choosing what the reader notices.",
+      "zh": "比喻是把熟悉事物的特点借给读者：把月亮说成「白玉盘」，读者看见圆和亮；说成小船，读者看见弯弯的一道；选什么来比，就是选读者注意什么。"
+     },
+     "misconception": {
+      "en": "Figures of speech are just decoration: the plain sentence says the same thing.",
+      "zh": "修辞只是「装饰」，换成大白话意思一样。"
+     },
+     "play": null
+    },
+    {
+     "slug": "expository-methods",
+     "stage": 3,
+     "seeds": [
+      "CN-3",
+      "CN-4",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Explain a thing: numbers, comparison or analogy",
+      "zh": "说明方法工具箱"
+     },
+     "insight": {
+      "en": "Listing numbers makes a fact exact, comparing with something known makes the size graspable, and an analogy makes it vivid but only roughly right; a writer picks the method by what the reader needs.",
+      "zh": "列数字让事实准确，作比较让大小能被感到，打比方让东西形象但只是大致；用哪种说明方法，看读者需要什么。"
+     },
+     "misconception": {
+      "en": "作比较 (comparing) and 打比方 (analogy) are the same thing: both say one thing is like another.",
+      "zh": "「作比较」和「打比方」是一回事，都是拿一个东西说另一个。"
+     },
+     "play": null
     }
    ]
   },
@@ -870,6 +1008,141 @@
       "en": "Collect three real English messages you received this week (a text, a school notice, an advert email). Underline contractions, phrasal verbs and passives, and guess who wrote each one for whom.",
       "zh": "找三条这周收到的英文消息（短信、学校通知、广告邮件），划出缩写、短语动词和被动语态，猜猜每条是谁写给谁的。"
      }
+    },
+    {
+     "slug": "plural-s-sounds",
+     "stage": 1,
+     "seeds": [
+      "EN-1",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "1",
+      "uk": "2"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Three sounds of -s",
+      "zh": "-s 的三种读法"
+     },
+     "insight": {
+      "en": "The ending -s is said three ways, chosen by the word's last sound, not its last letter: /s/ after a quiet sound (cats), /z/ after a buzzing sound (dogs), /ɪz/ after a hissing sound (buses) — and the same rule works for he runs and Tom's.",
+      "zh": "词尾 -s 有三种读法，看的是单词最后一个「音」而不是最后一个字母：清音后读 /s/（cats），浊音后读 /z/（dogs），嘶嘶音后读 /ɪz/（buses）；he runs、Tom's 也按同一条规则。"
+     },
+     "misconception": {
+      "en": "The ending -s is always pronounced /s/.",
+      "zh": "词尾的 -s 一律读 /s/。"
+     },
+     "play": null
+    },
+    {
+     "slug": "one-word-many-words",
+     "stage": 1,
+     "seeds": [
+      "EN-3",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "开 is not always open",
+      "zh": "「开」不总是 open"
+     },
+     "insight": {
+      "en": "A Chinese word and an English word cover different patches of meaning: 开 is open the door, turn on the light, drive a car and hold a meeting, so learn a word together with the words it goes with.",
+      "zh": "中文词和英文词覆盖的意思范围不一样：「开」可以是 open the door、turn on the light、drive a car、hold a meeting，所以学词要连着它的搭配一起学。"
+     },
+     "misconception": {
+      "en": "Every English word matches exactly one Chinese word.",
+      "zh": "一个英文词对一个中文词。"
+     },
+     "play": null
+    },
+    {
+     "slug": "count-or-not",
+     "stage": 2,
+     "seeds": [
+      "EN-3",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Can you count it in English?",
+      "zh": "英语里这个能数吗？"
+     },
+     "insight": {
+      "en": "English sorts nouns into countable and uncountable as a grammar label, not by whether the thing can really be counted: chairs but furniture, suggestions but advice; uncountable nouns take no a or -s and use much, some or a container word (a piece of advice).",
+      "zh": "英语把名词分成可数和不可数，这是语法标签，不看东西实际能不能数：chairs 可数而 furniture 不可数，suggestions 可数而 advice 不可数；不可数名词不加 a、不加 -s，用 much、some 或量词短语（a piece of advice）。"
+     },
+     "misconception": {
+      "en": "If you can count the things in real life, the English noun is countable, so “furnitures” and “advices” are fine.",
+      "zh": "现实中能一个个数的东西，英语里就是可数名词，所以可以说 furnitures、advices。"
+     },
+     "play": null
+    },
+    {
+     "slug": "adjective-order",
+     "stage": 2,
+     "seeds": [
+      "EN-3",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "4",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Which adjective goes first?",
+      "zh": "哪个形容词排前面？"
+     },
+     "insight": {
+      "en": "When several adjectives stand before a noun they follow a usual order — opinion, size, age, shape, colour, origin, material, purpose — so a lovely big old wooden table sounds right and an old wooden big lovely table does not.",
+      "zh": "几个形容词一起放在名词前，有一个惯常顺序——观点、大小、新旧、形状、颜色、来源、材料、用途——所以 a lovely big old wooden table 听着顺，an old wooden big lovely table 就别扭。"
+     },
+     "misconception": {
+      "en": "Adjectives in front of a noun can go in any order.",
+      "zh": "名词前的形容词怎么排都行。"
+     },
+     "play": null
+    },
+    {
+     "slug": "word-stress-shift",
+     "stage": 3,
+     "seeds": [
+      "EN-1",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "REcord or reCORD?",
+      "zh": "REcord 还是 reCORD？"
+     },
+     "insight": {
+      "en": "In English one syllable of a word is stressed — longer, louder, higher — and moving it can change the word: in many two-syllable pairs the noun is stressed first (a REcord) and the verb second (to reCORD).",
+      "zh": "英语单词里有一个音节要重读（更长、更响、更高），挪动重音能改变这个词：许多双音节词里，名词重音在前（a REcord），动词重音在后（to reCORD）。"
+     },
+     "misconception": {
+      "en": "Every syllable in an English word gets equal weight, like characters in Chinese, so stress doesn't matter if the sounds are right.",
+      "zh": "英语单词的每个音节一样重，像汉字一个字一拍，只要音发对，重音无所谓。"
+     },
+     "play": null
     }
    ]
   },
@@ -1165,6 +1438,146 @@
       "en": "Count out 100 grains of rice for the grass. Pass a tenth to a ‘grasshopper’ cup, then a tenth of that to a ‘frog’ cup. What is left for a snake? Then look in a park or garden: who eats whom?",
       "zh": "数 100 粒米当作草。把十分之一放进「蚱蜢」杯，再把它的十分之一放进「青蛙」杯。还剩多少给蛇？再去公园或花园看看：谁吃谁？"
      }
+    },
+    {
+     "slug": "simple-circuit",
+     "stage": 1,
+     "seeds": [
+      "SCI-3",
+      "SCI-5",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "4",
+      "uk": "4"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Light the bulb: why it needs a loop",
+      "zh": "点亮小灯泡：为什么要接成一圈"
+     },
+     "insight": {
+      "en": "A bulb lights only when there is an unbroken loop from one end of the battery, through the bulb, and back to the other end.",
+      "zh": "只有从电池一头出发、穿过灯泡、再回到电池另一头，连成不断的一圈，灯泡才会亮。"
+     },
+     "misconception": {
+      "en": "One wire from the battery to the bulb is enough to light it.",
+      "zh": "从电池拉一根线到灯泡，灯就能亮。"
+     },
+     "play": null
+    },
+    {
+     "slug": "sound-vibrations",
+     "stage": 1,
+     "seeds": [
+      "SCI-3",
+      "SCI-5",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "1",
+      "uk": "4"
+     },
+     "status": "planned",
+     "title": {
+      "en": "What makes a sound?",
+      "zh": "声音是怎么来的？"
+     },
+     "insight": {
+      "en": "Every sound comes from something vibrating, and the vibration needs air, water or a solid to travel through; faster vibrations sound higher.",
+      "zh": "声音都来自物体的振动，振动要靠空气、水或固体传过来；振得越快，声音越高。"
+     },
+     "misconception": {
+      "en": "Louder sounds are higher, and sound can travel through empty space.",
+      "zh": "声音越响就越高；声音在真空里也能传。"
+     },
+     "play": null
+    },
+    {
+     "slug": "dissolving",
+     "stage": 2,
+     "seeds": [
+      "SCI-1",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "5",
+      "uk": "5"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Where does the sugar go?",
+      "zh": "糖到哪里去了？"
+     },
+     "insight": {
+      "en": "Dissolved sugar breaks into particles too small to see, spread through the water; the scale shows the total weight does not change.",
+      "zh": "溶解的糖散成看不见的小颗粒，分布在水里；秤上的总重量一点没变。"
+     },
+     "misconception": {
+      "en": "Sugar disappears when it dissolves.",
+      "zh": "糖溶解后就没有了。"
+     },
+     "play": null
+    },
+    {
+     "slug": "keep-it-cold",
+     "stage": 2,
+     "seeds": [
+      "SCI-3",
+      "SCI-5",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "5",
+      "us": "4",
+      "uk": "5"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Can a coat keep ice cold?",
+      "zh": "棉衣能让冰块不化吗？"
+     },
+     "insight": {
+      "en": "A coat does not make heat; it slows heat moving across it — so it keeps a warm body warm and a cold ice cube cold.",
+      "zh": "棉衣自己不产生热，它只是让热量穿过得更慢——所以它让暖的身体保暖，也让冰块保冷。"
+     },
+     "misconception": {
+      "en": "A coat is warm by itself, so wrapping ice in a coat will make it melt faster.",
+      "zh": "棉衣本身是热的，所以用棉衣包着冰块，冰会化得更快。"
+     },
+     "play": null
+    },
+    {
+     "slug": "moon-phases",
+     "stage": 2,
+     "seeds": [
+      "SCI-6",
+      "X-3",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "6",
+      "us": "5",
+      "uk": "5"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why does the Moon change shape?",
+      "zh": "月亮为什么会变形状？"
+     },
+     "insight": {
+      "en": "Half of the Moon is always lit by the Sun; as the Moon goes round Earth in about a month, we see different amounts of that lit half.",
+      "zh": "月球总有一半被太阳照亮；它大约一个月绕地球一圈，我们看到的亮面多少就跟着变。"
+     },
+     "misconception": {
+      "en": "The Moon's phases are Earth's shadow falling on the Moon.",
+      "zh": "月相是地球的影子挡在月亮上造成的。"
+     },
+     "play": null
     }
    ]
   },
@@ -1556,6 +1969,147 @@
       "en": "Rub a balloon on wool or dry hair, then bring it slowly toward tiny bits of tissue paper, or toward a thin stream of tap water. Notice how far away it starts to act, and how much faster the effect grows as it gets closer. Works best on a dry day.",
       "zh": "把气球在毛衣或干头发上蹭一蹭，再慢慢靠近一些小纸屑，或者靠近一股细细的自来水流。留意它在多远的地方就开始起作用，越靠近效果涨得有多快。天气干燥时效果最好。"
      }
+    },
+    {
+     "slug": "pressure-area",
+     "stage": 3,
+     "seeds": [
+      "PHY-1",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "8",
+      "uk": "9"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why doesn't a bed of nails hurt?",
+      "zh": "躺在钉床上为什么不疼？"
+     },
+     "insight": {
+      "en": "What presses in is pressure, force divided by area: the same weight spread over a thousand nails or a wide snowshoe presses a thousand times more gently than on one nail.",
+      "zh": "压进去的是压强，也就是力除以面积：同样的体重分摊到一千根钉子或一块宽宽的雪鞋上，比压在一根钉子上轻一千倍。"
+     },
+     "misconception": {
+      "en": "More nails means more points pushing into you, so it hurts more.",
+      "zh": "钉子越多，扎你的尖就越多，所以越疼。"
+     },
+     "play": null
+    },
+    {
+     "slug": "buoyancy-displaced",
+     "stage": 3,
+     "seeds": [
+      "PHY-1",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "8",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "How hard does water push up?",
+      "zh": "水往上托的力有多大？"
+     },
+     "insight": {
+      "en": "The upward push equals the weight of the water the object shoves aside; once it is fully under, going deeper does not change it.",
+      "zh": "水向上的托力等于物体排开的那部分水的重量；完全没入以后，再往深处沉，托力也不变。"
+     },
+     "misconception": {
+      "en": "The deeper an object sinks, the harder the water pushes it up.",
+      "zh": "东西沉得越深，水往上托它的力越大。"
+     },
+     "play": null
+    },
+    {
+     "slug": "plane-mirror",
+     "stage": 3,
+     "seeds": [
+      "PHY-4",
+      "X-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "?",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Where is the person in the mirror?",
+      "zh": "镜子里的人站在哪里？"
+     },
+     "insight": {
+      "en": "A plane mirror's image sits behind the glass, as far behind as you are in front, so to see your whole body you need a mirror half your height, wherever you stand.",
+      "zh": "平面镜的像在镜子后面，离镜子和你离镜子一样远；所以想看到全身，只要一面你身高一半的镜子，站多远都一样。"
+     },
+     "misconception": {
+      "en": "The image is on the surface of the mirror, and stepping back lets you see more of yourself.",
+      "zh": "像就在镜面上；往后退就能在镜子里看到更多的自己。"
+     },
+     "play": null
+    },
+    {
+     "slug": "waves-carry-energy",
+     "stage": 4,
+     "seeds": [
+      "PHY-4",
+      "PHY-2",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "11",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Does the water travel with the wave?",
+      "zh": "水会跟着波走吗？"
+     },
+     "insight": {
+      "en": "A wave moves a pattern and its energy along while each bit of the medium only bobs in place; its speed is frequency times wavelength, v = fλ.",
+      "zh": "波把一种样子和能量往前传，介质的每一小块只在原地上下晃；波速等于频率乘波长，v = fλ。"
+     },
+     "misconception": {
+      "en": "The water in an ocean wave travels along with the wave.",
+      "zh": "海浪里的水是跟着浪一起往前跑的。"
+     },
+     "play": null
+    },
+    {
+     "slug": "circular-motion",
+     "stage": 4,
+     "seeds": [
+      "PHY-1",
+      "PHY-5",
+      "X-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "11",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Which way does the ball fly when the string breaks?",
+      "zh": "绳子断了，球往哪边飞？"
+     },
+     "insight": {
+      "en": "Going round a circle needs a force pointing to the centre; take it away and the ball flies off in a straight line along the tangent, not outward and not in a curve.",
+      "zh": "绕圈需要一个指向圆心的力；这个力一撤，球就沿切线直直飞出，既不是往外甩，也不会继续拐弯。"
+     },
+     "misconception": {
+      "en": "A centrifugal force flings the ball outward, or it keeps curving after the string breaks.",
+      "zh": "有一股离心力把球往外甩；或者绳断以后球还会接着拐弯。"
+     },
+     "play": null
     }
    ]
   },
@@ -1947,6 +2501,144 @@
       "en": "Write the first 20 element symbols on 20 cards with their mass. Lay them in a line by mass, then by atomic number. Which two cards change place? Now deal them into rows of 2, 8, 8, 2.",
       "zh": "在 20 张卡片上写前 20 种元素的符号和相对原子质量。先按质量排成一行，再按原子序数排。哪两张换了位置？再按 2、8、8、2 分成几行。"
      }
+    },
+    {
+     "slug": "physical-or-chemical",
+     "stage": 3,
+     "seeds": [
+      "CHEM-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "9",
+      "us": "7",
+      "uk": "7"
+     },
+     "status": "planned",
+     "title": {
+      "en": "New stuff, or the same stuff changed?",
+      "zh": "变出新物质了吗？"
+     },
+     "insight": {
+      "en": "A change is chemical only when a new substance forms; melting, boiling and dissolving keep the same molecules, burning makes new ones.",
+      "zh": "只有生成了新物质才是化学变化；熔化、沸腾、溶解后分子还是原来的分子，燃烧则造出了新分子。"
+     },
+     "misconception": {
+      "en": "Bubbles, a colour change or a substance vanishing always mean a chemical reaction, so boiling and dissolving are chemical changes.",
+      "zh": "冒泡、变色或东西不见了就一定是化学变化，所以沸腾、溶解也是化学变化。"
+     },
+     "play": null
+    },
+    {
+     "slug": "rusting-fair-test",
+     "stage": 3,
+     "seeds": [
+      "CHEM-1",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "9",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "What does a nail need to rust?",
+      "zh": "铁钉生锈要什么条件？"
+     },
+     "insight": {
+      "en": "Iron rusts only when water and oxygen are both present; take away either one and the nail stays bright.",
+      "zh": "铁要同时碰到水和氧气才会生锈；去掉其中任何一个，铁钉就一直亮。"
+     },
+     "misconception": {
+      "en": "Water alone makes iron rust, so a nail fully under water always rusts.",
+      "zh": "光有水铁就会生锈，所以泡在水里的铁钉一定会锈。"
+     },
+     "play": null
+    },
+    {
+     "slug": "mole-counting",
+     "stage": 3,
+     "seeds": [
+      "CHEM-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "10",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "A mole is a number, like a dozen",
+      "zh": "摩尔是个数，就像一打"
+     },
+     "insight": {
+      "en": "A mole is a fixed count of particles, 6.02 × 10²³; a mole of magnesium weighs twice a mole of carbon because each magnesium atom is twice as heavy.",
+      "zh": "1 摩尔是固定的颗粒个数 6.02 × 10²³；1 摩尔镁的质量是 1 摩尔碳的两倍，因为每个镁原子就重一倍。"
+     },
+     "misconception": {
+      "en": "A mole is an amount of mass, so one mole of any substance weighs the same.",
+      "zh": "摩尔是质量单位，所以任何物质 1 摩尔都一样重。"
+     },
+     "play": null
+    },
+    {
+     "slug": "salt-splits-into-ions",
+     "stage": 4,
+     "seeds": [
+      "CHEM-2",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "10",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why salt water carries a current and sugar water doesn't",
+      "zh": "为什么盐水导电、糖水不导电"
+     },
+     "insight": {
+      "en": "Salt is built of charged ions that come apart and move freely when it dissolves or melts; sugar dissolves as whole neutral molecules, so nothing carries the charge.",
+      "zh": "盐由带电的离子组成，溶解或熔化后离子散开、能自由移动；糖溶解后还是一个个不带电的分子，所以没有东西能运电荷。"
+     },
+     "misconception": {
+      "en": "Salt dissolves as NaCl molecules, and a solid salt crystal conducts because it is made of ions.",
+      "zh": "盐溶解后是一个个 NaCl 分子；固体盐晶体由离子组成，所以也能导电。"
+     },
+     "play": null
+    },
+    {
+     "slug": "neutralisation-jump",
+     "stage": 4,
+     "seeds": [
+      "CHEM-1",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "11",
+      "uk": "12"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Adding base: the pH jump at the end",
+      "zh": "加碱：最后那一下 pH 突跃"
+     },
+     "insight": {
+      "en": "H⁺ and OH⁻ pair into water one for one, so the pH barely moves until the counts are almost equal, then a single drop pushes it up several units.",
+      "zh": "H⁺ 和 OH⁻ 一对一结合成水，所以 pH 起初几乎不动，直到两者个数快相等时，一滴碱就能让 pH 跳好几个单位。"
+     },
+     "misconception": {
+      "en": "Each drop of base raises the pH by about the same amount, so the pH climbs steadily to 7.",
+      "zh": "每滴碱让 pH 升高差不多一样多，pH 会匀速升到 7。"
+     },
+     "play": null
     }
    ]
   },
@@ -2300,6 +2992,146 @@
       "en": "Write a sentence of three-letter words: THE CAT ATE THE RAT. Change one letter: how much of the meaning survives? Now delete one letter near the start and regroup into threes. Which mistake does more damage, and why?",
       "zh": "用三个字母的英文单词写一句话：THE CAT ATE THE RAT。改一个字母，意思还剩多少？再在开头附近删掉一个字母，重新三个一组地读。哪种错误破坏更大？为什么？"
      }
+    },
+    {
+     "slug": "osmosis-potato",
+     "stage": 3,
+     "seeds": [
+      "BIO-1",
+      "BIO-2",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "7",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why does a potato shrink in salt water?",
+      "zh": "土豆条为什么在盐水里变软变轻？"
+     },
+     "insight": {
+      "en": "Particles never stop moving; water crosses a cell membrane both ways, and the net flow is towards the side where water is scarcer, the saltier side.",
+      "zh": "颗粒从不停止运动；水在细胞膜两边来回穿过，净流向是水更少、也就是更咸的那一边。"
+     },
+     "misconception": {
+      "en": "Once the concentrations are equal on both sides, the particles stop moving.",
+      "zh": "两边浓度一样以后，颗粒就不动了。"
+     },
+     "play": null
+    },
+    {
+     "slug": "heart-double-pump",
+     "stage": 3,
+     "seeds": [
+      "BIO-2",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "The heart is two pumps",
+      "zh": "心脏是两台泵"
+     },
+     "insight": {
+      "en": "Blood goes through the heart twice per lap: the right side pumps it to the lungs, the left side pumps it to the body; it is always red, bright when full of oxygen and dark when not.",
+      "zh": "血液绕一圈要经过心脏两次：右边把它泵到肺，左边把它泵到全身；血一直是红的，含氧多时鲜红，含氧少时暗红。"
+     },
+     "misconception": {
+      "en": "Blood without oxygen is blue; that is why veins look blue.",
+      "zh": "缺氧的血是蓝色的，所以静脉看起来是蓝的。"
+     },
+     "play": null
+    },
+    {
+     "slug": "respiration-every-cell",
+     "stage": 3,
+     "seeds": [
+      "BIO-3",
+      "BIO-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Breathing is not respiration",
+      "zh": "呼吸运动不等于细胞呼吸"
+     },
+     "insight": {
+      "en": "Breathing only moves air in and out of the lungs; respiration, releasing energy from glucose with oxygen, happens inside every living cell, day and night, in plants too.",
+      "zh": "呼吸运动只是把空气吸进、呼出肺；用氧气分解葡萄糖、释放能量的细胞呼吸，在每个活细胞里日夜进行，植物也一样。"
+     },
+     "misconception": {
+      "en": "Respiration means breathing, and it happens only in the lungs.",
+      "zh": "呼吸作用就是喘气，只在肺里发生。"
+     },
+     "play": null
+    },
+    {
+     "slug": "predator-prey",
+     "stage": 4,
+     "seeds": [
+      "BIO-3",
+      "BIO-5",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Hares and lynx: why do the numbers cycle?",
+      "zh": "野兔和猞猁：数量为什么一起一落？"
+     },
+     "insight": {
+      "en": "Predators and prey can rise and fall in repeating cycles with the predator peak arriving after the prey peak, because predators multiply only after food is plentiful and starve only after it is gone.",
+      "zh": "捕食者和猎物的数量可以周期性起落，捕食者的高峰总比猎物晚到：食物多了它们才多起来，食物没了它们才饿下去。"
+     },
+     "misconception": {
+      "en": "In nature, populations stay at a fixed balance, or predators simply eat their prey until it is gone.",
+      "zh": "自然界的种群数量保持固定的平衡，或者捕食者会一直吃到猎物灭绝。"
+     },
+     "play": null
+    },
+    {
+     "slug": "homeostasis-thermostat",
+     "stage": 4,
+     "seeds": [
+      "BIO-2",
+      "X-3",
+      "X-4"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "10",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "The body's thermostat",
+      "zh": "身体里的恒温器"
+     },
+     "insight": {
+      "en": "Body temperature and blood sugar stay near a set point because any change switches on a response that pushes it back: negative feedback.",
+      "zh": "体温和血糖能稳在一个设定值附近，是因为任何偏离都会触发一个把它拉回来的反应：这就是负反馈。"
+     },
+     "misconception": {
+      "en": "Negative feedback means something bad, and a healthy body's levels never move.",
+      "zh": "负反馈就是坏事；健康的身体里各项指标一点都不变。"
+     },
+     "play": null
     }
    ]
   },
@@ -2688,6 +3520,143 @@
       "en": "Put two crackers side by side on a plate. Push them together, pull them apart, slide them past each other. Where do the crumbs and cracks appear — in the middle or at the edges?",
       "zh": "把两块饼干并排放在盘子里。把它们推到一起、拉开、再错开滑动。碎屑和裂缝出现在哪里——中间还是边上？"
      }
+    },
+    {
+     "slug": "compass-grid",
+     "stage": 1,
+     "seeds": [
+      "GEO-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "3",
+      "us": "3",
+      "uk": "3"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Find it on the grid",
+      "zh": "在方格里找到它"
+     },
+     "insight": {
+      "en": "North is a direction on the ground, not \"up\": turn the map until its north arrow points north, then a letter and a number pin down any square.",
+      "zh": "北是地上的一个方向，不是「上面」：把地图转到指北针朝北，再用一个字母加一个数字，就能说清任何一格。"
+     },
+     "misconception": {
+      "en": "North always means 'up', on a map and on the ground.",
+      "zh": "北就是「上面」，地图上是，地上也是。"
+     },
+     "play": null
+    },
+    {
+     "slug": "contour-lines",
+     "stage": 2,
+     "seeds": [
+      "GEO-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "?",
+      "uk": "7"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Read a hill from its contour lines",
+      "zh": "从等高线看出山的样子"
+     },
+     "insight": {
+      "en": "Each contour line joins points of the same height, so lines packed close together mean a steep slope and lines far apart mean gentle ground.",
+      "zh": "每条等高线连起同样高的点，所以线挤在一起是陡坡，线稀疏是缓坡。"
+     },
+     "misconception": {
+      "en": "Contour lines that are close together show low, flat ground.",
+      "zh": "等高线挤在一起的地方又低又平。"
+     },
+     "play": null
+    },
+    {
+     "slug": "rain-shadow",
+     "stage": 2,
+     "seeds": [
+      "GEO-2",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "?",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why one side of the mountain is dry",
+      "zh": "为什么山的一边是干的"
+     },
+     "insight": {
+      "en": "Wind pushes moist air up the windward side, where it cools and rains; the air that comes down the other side is dry and warming, so the leeward side lies in a rain shadow.",
+      "zh": "风把湿空气推上迎风坡，空气变冷就下雨；翻过山顶下来的空气又干又在变暖，所以背风坡落在「雨影」里。"
+     },
+     "misconception": {
+      "en": "Rain falls evenly on both sides of a mountain range.",
+      "zh": "山两边下的雨一样多。"
+     },
+     "play": null
+    },
+    {
+     "slug": "river-bends",
+     "stage": 3,
+     "seeds": [
+      "GEO-2",
+      "GEO-4",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "?",
+      "us": "?",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "How a river bends itself",
+      "zh": "河流怎样把自己弄弯"
+     },
+     "insight": {
+      "en": "In a bend the water runs fastest on the outside, which wears the bank away, and slowest on the inside, which drops sand — so bends grow and wander.",
+      "zh": "在河湾里，外侧水流最快，冲刷河岸；内侧水流最慢，泥沙堆积——所以河湾越来越弯，还会慢慢移动。"
+     },
+     "misconception": {
+      "en": "A river wears away both banks of a bend equally.",
+      "zh": "河湾两边的岸被冲刷得一样多。"
+     },
+     "play": null
+    },
+    {
+     "slug": "map-projection",
+     "stage": 3,
+     "seeds": [
+      "GEO-1",
+      "X-3",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "?",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Is Greenland as big as Africa?",
+      "zh": "格陵兰岛有非洲那么大吗？"
+     },
+     "insight": {
+      "en": "A round Earth cannot be flattened without stretching; the Mercator map keeps directions true but blows up areas near the poles, so Greenland looks like Africa although Africa is about 14 times larger.",
+      "zh": "球面摊平一定会被拉伸；墨卡托地图保住了方向，却把靠近两极的面积放大，所以格陵兰看起来和非洲差不多，其实非洲约是它的 14 倍。"
+     },
+     "misconception": {
+      "en": "Countries on a world map are shown at their true relative sizes.",
+      "zh": "世界地图上各国的大小就是它们真实的大小比例。"
+     },
+     "play": null
     }
    ]
   },
@@ -3034,6 +4003,145 @@
       "en": "Pick a change in your family or school (a new shop nearby, a new club, a new habit). Draw a causes web with at least one long-term condition, one trigger and one choice. Ask someone who was there: which one, taken away, would have changed the most?",
       "zh": "挑一件家里或学校发生的变化（附近开了新店、新办了一个社团、养成一个新习惯），画一张原因网：至少一个长期条件、一个诱因、一个人的选择。问问当时在场的人：拿掉哪一个，结果会变得最多？"
      }
+    },
+    {
+     "slug": "dig-the-layers",
+     "stage": 2,
+     "seeds": [
+      "HIS-2",
+      "HIS-1",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "6",
+      "uk": "5"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Dig down, go back in time",
+      "zh": "往下挖，就是往回走"
+     },
+     "insight": {
+      "en": "Layers of soil pile up over time, so deeper usually means older — but a pit dug from above can carry newer things down, and a layer can be no older than the newest object in it.",
+      "zh": "土层是一层层堆上去的，所以越深通常越老——但从上面挖下来的坑会把新东西带到深处，而一层土的年代不会早于其中最新的那件东西。"
+     },
+     "misconception": {
+      "en": "Anything found deeper in the ground is always older, and everything in one layer is the same age.",
+      "zh": "埋得越深的东西一定越老，同一层里的东西年代都一样。"
+     },
+     "play": null
+    },
+    {
+     "slug": "counting-the-years",
+     "stage": 2,
+     "seeds": [
+      "HIS-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "6",
+      "uk": "6"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Whose year is it?",
+      "zh": "这是哪一年？谁的年？"
+     },
+     "insight": {
+      "en": "A year number is only a count from a chosen starting point: BCE/CE counts from one fixed year with no year 0, the 干支 cycle repeats every 60 years, and regnal years restart with each ruler — to convert you need an anchor that links them.",
+      "zh": "年份只是从某个起点数下来的数：公元从一个固定年份数起、没有公元 0 年；干支每 60 年循环一次；年号纪年每换一个皇帝或年号就重新数——换算要靠一个把它们连起来的「锚点」。"
+     },
+     "misconception": {
+      "en": "People everywhere always counted years the same way we do, and there was a year 0 between 1 BCE and 1 CE.",
+      "zh": "古今各地的人都像我们这样数年份，而且公元前 1 年和公元 1 年之间有个「公元 0 年」。"
+     },
+     "play": null
+    },
+    {
+     "slug": "crops-cross-oceans",
+     "stage": 3,
+     "seeds": [
+      "HIS-3",
+      "HIS-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Where did your dinner come from?",
+      "zh": "你的晚饭从哪里来？"
+     },
+     "insight": {
+      "en": "Many ‘traditional’ foods depend on crops that crossed the Atlantic only after 1492: chilli, potato, tomato, maize and sweet potato came from the Americas, while wheat, rice, sugar cane, cattle and horses went the other way.",
+      "zh": "许多「传统」饭菜靠的是 1492 年以后才跨过大西洋的作物：辣椒、土豆、番茄、玉米、红薯来自美洲，小麦、水稻、甘蔗、牛和马则从另一边去了美洲。"
+     },
+     "misconception": {
+      "en": "Foods that are central to a cuisine today — chilli in Sichuan or Korean cooking, tomatoes in Italian cooking — have always grown there.",
+      "zh": "今天某地菜系的招牌食材——川菜和韩国菜里的辣椒、意大利菜里的番茄——从来就长在那里。"
+     },
+     "play": null
+    },
+    {
+     "slug": "two-eyewitnesses",
+     "stage": 3,
+     "seeds": [
+      "HIS-4",
+      "HIS-2",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "8",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Two people saw it — and told it differently",
+      "zh": "两个人都看见了，说法却不一样"
+     },
+     "insight": {
+      "en": "Each eyewitness saw from one place, at one moment, with their own concerns, so honest witnesses can disagree; the parts that independent accounts share are the firmest evidence.",
+      "zh": "每个目击者都只在一个位置、一个时刻、带着自己的关心在看，所以诚实的人也会说法不同；几份互不相干的说法都对得上的部分，才是最站得住的证据。"
+     },
+     "misconception": {
+      "en": "If two eyewitnesses disagree, one of them must be lying.",
+      "zh": "两个目击者说法不一样，就一定有一个在说谎。"
+     },
+     "play": null
+    },
+    {
+     "slug": "change-and-continuity",
+     "stage": 4,
+     "seeds": [
+      "HIS-1",
+      "HIS-3",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "9",
+      "uk": "9"
+     },
+     "status": "planned",
+     "title": {
+      "en": "What changed, and what stayed the same?",
+      "zh": "什么变了，什么没变？"
+     },
+     "insight": {
+      "en": "Different parts of life change at different speeds: how fast people could travel or how they lit their homes changed within a few generations, while staple foods, languages and family customs often lasted for centuries.",
+      "zh": "生活的不同方面变化速度不同：出行多快、晚上用什么照明，几代人之内就变了；而主食、语言和家庭习俗常常延续几百年。"
+     },
+     "misconception": {
+      "en": "The past was one unchanging ‘before’, and modern times changed everything at once.",
+      "zh": "过去是一成不变的「从前」，到了近代一下子什么都变了。"
+     },
+     "play": null
     }
    ]
   },
@@ -3419,6 +4527,148 @@
       "en": "Ask someone to think of a number from 1 to 100 and answer only “higher” or “lower”. Play once guessing freely and once always guessing the middle; count the guesses. Then find a word in a paper dictionary by opening it in the middle and halving.",
       "zh": "请家人想一个 1 到 100 的数，只回答「大了」或「小了」。玩两次：一次随便猜，一次每次都猜中间，数一数各猜了几次。再用纸质字典查一个字：从中间翻开，每次扔掉一半。"
      }
+    },
+    {
+     "slug": "run-length-picture",
+     "stage": 1,
+     "seeds": [
+      "CS-3",
+      "CS-1",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "3",
+      "us": "2",
+      "uk": "3"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Send a picture with a few numbers",
+      "zh": "用几个数送一张图"
+     },
+     "insight": {
+      "en": "A black-and-white picture can be sent as counts of same-colour squares in a row, so a picture with long runs needs far fewer numbers and still comes back exactly the same.",
+      "zh": "黑白图可以按「连续几格同色」来数着送，同色连得越长要送的数就越少，收到后还能一格不差地画回来。"
+     },
+     "misconception": {
+      "en": "Making a picture file smaller always loses some of the picture.",
+      "zh": "把图片文件变小，一定会丢掉一部分画面。"
+     },
+     "play": null
+    },
+    {
+     "slug": "if-wall-robot",
+     "stage": 2,
+     "seeds": [
+      "CS-1",
+      "CS-2",
+      "CS-4",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "5",
+      "us": "4",
+      "uk": "5"
+     },
+     "status": "planned",
+     "title": {
+      "en": "A robot that checks for walls",
+      "zh": "会看墙的机器人"
+     },
+     "insight": {
+      "en": "With 'if there is a wall ahead, turn; otherwise go forward' inside a loop, one short program can get through many different mazes it has never seen.",
+      "zh": "把「如果前面有墙就转弯，否则前进」放进循环，一段短短的程序就能走过许多没见过的迷宫。"
+     },
+     "misconception": {
+      "en": "A program always makes exactly the same moves every time it runs.",
+      "zh": "程序每次运行，走的步子都一模一样。"
+     },
+     "play": null
+    },
+    {
+     "slug": "parity-card-trick",
+     "stage": 2,
+     "seeds": [
+      "CS-3",
+      "CS-4",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "5",
+      "us": "4",
+      "uk": "5"
+     },
+     "status": "planned",
+     "title": {
+      "en": "The card-flip trick: catching an error",
+      "zh": "翻牌魔术：抓住那个错"
+     },
+     "insight": {
+      "en": "Add one extra card to every row and column so each has an even number of black sides; then a single flipped card shows up as the one odd row crossing the one odd column.",
+      "zh": "给每行每列各补一张牌，让黑面都是偶数个；之后有一张被翻，它就在唯一那条奇数行和唯一那条奇数列的交叉处。"
+     },
+     "misconception": {
+      "en": "To notice a mistake in a message you have to remember the whole message.",
+      "zh": "要发现信息里的错，就得把整条信息都记住。"
+     },
+     "play": null
+    },
+    {
+     "slug": "variable-boxes",
+     "stage": 3,
+     "seeds": [
+      "CS-1",
+      "CS-4",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "6",
+      "uk": "7"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Variables are labelled boxes",
+      "zh": "变量是贴了名字的盒子"
+     },
+     "insight": {
+      "en": "A variable is a named box that holds one value at a time; putting a new value in throws the old one away, so swapping two boxes needs a third.",
+      "zh": "变量是贴了名字的盒子，一次只装一个值；放进新值，旧值就没了，所以交换两个盒子的值要借第三个盒子。"
+     },
+     "misconception": {
+      "en": "Writing 'a = b' and then 'b = a' swaps the two values.",
+      "zh": "先写「a = b」再写「b = a」，两个值就交换了。"
+     },
+     "play": null
+    },
+    {
+     "slug": "single-neuron",
+     "stage": 4,
+     "seeds": [
+      "CS-3",
+      "CS-4",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "One artificial neuron learns to sort",
+      "zh": "一个人工神经元学分类"
+     },
+     "insight": {
+      "en": "A neuron multiplies each input by a weight, adds them up and says 'yes' if the total passes a threshold, so it splits the plane with a straight line; learning is nudging the weights after every mistake.",
+      "zh": "神经元把每个输入乘上权重再相加，超过阈值就答「是」，所以它用一条直线把平面分成两边；学习就是每错一次把权重挪一点。"
+     },
+     "misconception": {
+      "en": "A program that learns to sort things correctly must understand them the way a person does.",
+      "zh": "能学会正确分类的程序，一定像人一样懂得它分的是什么。"
+     },
+     "play": null
     }
    ]
   }
