@@ -2195,7 +2195,7 @@
       "us": "3",
       "uk": "3"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Draw a map of my home",
       "zh": "画我家的地图"
@@ -2208,7 +2208,15 @@
       "en": "Things on a map are drawn as big as they look important.",
       "zh": "地图上的东西越重要画得越大。"
      },
-     "play": null
+     "play": "map-scale.html",
+     "explain": {
+      "en": "A friend draws their bedroom bigger than the whole kitchen because it is their favourite room. Explain why a real map can't do that. Use the word \"scale\".",
+      "zh": "朋友把自己的卧室画得比整个厨房还大，因为那是他最喜欢的房间。用「比例尺」这个词，说说真正的地图为什么不能这样画。"
+     },
+     "home": {
+      "en": "Measure your room in steps or with a tape. Draw it on squared paper where 1 cm on the paper = 50 cm in the room. Measure your bed on the paper, multiply by 50, and check with the real bed.",
+      "zh": "用步子或卷尺量你的房间。在方格纸上画出来：纸上 1 厘米 = 房间里 50 厘米。在纸上量你的床，乘 50，再去量真床对一对。"
+     }
     },
     {
      "slug": "seasons-tilt",
@@ -2258,20 +2266,28 @@
       "us": "6",
       "uk": "7"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why is it night in New York when it's day in Beijing?",
       "zh": "北京白天时，纽约为什么是夜里？"
      },
      "insight": {
-      "en": "Earth turns 15° every hour, so every 15° of longitude is one hour of clock time.",
-      "zh": "地球每小时转 15°，所以经度每差 15°，时间就差 1 小时。"
+      "en": "Earth turns 15° every hour, so every 15° of longitude is one hour of sun time; time zones round this to whole hours and follow borders.",
+      "zh": "地球每小时转 15°，所以经度每差 15°，太阳时就差 1 小时；时区把它取整成整点，并沿着国界划分。"
      },
      "misconception": {
       "en": "When it is daytime for me, it is daytime everywhere.",
       "zh": "我这里是白天，全世界都是白天。"
      },
-     "play": null
+     "play": "time-zones.html",
+     "explain": {
+      "en": "A friend in Beijing wants to video-call a cousin in New York after school at 17:00. Explain why the cousin might still be in bed, using the 15°-per-hour rule.",
+      "zh": "北京的小朋友想放学后 17:00 和纽约的表哥视频。用「每小时 15°」解释：为什么表哥那时可能还在睡觉？"
+     },
+     "home": {
+      "en": "In a dark room, shine a torch at a ball (or an orange with a sticker on it). Turn the ball slowly from west to east and count how far the sticker turns before it comes back into the light.",
+      "zh": "在黑屋里用手电筒照一个球（或贴了小贴纸的橙子）。从西往东慢慢转球，数一数贴纸要转多远才回到亮处。"
+     }
     },
     {
      "slug": "mountain-cooling",
@@ -2554,7 +2570,7 @@
       "us": "6",
       "uk": "6"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Meanwhile, somewhere else…",
       "zh": "与此同时，在别处……"
@@ -2567,7 +2583,15 @@
       "en": "History happened one civilisation after another, like chapters in a book.",
       "zh": "历史是一个文明接一个文明发生的，像书的一章接一章。"
      },
-     "play": null
+     "play": "meanwhile-elsewhere.html",
+     "explain": {
+      "en": "A friend says “first came China, then India, then Greece, then Rome”. Use two slices from this page to show them why that is not quite right.",
+      "zh": "朋友说：「先有中国，然后是印度，然后是希腊，然后是罗马。」用本页的两个年份切片，跟他讲清楚为什么这样说不太对。"
+     },
+     "home": {
+      "en": "Ask an older relative what was happening in three different countries in the year they were born. Draw three lanes on paper and mark that year with one line across all of them.",
+      "zh": "问一位长辈：他出生那年，三个不同国家各在发生什么？在纸上画三条横道，用一根竖线把那一年穿过三条道。"
+     }
     },
     {
      "slug": "why-writing",
@@ -2921,7 +2945,7 @@
       "us": "3",
       "uk": "3"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Draw shapes with loops",
       "zh": "用循环画图形"
@@ -2931,10 +2955,18 @@
       "zh": "正 n 边形就是把「前进、转 360°/n」重复 n 次。"
      },
      "misconception": {
-      "en": "Every side of a shape needs its own commands.",
-      "zh": "图形的每条边都要单独写指令。"
+      "en": "To draw a hexagon the turtle turns by the hexagon's inside angle, 120°.",
+      "zh": "画六边形时，海龟每次转的是六边形的内角 120°。"
      },
-     "play": null
+     "play": "loop-drawing.html",
+     "explain": {
+      "en": "A friend says a 10-sided shape needs 20 commands. Show them a loop that draws it, and explain why the turn has to be 36°.",
+      "zh": "朋友说画正十边形要写 20 条指令。写一个循环给他看，并说说为什么每次要转 36°。"
+     },
+     "home": {
+      "en": "Be the turtle: walk 4 steps, turn right a quarter turn, and do it 4 times. Then walk a triangle. How far do you turn at each corner? At the end, check that you face the way you started.",
+      "zh": "自己当海龟：走 4 步，向右转四分之一圈，做 4 遍。再走一个三角形：每个拐角要转多少？走完看看你是不是又朝着开始的方向。"
+     }
     },
     {
      "slug": "pixels-rgb",
@@ -2947,7 +2979,7 @@
       "us": "4",
       "uk": "4"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "A picture is a grid of numbers",
       "zh": "图片是一格一格的数"
@@ -2960,7 +2992,15 @@
       "en": "A computer stores a picture as a picture, not as numbers.",
       "zh": "电脑里存的图片就是图，不是数。"
      },
-     "play": null
+     "play": "pixels-rgb.html",
+     "explain": {
+      "en": "A friend says “the computer just saves the photo”. Explain what it really saves, and why a white pixel is (255, 255, 255).",
+      "zh": "朋友说「电脑就是把照片存起来」。说说它真正存的是什么，以及为什么白色像素是 (255, 255, 255)。"
+     },
+     "home": {
+      "en": "Look at a screen through a magnifying glass, or put a drop of water on a phone screen showing white: on many screens you will see tiny red, green and blue lights.",
+      "zh": "用放大镜看屏幕，或者在显示白色的手机屏幕上滴一小滴水：很多屏幕上能看到很小的红、绿、蓝小灯。"
+     }
     },
     {
      "slug": "binary-cards",

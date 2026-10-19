@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draw shapes with loops</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 1 / 1; max-height: 420px; margin: 0 auto; }
+  @media (max-width: 560px) { .stage svg.main { height: auto; max-height: none; } }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .grid { stroke: var(--line); stroke-width: 1; }
+  .trail { fill: none; stroke: var(--a); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+  .trail.shut { fill: var(--a); fill-opacity: .12; fill-rule: evenodd; }
+  .startdot { fill: var(--surface); stroke: var(--fg); stroke-width: 2; }
+  .tbody { fill: var(--a); stroke: var(--fg); stroke-width: 1.5; stroke-linejoin: round; }
+  .ext { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .arc { fill: none; stroke: var(--b); stroke-width: 2.5; }
+  .arctx { fill: var(--b); font: 700 14px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .zoom { fill: var(--muted); font: 13px var(--font); }
+  .pane { padding: 10px 14px 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 12px; color: var(--muted); font-weight: 650; margin-right: 2px; }
+  .prog { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; padding: 8px; border: 1px dashed var(--line); border-radius: 10px; background: var(--bg); }
+  .chip { display: inline-block; font-size: 14px; padding: 5px 9px; white-space: nowrap; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; }
+  .chip .ic { display: inline-block; width: 1.2em; text-align: center; color: var(--a); font-weight: 800; }
+  .chip b { font-variant-numeric: tabular-nums; }
+  .chip.cur { background: var(--hl); color: #1a2822; border-color: var(--hl); }
+  .chip.cur .ic { color: #1a2822; }
+  .rep { border: 2px solid var(--a); border-radius: 12px; padding: 4px 6px 6px; display: flex; flex-direction: column; gap: 5px; max-width: 100%; }
+  .rep .rh { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .lap { font-size: 12px; color: var(--muted); }
+  .rep .body { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 14px; border-left: 3px solid var(--soft); align-items: center; }
+  .sl { display: grid; grid-template-columns: 6.2em auto minmax(0, 1fr) auto 3.8em; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .sl input[type=range] { width: 100%; }
+  .sl .val { font-family: var(--math); color: var(--fg); font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; }
+  button.nb { font-size: 13px; padding: 2px 9px; }
+  button.primary { background: var(--a); color: var(--surface); border-color: var(--a); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+  .msg.ok { font-weight: 650; }
+  .msg.ok::before { content: "✓ "; color: var(--a); font-weight: 800; }
+  .msg.no { color: var(--no); font-weight: 650; }
+  .msg.no::before { content: "! "; font-weight: 800; }
+  .cmp { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14px; background: var(--soft); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; justify-content: start; }
+  .cmp b { font-variant-numeric: tabular-nums; }
+  .big { font-family: var(--math); font-size: 19px; margin: 2px 0 8px; color: var(--fg); }
+  .big.shut { color: var(--a); font-weight: 700; }
+  .goals button.done::after { content: " ✓"; color: var(--a); }
+  table.rule { border-collapse: collapse; font-size: 13px; width: 100%; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  table.rule th, table.rule td { border-bottom: 1px solid var(--line); padding: 3px 6px; text-align: right; }
+  table.rule th { color: var(--muted); font-weight: 650; font-size: 12px; }
+  table.rule th:first-child, table.rule td:first-child { text-align: left; }
+  table.rule tr.on td { background: var(--soft); font-weight: 700; }
+  table.rule button { font-size: 13px; padding: 1px 9px; }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 400 400" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="pane">
+        <div class="prog">
+          <div class="rep">
+            <div class="rh"><span class="chip" id="cRep"><span class="ic">⟳</span> <span data-t="nameRep"></span> <b id="pN"></b> <span data-t="times"></span></span><span class="lap">{</span><span class="lap" id="lap"></span></div>
+            <div class="body">
+              <span class="chip" id="cF"><span class="ic">↑</span> <span data-t="nameF"></span> <b id="pL"></b></span>
+              <span class="chip" id="cT"><span class="ic">↻</span> <span data-t="nameT"></span> <b id="pA"></b></span>
+            </div>
+            <span class="lap">}</span>
+          </div>
+        </div>
+        <div id="sliders">
+          <div class="sl"><label for="nIn" data-t="nLbl"></label><button type="button" class="nb" data-for="nIn" data-d="-1" aria-label="−1">−</button><input type="range" id="nIn" min="1" max="36" step="1"><button type="button" class="nb" data-for="nIn" data-d="1" aria-label="+1">+</button><span class="val" id="nVal"></span></div>
+          <div class="sl"><label for="lIn" data-t="lLbl"></label><button type="button" class="nb" data-for="lIn" data-d="-1" aria-label="−10">−</button><input type="range" id="lIn" min="20" max="160" step="10"><button type="button" class="nb" data-for="lIn" data-d="1" aria-label="+10">+</button><span class="val" id="lVal"></span></div>
+          <div class="sl"><label for="aIn" data-t="aLbl"></label><button type="button" class="nb" data-for="aIn" data-d="-1" aria-label="−1°">−</button><input type="range" id="aIn" min="1" max="180" step="1"><button type="button" class="nb" data-for="aIn" data-d="1" aria-label="+1°">+</button><span class="val" id="aVal"></span></div>
+        </div>
+        <div class="row" id="presets"><span class="lbl" data-t="tryLbl"></span></div>
+        <div class="row">
+          <button type="button" class="primary" id="run"></button>
+          <button type="button" id="stepBtn" data-t="stepBtn"></button>
+          <button type="button" id="back" data-t="back"></button>
+        </div>
+        <p class="msg" id="live"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="big" id="total"></div>
+      <div class="cmp" id="cmp"></div>
+      <div class="row goals" id="goals"></div>
+      <table class="rule" id="table" hidden></table>
+      <p class="note" data-t="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure turtle logic (no DOM), checked in node.
+   Turtle starts at (0,0) facing up; heading h in degrees, clockwise on screen (y grows downward).
+   Program: repeat N { forward L, turn right A° }. */
+const RAD = Math.PI / 180;
+const EPS_DEG = 1e-6;
+function norm360(a) {
+  const r = ((a % 360) + 360) % 360;
+  return r > 360 - EPS_DEG ? 0 : r;
+}
+/* Corner points: pts[k] = position after k sides (pts[0] = start). */
+function trace(N, L, A) {
+  N = Math.max(0, Math.floor(N) || 0);
+  const pts = [[0, 0]];
+  let x = 0, y = 0, h = 0;
+  for (let k = 0; k < N; k++) {
+    x += L * Math.sin(h * RAD);
+    y -= L * Math.cos(h * RAD);
+    pts.push([x, y]);
+    h += A;
+  }
+  return pts;
+}
+/* Closure is tested numerically: back at the start (within 1e-6 of a side per side drawn)
+   and facing the starting way (total turning a multiple of 360°, within 1e-6°). */
+function analyse(N, L, A) {
+  N = Math.max(0, Math.floor(N) || 0);
+  const pts = trace(N, L, A), T = N * A;
+  const tol = 1e-6 * Math.max(1, L) * Math.max(1, N);
+  const home = (k) => Math.hypot(pts[k][0], pts[k][1]) <= tol && norm360(k * A) < EPS_DEG;
+  let k0 = 0;
+  for (let k = 1; k <= N; k++) if (home(k)) { k0 = k; break; }
+  const closed = N > 0 && home(N);
+  const gap = Math.hypot(pts[N][0], pts[N][1]);
+  const lapTurns = k0 ? Math.round((k0 * A) / 360) : 0;   // full turns per trip round the shape
+  let kind;
+  if (N === 0) kind = "none";
+  else if (norm360(A) < EPS_DEG) kind = "line";            // turn 360°: never changes direction
+  else if (!closed) kind = "open";
+  else if (k0 === 2) kind = "flat";                          // 180°, 180°: there and back
+  else if (N > k0) kind = "retrace";
+  else if (lapTurns === 1) kind = "polygon";
+  else kind = "star";
+  return { pts, T, turns: T / 360, closed, k0, laps: k0 ? N / k0 : 0, lapTurns, gap, kind };
+}
+/* Scale (never above 1) and offset that fit all points in a W×H box with padding. */
+function fitBox(pts, W, H, pad) {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const w = x1 - x0, h = y1 - y0;
+  const s = Math.min(1, w > 0 ? (W - 2 * pad) / w : Infinity, h > 0 ? (H - 2 * pad) / h : Infinity);
+  return { s, ox: W / 2 - s * (x0 + x1) / 2, oy: H / 2 - s * (y0 + y1) / 2 };
+}
+/* Pose after p commands (p may be fractional while animating; commands alternate F, T). */
+function poseAt(pts, A, p) {
+  const N = pts.length - 1, P = Math.max(0, Math.min(2 * N, p));
+  const j = Math.floor(P), f = P - j;
+  const turns = Math.floor(j / 2), sides = Math.ceil(j / 2);
+  let x, y, h = turns * A, partial = false;
+  if (j < 2 * N && j % 2 === 0 && f > 0) {
+    const a = pts[j / 2], b = pts[j / 2 + 1];
+    x = a[0] + (b[0] - a[0]) * f; y = a[1] + (b[1] - a[1]) * f; partial = true;
+  } else {
+    [x, y] = pts[sides];
+    if (j < 2 * N && j % 2 === 1) h += f * A;
+  }
+  return { x, y, h, sides, turned: h, partial };
+}
+const fmtA = (a) => String(Math.round(a * 100) / 100);
+const ruleRows = () => [3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => ({ n, a: 360 / n, without: 2 * n, withLoop: 3 }));
+if (typeof module !== "undefined") module.exports = { norm360, trace, analyse, fitBox, poseAt, fmtA, ruleRows };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Draw shapes with loops", eyebrow: "Computing · Stage 2",
+    h1: "A shape with n equal sides is “forward, turn 360°/n”, repeated n times",
+    intro: "Program a turtle that draws as it walks. Change how many times it repeats, how far it walks and how much it turns.",
+    reset: "Reset", figAria: "Turtle drawing canvas: the turtle's trail and its turning angle",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Which turn draws a hexagon?",
+    b1: "The program repeats 6 times: forward, then turn. Pick the angle, then watch the turtle.",
+    k2: "Hands on", t2: "When does the shape close?",
+    b2: "Move the sliders or use the − / + buttons. Watch the total turning: the turtle is back where it started, facing the same way, exactly when it reaches a whole number of full turns (360°, 720°, …).",
+    k3: "The rule", t3: "n sides → turn 360° ÷ n",
+    b3: "Pick a row to draw it. The loop has the same 3 commands for every shape; only the two numbers change. Writing each side out takes 2 commands per side.",
+    q: "To draw a hexagon (6 equal sides), how far should the turtle turn after each side?",
+    o60: "60°", o120: "120°", o360: "360°",
+    right: "Yes — 6 turns of 60° add up to 360°, one full turn. Watch it run.",
+    wrong: "Watch what the turtle does with that angle.",
+    fb60: "6 × 60° = 360°: one full turn, and the hexagon closes.",
+    fb120: "6 × 120° = 720°: it draws a triangle twice! 120° is the corner inside the hexagon, but the turtle turns by how much its direction changes: 180° − 120° = 60°.",
+    fb360: "Turning 360° faces the same way again, so the turtle walks in one straight line.",
+    pickFirst: "Pick an angle first.",
+    nameRep: "repeat", times: "times", nameF: "forward", nameT: "turn right",
+    nLbl: "Repeat n", lLbl: "Forward L", aLbl: "Turn A",
+    tryLbl: "Try:", pTri: "triangle", pSq: "square", pHex: "hexagon", pStar: "star", pCirc: "almost a circle",
+    run: "▶ Run", pause: "❚❚ Pause", stepBtn: "Step", back: "⟲ Back to start",
+    lap: "lap {k} of {n}",
+    total: "{n} × {a}° = {t}°", turnsOf: "= {x} full turns",
+    cSides: "Sides drawn", cTurn: "Turned so far", cWritten: "Commands written (loop)", cRun: "Commands run", cWithout: "Without a loop",
+    zoom: "zoom {z}%",
+    mOpen: "Not closed: {t}° is not a multiple of 360°, so the turtle ends {g} steps from the start.",
+    mPoly: "Closed! {n} sides and {n} turns of {a}° make exactly 360°: one full turn.",
+    mStar: "Closed star! The turtle turned {t}° = {w} full turns before it faced the start again.",
+    mRetrace: "Closed after {k} sides; the other sides go over the same path again ({l} times round). Total {t}°.",
+    mFlat: "Back at the start, but it only goes there and back along one line: each pair of 180° turns makes 360°.",
+    mLine: "A 360° turn ends up facing the same way, so the turtle never changes direction.",
+    mOne: "One side, one turn: nothing to close yet. Add more repeats.",
+    goalsLbl: "Find:", gTri: "triangle", gSq: "square", gPent: "pentagon", gHex: "hexagon", gOct: "octagon", gStar: "a star",
+    thN: "sides n", thA: "turn 360° ÷ n", thW: "without loop", thL: "with loop", draw: "draw",
+    keys: "Keyboard: click the drawing, then ↑ / ↓ change n, ← / → change the angle, Enter runs or pauses, Space steps one command.",
+    resultTitle: "What we found", resultMain: "repeat n { forward, turn 360° ÷ n }",
+    resultNote: "Going once round any closed shape, the turtle turns 360° in total. A star like 5 × 144° turns 720°: twice round. The loop is 3 commands however many sides there are.",
+    explainK: "Explain it",
+    explainQ: "A friend says a 10-sided shape needs 20 commands. Show them a loop that draws it, and explain why the turn has to be 36°.",
+    homeK: "Try at home",
+    homeQ: "Be the turtle: walk 4 steps, turn right a quarter turn, and do it 4 times. Then walk a triangle. How far do you turn at each corner? At the end, check that you face the way you started.",
+    foot: "Turtle graphics come from the Logo language (Feurzeig, Papert and Solomon, 1967). The angle in each command is the turning (exterior) angle; the inside corner is 180° minus it. Closure is checked numerically: the turtle must end within 10⁻⁶ of a side length of the start, facing within 10⁻⁶° of its first direction. The drawing is zoomed out, never in, to fit. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "用循环画图形", eyebrow: "信息科技 · 阶段 2",
+    h1: "正 n 边形就是把「前进、转 360°/n」重复 n 次",
+    intro: "给一只边走边画的小海龟编程。改一改重复几次、每次走多远、每次转多少度。",
+    reset: "重置", figAria: "海龟画布：海龟走过的线和它转的角度",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "转多少度能画出六边形？",
+    b1: "程序重复 6 次：先前进，再转身。先选角度，再看海龟怎么走。",
+    k2: "动手", t2: "什么时候图形能合上？",
+    b2: "拖滑块，或者按 − / + 。盯着「一共转了多少度」：转满整圈（360°、720°……）的那一刻，海龟正好回到起点、朝向也和开始一样。",
+    k3: "规律", t3: "n 条边 → 每次转 360° ÷ n",
+    b3: "点一行就画出来。不管什么图形，循环都是同样的 3 条指令，只换两个数。要是一条边一条边地写，每条边要 2 条指令。",
+    q: "要画正六边形（6 条一样长的边），每走完一条边，海龟该转多少度？",
+    o60: "60°", o120: "120°", o360: "360°",
+    right: "对——6 次 60° 加起来是 360°，正好转一整圈。看它运行。",
+    wrong: "看看海龟用这个角度会画出什么。",
+    fb60: "6 × 60° = 360°：转了一整圈，六边形合上了。",
+    fb120: "6 × 120° = 720°：画了两遍三角形！120° 是六边形里面的角，可海龟转的是方向改变了多少：180° − 120° = 60°。",
+    fb360: "转 360° 又朝回原来的方向，所以海龟一直走成一条直线。",
+    pickFirst: "先选一个角度。",
+    nameRep: "重复", times: "次", nameF: "前进", nameT: "右转",
+    nLbl: "重复 n 次", lLbl: "前进 L", aLbl: "右转 A",
+    tryLbl: "试试：", pTri: "三角形", pSq: "正方形", pHex: "六边形", pStar: "五角星", pCirc: "差不多是圆",
+    run: "▶ 运行", pause: "❚❚ 暂停", stepBtn: "单步", back: "⟲ 回到起点",
+    lap: "第 {k} / {n} 遍",
+    total: "{n} × {a}° = {t}°", turnsOf: "= {x} 整圈",
+    cSides: "已画边数", cTurn: "已经转了", cWritten: "写的指令（用循环）", cRun: "实际执行", cWithout: "不用循环要写",
+    zoom: "缩放 {z}%",
+    mOpen: "没合上：{t}° 不是 360° 的整数倍，海龟停在离起点 {g} 步的地方。",
+    mPoly: "合上了！{n} 条边、{n} 次 {a}°，加起来正好 360°：一整圈。",
+    mStar: "合上了，是星形！海龟转了 {t}° = {w} 整圈，才又朝回开始的方向。",
+    mRetrace: "画到第 {k} 条边就合上了，后面的边沿着原路又走了一遍（一共绕 {l} 遍）。一共 {t}°。",
+    mFlat: "回到起点了，可只是沿一条线去了又回来：每两次 180° 合起来是 360°。",
+    mLine: "转 360° 等于朝向没变，所以海龟一直不拐弯。",
+    mOne: "只有一条边、一次转身，还谈不上合上。多重复几次。",
+    goalsLbl: "找一找：", gTri: "三角形", gSq: "正方形", gPent: "五边形", gHex: "六边形", gOct: "八边形", gStar: "星形",
+    thN: "边数 n", thA: "转 360° ÷ n", thW: "不用循环", thL: "用循环", draw: "画",
+    keys: "键盘：先点一下画布，↑ / ↓ 改 n，← / → 改角度，回车运行或暂停，空格单步执行一条指令。",
+    resultTitle: "我们发现", resultMain: "重复 n 次 { 前进，右转 360° ÷ n }",
+    resultNote: "绕任何一个合上的图形走一圈，海龟一共转 360°。像 5 × 144° 这样的星形转了 720°：绕了两圈。不管多少条边，循环都只要 3 条指令。",
+    explainK: "说一说",
+    explainQ: "朋友说画正十边形要写 20 条指令。写一个循环给他看，并说说为什么每次要转 36°。",
+    homeK: "家里做一做",
+    homeQ: "自己当海龟：走 4 步，向右转四分之一圈，做 4 遍。再走一个三角形：每个拐角要转多少？走完看看你是不是又朝着开始的方向。",
+    foot: "海龟画图来自 Logo 语言（Feurzeig、Papert、Solomon，1967 年）。指令里的角是转过的角（外角），图形里面的角等于 180° 减去它。是否合上由代码算：终点离起点不到边长的 10⁻⁶，朝向与开始相差不到 10⁻⁶°。画面只缩小不放大，保证图形完整显示。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), nIn = $("nIn"), lIn = $("lIn"), aIn = $("aIn"), msg = $("live");
+const W = 400, PAD = 40;
+const DEF = { N: 6, L: 80 };
+
+/* ---------- state ---------- */
+let step = 0, N = DEF.N, L = DEF.L, A = null;   // A null: step 1 before a pick
+let an = null, p = 0, raf = 0, running = false, target = 0, rate = 1, last = 0;
+let found = {}, pick = null;
+
+function analysis() { an = analyse(N, L, A == null ? 0 : A); if (A == null) an = { ...an, pts: [[0, 0]], kind: "none" }; }
+
+/* ---------- drawing ---------- */
+const gGrid = Play.svg("g", {}, fig);
+for (let i = 40; i < W; i += 40) {
+  Play.svg("line", { class: "grid", x1: i, y1: 0, x2: i, y2: W }, gGrid);
+  Play.svg("line", { class: "grid", x1: 0, y1: i, x2: W, y2: i }, gGrid);
+}
+const gTrail = Play.svg("polyline", { class: "trail", points: "" }, fig);
+const gExt = Play.svg("line", { class: "ext" }, fig);
+const gArc = Play.svg("path", { class: "arc" }, fig);
+const gArcTx = Play.svg("text", { class: "arctx" }, fig);
+const gStart = Play.svg("circle", { class: "startdot", r: 5 }, fig);
+const gTurtle = Play.svg("g", {}, fig);
+Play.svg("polygon", { class: "tbody", points: "0,-15 10,10 0,5 -10,10" }, gTurtle);
+const gZoom = Play.svg("text", { class: "zoom", x: 10, y: W - 10 }, fig);
+
+function render() {
+  const pts = A == null ? [[0, 0]] : an.pts;
+  const fit = fitBox(pts, W, W, PAD);
+  const sx = (x) => (fit.ox + x * fit.s).toFixed(1), sy = (y) => (fit.oy + y * fit.s).toFixed(1);
+  const pose = A == null ? { x: 0, y: 0, h: 0, sides: 0, turned: 0, partial: false } : poseAt(pts, A, p);
+  const line = pts.slice(0, pose.sides + 1).map(([x, y]) => sx(x) + "," + sy(y));
+  if (pose.partial) line.push(sx(pose.x) + "," + sy(pose.y));
+  gTrail.setAttribute("points", line.join(" "));
+  const done = A != null && p >= 2 * N;
+  gTrail.classList.toggle("shut", done && an.closed && an.kind !== "flat");
+  gStart.setAttribute("cx", sx(0)); gStart.setAttribute("cy", sy(0));
+  gTurtle.setAttribute("transform", `translate(${sx(pose.x)} ${sy(pose.y)}) rotate(${(pose.h % 360).toFixed(2)})`);
+  // turning angle at the first corner: dashed "straight on" line and an arc for the turn
+  const turned1 = A == null || p <= 1 ? 0 : Math.min(A, (Math.min(p, 2) - 1) * A);
+  const showArc = A != null && N >= 1 && turned1 > 0 && A < 360 - 1e-9;
+  [gExt, gArc, gArcTx].forEach((e) => (e.style.display = showArc ? "" : "none"));
+  if (showArc) {
+    const cx = +sx(pts[1][0]), cy = +sy(pts[1][1]), r = 22;
+    gExt.setAttribute("x1", cx); gExt.setAttribute("y1", cy); gExt.setAttribute("x2", cx); gExt.setAttribute("y2", cy - 44);
+    const ex = cx + r * Math.sin(turned1 * RAD), ey = cy - r * Math.cos(turned1 * RAD);
+    gArc.setAttribute("d", `M${cx} ${cy - r}A${r} ${r} 0 ${turned1 > 180 ? 1 : 0} 1 ${ex.toFixed(1)} ${ey.toFixed(1)}`);
+    const m = (turned1 / 2) * RAD, rr = 38;
+    gArcTx.setAttribute("x", (cx + rr * Math.sin(m)).toFixed(1));
+    gArcTx.setAttribute("y", (cy - rr * Math.cos(m)).toFixed(1));
+    gArcTx.textContent = fmtA(A) + "°";
+  }
+  gZoom.textContent = fit.s < 0.999 ? P.t("zoom", { z: Math.round(fit.s * 100) }) : "";
+  renderStats(pose);
+}
+
+function renderStats(pose) {
+  $("pN").textContent = N;
+  $("pL").textContent = L;
+  $("pA").textContent = A == null ? "?°" : fmtA(A) + "°";
+  $("nVal").textContent = N; $("lVal").textContent = L; $("aVal").textContent = A == null ? "?" : fmtA(A) + "°";
+  // highlight the command running now (or the last one finished)
+  const j = A == null || p <= 0 || p >= 2 * N ? -1 : p % 1 > 0 ? Math.floor(p) : p - 1;
+  $("cF").classList.toggle("cur", j >= 0 && j % 2 === 0);
+  $("cT").classList.toggle("cur", j >= 0 && j % 2 === 1);
+  $("lap").textContent = j >= 0 ? "· " + P.t("lap", { k: Math.floor(j / 2) + 1, n: N }) : "";
+  const done = A != null && p >= 2 * N;
+  const tot = $("total");
+  if (A == null) tot.textContent = P.t("total", { n: N, a: "?", t: "?" });
+  else {
+    const turns = an.T / 360;
+    tot.textContent = P.t("total", { n: N, a: fmtA(A), t: fmtA(an.T) }) + "  " + P.t("turnsOf", { x: fmtA(turns) });
+  }
+  tot.classList.toggle("shut", done && an.closed);
+  const cmp = $("cmp");
+  cmp.innerHTML = "";
+  [["cSides", pose.sides + " / " + N], ["cTurn", A == null ? "—" : fmtA(pose.turned) + "°"],
+   ["cWritten", 3], ["cRun", A == null ? "—" : Math.floor(Math.max(0, p)) + " / " + 2 * N], ["cWithout", 2 * N]].forEach(([k, v]) => {
+    const a = document.createElement("span"); a.textContent = P.t(k);
+    const b = document.createElement("b"); b.textContent = v;
+    cmp.append(a, b);
+  });
+}
+
+function verdict() {
+  if (A == null) return;
+  const v = { n: N, a: fmtA(A), t: fmtA(an.T), g: Play.fmt(an.gap, 1), k: an.k0, l: fmtA(an.laps), w: an.lapTurns };
+  const k = an.kind;
+  if (step === 0 && pick) { setMsg(P.t("fb" + pick), pick === 60 ? "ok" : "no"); return; }
+  if (k === "open") setMsg(P.t(N === 1 ? "mOne" : "mOpen", v), N === 1 ? "" : "no");
+  else if (k === "polygon") setMsg(P.t("mPoly", v), "ok");
+  else if (k === "star") setMsg(P.t("mStar", v), "ok");
+  else if (k === "retrace") setMsg(P.t("mRetrace", v), "ok");
+  else if (k === "flat") setMsg(P.t("mFlat", v), "");
+  else if (k === "line") setMsg(P.t("mLine", v), "no");
+  // goals: a closed shape drawn once round
+  if (k === "polygon" && GOALS.some((g) => g.n === N)) found[N] = true;
+  if (k === "star") found.star = true;
+  renderGoals();
+}
+function setMsg(t, cls) { msg.className = "msg" + (cls ? " " + cls : ""); Play.live(msg, t); }
+
+/* ---------- running ---------- */
+function stopAnim() { if (raf) cancelAnimationFrame(raf); raf = 0; }
+function setRunning(on) { running = on; $("run").textContent = P.t(on ? "pause" : "run"); }
+function animateTo(t, r) {
+  stopAnim();
+  target = t; rate = r;
+  if (Play.reduced) { p = target; arrive(); return; }
+  last = performance.now();
+  const tick = (now) => {
+    p = Math.min(target, p + ((now - last) / 1000) * rate);
+    last = now;
+    render();
+    if (p < target) raf = requestAnimationFrame(tick); else { raf = 0; arrive(); }
+  };
+  raf = requestAnimationFrame(tick);
+}
+function arrive() {
+  render();
+  if (p >= 2 * N) { setRunning(false); verdict(); }
+}
+function run() {
+  if (A == null) { setMsg(P.t("pickFirst"), "no"); return; }
+  if (running) { stopAnim(); setRunning(false); render(); return; }
+  if (p >= 2 * N) p = 0;
+  setMsg("");
+  setRunning(true);
+  // about 5–6 s for the whole program, never slower than 2.5 commands a second
+  animateTo(2 * N, Play.clamp((2 * N) / 5.5, 2.5, 14));
+}
+function stepOnce() {
+  if (A == null) { setMsg(P.t("pickFirst"), "no"); return; }
+  stopAnim(); setRunning(false);
+  if (p >= 2 * N) p = 0;
+  if (p === 0) setMsg("");
+  animateTo(Math.floor(p) + 1, 3);
+}
+function backToStart() { stopAnim(); setRunning(false); p = 0; setMsg(""); render(); }
+
+/* ---------- parameters ---------- */
+function setParams(n, l, a, show) {
+  stopAnim(); setRunning(false);
+  N = Play.clamp(Math.round(n), 1, 36);
+  L = Play.clamp(Math.round(l / 10) * 10, 20, 160);
+  A = a == null ? null : a;
+  nIn.value = N; lIn.value = L; if (A != null) aIn.value = Play.clamp(Math.round(A), 1, 180);
+  analysis();
+  p = show ? 2 * N : 0;
+  render();
+  if (show) verdict(); else setMsg("");
+  renderTable();
+}
+const fromSliders = () => setParams(+nIn.value, +lIn.value, +aIn.value, true);
+[nIn, lIn, aIn].forEach((el) => el.addEventListener("input", fromSliders));
+document.querySelectorAll("button.nb[data-for]").forEach((b) => b.addEventListener("click", () => {
+  const el = $(b.dataset.for), d = +b.dataset.d * +el.step;
+  const base = el === aIn && A != null ? (d > 0 ? Math.floor(A + 1e-9) : Math.ceil(A - 1e-9)) : +el.value;
+  el.value = Play.clamp(base + d, +el.min, +el.max);
+  fromSliders();
+}));
+
+const PRESETS = [["pTri", 3, 120], ["pSq", 4, 90], ["pHex", 6, 60], ["pStar", 5, 144], ["pCirc", 36, 10]];
+PRESETS.forEach(([k, n, a]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(k);
+  b.addEventListener("click", () => { setParams(n, n >= 24 ? 20 : DEF.L, a, false); run(); });
+  $("presets").appendChild(b);
+});
+
+const GOALS = [{ k: "gTri", n: 3 }, { k: "gSq", n: 4 }, { k: "gPent", n: 5 }, { k: "gHex", n: 6 }, { k: "gOct", n: 8 }, { k: "gStar", n: "star" }];
+function renderGoals() {
+  const g = $("goals");
+  g.hidden = step !== 1;
+  g.innerHTML = "";
+  const l = document.createElement("span"); l.className = "lbl"; l.textContent = P.t("goalsLbl"); g.appendChild(l);
+  GOALS.forEach((x) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small"; b.textContent = P.t(x.k);
+    b.classList.toggle("done", !!found[x.n]);
+    b.setAttribute("aria-pressed", found[x.n] ? "true" : "false");
+    // a goal button only sets n; the angle is left for the learner to find
+    b.addEventListener("click", () => { if (x.n !== "star") setParams(x.n, L, A == null ? 60 : A, true); else setParams(5, L, A == null ? 60 : A, true); });
+    g.appendChild(b);
+  });
+}
+
+function renderTable() {
+  const t = $("table");
+  t.hidden = step !== 2;
+  if (step !== 2) return;
+  t.innerHTML = "";
+  const hr = document.createElement("tr");
+  ["thN", "thA", "thW", "thL", "draw"].forEach((k) => { const th = document.createElement("th"); th.textContent = k === "draw" ? "" : P.t(k); hr.appendChild(th); });
+  t.appendChild(hr);
+  ruleRows().forEach((r) => {
+    const tr = document.createElement("tr");
+    tr.classList.toggle("on", A != null && N === r.n && Math.abs(A - r.a) < 1e-9);
+    [r.n, fmtA(r.a) + "°", r.without, r.withLoop].forEach((v) => { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
+    const td = document.createElement("td"), b = document.createElement("button");
+    b.type = "button"; b.textContent = P.t("draw"); b.setAttribute("aria-label", P.t("draw") + " n = " + r.n);
+    b.addEventListener("click", () => { setParams(r.n, DEF.L, r.a, false); run(); });
+    td.appendChild(b); tr.appendChild(td);
+    t.appendChild(tr);
+  });
+}
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o60"), right: true }, { label: P.t("o120") }, { label: P.t("o360") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => {
+  pick = [60, 120, 360][i];
+  setParams(6, DEF.L, pick, false);
+  run();
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("sliders").hidden = $("presets").hidden = i === 0;
+  renderGoals();
+  if (i === 0) setParams(6, DEF.L, pick, false);
+  else setParams(N, L, A == null || A > 180 ? 60 : A, true);
+});
+
+/* ---------- keyboard on the drawing ---------- */
+fig.addEventListener("keydown", (e) => {
+  const k = e.key;
+  if (k === "Enter") run();
+  else if (k === " ") stepOnce();
+  else if (step > 0 && (k === "ArrowUp" || k === "ArrowDown")) { nIn.value = +nIn.value + (k === "ArrowUp" ? 1 : -1); fromSliders(); }
+  else if (step > 0 && (k === "ArrowLeft" || k === "ArrowRight")) { aIn.value = +aIn.value + (k === "ArrowRight" ? 1 : -1); fromSliders(); }
+  else return;
+  e.preventDefault();
+});
+$("run").addEventListener("click", run);
+$("stepBtn").addEventListener("click", stepOnce);
+$("back").addEventListener("click", backToStart);
+$("reset").addEventListener("click", () => {
+  stopAnim(); setRunning(false);
+  pick = null; found = {}; N = DEF.N; L = DEF.L; A = null;
+  pr.reset(); st.go(0);
+});
+setRunning(false);
+</script>
+</body>
+</html>

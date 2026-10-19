@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meanwhile, somewhere else…</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .stage svg.main#fig { height: auto; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize; }
+  .stage svg.main#fig.cards { cursor: default; }
+  #fig text { font-size: 13px; }
+  #fig .lab { fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  #fig .inl { fill: var(--fg); }
+  #fig .laneName { fill: var(--muted); font-weight: 700; }
+  #fig .laneBg { fill: var(--soft); opacity: .6; }
+  #fig .grid { stroke: var(--line); stroke-width: 1px; }
+  #fig .tick { fill: var(--muted); }
+  #fig .bar { fill: var(--a); opacity: .2; }
+  #fig .bar.p { fill: var(--c); opacity: .25; }
+  #fig .bar.on { opacity: .5; stroke: var(--a); stroke-width: 2px; }
+  #fig .bar.p.on { stroke: var(--c); }
+  #fig .fz { opacity: .9; }
+  #fig .fz.on { stroke: var(--c); stroke-width: 2px; stroke-dasharray: 4 3; }
+  #fig .fzA { stop-color: var(--c); }
+  #fig .cur { stroke: var(--hl); stroke-width: 3px; }
+  #fig .curPill { fill: var(--hl); }
+  #fig .curTxt { fill: var(--ink-panel); font-weight: 750; }
+  #fig .chap { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5px; }
+  #fig .chap.open { stroke-dasharray: 4 3; stroke: var(--muted); }
+  #fig .chapReal { fill: var(--c); }
+  #fig .chapReal.st { fill: var(--a); }
+  #fig .num { fill: var(--a); font-weight: 800; }
+  #fig .head { fill: var(--muted); font-weight: 650; }
+  #fig .link { stroke: var(--fg); stroke-width: 2px; stroke-dasharray: 2 5; stroke-linecap: round; fill: none; }
+  #fig .linkTxt { fill: var(--fg); font-weight: 650; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  .deck { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px 4px; align-items: center; }
+  .deck .lead { width: 100%; font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+  .deck button .n { display: inline-block; min-width: 1.4em; font-weight: 800; color: var(--a); }
+  .deck button.on .n { color: var(--bg); }
+  .controls .yr { font-weight: 750; color: var(--fg); min-width: 6.5em; }
+  .controls input[type=range] { flex: 1 1 100%; }
+  .info { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 0 0 10px; }
+  .info .rg { font-weight: 700; color: var(--fg); }
+  .info .it { color: var(--muted); }
+  .info .none { color: var(--muted); font-style: italic; }
+  .info div + div { margin-top: 5px; }
+  .info .gp { font-weight: 750; color: var(--a); }
+  .info .calc { font-family: var(--math); }
+  #resMain { white-space: normal; }
+  .explain h3 { font-size: 14px; margin: 8px 0 4px; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="deck" id="deck"></div>
+      <svg class="main" id="fig" viewBox="0 0 600 300" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctl">
+        <label for="yr" data-t="yrLabel"></label>
+        <span class="yr" id="yrVal"></span>
+        <input type="range" id="yr" min="-799" max="1650" step="1" value="-499">
+        <button type="button" class="small" data-y="-500">500 BCE</button>
+        <button type="button" class="small" data-y="100">100 CE</button>
+        <button type="button" class="small" data-y="1000">1000 CE</button>
+        <button type="button" class="small" data-y="1450">1450 CE</button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="info" id="info" hidden></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" id="resNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+/* Years are historical: negative = BCE, positive = CE, there is no year 0.
+   astro() maps them onto a continuous line (1 BCE = 0), so lengths are plain differences. */
+const astro = (y) => (y < 0 ? y + 1 : y);
+const hist = (a) => (a <= 0 ? a - 1 : a);
+const LANES = ["lnEa", "lnSa", "lnWa", "lnMe", "lnAm", "lnAf"];
+/* l = lane, s/e = first/last year, c = approximate ("c."), k: "p" person (lifespan), "r" reign,
+   fz = fuzzy (scholars' estimates differ), dt = key of a custom date text. Everything else is a state, dynasty or era. */
+const IT = [
+  { id: "zhou", l: 0, s: -770, e: -256, en: "Eastern Zhou", zh: "东周" },
+  { id: "conf", l: 0, s: -551, e: -479, k: "p", en: "Confucius", zh: "孔子" },
+  { id: "qin", l: 0, s: -221, e: -206, en: "Qin", zh: "秦朝" },
+  { id: "han", l: 0, s: -206, e: 220, en: "Han", zh: "汉朝" },
+  { id: "tang", l: 0, s: 618, e: 907, en: "Tang", zh: "唐朝" },
+  { id: "heian", l: 0, s: 794, e: 1185, en: "Heian Japan", zh: "日本平安时代" },
+  { id: "song", l: 0, s: 960, e: 1279, en: "Song", zh: "宋朝" },
+  { id: "yuan", l: 0, s: 1271, e: 1368, en: "Yuan", zh: "元朝" },
+  { id: "ming", l: 0, s: 1368, e: 1644, en: "Ming", zh: "明朝" },
+  { id: "qing", l: 0, s: 1644, e: 1912, en: "Qing", zh: "清朝" },
+  { id: "bud", l: 1, s: -563, e: -400, c: 1, k: "p", fz: 1, dt: "dtBud", en: "the Buddha", zh: "佛陀" },
+  { id: "maur", l: 1, s: -322, e: -185, c: 1, en: "Maurya Empire", zh: "孔雀王朝" },
+  { id: "ash", l: 1, s: -268, e: -232, c: 1, k: "r", en: "Ashoka", zh: "阿育王" },
+  { id: "kush", l: 1, s: 30, e: 375, c: 1, en: "Kushan Empire", zh: "贵霜帝国" },
+  { id: "gupt", l: 1, s: 320, e: 550, c: 1, en: "Gupta Empire", zh: "笈多王朝" },
+  { id: "chola", l: 1, s: 848, e: 1279, c: 1, en: "Chola Empire", zh: "朱罗王朝" },
+  { id: "delhi", l: 1, s: 1206, e: 1526, en: "Delhi Sultanate", zh: "德里苏丹国" },
+  { id: "mugh", l: 1, s: 1526, e: 1857, en: "Mughal Empire", zh: "莫卧儿帝国" },
+  { id: "pers", l: 2, s: -550, e: -330, c: 1, en: "Persian Empire (Achaemenid)", zh: "波斯帝国（阿契美尼德）" },
+  { id: "ptol", l: 2, s: -305, e: -30, en: "Ptolemaic Egypt", zh: "托勒密埃及" },
+  { id: "cleo", l: 2, s: -69, e: -30, k: "p", en: "Cleopatra VII", zh: "克娄巴特拉七世" },
+  { id: "parth", l: 2, s: -247, e: 224, c: 1, en: "Parthian Empire", zh: "帕提亚（安息）" },
+  { id: "sas", l: 2, s: 224, e: 651, en: "Sasanian Empire", zh: "萨珊王朝" },
+  { id: "abb", l: 2, s: 750, e: 1258, en: "Abbasid Caliphate", zh: "阿拔斯王朝" },
+  { id: "sina", l: 2, s: 980, e: 1037, c: 1, k: "p", en: "Ibn Sina", zh: "伊本·西那" },
+  { id: "otto", l: 2, s: 1299, e: 1922, c: 1, en: "Ottoman Empire", zh: "奥斯曼帝国" },
+  { id: "rep", l: 3, s: -509, e: -27, c: 1, en: "Roman Republic", zh: "罗马共和国" },
+  { id: "ath", l: 3, s: -508, e: -322, c: 1, en: "Athenian democracy", zh: "雅典民主制" },
+  { id: "soc", l: 3, s: -470, e: -399, c: 1, k: "p", en: "Socrates", zh: "苏格拉底" },
+  { id: "alex", l: 3, s: -356, e: -323, k: "p", en: "Alexander the Great", zh: "亚历山大大帝" },
+  { id: "caes", l: 3, s: -100, e: -44, k: "p", en: "Julius Caesar", zh: "尤利乌斯·恺撒" },
+  { id: "rome", l: 3, s: -27, e: 476, en: "Roman Empire", zh: "罗马帝国" },
+  { id: "byz", l: 3, s: 395, e: 1453, en: "Eastern Roman (Byzantine) Empire", zh: "东罗马（拜占庭）帝国" },
+  { id: "charl", l: 3, s: 748, e: 814, c: 1, k: "p", en: "Charlemagne", zh: "查理曼" },
+  { id: "leo", l: 3, s: 1452, e: 1519, k: "p", en: "Leonardo da Vinci", zh: "达·芬奇" },
+  { id: "shak", l: 3, s: 1564, e: 1616, k: "p", en: "William Shakespeare", zh: "莎士比亚" },
+  { id: "gut", l: 3, s: 1400, e: 1468, c: 1, k: "p", en: "Johannes Gutenberg", zh: "古腾堡" },
+  { id: "olm", l: 4, s: -1200, e: -400, c: 1, en: "Olmec", zh: "奥尔梅克文化" },
+  { id: "teo", l: 4, s: -100, e: 550, c: 1, en: "Teotihuacan", zh: "特奥蒂瓦坎" },
+  { id: "maya", l: 4, s: 250, e: 900, c: 1, en: "Classic Maya", zh: "玛雅古典期" },
+  { id: "chich", l: 4, s: 600, e: 1200, c: 1, en: "Chichen Itza (Maya city)", zh: "奇琴伊察（玛雅城市）" },
+  { id: "cah", l: 4, s: 1050, e: 1350, c: 1, en: "Cahokia", zh: "卡霍基亚" },
+  { id: "teno", l: 4, s: 1325, e: 1521, c: 1, en: "Tenochtitlan (Mexica)", zh: "特诺奇蒂特兰（墨西加）" },
+  { id: "inca", l: 4, s: 1438, e: 1533, c: 1, en: "Inca Empire", zh: "印加帝国" },
+  { id: "kushk", l: 5, s: -750, e: 350, c: 1, en: "Kingdom of Kush", zh: "库施王国" },
+  { id: "aks", l: 5, s: 100, e: 940, c: 1, en: "Aksum", zh: "阿克苏姆" },
+  { id: "ghana", l: 5, s: 700, e: 1200, c: 1, en: "Ghana Empire", zh: "加纳帝国" },
+  { id: "gzim", l: 5, s: 1100, e: 1450, c: 1, en: "Great Zimbabwe", zh: "大津巴布韦" },
+  { id: "mali", l: 5, s: 1235, e: 1600, c: 1, en: "Mali Empire", zh: "马里帝国" },
+  { id: "musa", l: 5, s: 1312, e: 1337, c: 1, k: "r", en: "Mansa Musa", zh: "曼萨·穆萨" },
+  { id: "song2", l: 5, s: 1464, e: 1591, c: 1, en: "Songhai Empire", zh: "桑海帝国" },
+];
+/* the five cards of step 1; lo/hi = earliest and latest possible start (birth, or the event) */
+const CARDS = [
+  { id: "soc", lo: -470, hi: -470 },
+  { id: "qinU", lo: -221, hi: -221, s: -221, e: -221, en: "Qin unifies China", zh: "秦统一中国" },
+  { id: "conf", lo: -551, hi: -551 },
+  { id: "caes", lo: -100, hi: -100 },
+  { id: "bud", lo: -563, hi: -480 },
+];
+
+const EN = {
+  title: "Meanwhile, somewhere else…", eyebrow: "History · Stage 2", h1: "Meanwhile, somewhere else…",
+  intro: "Put five famous names in order, then drag a year across the world and see who was alive at the same time.",
+  reset: "Reset", figAria: "Timeline with six regional lanes and a year cursor. Left and right arrows move the year by 10, Page Up and Page Down by 100.",
+  s1: "Guess", s2: "Slice", s3: "Rule",
+  k1: "Predict first", t1: "Who lived first?",
+  b1: "Tap the five cards in the order you think they lived, first to last. Each card becomes a chapter. Then answer the question.",
+  deckLead: "Tap in order, first → last:", clear: "Clear order",
+  q: "In real life, did these five fit one after another, like chapters in a book?",
+  o1: "Yes — each came after the one before", o2: "No — some were alive at the same time", o3: "All five lived at the same time",
+  right: "Yes. Socrates was born only about {g} years after Confucius died, and the Buddha's dates overlap one or both of them. In Julius Caesar's lifetime, China was ruled by the Han.",
+  wrong: "Look at the real dates: the bars overlap. Socrates was born only about {g} years after Confucius died, but Caesar was born {q} years after Qin unified China.",
+  chHead: "Your chapters (first → last)", realHead: "Real dates",
+  score: "Your order: {k} of {n} pairs right.", scoreAll: "Place all five cards to score your order.",
+  budNote: "Confucius or the Buddha first? Scholars' dates for the Buddha differ, so that pair is not scored.",
+  trueOrder: "Earliest first: {list}.", unsure: "{a} and {b} (order unclear)",
+  k2: "Hands on", t2: "Take a slice through time",
+  b2: "Drag across the timeline (or use the slider and arrow keys) to move the year. Every bar the line crosses existed in that year. Try the four presets.",
+  yrLabel: "Year", inYear: "In {y}:", maybe: "{n}, perhaps (dates uncertain)", none: "nothing on this page's list — people lived here, of course",
+  countLive: "{y}: {n} of 6 regions have something on the list.",
+  k3: "The rule", t3: "Side by side — but not always in touch",
+  b3: "Civilisations ran at the same time, not in turns. Yet being alive at the same time is not the same as knowing each other.",
+  hanRome: "Han China and Rome: same time, no meeting", hrLink: "silk, hand to hand",
+  hanRomeB: "Silk reached Rome through many traders in between, Parthians among them. Roman writers knew the Chinese only as the far-off “Seres”, the silk people, and Pliny thought silk was combed from the leaves of trees. Chinese histories called Rome “Daqin”. In 97 CE the Han envoy Gan Ying set out westward to reach it but turned back at the sea.",
+  howH: "How do we date them?",
+  howB: "Han years come from official histories that count by emperors' reigns; Roman years from lists of consuls and inscriptions. Historians line both up with our calendar. Ancient writers date Socrates' trial and death to 399 BCE, but his birth only roughly, so it gets “c.”. For the Buddha no record from his own time survives: scholars count back from Emperor Ashoka, whose inscriptions name Greek kings of known date, and the old traditions disagree on how far back to count.",
+  overlap: "Han China and the Roman Empire existed together for {g} years",
+  noOverlap: "Move the year between 27 BCE and 220 CE to see both.",
+  resultTitle: "What we found", resMain: "Han China and the Roman Empire: side by side for {g} years ({d})",
+  resNote: "Around 500 BCE, Confucius was teaching in China, the Buddha lived in India and Athens had just become a democracy — all within a few generations. Side by side is not in touch: Han and Rome knew each other only through traded silk and travellers' tales.",
+  dtBud: "c. 6th–5th century BCE", reigned: "reigned ",
+  lnEa: "East Asia", lnSa: "South Asia", lnWa: "West Asia & Egypt", lnMe: "Mediterranean & Europe", lnAm: "Americas", lnAf: "Africa south of the Sahara",
+  explainK: "Explain it", explainQ: "A friend says “first came China, then India, then Greece, then Rome”. Use two slices from this page to show them why that is not quite right.",
+  homeK: "Try at home", homeQ: "Ask an older relative what was happening in three different countries in the year they were born. Draw three lanes on paper and mark that year with one line across all of them.",
+  foot: "Dates follow standard reference works; c. = circa, about. Spans are rounded and approximate. Confucius: traditional dates. The Buddha: estimates range from the 6th to the 4th century BCE; the band covers the two most cited (c. 563–483 and c. 480–400 BCE). Han was briefly interrupted by Xin (9–23 CE). Roman Empire = the western empire, 27 BCE–476 CE. Kush, Ghana and the Americas spans are especially rough. A lane with nothing in a year means only that this short list has nothing there. CC BY 4.0 · Boxi Yu",
+};
+const ZH = {
+  title: "与此同时，在别处……", eyebrow: "历史 · 阶段 2", h1: "与此同时，在别处……",
+  intro: "先给五个著名的名字排排先后，再拖一个年份穿过全世界，看看谁和谁活在同一时间。",
+  reset: "重置", figAria: "分六个地区的时间线和一根年份竖线。左右方向键每次移动 10 年，上翻页下翻页每次 100 年。",
+  s1: "先猜", s2: "切片", s3: "规律",
+  k1: "先猜一猜", t1: "谁先谁后？",
+  b1: "按你觉得的先后顺序点这五张卡片，从最早到最晚。每张卡变成书里的一章。然后回答问题。",
+  deckLead: "按顺序点，从早到晚：", clear: "清除顺序",
+  q: "在真实历史里，这五个是不是一个接一个，像书的一章接一章？",
+  o1: "是，每一个都在前一个之后", o2: "不是，有几个活在同一时间", o3: "五个都活在同一时间",
+  right: "对。孔子去世后大约 {g} 年苏格拉底就出生了，佛陀的年代和他们之中一位或两位重叠。恺撒活着的时候，中国正是汉朝。",
+  wrong: "看真实的年代：横条是重叠的。孔子去世后大约 {g} 年苏格拉底就出生了；但恺撒出生时，秦统一已经过去 {q} 年。",
+  chHead: "你的章节（从早到晚）", realHead: "真实年代",
+  score: "你的顺序：{n} 对里排对了 {k} 对。", scoreAll: "五张卡都放好，才能给顺序打分。",
+  budNote: "孔子和佛陀谁先？学者对佛陀年代的说法不一，这一对不计分。",
+  trueOrder: "从早到晚：{list}。", unsure: "{a}和{b}（先后不确定）",
+  k2: "动手", t2: "在时间上切一刀",
+  b2: "在时间线上左右拖（或用滑块、方向键）移动年份。竖线穿过的每一根横条，那一年都存在。试试四个预设年份。",
+  yrLabel: "年份", inYear: "{y}：", maybe: "{n}，可能（年代不确定）", none: "本页的清单里没有——当然，这里一直有人生活",
+  countLive: "{y}：6 个地区里有 {n} 个在清单上有内容。",
+  k3: "规律", t3: "同时并存——却不一定有来往",
+  b3: "各地文明是同时进行的，不是轮流登场。但活在同一时间，不等于彼此认识。",
+  hanRome: "汉朝和罗马：同一时间，从未见面", hrLink: "丝绸一手传一手",
+  hanRomeB: "丝绸经过中间许多商人（其中有帕提亚人）才到罗马。罗马作家只知道遥远的「赛里斯」，意思是产丝的人，老普林尼还以为丝是从树叶上梳下来的。中国史书把罗马叫作「大秦」。公元 97 年，汉朝使者甘英奉命西行去大秦，到了海边却折返了。",
+  howH: "年代是怎么定的？",
+  howB: "汉朝的年份来自按皇帝在位年数记年的正史；罗马的年份来自执政官名单和碑铭。历史学家把两者都对到我们今天的历法上。古代作家把苏格拉底受审和去世定在公元前 399 年，他的出生年只知道个大概，所以带「约」。佛陀时代没有留下当时的记录：学者从阿育王往回推算——阿育王的石刻铭文提到了几位年代已知的希腊国王——而古老的传统对要往回推多少年说法不一。",
+  overlap: "汉朝和罗马帝国同时存在了 {g} 年",
+  noOverlap: "把年份移到公元前 27 年到公元 220 年之间，就能同时看到两者。",
+  resultTitle: "我们发现", resMain: "汉朝与罗马帝国并存 {g} 年（{d}）",
+  resNote: "公元前 500 年前后，孔子在中国讲学，佛陀生活在印度，雅典刚刚实行民主——前后不过几代人。同时并存不等于有来往：汉朝和罗马只通过转手的丝绸和旅人的传闻知道对方。",
+  dtBud: "约公元前 6—前 5 世纪", reigned: "在位 ",
+  lnEa: "东亚", lnSa: "南亚", lnWa: "西亚与埃及", lnMe: "地中海与欧洲", lnAm: "美洲", lnAf: "撒哈拉以南非洲",
+  explainK: "说一说", explainQ: "朋友说：「先有中国，然后是印度，然后是希腊，然后是罗马。」用本页的两个年份切片，跟他讲清楚为什么这样说不太对。",
+  homeK: "家里做一做", homeQ: "问一位长辈：他出生那年，三个不同国家各在发生什么？在纸上画三条横道，用一根竖线把那一年穿过三条道。",
+  foot: "年代采用通行参考书的说法；「约」表示大约。时间段都经过取整，是大致范围。孔子用传统生卒年。佛陀的年代各家估计从公元前 6 世纪到前 4 世纪不等，图上的模糊带覆盖最常引用的两种（约前 563—前 483、约前 480—前 400）。汉朝中间有新朝（公元 9—23 年）短暂中断。罗马帝国指西部帝国，公元前 27 年—公元 476 年。库施、加纳和美洲各条的年代尤其粗略。某一年某地区没有横条，只说明这份短清单里没有，不说明那里没有人。CC BY 4.0 · Boxi Yu",
+};
+IT.forEach((e) => { EN["n_" + e.id] = e.en; ZH["n_" + e.id] = e.zh; });
+CARDS.forEach((c) => { if (c.en) { EN["n_" + c.id] = c.en; ZH["n_" + c.id] = c.zh; } });
+const P = Play.setup({ en: EN, zh: ZH });
+const ZHL = P.lang === "zh";
+const $ = (id) => document.getElementById(id);
+const byId = {}; IT.forEach((e) => (byId[e.id] = e));
+CARDS.forEach((c) => { const it = byId[c.id]; c.s = c.s != null ? c.s : it.s; c.e = c.e != null ? c.e : it.e; c.fz = it ? it.fz : 0; c.c = it ? it.c : 0; c.k = it ? it.k : "ev"; c.dt = it ? it.dt : null; });
+
+/* ---------- pure logic ---------- */
+function yearText(y) {                        // one historical year
+  if (ZHL) return y < 0 ? "公元前 " + -y + " 年" : "公元 " + y + " 年";
+  return y < 0 ? -y + " BCE" : y + " CE";
+}
+function dateText(e) {
+  if (e.dt) return P.t(e.dt);
+  const s = e.s, t = e.e, c = e.c;
+  let r;
+  if (ZHL) {
+    const p = c ? "约" : "";
+    if (s === t) r = p + yearText(s);
+    else if (s < 0 && t < 0) r = p + "公元前 " + -s + "—前 " + -t + " 年";
+    else if (s > 0) r = p + "公元 " + s + "—" + t + " 年";
+    else r = p + "公元前 " + -s + " 年—公元 " + t + " 年";
+  } else {
+    const p = c ? "c. " : "";
+    if (s === t) r = p + yearText(s);
+    else if (s < 0 && t < 0) r = p + -s + "–" + -t + " BCE";
+    else if (s > 0) r = p + s + "–" + t + " CE";
+    else r = p + -s + " BCE – " + t + " CE";
+  }
+  return e.k === "r" ? P.t("reigned") + r : r;
+}
+/* 0 = not there in astronomical year a, 1 = there, 2 = maybe (fuzzy dates) */
+function aliveAt(e, a) {
+  if (!Number.isFinite(a) || a < astro(e.s) || a > astro(e.e)) return 0;
+  return e.fz ? 2 : 1;
+}
+function slice(a) { return LANES.map((_, l) => IT.filter((e) => e.l === l && aliveAt(e, a))); }
+/* years two spans share (inclusive), 0 if none */
+function overlapYears(p, q) {
+  const s = Math.max(astro(p.s), astro(q.s)), t = Math.min(astro(p.e), astro(q.e));
+  return t >= s ? t - s : 0;
+}
+/* card order: -1 a surely first, 1 b surely first, 0 unclear */
+function cmpCard(a, b) {
+  if (a.hi < b.lo) return -1;
+  if (b.hi < a.lo) return 1;
+  return 0;
+}
+function scoreOrder(order) {                  // order: array of cards, first → last
+  let k = 0, n = 0;
+  for (let i = 0; i < order.length; i++) for (let j = i + 1; j < order.length; j++) {
+    const c = cmpCard(order[i], order[j]);
+    if (c === 0) continue;
+    n++;
+    if (c < 0) k++;
+  }
+  return { k, n };
+}
+/* greedy row packing inside each lane, people after states */
+function pack() {
+  const rows = LANES.map(() => []);
+  const order = IT.slice().sort((p, q) => (!!p.k - !!q.k) || (p.s - q.s));
+  order.forEach((e) => {
+    const R = rows[e.l];
+    let r = R.findIndex((end) => astro(e.s) >= end);
+    if (r < 0) { r = R.length; R.push(0); }
+    R[r] = astro(e.e) + 1;
+    e.row = r;
+  });
+  return rows.map((R) => R.length);
+}
+const NROWS = pack();
+if (typeof module !== "undefined") module.exports = { astro, hist, aliveAt, slice, overlapYears, scoreOrder, cmpCard, IT, CARDS, NROWS };
+
+/* ---------- figure ---------- */
+const fig = $("fig");
+let W = 600, H = 300, mode = "cards";
+const A0 = astro(-800), A1 = 1650;            // timeline window, astronomical years
+let cur = astro(-500);
+const TOP = 30, BOT = 26, RH = 20, LHEAD = 18;
+const X = (a) => ((a - A0) / (A1 - A0)) * W;
+function textW(s) { let w = 0; for (const ch of s) w += /[⺀-鿿＀-￯]/.test(ch) ? 13 : 7.4; return w; }
+
+const defs = Play.svg("defs", {}, fig);
+const grad = Play.svg("linearGradient", { id: "fzg", x1: 0, x2: 1, y1: 0, y2: 0 }, defs);
+[[0, 0], [0.25, 0.45], [0.75, 0.45], [1, 0]].forEach(([o, op]) => Play.svg("stop", { class: "fzA", offset: o, "stop-opacity": op }, grad));
+const gMain = Play.svg("g", {}, fig);
+
+function laneTops() {
+  const tops = []; let y = TOP;
+  NROWS.forEach((n) => { tops.push(y); y += LHEAD + n * RH + 6; });
+  return { tops, end: y };
+}
+
+function drawSlice() {
+  gMain.innerHTML = "";
+  const L = laneTops();
+  H = L.end + BOT;
+  // lanes
+  LANES.forEach((k, i) => {
+    const y = L.tops[i], h = LHEAD + NROWS[i] * RH + 6;
+    if (i % 2 === 0) Play.svg("rect", { class: "laneBg", x: 0, y, width: W, height: h }, gMain);
+    Play.svg("text", { class: "laneName", x: 6, y: y + 14 }, gMain).textContent = P.t(k);
+  });
+  // ticks
+  const ppy = W / (A1 - A0);
+  const need = textW(ZHL ? "前1000" : "1000 BCE") + 14;
+  const step = [100, 200, 250, 500, 1000].find((s) => s * ppy >= need) || 1000;
+  for (let n = Math.ceil(-800 / step) * step; n <= 1650; n += step) {
+    if (n === 0) continue;
+    const x = X(astro(n));
+    Play.svg("line", { class: "grid", x1: x, x2: x, y1: TOP, y2: L.end }, gMain);
+    const s = ZHL ? (n < 0 ? "前" + -n : String(n)) : (n < 0 ? -n + " BCE" : n + " CE");
+    const w = textW(s);
+    if (x - w / 2 < 2 || x + w / 2 > W - 2) continue;
+    Play.svg("text", { class: "tick", x, y: L.end + 17, "text-anchor": "middle" }, gMain).textContent = s;
+  }
+  // bars
+  const rowEnds = {};
+  const byStart = IT.slice().sort((p, q) => p.s - q.s);
+  byStart.forEach((e) => {
+    const x1 = Math.max(0, X(astro(e.s))), x2 = Math.min(W, X(astro(e.e) + 1));
+    if (x2 <= 0 || x1 >= W) return;
+    const y = L.tops[e.l] + LHEAD + e.row * RH;
+    const on = aliveAt(e, cur);
+    const w = Math.max(3, x2 - x1);
+    if (e.fz) Play.svg("rect", { class: "fz" + (on ? " on" : ""), x: x1, y, width: w, height: RH - 3, rx: 4, fill: "url(#fzg)" }, gMain);
+    else Play.svg("rect", { class: "bar" + (e.k ? " p" : "") + (on ? " on" : ""), x: x1, y, width: w, height: RH - 3, rx: 4 }, gMain);
+    const name = P.t("n_" + e.id), tw = textW(name);
+    const key = e.l + ":" + e.row;
+    // label inside the bar if it fits, else in the free space to its right
+    const next = IT.filter((o) => o !== e && o.l === e.l && o.row === e.row && o.s > e.s).reduce((m, o) => Math.min(m, X(astro(o.s))), W);
+    const room = next - x1 - 4;
+    if (tw + 8 <= room && x1 + 4 >= (rowEnds[key] || 0)) {
+      Play.svg("text", { class: "inl", x: x1 + 4, y: y + 13 }, gMain).textContent = name;
+      rowEnds[key] = x1 + 4 + tw + 6;
+    }
+  });
+  // cursor
+  const cx = X(cur + 0.5);
+  Play.svg("line", { class: "cur", x1: cx, x2: cx, y1: TOP - 4, y2: L.end }, gMain);
+  const lab = yearText(hist(cur)), lw = textW(lab) + 16;
+  const px = Play.clamp(cx - lw / 2, 1, W - lw - 1);
+  Play.svg("rect", { class: "curPill", x: px, y: 4, width: lw, height: 22, rx: 11 }, gMain);
+  Play.svg("text", { class: "curTxt", x: px + lw / 2, y: 20, "text-anchor": "middle" }, gMain).textContent = lab;
+  // step 3: the indirect silk link Han → Parthia → Rome
+  if (mode === "rule" && aliveAt(byId.han, cur) && aliveAt(byId.rome, cur) && aliveAt(byId.parth, cur)) {
+    const yc = (e) => L.tops[e.l] + LHEAD + e.row * RH + (RH - 3) / 2;
+    const off = cx > W - 150 ? -22 : 22;
+    const pts = [byId.han, byId.parth, byId.rome].map((e) => [cx + off, yc(e)]);
+    Play.svg("path", { class: "link", d: `M${cx} ${pts[0][1]}Q${cx + off * 2} ${(pts[0][1] + pts[1][1]) / 2} ${cx} ${pts[1][1]}Q${cx + off * 2} ${(pts[1][1] + pts[2][1]) / 2} ${cx} ${pts[2][1]}` }, gMain);
+    // label it in the free strip beside the year pill
+    const t = "⋯ " + P.t("hrLink"), tw = textW(t);
+    if (px + lw + 8 + tw <= W) Play.svg("text", { class: "linkTxt", x: px + lw + 8, y: 20 }, gMain).textContent = t;
+    else if (px - 8 - tw >= 0) Play.svg("text", { class: "linkTxt", x: px - 8 - tw, y: 20 }, gMain).textContent = t;
+  }
+}
+
+/* ---------- step 1: cards and chapters ---------- */
+let picked = [], revealed = false, revT = 0, anim = 0;
+const deck = $("deck");
+function currentOrder() { return picked.concat(CARDS.filter((c) => !picked.includes(c))); }
+function drawCards() {
+  gMain.innerHTML = "";
+  const rowH = 46, top = 34, n = CARDS.length;
+  H = top + n * rowH + 30;
+  const t = revT, ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  const B0 = astro(-600), B1 = astro(-1);
+  const XR = (a) => 8 + ((a - B0) / (B1 - B0)) * (W - 16);
+  Play.svg("text", { class: "head", x: 8, y: 18 }, gMain).textContent = P.t(revealed ? "realHead" : "chHead");
+  if (revealed) {
+    for (let y = -600; y <= -100; y += 100) {
+      const x = XR(astro(y));
+      Play.svg("line", { class: "grid", x1: x, x2: x, y1: top, y2: top + n * rowH, opacity: ease }, gMain);
+      const s = ZHL ? "前" + -y : -y + " BCE";
+      if (x + textW(s) / 2 < W - 2 && x - textW(s) / 2 > 2) Play.svg("text", { class: "tick", x, y: top + n * rowH + 18, "text-anchor": "middle", opacity: ease }, gMain).textContent = s;
+    }
+  }
+  const order = currentOrder(), cw = (W - 16) / n;
+  order.forEach((c, i) => {
+    const y = top + i * rowH;
+    const placed = picked.includes(c);
+    const cx0 = 8 + i * cw, cw0 = cw - 4;
+    const rx1 = XR(astro(c.s)), rw = Math.max(6, XR(astro(c.e) + 1) - rx1);
+    const bx = cx0 + (rx1 - cx0) * ease, bw = cw0 + (rw - cw0) * ease;
+    if (revealed && t > 0) {
+      if (c.fz) Play.svg("rect", { x: bx, y: y + 22, width: bw, height: 16, rx: 4, fill: "url(#fzg)", opacity: ease }, gMain);
+      else Play.svg("rect", { class: "chapReal" + (c.k ? "" : " st"), x: bx, y: y + 22, width: bw, height: 16, rx: 4, style: "opacity:" + (0.55 * ease).toFixed(3) }, gMain);
+    }
+    Play.svg("rect", { class: "chap" + (placed ? "" : " open"), x: bx, y: y + 22, width: bw, height: 16, rx: 4, "fill-opacity": 1 - ease, "stroke-opacity": 1 - 0.7 * ease }, gMain);
+    const num = placed ? String(picked.indexOf(c) + 1) : "?";
+    const label = P.t("n_" + c.id) + (revealed ? " · " + dateText(c) : "");
+    const lw = textW(num) + 6 + textW(label);
+    const lx = Play.clamp(bx, 4, W - 4 - lw);
+    Play.svg("text", { class: "num", x: lx, y: y + 16 }, gMain).textContent = num;
+    Play.svg("text", { class: "lab", x: lx + textW(num) + 6, y: y + 16 }, gMain).textContent = label;
+  });
+}
+function buildDeck() {
+  deck.innerHTML = "";
+  const lead = document.createElement("div"); lead.className = "lead"; lead.textContent = P.t("deckLead");
+  deck.appendChild(lead);
+  CARDS.forEach((c) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    const i = picked.indexOf(c);
+    b.className = i >= 0 ? "on" : "";
+    b.setAttribute("aria-pressed", i >= 0 ? "true" : "false");
+    const n = document.createElement("span"); n.className = "n"; n.textContent = i >= 0 ? i + 1 : "·";
+    b.append(n, document.createTextNode(" " + P.t("n_" + c.id)));
+    b.addEventListener("click", () => {
+      const j = picked.indexOf(c);
+      if (j >= 0) picked.splice(j, 1); else picked.push(c);
+      buildDeck(); deck.querySelectorAll("button")[CARDS.indexOf(c)].focus();
+      draw(); cardInfo();
+    });
+    deck.appendChild(b);
+  });
+  const clr = document.createElement("button");
+  clr.type = "button"; clr.className = "small"; clr.textContent = P.t("clear");
+  clr.addEventListener("click", () => { picked = []; buildDeck(); draw(); cardInfo(); });
+  deck.appendChild(clr);
+}
+function trueOrderText() {
+  const s = CARDS.slice().sort((a, b) => cmpCard(a, b) || a.lo - b.lo);
+  const parts = [];
+  for (let i = 0; i < s.length; i++) {
+    if (i + 1 < s.length && cmpCard(s[i], s[i + 1]) === 0) {
+      parts.push(P.t("unsure", { a: P.t("n_" + s[i].id), b: P.t("n_" + s[i + 1].id) })); i++;
+    } else parts.push(P.t("n_" + s[i].id));
+  }
+  return P.t("trueOrder", { list: parts.join(ZHL ? "，" : ", ") });
+}
+function cardInfo() {
+  const box = $("info");
+  box.innerHTML = "";
+  box.hidden = !revealed || mode !== "cards";
+  if (!revealed) return;
+  const add = (cls, txt) => { const d = document.createElement("div"); d.className = cls; d.textContent = txt; box.appendChild(d); };
+  if (picked.length === CARDS.length) {
+    const sc = scoreOrder(picked);
+    add("gp", P.t("score", sc));
+    add("it", P.t("budNote"));
+  } else add("it", P.t("scoreAll"));
+  add("", trueOrderText());
+}
+function reveal() {
+  if (revealed) return;
+  revealed = true;
+  showResult();
+  cardInfo();
+  cancelAnimationFrame(anim);
+  if (Play.reduced) { revT = 1; draw(); return; }
+  const t0 = performance.now();
+  const f = (t) => {
+    revT = Math.min(1, (t - t0) / 1000);
+    if (mode === "cards") draw();
+    if (revT < 1) anim = requestAnimationFrame(f);
+  };
+  anim = requestAnimationFrame(f);
+}
+
+/* ---------- slice panel ---------- */
+const yr = $("yr");
+function sliceInfo() {
+  const box = $("info");
+  box.innerHTML = "";
+  box.hidden = mode === "cards";
+  if (mode === "cards") return;
+  const y = yearText(hist(cur));
+  const add = (cls, txt, parent) => { const d = document.createElement(parent ? "span" : "div"); d.className = cls; d.textContent = txt; (parent || box).appendChild(d); return d; };
+  if (mode === "rule") {
+    add("rg", P.t("hanRome"));
+    const g = overlapYears(byId.han, byId.rome);
+    add("gp", P.t("overlap", { g }));
+    add("calc", dateText({ s: byId.rome.s, e: byId.han.e }) + (ZHL ? "：" : ": ") + -byId.rome.s + " + " + byId.han.e + " − 1 = " + g);
+    if (!(aliveAt(byId.han, cur) && aliveAt(byId.rome, cur))) add("it", P.t("noOverlap"));
+    add("", P.t("hanRomeB"));
+    const h = document.createElement("h3"); h.textContent = P.t("howH"); box.appendChild(h);
+    add("", P.t("howB"));
+    Play.live($("live"), P.t("countLive", { y, n: slice(cur).filter((x) => x.length).length }));
+    return;
+  }
+  add("rg", P.t("inYear", { y }));
+  const sl = slice(cur);
+  sl.forEach((list, l) => {
+    const d = add("", "");
+    add("rg", P.t(LANES[l]) + (ZHL ? "：" : ": "), d);
+    if (!list.length) { add("none", P.t("none"), d); return; }
+    add("it", list.map((e) => {
+      const nm = P.t("n_" + e.id) + " (" + dateText(e) + ")";
+      return aliveAt(e, cur) === 2 ? P.t("maybe", { n: nm }) : nm;
+    }).join(ZHL ? "；" : "; "), d);
+  });
+  Play.live($("live"), P.t("countLive", { y, n: sl.filter((x) => x.length).length }));
+}
+function setYear(a) {
+  a = Math.round(Play.clamp(Number.isFinite(a) ? a : astro(-500), A0, A1));
+  cur = a;
+  yr.value = a;
+  $("yrVal").textContent = yearText(hist(a));
+  draw(); sliceInfo();
+}
+yr.addEventListener("input", () => setYear(+yr.value));
+document.querySelectorAll("[data-y]").forEach((b) => {
+  const y = +b.dataset.y;
+  b.textContent = yearText(y);
+  b.addEventListener("click", () => setYear(astro(y)));
+});
+
+function draw() {
+  fig.classList.toggle("cards", mode === "cards");
+  if (mode === "cards") drawCards(); else drawSlice();
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  fig.style.height = H + "px";
+}
+function resize() {
+  const r = fig.getBoundingClientRect();
+  if (r.width < 10) return;
+  W = Math.round(r.width);
+  draw();
+}
+if (window.ResizeObserver) new ResizeObserver(resize).observe(fig); else window.addEventListener("resize", resize);
+
+/* ---------- pointer and keyboard on the figure ---------- */
+let dragging = false;
+const toYear = (ev) => { const r = fig.getBoundingClientRect(); return A0 + ((ev.clientX - r.left) / r.width) * (A1 - A0) - 0.5; };
+fig.addEventListener("pointerdown", (ev) => {
+  if (mode === "cards") return;
+  dragging = true;
+  try { fig.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+  setYear(toYear(ev));
+});
+fig.addEventListener("pointermove", (ev) => { if (dragging) setYear(toYear(ev)); });
+["pointerup", "pointercancel"].forEach((t) => fig.addEventListener(t, () => (dragging = false)));
+fig.addEventListener("keydown", (ev) => {
+  if (mode === "cards") return;
+  const d = { ArrowLeft: -10, ArrowRight: 10, ArrowDown: -10, ArrowUp: 10, PageDown: -100, PageUp: 100 }[ev.key];
+  if (d) setYear(cur + (ev.shiftKey ? d * 10 : d));
+  else if (ev.key === "Home") setYear(A0);
+  else if (ev.key === "End") setYear(A1);
+  else return;
+  ev.preventDefault();
+});
+
+/* ---------- steps, predict, result ---------- */
+const gCS = astro(byId.soc.s) - astro(byId.conf.e);          // Confucius dies → Socrates born
+const gQC = astro(byId.caes.s) - astro(-221);                 // Qin unification → Caesar born
+const gHR = overlapYears(byId.han, byId.rome);
+$("resMain").textContent = P.t("resMain", { g: gHR, d: dateText({ s: byId.rome.s, e: byId.han.e }) });
+$("resNote").textContent = P.t("resNote");
+function showResult() { document.querySelector(".result").hidden = mode === "cards" && !revealed; }
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right", { g: gCS }),
+  wrong: P.t("wrong", { g: gCS, q: gQC }),
+}, reveal);
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  deck.hidden = i !== 0;
+  $("ctl").hidden = i === 0;
+  mode = ["cards", "slice", "rule"][i];
+  showResult();
+  if (i === 2 && !(aliveAt(byId.han, cur) && aliveAt(byId.rome, cur))) cur = astro(100);
+  if (i === 0) { Play.live($("live"), ""); cardInfo(); resize(); }
+  else setYear(cur);
+  resize();
+});
+
+$("reset").addEventListener("click", () => {
+  cancelAnimationFrame(anim);
+  picked = []; revealed = false; revT = 0; cur = astro(-500);
+  pr.reset(); buildDeck(); st.go(0);
+});
+buildDeck();
+setYear(cur);
+st.go(0);
+</script>
+</body>
+</html>

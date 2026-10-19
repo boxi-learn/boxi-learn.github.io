@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A picture is a grid of numbers</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  #fig { cursor: crosshair; }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .pane { padding: 10px 14px 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 13px; color: var(--muted); font-weight: 650; }
+  .zoomrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); }
+  .zoomrow .val { font-variant-numeric: tabular-nums; color: var(--fg); min-width: 3.2em; text-align: right; }
+  .sl { display: grid; grid-template-columns: 4.6em minmax(0, 1fr) 2.6em; gap: 10px; align-items: center; font-size: 14px; }
+  .sl .nm { font-weight: 650; display: flex; align-items: center; gap: 6px; }
+  .sl .nm i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; border: 1px solid var(--line); }
+  .sl output { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700; }
+  .sl input { width: 100%; }
+  .who { display: flex; align-items: center; gap: 10px; font-size: 14px; flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; justify-content: center; min-width: 76px; height: 34px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line); font: 700 14px var(--font); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .swatch { border-radius: 12px; border: 1px solid var(--line); padding: 14px 16px; margin: 4px 0 12px; font-variant-numeric: tabular-nums; }
+  .swatch .hx { font: 750 22px var(--font); letter-spacing: .04em; }
+  .swatch .tr { font-size: 14px; }
+  .facts { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14px; background: var(--soft); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; justify-content: start; }
+  .facts b { font-variant-numeric: tabular-nums; }
+  .calc { background: var(--soft); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; font-size: 14px; display: grid; gap: 8px; }
+  .calc .row input { width: 6.2em; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .calc .eq { font-variant-numeric: tabular-nums; font-weight: 650; overflow-wrap: anywhere; }
+  .calc .big { font: 750 20px var(--font); color: var(--a); }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <canvas class="main" id="fig" tabindex="0" role="img" data-t-aria="figAria"></canvas>
+      <div class="pane">
+        <div class="zoomrow" id="zoomRow">
+          <label for="zoom" data-t="zoomLbl"></label>
+          <input type="range" id="zoom" min="0" max="100" value="0">
+          <span class="val" id="zoomVal"></span>
+        </div>
+        <div class="row" id="viewRow">
+          <label class="check"><input type="checkbox" id="nums"> <span data-t="numsLbl"></span></label>
+          <span class="who" id="who"></span>
+        </div>
+        <div id="sliders">
+          <div class="sl"><label class="nm" for="rr"><i style="background:#ff0000"></i><span data-t="red"></span></label><input type="range" id="rr" min="0" max="255" step="1"><output id="rrV" for="rr"></output></div>
+          <div class="sl"><label class="nm" for="gg"><i style="background:#00ff00"></i><span data-t="green"></span></label><input type="range" id="gg" min="0" max="255" step="1"><output id="ggV" for="gg"></output></div>
+          <div class="sl"><label class="nm" for="bb"><i style="background:#0000ff"></i><span data-t="blue"></span></label><input type="range" id="bb" min="0" max="255" step="1"><output id="bbV" for="bb"></output></div>
+        </div>
+        <div class="row" id="presetRow"><span class="lbl" data-t="tryLbl"></span></div>
+        <p class="msg" id="live"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="facts" id="facts" hidden></div>
+      <div id="mixBox" hidden>
+        <div class="swatch" id="swatch"><div class="hx" id="hex"></div><div class="tr" id="trip"></div></div>
+        <div class="calc">
+          <div class="lbl" data-t="sizeLbl"></div>
+          <div class="row" id="sizePresets"></div>
+          <div class="row">
+            <label for="wIn" data-t="wLbl"></label><input type="number" id="wIn" min="1" max="20000" step="1" inputmode="numeric">
+            <label for="hIn" data-t="hLbl"></label><input type="number" id="hIn" min="1" max="20000" step="1" inputmode="numeric">
+          </div>
+          <div class="eq" id="sizeEq"></div>
+          <div class="big" id="sizeBig"></div>
+        </div>
+        <p class="note" data-t="compress"></p>
+      </div>
+      <p class="note" id="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure logic (no DOM) so it can be checked in node. */
+const SIZE = 16;
+/* Original 16×16 motif: a house, a sun, grass. "." is sky (a gradient, computed per row). */
+const ART = [
+  "................",
+  "............SS..",
+  "...........SSSS.",
+  ".......RR..SSSS.",
+  "....C.RRRR..SS..",
+  "....CRRRRRR.....",
+  "....RRRRRRRR....",
+  "...RRRRRRRRRR...",
+  "..RRRRRRRRRRRR..",
+  "...WWWWWWWWWW...",
+  "...WBBWWWWBBW...",
+  "...WBBWDDWBBW...",
+  "...WWWWDDWWWW...",
+  "GGGWWWWDDWWWWGGG",
+  "GgGGgGGGGGgGGgGG",
+  "gGGgGGgGGgGGgGGg",
+];
+const PAL = {
+  S: [255, 214, 64], R: [196, 60, 48], C: [128, 84, 70], W: [240, 222, 184],
+  B: [110, 172, 232], D: [116, 70, 40], G: [76, 164, 72], g: [52, 132, 58],
+};
+const sky = (row) => [110 + 6 * row, 170 + 4 * row, 255 - 2 * row];
+const clampByte = (v) => (Number.isFinite(+v) ? Math.min(255, Math.max(0, Math.round(+v))) : 0);
+function makeImage() {
+  const img = [];
+  for (let y = 0; y < SIZE; y++) {
+    if (ART[y].length !== SIZE) throw new Error("ART row " + y);
+    for (let x = 0; x < SIZE; x++) {
+      const ch = ART[y][x];
+      img.push((ch === "." ? sky(y) : PAL[ch]).map(clampByte));
+    }
+  }
+  return img;
+}
+/* sRGB relative luminance (WCAG); text is black on light colours, white on dark ones.
+   0.179 is where black and white text have equal contrast. */
+function luminance(c) {
+  const lin = (v) => { const s = clampByte(v) / 255; return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+  return 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+}
+const darkText = (c) => luminance(c) > 0.179;
+const hex = (c) => "#" + c.map((v) => clampByte(v).toString(16).padStart(2, "0")).join("").toUpperCase();
+const bytesFor = (w, h) => w * h * 3;
+const cleanDim = (v) => (Number.isFinite(+v) && +v >= 1 ? Math.min(20000, Math.round(+v)) : 1);
+/* Human size in decimal units (1 KB = 1000 bytes, 1 MB = 1 000 000 bytes). */
+function niceSize(n) {
+  if (!Number.isFinite(n) || n < 0) return { v: "0", u: "B" };
+  if (n < 1000) return { v: String(n), u: "B" };
+  if (n < 1e6) return { v: (n / 1e3).toFixed(1), u: "KB" };
+  if (n < 1e9) return { v: (n / 1e6).toFixed(1), u: "MB" };
+  return { v: (n / 1e9).toFixed(2), u: "GB" };
+}
+/* Zoom slider 0…100 → size of one picture pixel on screen (CSS px), exponential. */
+const CMIN = 6, CMAX = 84, NUMCELL = 48;
+const cellSize = (z) => CMIN * Math.pow(CMAX / CMIN, Math.min(100, Math.max(0, +z || 0)) / 100);
+const zoomForCell = (c) => Math.ceil((100 * Math.log(c / CMIN)) / Math.log(CMAX / CMIN));
+/* Keep the view centre inside the picture: centred when it fits, edges never past the canvas otherwise. */
+function clampView(v, cell, W) {
+  const span = SIZE * cell;
+  if (span <= W) return SIZE / 2;
+  const half = W / 2 / cell;
+  return Math.min(SIZE - half, Math.max(half, v));
+}
+if (typeof module !== "undefined") module.exports = { SIZE, ART, PAL, makeImage, luminance, darkText, hex, bytesFor, cleanDim, niceSize, cellSize, zoomForCell, clampView, clampByte, NUMCELL };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "A picture is a grid of numbers", eyebrow: "Computing · Stage 2",
+    h1: "A screen picture is a grid of squares, and each square is three numbers",
+    intro: "Zoom into a little picture until you see its squares, change a square's numbers, then mix your own colours from red, green and blue light.",
+    reset: "Reset", figAria: "A 16 by 16 pixel picture of a house and the sun that you can zoom into",
+    s1: "Guess", s2: "Zoom in", s3: "Mix",
+    k1: "Predict first", t1: "What is a photo inside the computer?",
+    b1: "This little picture of a house is on your screen right now. How do you think the computer keeps it?",
+    q: "Inside the computer, a photo is kept as…",
+    o1: "a tiny copy of the picture, like a printed photo",
+    o2: "a long list of numbers",
+    o3: "words that describe it: “house, sun, grass”",
+    right: "Yes! Go to step 2 and zoom in — you will see the numbers.",
+    wrong: "Many people think so. Go to step 2 and zoom in: what do you find under the picture?",
+    k2: "Hands on", t2: "Zoom in until the picture falls apart",
+    b2: "Drag the zoom slider. The picture turns into squares called pixels, and each one shows three numbers: red, green, blue (top to bottom). Tap a pixel and move its sliders. Tick “Numbers only” to see what the computer really keeps.",
+    k3: "The rule", t3: "Three numbers make every colour",
+    b3: "Mix light, not paint: red + green light make yellow, all three at 255 make white, all at 0 make black. Each number has 256 choices (0 to 255), so there are {total} colours.",
+    zoomLbl: "Zoom", numsLbl: "Numbers only", red: "Red", green: "Green", blue: "Blue",
+    tryLbl: "Try:", pRG: "Red + green", pGB: "Green + blue", pRB: "Red + blue", pW: "All 255", pK: "All 0", pGrey: "All 128",
+    pixel: "Pixel ({x}, {y})", zoomIn: "Zoom in to read the numbers",
+    liveSel: "Pixel ({x}, {y}): red {r}, green {g}, blue {b}.",
+    liveMix: "Mixed colour: red {r}, green {g}, blue {b} = {h}.",
+    fPix: "Pixels", fNum: "Numbers stored", fSel: "This pixel",
+    sizeLbl: "How much room does a picture need? (1 number = 1 byte)",
+    sz16: "This picture", szVGA: "Old screen", szHD: "Full HD photo", sz12: "12 MP phone photo",
+    wLbl: "Width", hLbl: "Height",
+    sizeEq: "{w} × {h} pixels × 3 numbers = {b} bytes",
+    sizeBig: "≈ {v} {u}",
+    compress: "Uncompressed size. Real files (JPG, PNG) are usually compressed, so they are smaller. Here 1 KB = 1000 bytes and 1 MB = 1 000 000 bytes.",
+    keysPix: "Keyboard: click the picture, then arrow keys pick a pixel, + / − zoom, N switches numbers only.",
+    keysMix: "Keyboard: Tab to a slider, then arrow keys change it by 1 (Page Up / Page Down by more).",
+    trip: "Red {r} · Green {g} · Blue {b}",
+    resultTitle: "What we found", resultMain: "colour = (red, green, blue), each 0–255",
+    resultNote: "A computer never keeps “a picture”: it keeps width × height pixels, three numbers each. This 16 × 16 house is {n} numbers. The screen turns the numbers back into light.",
+    explainK: "Explain it",
+    explainQ: "A friend says “the computer just saves the photo”. Explain what it really saves, and why a white pixel is (255, 255, 255).",
+    homeK: "Try at home",
+    homeQ: "Look at a screen through a magnifying glass, or put a drop of water on a phone screen showing white: you will see tiny red, green and blue lights.",
+    foot: "CC BY 4.0 · Boxi Yu · 24-bit colour: 8 bits (0–255) per channel, 256³ colours · text colour from WCAG relative luminance · original pixel art",
+  },
+  zh: {
+    title: "图片是一格一格的数", eyebrow: "信息科技 · 阶段 2",
+    h1: "屏幕上的图是一格格像素，每一格是三个数",
+    intro: "把一张小图放大，直到看见一个个小方格；改改一格里的数；再用红、绿、蓝三种光调出你自己的颜色。",
+    reset: "重置", figAria: "一张 16 × 16 像素的房子和太阳的小图，可以放大",
+    s1: "先猜", s2: "放大", s3: "调色",
+    k1: "先猜一猜", t1: "照片在电脑里是什么样子？",
+    b1: "这张小房子的图现在就在你的屏幕上。你觉得电脑是怎么存它的？",
+    q: "在电脑里，一张照片存成……",
+    o1: "一张小小的图，像冲洗出来的照片",
+    o2: "一长串数",
+    o3: "描述它的文字：“房子、太阳、草地”",
+    right: "对！到第 2 步放大看看，你会看到这些数。",
+    wrong: "很多人这么想。到第 2 步把图放大：图的下面是什么？",
+    k2: "动手", t2: "放大，直到图“散开”",
+    b2: "拖动缩放滑块。图会变成一个个小方格，叫像素；每格上有三个数，从上到下是红、绿、蓝。点一个像素，拖它的滑块。勾选「只看数」，看看电脑真正存的是什么。",
+    k3: "规律", t3: "三个数调出所有颜色",
+    b3: "这是光的混合，不是颜料：红光 + 绿光 = 黄色，三个都是 255 是白色，都是 0 是黑色。每个数有 256 种取值（0 到 255），所以一共 {total} 种颜色。",
+    zoomLbl: "缩放", numsLbl: "只看数", red: "红", green: "绿", blue: "蓝",
+    tryLbl: "试试：", pRG: "红 + 绿", pGB: "绿 + 蓝", pRB: "红 + 蓝", pW: "全是 255", pK: "全是 0", pGrey: "全是 128",
+    pixel: "像素 ({x}, {y})", zoomIn: "放大才能看清这些数",
+    liveSel: "像素 ({x}, {y})：红 {r}，绿 {g}，蓝 {b}。",
+    liveMix: "调出的颜色：红 {r}，绿 {g}，蓝 {b} = {h}。",
+    fPix: "像素个数", fNum: "存的数", fSel: "这一格",
+    sizeLbl: "一张图要占多大地方？（1 个数 = 1 字节）",
+    sz16: "这张小图", szVGA: "老式屏幕", szHD: "全高清照片", sz12: "1200 万像素手机照片",
+    wLbl: "宽", hLbl: "高",
+    sizeEq: "{w} × {h} 像素 × 3 个数 = {b} 字节",
+    sizeBig: "≈ {v} {u}",
+    compress: "这是不压缩的大小。真实的图片文件（JPG、PNG）通常经过压缩，会小得多。这里 1 KB = 1000 字节，1 MB = 1 000 000 字节。",
+    keysPix: "键盘：先点一下图，方向键选像素，+ / − 缩放，N 切换「只看数」。",
+    keysMix: "键盘：用 Tab 选中滑块，方向键每次改 1（Page Up / Page Down 改得多）。",
+    trip: "红 {r} · 绿 {g} · 蓝 {b}",
+    resultTitle: "我们发现", resultMain: "颜色 =（红，绿，蓝），每个 0–255",
+    resultNote: "电脑从来不存“一张图”：它存的是 宽 × 高 个像素，每个像素三个数。这张 16 × 16 的小房子就是 {n} 个数。屏幕再把这些数变回光。",
+    explainK: "说一说",
+    explainQ: "朋友说“电脑就是把照片存起来”。说说它真正存的是什么，以及为什么白色像素是 (255, 255, 255)。",
+    homeK: "家里做一做",
+    homeQ: "用放大镜看屏幕，或者在显示白色的手机屏幕上滴一小滴水：你会看到很小的红、绿、蓝小灯。",
+    foot: "CC BY 4.0 · Boxi Yu · 24 位色：每个通道 8 位（0–255），共 256³ 种颜色 · 字的黑白由 WCAG 相对亮度决定 · 原创像素画",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), ctx = fig.getContext("2d");
+const nf = (n) => n.toLocaleString(P.lang === "zh" ? "zh-CN" : "en-US");
+const SL = [$("rr"), $("gg"), $("bb")], SLV = [$("rrV"), $("ggV"), $("bbV")];
+const START_SEL = { x: 12, y: 2 }, START_MIX = [255, 255, 0];
+const SIZES = [["sz16", 16, 16], ["szVGA", 640, 480], ["szHD", 1920, 1080], ["sz12", 4000, 3000]];
+const PRESETS = [["pRG", [255, 255, 0]], ["pGB", [0, 255, 255]], ["pRB", [255, 0, 255]], ["pW", [255, 255, 255]], ["pK", [0, 0, 0]], ["pGrey", [128, 128, 128]]];
+
+let img, sel, mix, vx, vy, step = 0, numbers = false, W = 600, H = 360;
+
+function fresh() {
+  img = makeImage();
+  sel = { ...START_SEL };
+  mix = START_MIX.slice();
+  vx = vy = SIZE / 2;
+  numbers = false;
+  $("nums").checked = false;
+  $("zoom").value = 0;
+  $("wIn").value = 1920; $("hIn").value = 1080;
+}
+
+/* ---------- drawing ---------- */
+const css = (k) => getComputedStyle(document.body).getPropertyValue(k).trim() || "#888";
+const rgb = (c) => `rgb(${c[0]},${c[1]},${c[2]})`;
+function fitCanvas() {
+  const r = fig.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  W = Math.max(1, r.width); H = Math.max(1, r.height);
+  fig.width = Math.round(W * dpr); fig.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+const cell = () => cellSize($("zoom").value);
+function origin() {
+  const c = cell();
+  vx = clampView(vx, c, W); vy = clampView(vy, c, H);
+  return { c, ox: W / 2 - vx * c, oy: H / 2 - vy * c };
+}
+function drawPixels() {
+  const { c, ox, oy } = origin();
+  ctx.fillStyle = css("--soft");
+  ctx.fillRect(0, 0, W, H);
+  const x0 = Math.max(0, Math.floor(-ox / c)), x1 = Math.min(SIZE - 1, Math.floor((W - ox) / c));
+  const y0 = Math.max(0, Math.floor(-oy / c)), y1 = Math.min(SIZE - 1, Math.floor((H - oy) / c));
+  const showNums = c >= NUMCELL, fg = css("--fg"), surf = css("--surface"), line = css("--line");
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = "600 13px " + css("--font");
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const p = img[y * SIZE + x], px = ox + x * c, py = oy + y * c;
+    ctx.fillStyle = numbers ? surf : rgb(p);
+    // 0.5 px overlap hides hairline seams between squares at the "picture" zoom
+    ctx.fillRect(px, py, c + 0.5, c + 0.5);
+    if (showNums) {
+      ctx.fillStyle = numbers ? fg : darkText(p) ? "#111" : "#fff";
+      const lh = Math.min(17, c / 3.4);
+      for (let k = 0; k < 3; k++) ctx.fillText(String(p[k]), px + c / 2, py + c / 2 + (k - 1) * lh);
+    }
+  }
+  if (c >= 12 || numbers) {
+    ctx.strokeStyle = numbers ? line : "rgba(0,0,0,.18)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = x0; x <= x1 + 1; x++) { ctx.moveTo(Math.round(ox + x * c) + .5, Math.max(0, oy + y0 * c)); ctx.lineTo(Math.round(ox + x * c) + .5, Math.min(H, oy + (y1 + 1) * c)); }
+    for (let y = y0; y <= y1 + 1; y++) { ctx.moveTo(Math.max(0, ox + x0 * c), Math.round(oy + y * c) + .5); ctx.lineTo(Math.min(W, ox + (x1 + 1) * c), Math.round(oy + y * c) + .5); }
+    ctx.stroke();
+  }
+  if (step === 1) {
+    // selected pixel: dark + light double outline, visible on any colour
+    const sx = ox + sel.x * c, sy = oy + sel.y * c, w = Math.max(c, 6);
+    ctx.lineWidth = 3; ctx.strokeStyle = "#111"; ctx.strokeRect(sx - 1.5, sy - 1.5, w + 3, w + 3);
+    ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.strokeRect(sx - 4, sy - 4, w + 8, w + 8);
+  }
+  if (numbers && !showNums) {
+    const msg = P.t("zoomIn");
+    ctx.font = "650 14px " + css("--font");
+    const tw = ctx.measureText(msg).width + 24;
+    ctx.fillStyle = css("--ink-panel");
+    ctx.fillRect(W / 2 - tw / 2, H - 46, tw, 32);
+    ctx.fillStyle = css("--on-panel");
+    ctx.fillText(msg, W / 2, H - 30);
+  }
+}
+/* Light mixing: three discs of red, green and blue light on black, added together ("lighter"). */
+function drawMix() {
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, W, H);
+  const R = Math.min(W, H) * 0.24, cx = W / 2, cy = H / 2 + R * 0.08, d = R * 0.62;
+  const spots = [[0, -1, [mix[0], 0, 0]], [-0.866, 0.5, [0, mix[1], 0]], [0.866, 0.5, [0, 0, mix[2]]]];
+  ctx.globalCompositeOperation = "lighter";
+  spots.forEach(([dx, dy, col]) => {
+    ctx.beginPath(); ctx.arc(cx + dx * d, cy + dy * d, R, 0, Math.PI * 2);
+    ctx.fillStyle = rgb(col); ctx.fill();
+  });
+  ctx.globalCompositeOperation = "source-over";
+  ctx.font = "650 14px " + css("--font");
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const labels = [[P.t("red"), mix[0], 0, -1], [P.t("green"), mix[1], -0.866, 0.5], [P.t("blue"), mix[2], 0.866, 0.5]];
+  labels.forEach(([name, v, dx, dy]) => {
+    const lx = cx + dx * (d + R * 0.62), ly = cy + dy * (d + R * 0.62);
+    const t = name + " " + v, tw = ctx.measureText(t).width + 14;
+    ctx.fillStyle = "rgba(0,0,0,.72)";
+    ctx.fillRect(lx - tw / 2, ly - 12, tw, 24);
+    ctx.fillStyle = "#fff";
+    ctx.fillText(t, lx, ly);
+  });
+}
+function draw() { if (step === 2) drawMix(); else drawPixels(); }
+
+/* ---------- panel ---------- */
+function target() { return step === 2 ? mix : img[sel.y * SIZE + sel.x]; }
+function syncSliders() {
+  const c = target();
+  SL.forEach((s, k) => { s.value = c[k]; SLV[k].textContent = c[k]; });
+}
+function paintChip(el, c) {
+  el.style.background = rgb(c);
+  el.style.color = darkText(c) ? "#111" : "#fff";
+}
+function renderInfo() {
+  const c = cell();
+  $("zoomVal").textContent = "×" + Play.fmt(c / CMIN, c / CMIN < 10 ? 1 : 0);
+  if (step === 1) {
+    const p = target();
+    const who = $("who");
+    who.innerHTML = "";
+    const lab = document.createElement("span"); lab.textContent = P.t("pixel", { x: sel.x, y: sel.y });
+    const ch = document.createElement("span"); ch.className = "chip"; ch.textContent = p.join(", ");
+    paintChip(ch, p);
+    who.append(lab, ch);
+    const f = $("facts");
+    f.innerHTML = "";
+    [["fPix", `${SIZE} × ${SIZE} = ${nf(SIZE * SIZE)}`], ["fNum", `${nf(SIZE * SIZE)} × 3 = ${nf(bytesFor(SIZE, SIZE))}`], ["fSel", `(${p.join(", ")})`]]
+      .forEach(([k, v]) => { const a = document.createElement("span"); a.textContent = P.t(k); const b = document.createElement("b"); b.textContent = v; f.append(a, b); });
+  }
+  if (step === 2) {
+    const h = hex(mix), sw = $("swatch");
+    paintChip(sw, mix);
+    $("hex").textContent = h;
+    $("trip").textContent = P.t("trip", { r: mix[0], g: mix[1], b: mix[2] });
+  }
+}
+function renderSize() {
+  const w = cleanDim($("wIn").value), h = cleanDim($("hIn").value), b = bytesFor(w, h), s = niceSize(b);
+  $("sizeEq").textContent = P.t("sizeEq", { w: nf(w), h: nf(h), b: nf(b) });
+  $("sizeBig").textContent = s.u === "B" ? nf(b) + " B" : P.t("sizeBig", { v: s.v, u: s.u });
+  document.querySelectorAll("#sizePresets button").forEach((bt) => {
+    const on = +bt.dataset.w === w && +bt.dataset.h === h;
+    bt.classList.toggle("on", on); bt.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+}
+const msg = $("live");
+function announce() {
+  const c = target();
+  if (step === 1) Play.live(msg, P.t("liveSel", { x: sel.x, y: sel.y, r: c[0], g: c[1], b: c[2] }));
+  else if (step === 2) Play.live(msg, P.t("liveMix", { r: c[0], g: c[1], b: c[2], h: hex(c) }));
+  else Play.live(msg, "");
+}
+function refresh() { draw(); renderInfo(); }
+
+/* ---------- interactions ---------- */
+function setZoom(z, keepSel) {
+  $("zoom").value = Play.clamp(Math.round(z), 0, 100);
+  if (keepSel !== false) { vx = sel.x + 0.5; vy = sel.y + 0.5; }
+  refresh();
+}
+function select(x, y) {
+  sel = { x: Play.clamp(x, 0, SIZE - 1), y: Play.clamp(y, 0, SIZE - 1) };
+  // keep the selected pixel on screen
+  const { c } = origin(), hw = W / 2 / c, hh = H / 2 / c;
+  if (sel.x + 1 > vx + hw) vx = sel.x + 1 - hw; if (sel.x < vx - hw) vx = sel.x + hw;
+  if (sel.y + 1 > vy + hh) vy = sel.y + 1 - hh; if (sel.y < vy - hh) vy = sel.y + hh;
+  syncSliders(); refresh(); announce();
+}
+function setNumbers(on) {
+  numbers = on;
+  $("nums").checked = on;
+  if (on && cell() < NUMCELL) setZoom(zoomForCell(NUMCELL));
+  else refresh();
+}
+SL.forEach((s, k) => s.addEventListener("input", () => {
+  const c = target();
+  c[k] = clampByte(s.value);
+  SLV[k].textContent = c[k];
+  refresh(); announce();
+}));
+$("zoom").addEventListener("input", () => setZoom($("zoom").value));
+$("nums").addEventListener("change", () => setNumbers($("nums").checked));
+
+let drag = null;
+fig.addEventListener("pointerdown", (e) => {
+  if (step === 2) return;
+  drag = { x: e.clientX, y: e.clientY, vx, vy, moved: false };
+  try { fig.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+});
+fig.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+  drag.moved = true;
+  const c = cell();
+  vx = drag.vx - dx / c; vy = drag.vy - dy / c;
+  draw();
+});
+fig.addEventListener("pointerup", (e) => {
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  if (d.moved || step !== 1) return;
+  const r = fig.getBoundingClientRect(), { c, ox, oy } = origin();
+  const x = Math.floor((e.clientX - r.left - ox) / c), y = Math.floor((e.clientY - r.top - oy) / c);
+  if (x < 0 || y < 0 || x >= SIZE || y >= SIZE) return;
+  select(x, y);
+});
+fig.addEventListener("pointercancel", () => { drag = null; });
+fig.addEventListener("keydown", (e) => {
+  if (step === 2) return;
+  const k = e.key, z = +$("zoom").value;
+  if (k === "+" || k === "=") setZoom(z + 10);
+  else if (k === "-" || k === "_") setZoom(z - 10);
+  else if (step !== 1) return;
+  else if (k === "ArrowLeft") select(sel.x - 1, sel.y);
+  else if (k === "ArrowRight") select(sel.x + 1, sel.y);
+  else if (k === "ArrowUp") select(sel.x, sel.y - 1);
+  else if (k === "ArrowDown") select(sel.x, sel.y + 1);
+  else if (k === "n" || k === "N") setNumbers(!numbers);
+  else return;
+  e.preventDefault();
+});
+
+/* presets */
+PRESETS.forEach(([k, c]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(k);
+  b.addEventListener("click", () => { mix = c.slice(); syncSliders(); refresh(); announce(); });
+  $("presetRow").appendChild(b);
+});
+SIZES.forEach(([k, w, h]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.dataset.w = w; b.dataset.h = h;
+  b.textContent = P.t(k) + " " + w + "×" + h;
+  b.addEventListener("click", () => { $("wIn").value = w; $("hIn").value = h; renderSize(); });
+  $("sizePresets").appendChild(b);
+});
+["wIn", "hIn"].forEach((id) => {
+  $(id).addEventListener("input", renderSize);
+  $(id).addEventListener("change", () => { $(id).value = cleanDim($(id).value); renderSize(); });
+});
+
+/* ---------- steps ---------- */
+fresh();
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k, { total: nf(256 * 256 * 256) });
+  $("predict").hidden = i !== 0;
+  $("zoomRow").hidden = i === 2;
+  $("viewRow").hidden = $("facts").hidden = i !== 1;
+  $("sliders").hidden = i === 0;
+  $("presetRow").hidden = $("mixBox").hidden = i !== 2;
+  $("keys").textContent = i === 2 ? P.t("keysMix") : i === 1 ? P.t("keysPix") : "";
+  fig.style.cursor = i === 2 ? "default" : "";
+  if (i !== 1 && numbers) { numbers = false; $("nums").checked = false; }
+  syncSliders(); refresh(); renderSize(); announce();
+});
+$("resultNote").textContent = P.t("resultNote", { n: nf(bytesFor(SIZE, SIZE)) });
+$("reset").addEventListener("click", () => { fresh(); pr.reset(); st.go(0); });
+
+fitCanvas();
+if ("ResizeObserver" in window) new ResizeObserver(() => { fitCanvas(); draw(); }).observe(fig);
+else addEventListener("resize", () => { fitCanvas(); draw(); });
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw); } catch (err) { /* old browser: colours update on next draw */ }
+refresh();
+</script>
+</body>
+</html>

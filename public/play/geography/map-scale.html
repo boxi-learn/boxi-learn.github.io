@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draw a map of my home</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  #map { cursor: grab; user-select: none; -webkit-user-select: none; }
+  #map.dragging { cursor: grabbing; }
+  #map .lb { font-size: 13px; fill: var(--muted); }
+  #map .lbf { font-size: 13px; fill: var(--fg); font-weight: 650; }
+  #map .big { font-size: 18px; fill: var(--fg); font-weight: 700; }
+  #map .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round; }
+  #map .handle { cursor: pointer; outline: none; }
+  #map .handle .ring { fill: none; stroke: transparent; stroke-width: 3; }
+  #map .handle:focus .ring, #map .handle:focus-visible .ring { stroke: var(--hl); }
+  .controls label { min-width: 3.5em; }
+  .controls .val { min-width: 6.5em; font-variant-numeric: tabular-nums; }
+  .presets { padding-top: 0; }
+  .presets span { font-size: 13px; }
+  .read { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 6px 0 10px; font-size: 14px; }
+  .read dt { color: var(--muted); }
+  .read dd { margin: 0; font-variant-numeric: tabular-nums; color: var(--fg); }
+  .read dd.big { font-weight: 700; }
+  .quizhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 4px 0 2px; }
+  .quizhead strong { font-size: 14px; }
+  #quiz .predict { margin: 6px 0 8px; }
+  .result .math { white-space: normal; }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="map" viewBox="0 0 600 360" role="application" tabindex="0" data-t-aria="mapAria"></svg>
+      <div id="mapControls">
+        <div class="controls">
+          <label for="scale" data-t="scaleLabel"></label>
+          <input type="range" id="scale" min="0" max="5" step="1" value="4">
+          <span class="val" id="scaleVal"></span>
+        </div>
+        <div class="controls presets">
+          <span data-t="pick"></span>
+          <button type="button" class="small" data-pair="home,school" data-t="pHS"></button>
+          <button type="button" class="small" data-pair="home,park" data-t="pHP"></button>
+          <button type="button" class="small" data-pair="home,shop" data-t="pHSh"></button>
+          <button type="button" class="small" data-pair="school,park" data-t="pSP"></button>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <dl class="read" id="read">
+        <dt data-t="rScale"></dt><dd id="oScale" class="big"></dd>
+        <dt data-t="rCm"></dt><dd id="oCm"></dd>
+        <dt data-t="rMap"></dt><dd id="oMap" class="big"></dd>
+        <dt data-t="rReal"></dt><dd id="oReal" class="big"></dd>
+        <dt data-t="rArea"></dt><dd id="oArea"></dd>
+      </dl>
+      <div id="quizBox" hidden>
+        <div class="quizhead"><strong data-t="quizTitle"></strong><button type="button" class="small" id="newQ" data-t="newQ"></button></div>
+        <div id="quiz"></div>
+      </div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Draw a map of my home", eyebrow: "Geography · Stage 1",
+    h1: "A map makes every distance smaller by the same number",
+    intro: "Compare a sketch with a true map. Then zoom the map and measure it with a ruler.",
+    reset: "Reset",
+    mapAria: "Map of a made-up neighbourhood. Drag the map to move it, drag the two ruler ends to measure. Arrow keys move the map; plus and minus zoom.",
+    endA: "Ruler end 1. Arrow keys move it.", endB: "Ruler end 2. Arrow keys move it.",
+    scaleLabel: "Scale", pick: "Measure:",
+    pHS: "Home → School", pHP: "Home → Park", pHSh: "Home → Shop", pSP: "School → Park",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Mia's map of her street",
+    b1: "Mia drew the places she likes most as the biggest. Her school is huge and the park is tiny. Is that how a real map works?",
+    k2: "Hands on", t2: "Zoom the map and measure",
+    b2: "Move the scale slider to zoom. Drag the two round ends of the ruler, or pick two places below. Watch: the map centimetres change, but the real metres stay the same.",
+    k3: "The rule", t3: "Real distance = map distance × N",
+    b3: "The scale 1 : N means 1 cm on the map is N cm on the ground. So you multiply by N. A bigger N fits more ground on the page ({a} at 1 : 500, {b} at 1 : 20 000), but small things like trees and houses get too small to draw: less detail.",
+    q: "On a real map, how big is each place drawn?",
+    o1: "As big as it is important — the school is biggest", o2: "Every place the same size", o3: "Everything shrunk by the same number, so big places stay big",
+    right: "Yes! Look at the true map: the park is bigger than the school, because it is bigger on the ground.",
+    wrong: "Look at the true map: everything is shrunk by the same number, so the park is bigger than the school.",
+    sketchTitle: "Mia's sketch: big = important", trueTitle: "True map: all shrunk the same",
+    hidden: "Answer the question", hidden2: "to see the true map",
+    ratioNote: "On the ground the park is {pw} m × {ph} m. The school ground is {sw} m × {sh} m. The park is about {r} times as big, so on a true map it is bigger too.",
+    home: "Home", school: "School", park: "Park", shop: "Shop", river: "River", mySchool: "MY SCHOOL!",
+    rScale: "Scale", rCm: "1 cm on this map", rMap: "Ruler on the map", rReal: "On the ground", rArea: "This map shows",
+    vCm: "{m} on the ground", vMap: "{c} cm", vReal: "{c} × {n} = {cm} cm = {m}", vArea: "{w} × {h}",
+    unitM: "{v} m", unitKm: "{v} km",
+    screenNote: "Screens are different sizes, so 1 cm on this map may not be 1 cm on your screen. The ruler and the scale bar both use the map's own centimetres, so the answer is still exact.",
+    liveMap: "Scale {s}. The ruler is {c} cm on the map. That is {m} on the ground.",
+    quizTitle: "Try 3 questions", newQ: "New numbers",
+    qA: "A ruler shows {c} cm on a {s} map. How far is that on the ground?",
+    qB: "Two places are {m} m apart. How far apart are they on a {s} map?",
+    qC: "The park is {m} m wide. How wide is it on a {s} map?",
+    qRight: "Yes: {w}", qWrong: "Not quite: {w}",
+    workA: "{c} × {n} = {cm} cm = {m}.", workB: "{m} m = {cm} cm, and {cm} ÷ {n} = {c} cm.",
+    resultTitle: "What we found", resultMain: "real distance = map distance × N",
+    resultNote: "1 : 10 000 means 1 cm on the map is 10 000 cm = 100 m on the ground. Every distance is shrunk by the same N, so big places stay big.",
+    explainK: "Explain it", explainQ: "A friend draws their bedroom bigger than the whole kitchen because it is their favourite room. Explain why a real map can't do that. Use the word \"scale\".",
+    homeK: "Try at home", homeQ: "Measure your room in steps or with a tape. Draw it on squared paper where 1 cm on the paper = 50 cm in the room. Measure your bed on the paper, multiply by 50, and check with the real bed.",
+    foot: "The neighbourhood is made up; its places are set in metres in the code (park 300 m × 220 m, school ground 140 m × 100 m, house 12 m × 10 m). This page draws 1 map cm as 38 screen pixels and draws the scale bar and the ruler from that same number, so every reading is exact on any screen. Ruler readings are rounded to 0.1 cm, like a real ruler. Things smaller than 3 pixels are left off the map, as real maps do. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "画我家的地图", eyebrow: "地理 · 阶段 1",
+    h1: "地图把每一段距离都缩小同样的倍数",
+    intro: "先比一比草图和真地图。再缩放地图，用尺子量一量。",
+    reset: "重置",
+    mapAria: "一个虚构街区的地图。拖动地图可以移动它，拖尺子的两个端点来测量。方向键移动地图，加号和减号缩放。",
+    endA: "尺子端点 1，方向键移动。", endB: "尺子端点 2，方向键移动。",
+    scaleLabel: "比例尺", pick: "量一量：",
+    pHS: "家 → 学校", pHP: "家 → 公园", pHSh: "家 → 商店", pSP: "学校 → 公园",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "米娅画的街区图",
+    b1: "米娅把她最喜欢的地方画得最大：学校特别大，公园很小。真正的地图是这样画的吗？",
+    k2: "动手", t2: "缩放地图，量一量",
+    b2: "拖比例尺滑块来缩放。拖尺子两头的圆点，或者在下面选两个地方。看：图上的厘米数变了，地上的米数不变。",
+    k3: "规律", t3: "实际距离 = 图上距离 × N",
+    b3: "比例尺 1 : N 的意思是：图上 1 厘米，就是地上 N 厘米。所以乘 N 就行。N 越大，一张图装下的地方越多（1 : 500 时是 {a}，1 : 20 000 时是 {b}），可是树、房子这些小东西小得画不出来了：细节变少。",
+    q: "真正的地图上，每个地方画多大？",
+    o1: "越重要画得越大，学校最大", o2: "每个地方都画一样大", o3: "全都缩小同样的倍数，大的地方还是大",
+    right: "对！看真地图：公园比学校大，因为它在地上就更大。",
+    wrong: "看真地图：所有东西都缩小同样的倍数，所以公园比学校大。",
+    sketchTitle: "米娅的草图：重要 = 画大", trueTitle: "真地图：都缩小一样多",
+    hidden: "先回答问题", hidden2: "再看真地图",
+    ratioNote: "地上的公园是 {pw} 米 × {ph} 米，学校是 {sw} 米 × {sh} 米。公园大约是学校的 {r} 倍，所以真地图上公园也更大。",
+    home: "家", school: "学校", park: "公园", shop: "商店", river: "河", mySchool: "我的学校！",
+    rScale: "比例尺", rCm: "图上 1 厘米", rMap: "尺子量出图上", rReal: "地上实际", rArea: "这张图装下",
+    vCm: "地上 {m}", vMap: "{c} 厘米", vReal: "{c} × {n} = {cm} 厘米 = {m}", vArea: "{w} × {h}",
+    unitM: "{v} 米", unitKm: "{v} 千米",
+    screenNote: "每块屏幕大小不同，所以这张图上的 1 厘米不一定是你屏幕上的 1 厘米。尺子和比例尺都用地图自己的厘米，所以结果还是准的。",
+    liveMap: "比例尺 {s}。尺子在图上是 {c} 厘米，地上是 {m}。",
+    quizTitle: "做 3 道题", newQ: "换一组数",
+    qA: "在 {s} 的地图上，尺子量出 {c} 厘米。地上有多远？",
+    qB: "两个地方相距 {m} 米。在 {s} 的地图上相距多远？",
+    qC: "公园宽 {m} 米。在 {s} 的地图上有多宽？",
+    qRight: "对：{w}", qWrong: "不对哦：{w}",
+    workA: "{c} × {n} = {cm} 厘米 = {m}。", workB: "{m} 米 = {cm} 厘米，{cm} ÷ {n} = {c} 厘米。",
+    resultTitle: "我们发现", resultMain: "实际距离 = 图上距离 × N",
+    resultNote: "1 : 10 000 表示图上 1 厘米 = 地上 10 000 厘米 = 100 米。每一段距离都缩小同样的 N 倍，所以大的地方在图上还是大。",
+    explainK: "说一说", explainQ: "朋友把自己的卧室画得比整个厨房还大，因为那是他最喜欢的房间。用“比例尺”这个词，说说真正的地图为什么不能这样画。",
+    homeK: "家里做一做", homeQ: "用步子或卷尺量你的房间。在方格纸上画出来：纸上 1 厘米 = 房间里 50 厘米。在纸上量你的床，乘 50，再去量真床对一对。",
+    foot: "街区是虚构的，各地点在代码里用米定义（公园 300 米 × 220 米，学校 140 米 × 100 米，房子 12 米 × 10 米）。本页把图上 1 厘米画成 38 个屏幕像素，比例尺和尺子用同一个数画，所以在任何屏幕上读数都准确。尺子读数取到 0.1 厘米，和真尺子一样。小于 3 像素的东西不画，真地图也这样取舍。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- the neighbourhood, in real metres (x east, y north) ---------- */
+const U = 38;                                  // screen px per map cm; scale bar + ruler use the same U
+const SCALES = [500, 1000, 2000, 5000, 10000, 20000];
+const WORLD = { w: 2600, h: 1600 };
+const PL = {
+  home:   { x: 900,  y: 700,  w: 12,  h: 10 },
+  shop:   { x: 1080, y: 560,  w: 18,  h: 14 },
+  school: { x: 1350, y: 985,  w: 140, h: 100, bw: 90, bh: 40 },
+  park:   { x: 450,  y: 1050, w: 300, h: 220 },
+};
+const RIVER = { w: 40, pts: [[0, 380], [600, 330], [1200, 420], [1800, 360], [2600, 440]] };
+const ROADS = [
+  { w: 12, pts: [[0, 650], [2600, 650]] },
+  { w: 10, pts: [[1000, 100], [1000, 1500]] },
+  { w: 8,  pts: [[1000, 900], [1350, 900], [1350, 935]] },
+  { w: 8,  pts: [[620, 650], [620, 1050]] },
+];
+const PATHS = [ // footpaths (detail)
+  { w: 3, pts: [[900, 656], [900, 695]] },
+  { w: 3, pts: [[310, 980], [400, 1060], [520, 1040], [590, 1120]] },
+];
+const HOUSES = [];
+for (let x = 640; x <= 1560; x += 55) {
+  if (Math.abs(x - 900) < 30 || Math.abs(x - 1000) < 40) continue;
+  HOUSES.push([x, 680], [x, 620]);
+}
+const TREES = [];
+(function () { let s = 7; const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 26; i++) TREES.push([310 + r() * 280, 950 + r() * 200]);
+  for (let i = 0; i < 6; i++) TREES.push([1290 + i * 24, 945]);
+})();
+const RT = 5; // tree radius, m
+
+/* ---------- pure helpers (tested in node) ---------- */
+const kOf = (N) => 100 * U / N;                          // screen px per real metre
+const tenths = (px) => Math.round(Math.max(0, px) / U * 10); // ruler reading in 0.1 cm
+const realCm = (t, N) => t * N / 10;                     // integer cm, since N is a multiple of 10
+function grp(v) { // 12345.6 → "12 345.6" (narrow no-break space), never NaN
+  if (!Number.isFinite(v)) return "—";
+  const r = Math.round(v * 100) / 100, neg = r < 0, a = Math.abs(r);
+  let [i, d] = String(a).split(".");
+  i = i.replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f");
+  return (neg ? "−" : "") + i + (d ? "." + d : "");
+}
+const lenM = (m) => (m >= 1000 ? P.t("unitKm", { v: grp(Math.round(m / 100) / 10) }) : P.t("unitM", { v: grp(m >= 100 ? Math.round(m) : Math.round(m * 10) / 10) }));
+const distM = (m) => P.t("unitM", { v: grp(m) }); // exact metres (m = cm / 100), never switched to km
+const scaleStr = (N) => "1\u00a0:\u00a0" + grp(N);
+const NICE = [1000, 2000, 2500, 5000, 10000, 20000, 25000, 30000, 40000, 50000, 100000, 200000];
+
+/* ---------- state ---------- */
+const $ = (id) => document.getElementById(id);
+const svg = $("map"), scaleEl = $("scale");
+const S = {};
+function defaults() {
+  Object.assign(S, { si: 4, revealed: false, A: { x: PL.home.x, y: PL.home.y }, B: { x: PL.school.x, y: PL.school.y } });
+  S.cx = (S.A.x + S.B.x) / 2; S.cy = (S.A.y + S.B.y) / 2;
+}
+defaults();
+let step = 0, W = 600, H = 360;
+
+/* ---------- drawing ---------- */
+function txt(parent, x, y, s, cls, anchor) {
+  const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "start" }, parent);
+  t.textContent = s;
+  return t;
+}
+function mkView(cx, cy, N, x, y, w, h) { return { cx, cy, N, k: kOf(N), x, y, w, h }; }
+const toS = (v, X, Y) => [v.x + v.w / 2 + (X - v.cx) * v.k, v.y + v.h / 2 - (Y - v.cy) * v.k];
+const toW = (v, sx, sy) => [v.cx + (sx - v.x - v.w / 2) / v.k, v.cy - (sy - v.y - v.h / 2) / v.k];
+function line(g, v, pts, wm, attrs, minPx) {
+  const d = pts.map(([X, Y], i) => { const [a, b] = toS(v, X, Y); return (i ? "L" : "M") + a.toFixed(1) + " " + b.toFixed(1); }).join("");
+  Play.svg("path", Object.assign({ d, fill: "none", "stroke-width": Math.max(minPx || 1.5, wm * v.k), "stroke-linecap": "butt", "stroke-linejoin": "round" }, attrs), g);
+}
+function box(g, v, X, Y, w, h, attrs) {
+  const [a, b] = toS(v, X - w / 2, Y + h / 2);
+  return Play.svg("rect", Object.assign({ x: a, y: b, width: w * v.k, height: h * v.k }, attrs), g);
+}
+function riverAt(X) { const p = RIVER.pts; for (let i = 1; i < p.length; i++) if (X <= p[i][0]) return p[i - 1][1] + (p[i][1] - p[i - 1][1]) * (X - p[i - 1][0]) / (p[i][0] - p[i - 1][0]); return p[p.length - 1][1]; }
+function labelIn(v, X, Y, w, h) { // label point: centre of the place, kept inside the visible view
+  const [a, b] = toS(v, X, Y), hw = w * v.k / 2, hh = h * v.k / 2;
+  const x = Play.clamp(a, Math.max(a - hw, v.x + 34), Math.min(a + hw, v.x + v.w - 34));
+  const y = Play.clamp(b, Math.max(b - hh, v.y + 30), Math.min(b + hh, v.y + v.h - 12));
+  return [x, y];
+}
+
+function drawMap(g, v, lg) {
+  lg = lg || g;
+  const k = v.k;
+  Play.svg("rect", { x: v.x, y: v.y, width: v.w, height: v.h, fill: "var(--surface)" }, g);
+  { const [a, b] = toS(v, 0, WORLD.h); Play.svg("rect", { x: a, y: b, width: WORLD.w * k, height: WORLD.h * k, fill: "var(--soft)", opacity: 0.6 }, g); }
+  const P0 = PL.park, SC = PL.school;
+  box(g, v, P0.x, P0.y, P0.w, P0.h, { fill: "var(--a)", "fill-opacity": 0.22, stroke: "var(--a)", "stroke-width": 1.5 });
+  box(g, v, SC.x, SC.y, SC.w, SC.h, { fill: "var(--hl)", "fill-opacity": 0.22, stroke: "var(--hl)", "stroke-width": 1.5 });
+  line(g, v, RIVER.pts, RIVER.w, { stroke: "var(--c)", opacity: 0.75 }, 2);
+  ROADS.forEach((r) => line(g, v, r.pts, r.w, { stroke: "var(--muted)", opacity: 0.55 }, 1.5));
+  if (k >= 0.3) { // bridge rails over the river
+    const yr = riverAt(1000), hw = (ROADS[1].w / 2 + 1);
+    [-hw, hw].forEach((dx) => line(g, v, [[1000 + dx, yr - RIVER.w / 2 - 6], [1000 + dx, yr + RIVER.w / 2 + 6]], 1, { stroke: "var(--fg)" }, 1.2));
+  }
+  PATHS.forEach((p) => { if (p.w * k >= 0.8) line(g, v, p.pts, p.w, { stroke: "var(--b)", opacity: 0.6, "stroke-dasharray": Math.max(2, 2 * k) + " " + Math.max(2, 2 * k) }, 0.8); });
+  HOUSES.forEach(([X, Y]) => { if (10 * k >= 3) box(g, v, X, Y, 10, 10, { fill: "var(--muted)", opacity: 0.5 }); });
+  if (SC.bw * k >= 3) box(g, v, SC.x, SC.y + 20, SC.bw, SC.bh, { fill: "var(--b)", opacity: 0.85 });
+  TREES.forEach(([X, Y]) => { if (RT * k >= 1.5) { const [a, b] = toS(v, X, Y); Play.svg("circle", { cx: a, cy: b, r: RT * k, fill: "var(--a)", opacity: 0.7 }, g); } });
+  [["home", "var(--h)"], ["shop", "var(--b)"]].forEach(([id, c]) => {
+    const p = PL[id];
+    if (p.w * k >= 3) box(g, v, p.x, p.y, p.w, p.h, { fill: c, stroke: "var(--fg)", "stroke-width": 1 });
+    else { const [a, b] = toS(v, p.x, p.y); Play.svg("circle", { cx: a, cy: b, r: 3.5, fill: c, stroke: "var(--fg)", "stroke-width": 1 }, g); }
+  });
+  // labels
+  const lab = (id, dy) => { const p = PL[id]; const [a, b] = toS(v, p.x, p.y + p.h / 2); txt(lg, a, b - 6 + (dy || 0), P.t(id), "lbf halo", "middle"); };
+  lab("home"); lab("shop", p_shopDy(k));
+  { const [a, b] = labelIn(v, P0.x, P0.y, P0.w, P0.h); txt(lg, a, b + 4, P.t("park"), "lbf halo", "middle"); }
+  { const [a, b] = labelIn(v, SC.x, SC.y - 25, SC.w, SC.h - 50); txt(lg, a, b + 4, P.t("school"), "lbf halo", "middle"); }
+  { // river label at the first visible sample
+    for (let X = 50; X <= WORLD.w; X += 25) {
+      const [a, b] = toS(v, X, riverAt(X));
+      if (a > v.x + 40 && a < v.x + v.w - 40 && b > v.y + 28 && b < v.y + v.h - 70) { txt(lg, a, b + 4, P.t("river"), "lb halo", "middle"); break; }
+    }
+  }
+}
+const p_shopDy = (k) => (k < 0.5 ? 30 : 0); // at small scales put "Shop" under its dot, away from "Home"
+
+function scaleBar(g, v) {
+  const x0 = v.x + 12, y0 = v.y + v.h - 14, m = v.N / 100;
+  Play.svg("rect", { x: x0 - 6, y: y0 - 40, width: 2 * U + 58, height: 46, rx: 6, fill: "var(--surface)", opacity: 0.92, stroke: "var(--line)" }, g);
+  txt(g, x0, y0 - 25, scaleStr(v.N), "lbf");
+  for (let i = 0; i < 2; i++) Play.svg("rect", { x: x0 + i * U, y: y0 - 18, width: U, height: 6, fill: i ? "var(--surface)" : "var(--fg)", stroke: "var(--fg)", "stroke-width": 1 }, g);
+  txt(g, x0, y0, "0", "lb", "middle");
+  txt(g, x0 + U, y0, grp(m), "lb", "middle");
+  txt(g, x0 + 2 * U + 3, y0, P.t("unitM", { v: grp(2 * m) }), "lb", "start");
+}
+
+function drawRuler(g, v, hg) {
+  let [ax, ay] = toS(v, S.A.x, S.A.y), [bx, by] = toS(v, S.B.x, S.B.y);
+  const raw = Math.hypot(bx - ax, by - ay);
+  if (raw >= 1) {
+    let [sx, sy, ex, ey] = ax <= bx ? [ax, ay, bx, by] : [bx, by, ax, ay];
+    const ang = Math.atan2(ey - sy, ex - sx) * 180 / Math.PI;
+    const r = Play.svg("g", { transform: `translate(${sx.toFixed(1)} ${sy.toFixed(1)}) rotate(${ang.toFixed(2)})`, "pointer-events": "none" }, g);
+    Play.svg("rect", { x: 0, y: -18, width: raw, height: 18, fill: "var(--surface)", opacity: 0.82, stroke: "var(--fg)", "stroke-width": 1 }, r);
+    const n = Math.min(Math.floor(raw / (U / 2)), 4000);
+    for (let i = 0; i <= n; i++) {
+      const x = i * U / 2, major = i % 2 === 0;
+      Play.svg("line", { x1: x, y1: 0, x2: x, y2: major ? -8 : -4, stroke: "var(--fg)", "stroke-width": 1 }, r);
+      if (major && i < 400 && raw - x > 10) txt(r, x + 2, -8, String(i / 2), "lb", "start").setAttribute("style", "font-size:10px");
+    }
+    Play.svg("line", { x1: 0, y1: 0, x2: raw, y2: 0, stroke: "var(--a)", "stroke-width": 2.5 }, r);
+  }
+  [["A", ax, ay, "endA"], ["B", bx, by, "endB"]].forEach(([id, x, y, aria]) => {
+    const h = Play.svg("g", { class: "handle", "data-h": id, tabindex: 0, role: "button", "aria-label": P.t(aria) }, hg);
+    Play.svg("circle", { cx: x, cy: y, r: 20, fill: "transparent" }, h);
+    Play.svg("circle", { class: "ring", cx: x, cy: y, r: 12 }, h);
+    Play.svg("circle", { cx: x, cy: y, r: 8, fill: "var(--a)", stroke: "var(--surface)", "stroke-width": 2 }, h);
+  });
+  const t = tenths(raw);
+  const mx = Play.clamp((ax + bx) / 2, v.x + 60, v.x + v.w - 60), my = Play.clamp((ay + by) / 2 + 26, v.y + 20, v.y + v.h - 60);
+  txt(hg, mx, my, P.t("vMap", { c: grp(t / 10) }), "lbf halo", "middle");
+  return t;
+}
+
+function mainView() { return mkView(S.cx, S.cy, SCALES[S.si], 0, 0, W, H); }
+let focusId = null;
+function drawMain() {
+  const v = mainView(), N = v.N;
+  const [gm, gr, gl, gh] = [0, 1, 2, 3].map(() => Play.svg("g", {}, svg));
+  drawMap(gm, v, gl);
+  scaleBar(gh, v);
+  const t = drawRuler(gr, v, gh);
+  if (focusId) { const h = svg.querySelector(`[data-h="${focusId}"]`); if (h) h.focus(); }
+  const cm = realCm(t, N), m = cm / 100;
+  scaleEl.value = S.si;
+  $("scaleVal").textContent = scaleStr(N);
+  $("oScale").textContent = scaleStr(N);
+  $("oCm").textContent = P.t("vCm", { m: lenM(N / 100) });
+  $("oMap").textContent = P.t("vMap", { c: grp(t / 10) });
+  $("oReal").textContent = P.t("vReal", { c: grp(t / 10), n: grp(N), cm: grp(cm), m: distM(m) });
+  $("oArea").textContent = P.t("vArea", { w: lenM(W / U * N / 100), h: lenM(H / U * N / 100) });
+  if (step === 2) $("stepBody").textContent = P.t("b3", { a: areaAt(500), b: areaAt(20000) });
+  Play.live($("live"), P.t("liveMap", { s: scaleStr(N), c: grp(t / 10), m: distM(m) }) + (step === 1 ? " " + P.t("screenNote") : ""));
+}
+const areaAt = (N) => P.t("vArea", { w: lenM(W / U * N / 100), h: lenM(H / U * N / 100) });
+
+/* step 1: Mia's sketch vs the true map */
+function wob(pts, seed) { // hand-drawn wobble
+  let s = seed;
+  const r = () => ((s = (s * 9301 + 49297) % 233280) / 233280 - 0.5) * 2.4;
+  return pts.map(([x, y], i) => (i ? "L" : "M") + (x + r()).toFixed(1) + " " + (y + r()).toFixed(1)).join("") + "Z";
+}
+function drawSketch(x0, y0, w, h) {
+  const g = Play.svg("g", {}, svg);
+  Play.svg("rect", { x: x0, y: y0, width: w, height: h, fill: "var(--surface)" }, g);
+  txt(g, x0 + 10, y0 + 20, P.t("sketchTitle"), "lbf");
+  const cy0 = y0 + 30, ch = h - 36, X = (u) => x0 + u * w, Y = (t) => cy0 + t * ch;
+  const pen = { fill: "none", stroke: "var(--fg)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" };
+  // river: a thin wiggle
+  let d = "M" + X(0.02) + " " + Y(0.93);
+  for (let i = 1; i <= 8; i++) d += " Q" + X(0.02 + (i - 0.5) * 0.12) + " " + Y(i % 2 ? 0.88 : 0.98) + " " + X(0.02 + i * 0.12) + " " + Y(0.93);
+  Play.svg("path", Object.assign({}, pen, { d, stroke: "var(--c)" }), g);
+  // road
+  Play.svg("path", Object.assign({}, pen, { d: `M${X(0.02)} ${Y(0.8)} L${X(0.98)} ${Y(0.8)}`, stroke: "var(--muted)" }), g);
+  // huge school with windows and a flag
+  const sx = X(0.44), sy = Y(0.1), sw = X(0.95) - sx, sh = Y(0.74) - sy;
+  Play.svg("path", Object.assign({}, pen, { d: wob([[sx, sy], [sx + sw, sy], [sx + sw, sy + sh], [sx, sy + sh]], 3), fill: "var(--hl)", "fill-opacity": 0.35 }), g);
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) Play.svg("rect", { x: sx + sw * (0.12 + i * 0.29), y: sy + sh * (0.14 + j * 0.3), width: sw * 0.17, height: sh * 0.16, fill: "none", stroke: "var(--fg)", "stroke-width": 1.5 }, g);
+  Play.svg("path", Object.assign({}, pen, { d: `M${sx + sw * 0.5} ${sy} L${sx + sw * 0.5} ${sy - Math.min(26, sh * 0.25)} l14 5 l-14 5` }), g);
+  txt(g, sx + sw / 2, sy + sh * 0.88, P.t("mySchool"), "big", "middle");
+  // medium home with a roof
+  const hx = X(0.07), hy = Y(0.45), hw = X(0.34) - hx, hh = Y(0.74) - hy;
+  Play.svg("path", Object.assign({}, pen, { d: wob([[hx, hy], [hx + hw, hy], [hx + hw, hy + hh], [hx, hy + hh]], 11), fill: "var(--h)", "fill-opacity": 0.3 }), g);
+  Play.svg("path", Object.assign({}, pen, { d: `M${hx - 4} ${hy} L${hx + hw / 2} ${hy - hh * 0.45} L${hx + hw + 4} ${hy}` }), g);
+  txt(g, hx + hw / 2, hy + hh * 0.65, P.t("home"), "lbf", "middle");
+  // tiny park and shop
+  const pr = Math.max(5, Math.min(w, h) * 0.035);
+  Play.svg("circle", { cx: X(0.1), cy: Y(0.12), r: pr, fill: "var(--a)", "fill-opacity": 0.4, stroke: "var(--fg)", "stroke-width": 1.5 }, g);
+  txt(g, X(0.1) + pr + 4, Y(0.12) + 4, P.t("park"), "lb");
+  Play.svg("rect", { x: X(0.37) - 4, y: Y(0.8) - 12, width: 8, height: 8, fill: "var(--b)", stroke: "var(--fg)", "stroke-width": 1.2 }, g);
+  txt(g, X(0.37), Y(0.8) + 14, P.t("shop"), "lb", "middle");
+}
+function fitScale(w, h) { // smallest nice N that fits the core area into w × h
+  const FB = { w: 1360, h: 920 };
+  const k = Math.min(w / FB.w, h / FB.h), need = 100 * U / Math.max(k, 1e-6);
+  return NICE.find((n) => n >= need) || NICE[NICE.length - 1];
+}
+function drawTrue(x0, y0, w, h, id) {
+  const defs = Play.svg("defs", {}, svg), cp = Play.svg("clipPath", { id }, defs);
+  Play.svg("rect", { x: x0, y: y0, width: w, height: h }, cp);
+  const g = Play.svg("g", { "clip-path": `url(#${id})` }, svg);
+  const N = fitScale(w - 16, h - 40), v = mkView(960, 740, N, x0, y0 + 14, w, h - 14);
+  drawMap(g, v);
+  Play.svg("rect", { x: x0, y: y0, width: w, height: 26, fill: "var(--surface)", opacity: 0.9 }, g);
+  txt(g, x0 + 10, y0 + 20, P.t("trueTitle"), "lbf");
+  scaleBar(g, v);
+  if (!S.revealed) {
+    Play.svg("rect", { x: x0, y: y0 + 26, width: w, height: h - 26, fill: "var(--soft)" }, g);
+    txt(g, x0 + w / 2, y0 + h / 2 - 22, "?", "big", "middle").setAttribute("style", "font-size:44px");
+    txt(g, x0 + w / 2, y0 + h / 2 + 20, P.t("hidden"), "lbf", "middle");
+    txt(g, x0 + w / 2, y0 + h / 2 + 38, P.t("hidden2"), "lbf", "middle");
+  }
+}
+function drawStep1() {
+  if (W >= 520) { drawSketch(0, 0, W / 2, H); drawTrue(W / 2, 0, W / 2, H, "clipT"); Play.svg("line", { x1: W / 2, y1: 0, x2: W / 2, y2: H, stroke: "var(--line)" }, svg); }
+  else { drawSketch(0, 0, W, H / 2); drawTrue(0, H / 2, W, H / 2, "clipT"); Play.svg("line", { x1: 0, y1: H / 2, x2: W, y2: H / 2, stroke: "var(--line)" }, svg); }
+  const p = PL.park, s = PL.school;
+  Play.live($("live"), S.revealed ? P.t("ratioNote", { pw: p.w, ph: p.h, sw: s.w, sh: s.h, r: grp(Math.round(p.w * p.h / (s.w * s.h) * 10) / 10) }) : "");
+}
+
+function render() {
+  const bb = svg.getBoundingClientRect();
+  W = Math.max(300, Math.round(bb.width) || 600); H = Math.max(240, Math.round(bb.height) || 360);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = "";
+  if (step === 0) drawStep1(); else drawMain();
+}
+
+/* ---------- interaction ---------- */
+function clampWorld(p) { p.x = Play.clamp(p.x, 0, WORLD.w); p.y = Play.clamp(p.y, 0, WORLD.h); }
+function clampView() { S.cx = Play.clamp(S.cx, 0, WORLD.w); S.cy = Play.clamp(S.cy, 0, WORLD.h); }
+let drag = null;
+svg.addEventListener("pointerdown", (e) => {
+  if (step === 0) return;
+  const h = e.target.closest && e.target.closest(".handle");
+  const p = Play.pointer(svg, e);
+  drag = h ? { h: h.dataset.h } : { pan: true, x: p.x, y: p.y, cx: S.cx, cy: S.cy };
+  focusId = h ? h.dataset.h : null;
+  svg.setPointerCapture(e.pointerId);
+  svg.classList.add("dragging");
+  e.preventDefault();
+});
+svg.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const v = mainView(), p = Play.pointer(svg, e);
+  if (drag.pan) { S.cx = drag.cx - (p.x - drag.x) / v.k; S.cy = drag.cy + (p.y - drag.y) / v.k; clampView(); }
+  else {
+    let [X, Y] = toW(v, Play.clamp(p.x, 0, W), Play.clamp(p.y, 0, H));
+    for (const id in PL) { const q = PL[id], [a, b] = toS(v, q.x, q.y); if (Math.hypot(a - p.x, b - p.y) < 12) { X = q.x; Y = q.y; } }
+    const end = S[drag.h]; end.x = X; end.y = Y; clampWorld(end);
+  }
+  render();
+});
+function endDrag() { drag = null; svg.classList.remove("dragging"); }
+svg.addEventListener("pointerup", endDrag);
+svg.addEventListener("pointercancel", endDrag);
+svg.addEventListener("keydown", (e) => {
+  if (step === 0) return;
+  const v = mainView(), h = e.target.closest && e.target.closest(".handle");
+  const dir = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+  if (h && dir) {
+    const px = e.shiftKey ? 10 : 2, end = S[h.dataset.h];
+    end.x += dir[0] * px / v.k; end.y += dir[1] * px / v.k; clampWorld(end);
+    focusId = h.dataset.h; render(); e.preventDefault(); return;
+  }
+  if (dir) { S.cx += dir[0] * 40 / v.k; S.cy += dir[1] * 40 / v.k; clampView(); focusId = null; render(); e.preventDefault(); return; }
+  if (e.key === "+" || e.key === "=") { setScale(S.si - 1); e.preventDefault(); }
+  if (e.key === "-" || e.key === "_") { setScale(S.si + 1); e.preventDefault(); }
+});
+svg.addEventListener("focusout", (e) => { if (!svg.contains(e.relatedTarget)) focusId = null; });
+function setScale(i) { // if the ruler no longer fits, look at its first end (home by default)
+  S.si = Play.clamp(i, 0, SCALES.length - 1);
+  const k = kOf(SCALES[S.si]);
+  if (Math.hypot(S.B.x - S.A.x, S.B.y - S.A.y) * k > 0.8 * Math.min(W, H)) { S.cx = S.A.x; S.cy = S.A.y; }
+  else { S.cx = (S.A.x + S.B.x) / 2; S.cy = (S.A.y + S.B.y) / 2; }
+  render();
+}
+scaleEl.addEventListener("input", () => setScale(Math.round(+scaleEl.value)));
+document.querySelectorAll("[data-pair]").forEach((b) => b.addEventListener("click", () => {
+  const [a, c] = b.dataset.pair.split(",");
+  S.A = { x: PL[a].x, y: PL[a].y }; S.B = { x: PL[c].x, y: PL[c].y };
+  S.cx = (S.A.x + S.B.x) / 2; S.cy = (S.A.y + S.B.y) / 2; focusId = null;
+  render();
+}));
+
+/* ---------- quiz (step 3): every answer computed ---------- */
+function mkQuiz(seed) {
+  let s = seed;
+  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+  const c1 = seed === 1 ? 4 : 2 + Math.floor(rnd() * 8), n1 = seed === 1 ? 10000 : pick([1000, 2000, 5000, 10000, 20000]);
+  const c2 = seed === 1 ? 6 : 2 + Math.floor(rnd() * 8), n2 = seed === 1 ? 5000 : pick([500, 1000, 2000, 5000, 10000]);
+  const n3 = seed === 1 ? 2000 : pick([1000, 2000, 5000, 10000, 20000]);
+  const wA = (c, n) => P.t("workA", { c: grp(c), n: grp(n), cm: grp(c * n), m: distM(c * n / 100) });
+  const wB = (m, n) => P.t("workB", { m: grp(m), cm: grp(m * 100), n: grp(n), c: grp(m * 100 / n) });
+  const cmS = (c) => P.t("vMap", { c: grp(c) });
+  const qs = [];
+  qs.push({ q: P.t("qA", { c: c1, s: scaleStr(n1) }), vals: [c1 * n1 / 100, c1 * n1 / 1000, c1 * n1 / 10].map(distM), work: wA(c1, n1) });
+  const m2 = c2 * n2 / 100;
+  qs.push({ q: P.t("qB", { m: grp(m2), s: scaleStr(n2) }), vals: [c2, c2 * 10, c2 / 10].map(cmS), work: wB(m2, n2) });
+  const m3 = PL.park.w, c3 = m3 * 100 / n3;
+  qs.push({ q: P.t("qC", { m: m3, s: scaleStr(n3) }), vals: [c3, c3 * 10, c3 / 10].map(cmS), work: wB(m3, n3) });
+  return qs.map((o, i) => {
+    const rot = (i + seed) % 3, opts = o.vals.map((label, j) => ({ label, right: j === 0 }));
+    for (let r = 0; r < rot; r++) opts.push(opts.shift());
+    return { q: o.q, options: opts, right: P.t("qRight", { w: o.work }), wrong: P.t("qWrong", { w: o.work }) };
+  });
+}
+let quizSeed = 1;
+function buildQuiz() {
+  const box = $("quiz"); box.innerHTML = "";
+  mkQuiz(quizSeed).forEach((cfg) => { const d = document.createElement("div"); box.appendChild(d); Play.predict(d, cfg); });
+}
+$("newQ").addEventListener("click", () => { quizSeed = 2 + Math.floor(Math.random() * 1e6); buildQuiz(); });
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }], right: P.t("right"), wrong: P.t("wrong"),
+}, () => { S.revealed = true; render(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("read").hidden = i === 0;
+  $("mapControls").hidden = i === 0;
+  $("quizBox").hidden = i !== 2;
+  svg.setAttribute("tabindex", i === 0 ? "-1" : "0");
+  svg.style.cursor = i === 0 ? "default" : "";
+  render();
+});
+$("reset").addEventListener("click", () => { defaults(); focusId = null; quizSeed = 1; buildQuiz(); pr.reset(); st.go(0); });
+buildQuiz();
+if ("ResizeObserver" in window) {
+  let lastW = 0;
+  new ResizeObserver(() => { const w = Math.round(svg.getBoundingClientRect().width); if (w !== lastW) { lastW = w; render(); } }).observe(svg);
+}
+render();
+</script>
+</body>
+</html>
