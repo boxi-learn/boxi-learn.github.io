@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solid, liquid, gas</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  #sim { cursor: pointer; }
+  .stage .vtitle { font-size: 13px; color: var(--fg); background: var(--surface); border-radius: 6px; padding: 1px 6px; }
+  .stage .vtag { font-size: 12px; }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 4.2em; }
+  .controls button[aria-pressed="true"] { border-color: var(--a); background: var(--soft); }
+  .tempwrap { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .tempwrap input { width: 100%; margin: 0; }
+  .bands { position: relative; height: 18px; margin: 0 8px; font-size: 12px; color: var(--muted); }
+  .bands span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+  .bands span.edge { color: var(--fg); font-weight: 650; }
+  .bandbar { display: flex; height: 6px; margin: 0 8px; border-radius: 3px; overflow: hidden; }
+  .bandbar i { display: block; height: 100%; }
+  .meters { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 8px; align-items: center; font-size: 13px; margin: 4px 0 10px; }
+  .meters .bar { height: 8px; background: var(--soft); border-radius: 4px; overflow: hidden; }
+  .meters .bar i { display: block; height: 100%; background: var(--a); border-radius: 4px; transition: width .3s; }
+  .meters .v { font-family: var(--math); color: var(--fg); min-width: 3.4em; text-align: right; }
+  .statebox { font-size: 14px; color: var(--fg); margin: 0 0 8px; }
+  #curve { width: 100%; height: 250px; display: block; touch-action: none; cursor: pointer; }
+  #curve text { font-family: var(--font); fill: var(--muted); }
+  #curve text.on { fill: var(--fg); font-weight: 650; }
+  #curve .knob:focus { outline: none; }
+  #curve .knob:focus-visible circle.ring { stroke: var(--hl); stroke-width: 4; }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+  .result .math { font-family: var(--serif); white-space: normal; font-size: 20px; line-height: 1.4; }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="follow" data-t="follow"></button>
+      <button type="button" class="small" id="pause" aria-pressed="false"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <canvas class="main" id="sim" role="img" data-t-aria="simAria"></canvas>
+      <div class="vtitle" id="vtitle"></div>
+      <div class="vtag" id="vtag"></div>
+      <div id="c1" class="controls">
+        <button type="button" id="ice"></button>
+        <button type="button" id="water"></button>
+      </div>
+      <div id="c2" class="controls" hidden>
+        <label for="temp" data-t="tempLabel"></label>
+        <div class="tempwrap">
+          <input type="range" id="temp" min="-20" max="120" step="1" value="-10">
+          <div class="bandbar" aria-hidden="true"><i id="bS"></i><i id="bL"></i><i id="bG"></i></div>
+          <div class="bands" id="bands" aria-hidden="true"></div>
+        </div>
+        <output id="tempVal" for="temp"></output>
+      </div>
+      <div id="c3" hidden>
+        <svg id="curve" viewBox="0 0 600 250" preserveAspectRatio="xMinYMin meet" role="group" data-t-aria="curveAria"></svg>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="extra"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" id="data"></p>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Solid, liquid, gas: the same particles", eyebrow: "Science · Stage 2",
+    h1: "Heating changes how particles move, not the particles themselves",
+    intro: "Guess first, then heat and cool a model of water. Watch the particles: do they ever change?",
+    reset: "Reset", pause: "Pause", play: "Play", follow: "Follow one", vtag: "Model · {n} particles",
+    simAria: "A box of identical round particles that shake, slide or fly depending on the temperature",
+    curveAria: "Heating curve: temperature against heat added for 1 gram of water",
+    s1: "Guess", s2: "Heat it", s3: "Rule",
+    k1: "Predict first", t1: "Ice and water, up close",
+    b1: "Here is a model of the tiny particles in ice at −10 °C. Before you switch to water: how is a particle of ice different from a particle of water?",
+    b1done: "Switch back and forth. Both are the same {n} particles, the same size and the same colour. In ice they shake about fixed spots in a tidy pattern; in water they slide past each other. Only the motion and the spacing changed.",
+    q: "Ice melts into water. What happens to its particles?",
+    o1: "Cold, hard ice particles turn into warm, soft water particles", o2: "The particles grow bigger",
+    o3: "They are the same particles; they just move and sit differently",
+    right: "Yes. Switch between ice and water and check that no particle changes.",
+    wrong: "Many people think so. Switch between ice and water and look closely at the particles themselves.",
+    iceBtn: "Ice, {t} °C", waterBtn: "Water, {t} °C",
+    k2: "Hands on", t2: "Heat it, cool it",
+    b2: "Drag the temperature from −20 °C to 120 °C (water at normal air pressure). Tap a particle, or press “Follow one”, to trace its path.",
+    tempLabel: "Temperature",
+    stS: "Solid", stM: "Melting point", stL: "Liquid", stB: "Boiling point", stG: "Gas",
+    dS: "Solid: each particle shakes about a fixed spot. Its neighbours hold it in a pattern, so ice keeps its shape.",
+    dM: "0 °C: ice melts (or water freezes). Ice and water can both be here at this temperature.",
+    dL: "Liquid: the particles still touch, but they slide past each other, so water flows and takes the shape of its cup.",
+    dB: "100 °C: water boils. Water and steam can both be here at this temperature.",
+    dG: "Gas: the particles fly far apart, bounce off the walls and each other, and spread through the whole box.",
+    mSpeed: "Average speed", mGap: "Nearest neighbour", mSize: "Particle size",
+    gapV: "{d} widths", sizeV: "{s} width",
+    live2: "{t} °C, {state}. Average speed {v} (model units); the nearest particle is {d} particle widths away on average. Still {n} particles, each 1 width across, same colour.",
+    k3: "The rule", t3: "Where does the heat go?",
+    b3: "Drag the dot along the heating curve of 1 g of ice (or focus it and use the arrow keys). On the sloping parts the heat speeds the particles up, so the temperature rises. On the flat parts the temperature stays put: the heat pulls particles away from each other instead.",
+    ph0: "Warming ice: the particles shake faster.",
+    ph1: "Melting: {p}% melted. The temperature stays at 0 °C while the heat breaks particles out of their pattern.",
+    ph2: "Warming water: the particles slide around faster.",
+    ph3: "Boiling: {p}% turned to steam. The temperature stays at 100 °C while the heat pulls particles far apart.",
+    ph4: "Warming steam: the particles fly faster.",
+    live3: "Heat added: {q} J. Temperature: {t} °C. {phase}",
+    rule3a: "Melting 1 g of ice takes {lf} J, enough to warm 1 g of liquid water by {lfw} °C. Boiling it away takes {lv} J, enough for {lvw} °C.",
+    rule3b: "At 0 °C, ice particles and water particles have the same average motion energy, because they are at the same temperature (a typical speed of about {v0} m/s for both). Ice is not made of colder particles; its particles are just held in place.",
+    axQ: "heat added to 1 g (J)", axT: "°C",
+    knobAria: "Heat added", knobVal: "{q} joules, {t} degrees Celsius",
+    resultTitle: "What we found", resultMain: "Same particles. Heat makes them faster, or farther apart.",
+    resultNote: "Steam at 100 °C takes up about {r} times the space of the same water, so its particles sit roughly {s} times farther apart. Each particle is unchanged.",
+    explainK: "Explain it", explainQ: "A friend says ice is cold because its particles are cold. Using the words “move” and “apart”, explain what really differs between ice and water.",
+    homeK: "Try at home", homeQ: "Fill a cup with ice and a little cold water. Stir and read a kitchen thermometer every minute: it stays near 0 °C until the last ice has melted, even though the room keeps adding heat.",
+    dataNote: "The model: {n} identical disc particles with a Lennard-Jones force (they push apart when squeezed and pull together a little when close), gentle gravity, and a thermostat that sets their average motion. Its temperature scale is stretched so that its melting and boiling line up with water’s 0 °C and 100 °C at 1 atm. It does not show that ice is less dense than liquid water (water is unusual), and it exaggerates how much faster gas particles move. Real values for water, per gram (approximate): specific heat of ice {ci} J/(g·°C), liquid water {cw}, steam {cs}; heat to melt {lf} J/g, to boil {lv} J/g. Density of water at 100 °C {rw} g/cm³; steam at 100 °C, 1 atm about {rs} g/L (ideal gas, M = {M} g/mol). Typical speed √(3RT/M): {v0} m/s at 0 °C, {v100} m/s at 100 °C.",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "固、液、气：同样的颗粒", eyebrow: "科学 · 阶段 2",
+    h1: "加热改变的是颗粒怎么动，不是颗粒本身",
+    intro: "先猜，再给一个水的模型加热、降温。盯着颗粒看：它们自己变过吗？",
+    reset: "重置", pause: "暂停", play: "播放", follow: "跟踪一颗", vtag: "模型 · {n} 个颗粒",
+    simAria: "一盒一模一样的圆形颗粒，随温度不同在原地抖、互相滑动或四处飞",
+    curveAria: "加热曲线：1 克水的温度随吸收热量的变化",
+    s1: "先猜", s2: "加热", s3: "规律",
+    k1: "先猜一猜", t1: "凑近看冰和水",
+    b1: "这是 −10 °C 的冰里小颗粒的模型。先别切到水：冰的一个颗粒和水的一个颗粒，有什么不同？",
+    b1done: "来回切换看看。两边都是同样的 {n} 个颗粒，一样大，一样的颜色。冰里的颗粒排得整整齐齐，在各自的位置上抖；水里的颗粒挨着互相滑动。变的只是怎么动、离多远。",
+    q: "冰化成水，它的颗粒怎么了？",
+    o1: "又冷又硬的冰颗粒变成了温暖柔软的水颗粒", o2: "颗粒变大了",
+    o3: "还是那些颗粒，只是动的方式和排列变了",
+    right: "对。在冰和水之间切换，看看有没有哪个颗粒变了。",
+    wrong: "很多人都这么想。在冰和水之间切换，仔细看颗粒本身。",
+    iceBtn: "冰，{t} °C", waterBtn: "水，{t} °C",
+    k2: "动手", t2: "加热、降温",
+    b2: "把温度从 −20 °C 拖到 120 °C（水，普通大气压下）。点一个颗粒，或按「跟踪一颗」，画出它走过的路。",
+    tempLabel: "温度",
+    stS: "固态", stM: "熔点", stL: "液态", stB: "沸点", stG: "气态",
+    dS: "固态：每个颗粒在一个固定位置附近抖动，被邻居拉着排成整齐的样子，所以冰有固定形状。",
+    dM: "0 °C：冰在融化（或水在结冰），这个温度下冰和水可以同时存在。",
+    dL: "液态：颗粒还挨在一起，但能互相滑过，所以水会流动，倒进什么杯子就是什么形状。",
+    dB: "100 °C：水在沸腾，这个温度下水和水蒸气可以同时存在。",
+    dG: "气态：颗粒彼此离得很远，撞墙、互撞，散满整个盒子。",
+    mSpeed: "平均速度", mGap: "最近的邻居", mSize: "颗粒大小",
+    gapV: "{d} 个宽", sizeV: "{s} 个宽",
+    live2: "{t} °C，{state}。平均速度 {v}（模型单位）；平均每个颗粒离最近的邻居 {d} 个颗粒宽。仍然是 {n} 个颗粒，每个 1 个宽，颜色不变。",
+    k3: "规律", t3: "热量去哪儿了？",
+    b3: "沿着 1 克冰的加热曲线拖动圆点（或选中它用方向键）。斜的一段，热量让颗粒动得更快，温度上升；平的一段，温度不变：热量用来把颗粒彼此拉开。",
+    ph0: "冰在升温：颗粒抖得更快。",
+    ph1: "正在融化：已化 {p}%。热量把颗粒从整齐的排列里拆出来，温度一直是 0 °C。",
+    ph2: "水在升温：颗粒滑得更快。",
+    ph3: "正在沸腾：已有 {p}% 变成水蒸气。热量把颗粒拉得很远，温度一直是 100 °C。",
+    ph4: "水蒸气在升温：颗粒飞得更快。",
+    live3: "吸收热量：{q} 焦。温度：{t} °C。{phase}",
+    rule3a: "1 克冰化成水要 {lf} 焦，够把 1 克水升温 {lfw} °C；再把它全部烧成水蒸气要 {lv} 焦，够升温 {lvw} °C。",
+    rule3b: "在 0 °C，冰的颗粒和水的颗粒平均运动能量一样，因为它们温度相同（典型速度都是约 {v0} 米/秒）。冰不是由更冷的颗粒组成的，只是它的颗粒被固定在位置上。",
+    axQ: "1 克吸收的热量（焦）", axT: "°C",
+    knobAria: "吸收的热量", knobVal: "{q} 焦，{t} 摄氏度",
+    resultTitle: "我们发现", resultMain: "颗粒还是那些颗粒。加热让它们更快，或离得更远。",
+    resultNote: "100 °C 的水蒸气占的空间约是同样多的水的 {r} 倍，所以颗粒间距大约是 {s} 倍。每个颗粒本身都没变。",
+    explainK: "说一说", explainQ: "朋友说冰之所以冷，是因为冰的颗粒是冷的。用上「动」和「离开」这两个词，讲讲冰和水真正的区别。",
+    homeK: "家里做一做", homeQ: "杯子里放满冰，加一点冷水。搅一搅，每分钟用厨房温度计读一次：直到最后一块冰化完，温度都停在 0 °C 附近，虽然屋子一直在给它加热。",
+    dataNote: "模型：{n} 个一模一样的圆盘颗粒，用 Lennard-Jones 力（挤得太近互相推开，靠近时稍微互相吸引），加一点重力和一个设定平均运动快慢的恒温器。模型的温度刻度是拉伸过的，让它的熔化和沸腾对上水在 1 个大气压下的 0 °C 和 100 °C。它没有表现出冰比液态水密度小（水是个特例），也夸大了气体颗粒比液体快多少。水的真实数据（每克，约值）：冰的比热 {ci} J/(g·°C)，液态水 {cw}，水蒸气 {cs}；熔化热 {lf} J/g，汽化热 {lv} J/g。100 °C 水的密度 {rw} g/cm³；100 °C、1 个大气压的水蒸气约 {rs} g/L（按理想气体，M = {M} g/mol）。典型速度 √(3RT/M)：0 °C 约 {v0} m/s，100 °C 约 {v100} m/s。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+const $ = (id) => document.getElementById(id);
+
+// ---------- real water data (per gram, 1 atm) ----------
+const W = { ci: 2.09, cw: 4.18, cs: 2.0, lf: 334, lv: 2257, rw: 0.958, M: 18.015, R: 8.314, atm: 101325, T0: 273.15 };
+const vrms = (tc) => Math.sqrt((3 * W.R * (tc + W.T0)) / (W.M / 1000));
+const steamRho = (W.atm * W.M) / (W.R * (100 + W.T0)) / 1000; // g/L, ideal gas
+const volRatio = (W.rw * 1000) / steamRho; // same mass: steam volume / water volume
+const TMIN = -20, TMAX = 120;
+// heating curve breakpoints (J per gram)
+const Q = [0];
+Q.push(Q[0] + W.ci * (0 - TMIN)); Q.push(Q[1] + W.lf); Q.push(Q[2] + W.cw * 100); Q.push(Q[3] + W.lv); Q.push(Q[4] + W.cs * (TMAX - 100));
+const QMAX = Q[5];
+function curveAt(q) { // → {t, seg, p}
+  q = Play.clamp(q, 0, QMAX);
+  if (q <= Q[1]) return { t: TMIN + q / W.ci, seg: 0, p: 0 };
+  if (q <= Q[2]) return { t: 0, seg: 1, p: (q - Q[1]) / W.lf };
+  if (q <= Q[3]) return { t: (q - Q[2]) / W.cw, seg: 2, p: 1 };
+  if (q <= Q[4]) return { t: 100, seg: 3, p: (q - Q[3]) / W.lv };
+  return { t: 100 + (q - Q[4]) / W.cs, seg: 4, p: 1 };
+}
+function heatFor(t) { // first heat value at temperature t (start of a plateau)
+  t = Play.clamp(t, TMIN, TMAX);
+  if (t <= 0) return (t - TMIN) * W.ci;
+  if (t <= 100) return Q[2] + t * W.cw;
+  return Q[4] + (t - 100) * W.cs;
+}
+
+// ---------- particle model (units: particle width σ = 1, LJ energy ε = 1, mass 1) ----------
+const N = 40, BW = 28, BH = 18, RC2 = 2.2 * 2.2, DT = 0.005, GAM = 0.6, GRAV = 0.25, SUB = 14;
+// model temperature: stretched so solid < 0 °C < liquid < 100 °C < gas
+function tStar(tc) {
+  tc = Play.clamp(tc, TMIN, TMAX);
+  if (tc < 0) return 0.06 + (0.3 - 0.06) * (tc - TMIN) / (0 - TMIN);
+  if (tc === 0) return 0.33; // melting point: right between the model's solid and liquid
+  if (tc <= 100) return 0.38 + (0.47 - 0.38) * tc / 100;
+  return 0.47 + (3 - 0.47) * Math.pow((tc - 100) / (TMAX - 100), 0.6);
+}
+let seed = 1;
+const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+function gauss() { let u = 0; while (!u) u = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rand()); }
+const S = { x: new Float64Array(N), y: new Float64Array(N), vx: new Float64Array(N), vy: new Float64Array(N), fx: new Float64Array(N), fy: new Float64Array(N), T: 0.1 };
+function lattice(T) {
+  const cols = 8, a = 1.12;
+  S.T = T;
+  for (let i = 0; i < N; i++) {
+    const r = Math.floor(i / cols), c = i % cols;
+    S.x[i] = BW / 2 - ((cols - 1) * a) / 2 + c * a + (r % 2 ? a / 2 : 0) - a / 4;
+    S.y[i] = 0.6 + (r * a * Math.sqrt(3)) / 2;
+    S.vx[i] = gauss() * Math.sqrt(T); S.vy[i] = gauss() * Math.sqrt(T);
+  }
+  forces();
+}
+function forces() {
+  const { x, y, fx, fy } = S;
+  for (let i = 0; i < N; i++) { fx[i] = 0; fy[i] = -GRAV; }
+  for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+    const dx = x[i] - x[j], dy = y[i] - y[j], r2 = dx * dx + dy * dy;
+    if (r2 > RC2) continue;
+    const q = 1 / Math.max(r2, 0.64), q3 = q * q * q, f = Math.min(24 * q3 * (2 * q3 - 1) * q, 400);
+    fx[i] += f * dx; fy[i] += f * dy; fx[j] -= f * dx; fy[j] -= f * dy;
+  }
+  for (let i = 0; i < N; i++) { // soft walls
+    if (x[i] < 0.5) fx[i] += 200 * (0.5 - x[i]);
+    if (x[i] > BW - 0.5) fx[i] -= 200 * (x[i] - BW + 0.5);
+    if (y[i] < 0.5) fy[i] += 200 * (0.5 - y[i]);
+    if (y[i] > BH - 0.5) fy[i] -= 200 * (y[i] - BH + 0.5);
+  }
+}
+function step(n) { // velocity Verlet + Langevin thermostat
+  const { x, y, vx, vy, fx, fy } = S, c = Math.exp(-GAM * DT), s = Math.sqrt((1 - c * c) * S.T);
+  for (let k = 0; k < n; k++) {
+    for (let i = 0; i < N; i++) { vx[i] += 0.5 * DT * fx[i]; vy[i] += 0.5 * DT * fy[i]; x[i] += DT * vx[i]; y[i] += DT * vy[i]; }
+    forces();
+    for (let i = 0; i < N; i++) {
+      vx[i] = c * (vx[i] + 0.5 * DT * fx[i]) + s * gauss();
+      vy[i] = c * (vy[i] + 0.5 * DT * fy[i]) + s * gauss();
+      x[i] = Play.clamp(x[i], 0.05, BW - 0.05); y[i] = Play.clamp(y[i], 0.05, BH - 0.05);
+    }
+  }
+}
+function stats() {
+  let sp = 0, nn = 0;
+  for (let i = 0; i < N; i++) {
+    sp += Math.hypot(S.vx[i], S.vy[i]);
+    let m = Infinity;
+    for (let j = 0; j < N; j++) if (j !== i) m = Math.min(m, Math.hypot(S.x[i] - S.x[j], S.y[i] - S.y[j]));
+    nn += m;
+  }
+  return { speed: sp / N, nn: nn / N };
+}
+const meanSpeed = (T) => Math.sqrt((Math.PI * T) / 2); // 2D Maxwell–Boltzmann average speed the thermostat aims for
+function snapshot(tc) { // reduced motion: a settled still frame for this temperature
+  seed = 11; lattice(tStar(tc)); step(6000); trail.length = 0;
+  sm = stats();
+}
+
+// ---------- drawing ----------
+const cv = $("sim"), ctx = cv.getContext("2d");
+let col = {}, view = { s: 20, ox: 0, oy: 0 };
+function readColors() {
+  const cs = getComputedStyle(document.body);
+  ["--c", "--fg", "--muted", "--line", "--hl", "--soft", "--a"].forEach((k) => (col[k] = cs.getPropertyValue(k).trim() || "#888"));
+}
+function resize() {
+  const r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (!r.width) return;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const pad = 10, top = 34;
+  const s = Math.min((r.width - 2 * pad) / BW, (r.height - top - pad) / BH);
+  view = { s, ox: (r.width - BW * s) / 2, oy: top + (r.height - top - pad - BH * s) / 2 + BH * s, w: r.width, h: r.height };
+}
+const px = (x) => view.ox + x * view.s, py = (y) => view.oy - y * view.s;
+let followI = -1;
+const trail = [];
+function draw() {
+  const { s } = view;
+  ctx.clearRect(0, 0, view.w || 0, view.h || 0);
+  ctx.strokeStyle = col["--muted"]; ctx.lineWidth = 2;
+  ctx.strokeRect(px(0) - 1, py(BH) - 1, BW * s + 2, BH * s + 2);
+  if (followI >= 0 && trail.length > 1) {
+    ctx.strokeStyle = col["--hl"]; ctx.lineWidth = 2; ctx.beginPath();
+    trail.forEach(([x, y], k) => (k ? ctx.lineTo(px(x), py(y)) : ctx.moveTo(px(x), py(y))));
+    ctx.stroke();
+  }
+  ctx.strokeStyle = col["--muted"]; ctx.lineWidth = Math.max(1, s * 0.08); ctx.globalAlpha = 0.5; ctx.beginPath();
+  for (let i = 0; i < N; i++) { // motion tails: where the particle was a moment ago
+    ctx.moveTo(px(S.x[i]), py(S.y[i])); ctx.lineTo(px(S.x[i] - S.vx[i] * 0.35), py(S.y[i] - S.vy[i] * 0.35));
+  }
+  ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.fillStyle = col["--c"]; ctx.beginPath();
+  for (let i = 0; i < N; i++) { ctx.moveTo(px(S.x[i]) + 0.53 * s, py(S.y[i])); ctx.arc(px(S.x[i]), py(S.y[i]), 0.53 * s, 0, 2 * Math.PI); }
+  ctx.fill();
+  if (followI >= 0) {
+    ctx.strokeStyle = col["--hl"]; ctx.lineWidth = 3; ctx.beginPath();
+    ctx.arc(px(S.x[followI]), py(S.y[followI]), 0.53 * s + 3, 0, 2 * Math.PI); ctx.stroke();
+  }
+}
+
+// ---------- state + loop ----------
+let tempC = -10, cur = 0, paused = Play.reduced, raf = 0, frame = 0, visible = true, sm = { speed: 0, nn: 1 };
+const SPEED_MAX = 2.6, GAP_MAX = 2.4;
+function stateKey(t) { return t < 0 ? "S" : t === 0 ? "M" : t < 100 ? "L" : t === 100 ? "B" : "G"; }
+function setTemp(t, quiet) {
+  tempC = Math.round(Play.clamp(t, TMIN, TMAX) * 10) / 10;
+  S.T = tStar(tempC);
+  if (paused) snapshot(tempC);
+  if (!quiet) { text(); if (paused) draw(); }
+}
+function tick() {
+  raf = 0;
+  if (paused || !visible) return;
+  step(SUB);
+  if (followI >= 0) { trail.push([S.x[followI], S.y[followI]]); if (trail.length > 140) trail.shift(); }
+  if (++frame % 8 === 0) {
+    const st = stats();
+    sm.speed += 0.35 * (st.speed - sm.speed); sm.nn += 0.35 * (st.nn - sm.nn);
+    if (frame % 24 === 0) meters();
+  }
+  draw();
+  raf = requestAnimationFrame(tick);
+}
+function wake() { if (!raf && !paused && visible) raf = requestAnimationFrame(tick); }
+if ("IntersectionObserver" in window) new IntersectionObserver((es) => { visible = es[0].isIntersecting; wake(); }).observe(cv);
+
+// ---------- text ----------
+const extra = $("extra"), live = $("live");
+const el = (tag, txt, cls) => { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; };
+const fmtT = (t) => (Number.isInteger(t) ? Play.fmt(t, 0) : Play.fmt(t, 1)).replace("-", "−");
+let mBars = null, answered = false;
+function buildMeters() {
+  const box = el("div", null, "meters");
+  const row = (label) => { const b = el("div", null, "bar"), i = el("i"), v = el("span", "", "v"); b.appendChild(i); box.append(el("span", label), b, v); return { i, v }; };
+  mBars = { sp: row(P.t("mSpeed")), gap: row(P.t("mGap")), size: row(P.t("mSize")) };
+  return box;
+}
+function meters() {
+  if (!mBars || !mBars.sp.i.isConnected) return;
+  const v = meanSpeed(S.T);
+  mBars.sp.i.style.width = Play.clamp((v / SPEED_MAX) * 100, 2, 100) + "%";
+  mBars.sp.v.textContent = Play.fmt(v, 2);
+  mBars.gap.i.style.width = Play.clamp((sm.nn / GAP_MAX) * 100, 2, 100) + "%";
+  mBars.gap.v.textContent = P.t("gapV", { d: Play.fmt(sm.nn, 2) });
+  mBars.size.i.style.width = (1 / GAP_MAX) * 100 + "%";
+  mBars.size.v.textContent = P.t("sizeV", { s: Play.fmt(1, 2) });
+  if (cur === 1) Play.live(live, P.t("live2", { t: fmtT(tempC), state: P.t("st" + stateKey(tempC)).toLowerCase(), v: Play.fmt(v, 2), d: Play.fmt(sm.nn, 2), n: N }));
+}
+function text() {
+  $("vtitle").textContent = P.t("st" + stateKey(tempC)) + " · " + fmtT(tempC) + " °C";
+  $("tempVal").textContent = fmtT(tempC) + " °C";
+  $("ice").setAttribute("aria-pressed", tempC < 0 ? "true" : "false");
+  $("water").setAttribute("aria-pressed", tempC > 0 && tempC < 100 ? "true" : "false");
+  extra.innerHTML = "";
+  if (cur === 0) {
+    $("stepBody").textContent = answered ? P.t("b1done", { n: N }) : P.t("b1");
+    Play.live(live, P.t("d" + stateKey(tempC)));
+  } else if (cur === 1) {
+    $("stepBody").textContent = P.t("b2");
+    extra.append(el("p", P.t("d" + stateKey(tempC)), "statebox"), buildMeters());
+    meters();
+  } else {
+    $("stepBody").textContent = P.t("b3");
+    extra.append(buildMeters());
+    meters();
+    extra.append(el("p", P.t("rule3a", { lf: Play.fmt(W.lf, 0), lfw: Play.fmt(W.lf / W.cw, 0), lv: Play.fmt(W.lv, 0), lvw: Play.fmt(W.lv / W.cw, 0) })));
+    extra.append(el("p", P.t("rule3b", { v0: Play.fmt(Math.round(vrms(0) / 10) * 10, 0) })));
+    const c = curveAt(heat);
+    Play.live(live, P.t("live3", { q: Play.fmt(heat, 0), t: fmtT(Math.round(c.t * 10) / 10), phase: P.t("ph" + c.seg, { p: Play.fmt(c.p * 100, 0) }) }));
+  }
+}
+
+// ---------- step 1 ----------
+const ICE_T = -10, WATER_T = 20;
+$("ice").textContent = P.t("iceBtn", { t: fmtT(ICE_T) });
+$("water").textContent = P.t("waterBtn", { t: fmtT(WATER_T) });
+$("ice").addEventListener("click", () => { setTemp(ICE_T); syncSlider(); });
+$("water").addEventListener("click", () => { setTemp(WATER_T); syncSlider(); });
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { answered = true; setTemp(WATER_T); syncSlider(); });
+
+// ---------- step 2: slider with phase bands ----------
+const temp = $("temp");
+const frac = (t) => ((t - TMIN) / (TMAX - TMIN)) * 100;
+$("bS").style.cssText = `width:${frac(0)}%;background:var(--c);opacity:.35`;
+$("bL").style.cssText = `width:${frac(100) - frac(0)}%;background:var(--c);opacity:.6`;
+$("bG").style.cssText = `width:${100 - frac(100)}%;background:var(--hl);opacity:.6`;
+[[TMIN, fmtT(TMIN), ""], [0, "0 °C", "edge"], [100, "100 °C", "edge"], [TMAX, fmtT(TMAX), ""]].forEach(([t, s, c]) => {
+  const sp = el("span", s, c); sp.style.left = frac(t) + "%";
+  if (t === TMIN) sp.style.transform = "none";
+  if (t === TMAX) { sp.style.left = "auto"; sp.style.right = "0"; sp.style.transform = "none"; }
+  $("bands").appendChild(sp);
+});
+function syncSlider() { temp.value = Math.round(tempC); }
+temp.addEventListener("input", () => setTemp(+temp.value));
+
+// ---------- step 3: heating curve ----------
+const svgC = $("curve"), CX0 = 48, CY0 = 200, CY1 = 22;
+let CX1 = 584, curveW = 0;
+const cxq = (q) => CX0 + (q / QMAX) * (CX1 - CX0), cyt = (t) => CY0 - ((t - TMIN) / (TMAX - TMIN)) * (CY0 - CY1);
+let heat = heatFor(-10), knob, knobDot, segLabels = [];
+function buildCurve() { // drawn in screen pixels so labels stay 13 px on phones
+  curveW = Math.round(svgC.getBoundingClientRect().width) || 600;
+  CX1 = curveW - 20;
+  svgC.setAttribute("viewBox", `0 0 ${curveW} 250`);
+  svgC.innerHTML = "";
+  const g = Play.svg("g", {}, svgC);
+  [TMIN, 0, 100, TMAX].forEach((t) => {
+    Play.svg("line", { x1: CX0, x2: CX1, y1: cyt(t), y2: cyt(t), stroke: "var(--line)", "stroke-width": t === 0 || t === 100 ? 1.5 : 1, "stroke-dasharray": t === 0 || t === 100 ? "" : "3 4" }, g);
+    Play.svg("text", { x: CX0 - 6, y: cyt(t) + 5, "text-anchor": "end", "font-size": 13 }, g).textContent = fmtT(t);
+  });
+  Play.svg("text", { x: 8, y: 14, "font-size": 13 }, g).textContent = P.t("axT");
+  Play.svg("line", { x1: CX0, x2: CX1, y1: CY0, y2: CY0, stroke: "var(--muted)" }, g);
+  [0, 1000, 2000, 3000].filter((q) => q <= QMAX).forEach((q) => {
+    Play.svg("line", { x1: cxq(q), x2: cxq(q), y1: CY0, y2: CY0 + 5, stroke: "var(--muted)" }, g);
+    Play.svg("text", { x: cxq(q), y: CY0 + 19, "text-anchor": "middle", "font-size": 13 }, g).textContent = Play.fmt(q, 0);
+  });
+  Play.svg("text", { x: CX1, y: CY0 + 36, "text-anchor": "end", "font-size": 13 }, g).textContent = P.t("axQ");
+  const pts = Q.map((q) => [cxq(q), cyt(curveAt(q).t)]);
+  Play.svg("polyline", { points: pts.map((p) => p.join(",")).join(" "), fill: "none", stroke: "var(--a)", "stroke-width": 3.5, "stroke-linejoin": "round" }, g);
+  segLabels = [];
+  [[1, 2, "lf", -8], [3, 4, "lv", -8]].forEach(([a, b, k, dy]) => {
+    const tx = Play.svg("text", { x: (cxq(Q[a]) + cxq(Q[b])) / 2, y: cyt(a === 1 ? 0 : 100) + dy, "text-anchor": "middle", "font-size": 13 }, g);
+    tx.textContent = Play.fmt(W[k], 0) + " J";
+    segLabels.push(tx);
+  });
+  knob = Play.svg("g", { class: "knob", tabindex: 0, role: "slider", "aria-valuemin": 0, "aria-valuemax": Math.round(QMAX), "aria-label": P.t("knobAria") }, svgC);
+  Play.svg("circle", { class: "ring", r: 13, fill: "var(--surface)", stroke: "var(--fg)", "stroke-width": 2 }, knob);
+  knobDot = Play.svg("circle", { r: 6, fill: "var(--hl)" }, knob);
+  knob.addEventListener("keydown", (e) => {
+    const big = QMAX / 20, small = QMAX / 200;
+    const d = { ArrowRight: small, ArrowUp: small, ArrowLeft: -small, ArrowDown: -small, PageUp: big, PageDown: -big }[e.key];
+    if (d !== undefined) { setHeat(heat + (e.shiftKey ? d * 10 : d)); e.preventDefault(); }
+    if (e.key === "Home") { setHeat(0); e.preventDefault(); }
+    if (e.key === "End") { setHeat(QMAX); e.preventDefault(); }
+  });
+}
+function placeKnob() {
+  const c = curveAt(heat);
+  knob.setAttribute("transform", `translate(${cxq(heat)},${cyt(c.t)})`);
+  knob.setAttribute("aria-valuenow", Math.round(heat));
+  knob.setAttribute("aria-valuetext", P.t("knobVal", { q: Play.fmt(heat, 0), t: fmtT(Math.round(c.t)) }));
+  segLabels[0].classList.toggle("on", c.seg === 1); segLabels[1].classList.toggle("on", c.seg === 3);
+}
+let pendingHeat = null;
+function setHeat(q) {
+  heat = Play.clamp(q, 0, QMAX);
+  placeKnob();
+  if (paused) { // a still frame per change is heavier: at most one per animation frame
+    if (pendingHeat === null) requestAnimationFrame(() => { pendingHeat = null; setTemp(curveAt(heat).t); });
+    pendingHeat = heat;
+  } else setTemp(curveAt(heat).t);
+}
+let dragging = false;
+const heatFromEvt = (e) => ((Play.pointer(svgC, e).x - CX0) / (CX1 - CX0)) * QMAX;
+svgC.addEventListener("pointerdown", (e) => { dragging = true; svgC.setPointerCapture(e.pointerId); knob.focus(); setHeat(heatFromEvt(e)); e.preventDefault(); });
+svgC.addEventListener("pointermove", (e) => { if (dragging) setHeat(heatFromEvt(e)); });
+["pointerup", "pointercancel"].forEach((n) => svgC.addEventListener(n, () => (dragging = false)));
+
+// ---------- follow a particle ----------
+function followP(i) { followI = i; trail.length = 0; if (paused) draw(); }
+$("follow").addEventListener("click", () => {
+  let best = 0; // the particle nearest the middle of the group
+  const mx = S.x.reduce((a, b) => a + b, 0) / N, my = S.y.reduce((a, b) => a + b, 0) / N;
+  for (let i = 1; i < N; i++) if (Math.hypot(S.x[i] - mx, S.y[i] - my) < Math.hypot(S.x[best] - mx, S.y[best] - my)) best = i;
+  followP(followI === best ? (best + 1) % N : best);
+});
+cv.addEventListener("pointerdown", (e) => {
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left - view.ox) / view.s, y = (view.oy - (e.clientY - r.top)) / view.s;
+  let best = -1, bd = 1.5;
+  for (let i = 0; i < N; i++) { const d = Math.hypot(S.x[i] - x, S.y[i] - y); if (d < bd) { bd = d; best = i; } }
+  if (best >= 0) followP(best);
+});
+
+// ---------- pause, steps, reset ----------
+const pauseBtn = $("pause");
+function setPause(p) {
+  paused = p;
+  pauseBtn.textContent = P.t(p ? "play" : "pause"); pauseBtn.setAttribute("aria-pressed", p ? "true" : "false");
+  if (!p) wake();
+}
+pauseBtn.addEventListener("click", () => setPause(!paused));
+$("vtag").textContent = P.t("vtag", { n: N });
+
+buildCurve();
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  cur = i;
+  $("predict").hidden = i !== 0;
+  $("c1").hidden = i !== 0; $("c2").hidden = i !== 1; $("c3").hidden = i !== 2;
+  if (i === 1) syncSlider();
+  if (i === 2) { heat = Play.clamp(heatFor(tempC), 0, QMAX); buildCurve(); placeKnob(); }
+  resize(); text(); draw(); wake();
+});
+
+function start() {
+  tempC = ICE_T; answered = false; followI = -1; trail.length = 0;
+  seed = 1; lattice(tStar(tempC)); sm = stats();
+  if (paused) snapshot(tempC);
+  syncSlider(); heat = heatFor(tempC); placeKnob();
+}
+$("reset").addEventListener("click", () => { pr.reset(); setPause(Play.reduced); start(); st.go(0); });
+window.addEventListener("resize", () => { resize(); draw(); if (cur === 2) { buildCurve(); placeKnob(); } });
+if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColors(); draw(); });
+
+$("resultNote").textContent = P.t("resultNote", { r: Play.fmt(Math.round(volRatio / 100) * 100, 0), s: Play.fmt(Math.cbrt(volRatio), 0) });
+$("data").textContent = P.t("dataNote", {
+  n: N, ci: Play.fmt(W.ci, 2), cw: Play.fmt(W.cw, 2), cs: Play.fmt(W.cs, 1), lf: Play.fmt(W.lf, 0), lv: Play.fmt(W.lv, 0),
+  rw: Play.fmt(W.rw, 3), rs: Play.fmt(steamRho, 2), M: Play.fmt(W.M, 3), v0: Play.fmt(Math.round(vrms(0) / 10) * 10, 0), v100: Play.fmt(Math.round(vrms(100) / 10) * 10, 0),
+});
+readColors(); setPause(paused); start(); resize(); text(); draw();
+</script>
+</body>
+</html>

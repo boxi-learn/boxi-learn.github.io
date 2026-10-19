@@ -1009,7 +1009,7 @@
       "us": "5",
       "uk": "5"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Solid, liquid, gas: the same particles",
       "zh": "固、液、气：同样的颗粒"
@@ -1022,7 +1022,15 @@
       "en": "Particles of ice are colder and harder than particles of water.",
       "zh": "冰的颗粒比水的颗粒更冷、更硬。"
      },
-     "play": null
+     "play": "particles-three-states.html",
+     "explain": {
+      "en": "A friend says ice is cold because its particles are cold. Using the words “move” and “apart”, explain what really differs between ice and water.",
+      "zh": "朋友说冰之所以冷，是因为冰的颗粒是冷的。用上「动」和「离开」这两个词，讲讲冰和水真正的区别。"
+     },
+     "home": {
+      "en": "Fill a cup with ice and a little cold water. Stir and read a kitchen thermometer every minute: it stays near 0 °C until the last ice has melted, even though the room keeps adding heat.",
+      "zh": "杯子里放满冰，加一点冷水。搅一搅，每分钟用厨房温度计读一次：直到最后一块冰化完，温度都停在 0 °C 附近，虽然屋子一直在给它加热。"
+     }
     },
     {
      "slug": "lever-balance",
