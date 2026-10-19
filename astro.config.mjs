@@ -1,6 +1,6 @@
 import { defineConfig } from "astro/config";
 
-// Published from the boxi-learn/boxi-learn.github.io repo (tools/publish.sh in peiyuK12).
+// Published to GitHub Pages from boxi-learn/boxi-learn.github.io.
 export default defineConfig({
   site: "https://boxi-learn.github.io",
   trailingSlash: "always",
