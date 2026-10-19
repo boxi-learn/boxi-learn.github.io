@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tenses on a timeline</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .board { padding: 14px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-height: 360px; }
+  .pickrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .pickrow .lab { min-width: 4.2em; }
+  .pickrow button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  svg.tl { width: 100%; height: auto; display: block; touch-action: none; user-select: none; -webkit-user-select: none; border-radius: 10px; }
+  svg.tl.live { cursor: ew-resize; }
+  svg.tl:focus-visible { outline: 3px solid var(--hl); outline-offset: 2px; }
+  .pastz { fill: var(--soft); }
+  .nowz { fill: var(--hl); opacity: .18; }
+  .axis { stroke: var(--muted); stroke-width: 2; }
+  .axhead { fill: var(--muted); }
+  .tick { stroke: var(--muted); stroke-width: 2; }
+  .tickt { fill: var(--muted); text-anchor: middle; font-family: var(--font); }
+  .nowl { stroke: var(--fg); stroke-width: 2.5; stroke-dasharray: 5 4; }
+  .nowt { fill: var(--fg); font-weight: 800; text-anchor: middle; font-family: var(--font); letter-spacing: .06em; }
+  .pft { fill: var(--muted); font-family: var(--font); }
+  .ev { fill: var(--a); }
+  .evs { fill: var(--a); opacity: .45; }
+  .evb { stroke: var(--a); stroke-width: 3; fill: none; }
+  .ref { fill: var(--surface); stroke: var(--a); stroke-width: 3; }
+  .warn { fill: var(--no); }
+  .vlab { fill: var(--a); font-family: var(--serif); font-weight: 700; text-anchor: middle; }
+  .vlab.no { fill: var(--no); }
+  .readout { background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+  .readout .tn { font-size: 13px; color: var(--muted); }
+  .readout .tn b { color: var(--fg); }
+  .sent { font-family: var(--serif); font-size: 21px; line-height: 1.5; overflow-wrap: anywhere; margin: 2px 0; }
+  .sent .vp { color: var(--a); font-weight: 750; text-decoration: underline 3px; text-underline-offset: 5px; }
+  .sent .tw { border-radius: 6px; padding: 0 4px; border: 2px solid var(--line); }
+  .sent .tw.fit { border-color: var(--a); }
+  .sent .tw.odd { border-color: var(--hl); border-style: dashed; }
+  .sent .tw.clash { border-color: var(--no); color: var(--no); text-decoration: line-through 2px; }
+  .sent .gap { display: inline-block; min-width: 3.6em; border-bottom: 3px solid var(--fg); text-align: center; color: var(--a); font-weight: 750; }
+  .zh { font-size: 17px; line-height: 1.6; margin-top: 2px; }
+  .zh .mk { background: var(--hl); color: #1a2822; border-radius: 5px; padding: 0 3px; font-weight: 700; }
+  .zh .zv { text-decoration: underline 2px; text-underline-offset: 4px; font-weight: 700; }
+  .zh .twz { color: var(--c); font-weight: 650; }
+  .status { font-size: 14px; font-weight: 650; margin-top: 4px; }
+  .status.clash { color: var(--no); }
+  .status.odd { color: var(--b); }
+  .twrow button { font-family: var(--serif); }
+  .twrow button.ok { border-color: var(--a); border-width: 2px; }
+  .twrow button .star { color: var(--a); font-family: var(--font); margin-left: 3px; }
+  .twrow button[aria-pressed=true] .star { color: var(--hl); }
+  .rows { display: flex; flex-direction: column; gap: 6px; }
+  .rows .r { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .rows .r .sent { font-size: 18px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 10px; }
+  .tbl th, .tbl td { text-align: left; padding: 5px 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .tbl th { color: var(--muted); font-weight: 650; }
+  .tbl td.f { font-family: var(--serif); font-size: 15px; color: var(--a); font-weight: 700; }
+  .tbl svg { width: 84px; height: 26px; display: block; }
+  .vtab { font-family: var(--serif); font-size: 14px; }
+  .vtab td, .vtab th { padding: 3px 4px; }
+  .qhead { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+  .qfb { font-size: 14px; min-height: 1.4em; }
+  .qfb.no { color: var(--no); }
+  .choices button.right { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .choices button.wrong { border-color: var(--no); color: var(--no); }
+  .choices button { font-family: var(--serif); }
+  .explain p.rule { color: var(--fg); font-size: 15px; }
+  .result .math { font-family: var(--serif); white-space: normal; }
+  @media (max-width: 860px) { .board { min-height: 0; } }
+  @media (max-width: 560px) {
+    .sent { font-size: 19px; }
+    .pickrow .lab { min-width: 100%; }
+  }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="board">
+        <div id="pickers">
+          <div class="pickrow" id="pSubj"><span class="lab" data-t="subjL"></span></div>
+          <div class="pickrow" id="pVerb" style="margin-top:6px"><span class="lab" data-t="verbL"></span></div>
+          <div class="pickrow" id="pShape" style="margin-top:6px"><span class="lab" data-t="shapeL"></span></div>
+        </div>
+        <svg class="tl" id="tl" role="slider" data-t-aria="tlAria" aria-valuemin="0" aria-valuemax="100"></svg>
+        <div class="readout" id="readout"></div>
+        <div class="pickrow twrow" id="pTw"><span class="lab" data-t="twL"></span></div>
+        <div id="quiz" hidden>
+          <div class="qhead"><span id="qNum"></span><span id="qScore"></span></div>
+          <svg class="tl" id="qfig" role="img"></svg>
+          <div class="sent" id="qSent" lang="en"></div>
+          <div class="choices" id="qOpts"></div>
+          <p class="qfb" id="qFb" aria-live="polite"></p>
+          <button type="button" class="small" id="qNext" data-t="next"></button>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="ruleBox" hidden>
+        <table class="tbl" id="tenseTbl"></table>
+        <p class="note" data-t="more"></p>
+      </div>
+      <details class="more" id="formsBox" hidden>
+        <summary data-t="formsT"></summary>
+        <table class="tbl vtab" id="formsTbl" lang="en"></table>
+        <p class="note" data-t="formsNote"></p>
+      </details>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain" lang="en"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// ---- pure logic (also tested in node) ----
+// Verbs on the page. o: object phrase; zv/zo: Chinese verb and object; irr: [past, past participle];
+// dur: "since 2020" sounds natural with the present perfect; zres: Chinese perfect uses result 了 (她去公园了).
+const VERBS = [
+  { b: "play", o: "football", zv: "踢", zo: "足球", dur: true },
+  { b: "walk", o: "to school", zv: "走路去", zo: "学校", dur: true },
+  { b: "help", o: "my grandma", zv: "帮", zo: "奶奶" },
+  { b: "plan", o: "a trip", zv: "计划", zo: "一次旅行" },
+  { b: "study", o: "English", zv: "学", zo: "英语", dur: true },
+  { b: "go", o: "to the park", zv: "去", zo: "公园", irr: ["went", "gone"], zres: true },
+  { b: "eat", o: "noodles", zv: "吃", zo: "面条", irr: ["ate", "eaten"] },
+  { b: "see", o: "the doctor", zv: "看", zo: "医生", irr: ["saw", "seen"] },
+];
+const SUBJ = ["I", "she", "they"];
+const ZS = { I: "我", she: "她", they: "他们" };
+const TENSES = ["pastS", "presS", "futS", "presC", "pastC", "presP"]; // the six covered; futC is a preview only
+const TWS = ["yesterday", "last year", "when you called", "every day", "now", "tomorrow", "next year", "already", "just", "since 2020"];
+const ZTW = { yesterday: "昨天", "last year": "去年", "every day": "每天", now: "现在", tomorrow: "明天", "next year": "明年" };
+const TW_WHEN = { yesterday: "past", "last year": "past", "when you called": "past", now: "now", tomorrow: "future", "next year": "future" };
+
+// Spelling rules.
+const vowelGroups = (w) => (w.match(/[aeiou]+/g) || []).length;
+// One-syllable consonant-vowel-consonant verbs double the last consonant (not w, x, y): stop → stopped.
+const doubles = (w) => vowelGroups(w) === 1 && /[^aeiou][aeiou][^aeiouwxy]$/.test(w);
+function third(w) {
+  if (w === "have") return "has";
+  if (/(s|x|z|ch|sh|o)$/.test(w)) return w + "es";
+  if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + "ies";
+  return w + "s";
+}
+function pastReg(w) {
+  if (/e$/.test(w)) return w + "d";
+  if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + "ied";
+  if (doubles(w)) return w + w.slice(-1) + "ed";
+  return w + "ed";
+}
+function ing(w) {
+  if (/ie$/.test(w)) return w.slice(0, -2) + "ying";
+  if (/(ee|oe|ye)$/.test(w)) return w + "ing";
+  if (/[^aeiou]e$/.test(w) && w.length > 2) return w.slice(0, -1) + "ing";
+  if (doubles(w)) return w + w.slice(-1) + "ing";
+  return w + "ing";
+}
+function forms(v) {
+  const b = v.b || v;
+  const irr = v.irr;
+  return { base: b, s: third(b), past: irr ? irr[0] : pastReg(b), pp: irr ? irr[1] : pastReg(b), ing: ing(b) };
+}
+// Verb phrase: helping verbs + main verb.
+function vp(v, subj, tense) {
+  const f = forms(v), he = subj === "she";
+  const beNow = subj === "I" ? "am" : he ? "is" : "are", beWas = subj === "they" ? "were" : "was";
+  switch (tense) {
+    case "pastS": return { aux: [], main: f.past };
+    case "presS": return { aux: [], main: he ? f.s : f.base };
+    case "futS": return { aux: ["will"], main: f.base };
+    case "presC": return { aux: [beNow], main: f.ing };
+    case "pastC": return { aux: [beWas], main: f.ing };
+    case "presP": return { aux: [he ? "has" : "have"], main: f.pp };
+    case "futC": return { aux: ["will", "be"], main: f.ing };
+  }
+  throw new Error("tense " + tense);
+}
+const vpText = (v, s, t) => { const p = vp(v, s, t); return [...p.aux, p.main].join(" "); };
+const MID = (tw) => tw === "already" || tw === "just";
+// Sentence as segments [text, class]; classes: su subject, vp verb, tw time word, "" other.
+function sentence(v, subj, tense, tw) {
+  const p = vp(v, subj, tense);
+  const seg = [[subj === "I" ? "I" : subj[0].toUpperCase() + subj.slice(1), "su"]];
+  if (MID(tw)) {
+    if (p.aux.length) { seg.push([p.aux[0], "vp"], [tw, "tw"]); p.aux.slice(1).forEach((a) => seg.push([a, "vp"])); }
+    else seg.push([tw, "tw"]);
+  } else p.aux.forEach((a) => seg.push([a, "vp"]));
+  seg.push([p.main, "vp"], [v.o, ""]);
+  if (tw && !MID(tw)) seg.push([tw, "tw"]);
+  return seg;
+}
+const sentText = (seg) => seg.map((s) => s[0]).join(" ") + ".";
+
+// Timeline geometry (viewBox x): NOW in the middle; snapping band ±SNAP; a habit spans ±HAB.
+const NOW = 300, SNAP = 18, HAB = 56, XMIN = 40, XMAX = 560, SXMAX = NOW - 15;
+const TICKS = [[60, "t2020"], [150, "tLastYear"], [225, "tYesterday"], [375, "tTomorrow"], [450, "tNextYear"]];
+function place(shape, x) {
+  if (shape === "perf") return Math.round(Math.min(SXMAX, Math.max(XMIN, x)));
+  x = Math.round(Math.min(XMAX, Math.max(XMIN, x)));
+  return Math.abs(x - NOW) <= SNAP ? NOW : x;
+}
+// Picture → tense. once: a single action; habit: repeated; prog: in progress at a moment; perf: from x up to now.
+function tenseAt(shape, x) {
+  if (shape === "perf") return "presP";
+  if (shape === "once") return x === NOW ? null : x < NOW ? "pastS" : "futS";
+  if (shape === "habit") return x + HAB < NOW ? "pastS" : x - HAB > NOW ? "futS" : "presS";
+  if (shape === "prog") return x === NOW ? "presC" : x < NOW ? "pastC" : "futC";
+  throw new Error("shape " + shape);
+}
+function suggest(shape, tense, x, v) {
+  switch (tense) {
+    case "pastS": return shape === "habit" ? "every day" : x < 190 ? "last year" : "yesterday";
+    case "presS": return "every day";
+    case "futS": return shape === "habit" ? "every day" : x > 410 ? "next year" : "tomorrow";
+    case "presC": return "now";
+    case "pastC": return "when you called";
+    case "futC": return x > 410 ? "next year" : "tomorrow";
+    case "presP": return x > 255 ? "just" : v.dur && x < 105 ? "since 2020" : "already";
+  }
+  return null;
+}
+// Does a time word go with a tense? lvl: fit | odd | clash | none; key names the explanation.
+function fit(tw, tense, v) {
+  if (!tw || !tense) return { lvl: "none" };
+  const past = tense === "pastS" || tense === "pastC";
+  switch (tw) {
+    case "yesterday": case "last year": case "when you called":
+      if (past) return tw === "last year" && tense === "pastC" ? { lvl: "odd", key: "oddGen" } : { lvl: "fit" };
+      return { lvl: "clash", key: tense === "presP" ? "clashPerf" : "clash" };
+    case "every day":
+      return ["presS", "pastS", "futS"].includes(tense) ? { lvl: "fit" } : { lvl: "odd", key: "oddEvery" };
+    case "now":
+      if (tense === "presC") return { lvl: "fit" };
+      if (tense === "presS") return { lvl: "odd", key: "oddNowS" };
+      if (tense === "futS") return { lvl: "odd", key: "oddNowF" };
+      if (tense === "presP") return { lvl: "odd", key: "oddGen" };
+      return { lvl: "clash", key: "clash" };
+    case "tomorrow": case "next year":
+      if (tense === "futS" || tense === "futC") return { lvl: "fit" };
+      if (tense === "presC") return { lvl: "fit", key: "plan" };
+      if (tense === "presS") return { lvl: "odd", key: "oddTable" };
+      return { lvl: "clash", key: "clash" };
+    case "already": case "just":
+      if (tense === "presP") return { lvl: "fit" };
+      return { lvl: "odd", key: tense === "pastS" ? "oddUS" : "oddGen" };
+    case "since 2020":
+      if (tense === "presP") return v.dur ? { lvl: "fit" } : { lvl: "odd", key: "oddSince" };
+      return { lvl: "clash", key: "clashSince" };
+  }
+  throw new Error("time word " + tw);
+}
+// Chinese equivalent as [text, class]: mk marker (了 过 正在 会 要 已经 刚 一直), zv the verb (never changes), twz time word.
+// Only called with no time word or a fitting one.
+function zhParts(v, subj, tense, tw, shape) {
+  const out = [], V = [v.zv, "zv"], O = [v.zo, ""];
+  const habit = shape === "habit" && (!tw || tw === "every day");
+  if (tw === "when you called") out.push(["你打电话来的时候，", "twz"]);
+  out.push([ZS[subj], ""]);
+  const T = ZTW[tw] ? [ZTW[tw], "twz"] : null;
+  const adv = () => { if (tw === "already") out.push(["已经", "mk"]); if (tw === "just") out.push(["刚", "mk"]); };
+  switch (tense) {
+    case "pastS":
+      if (habit) { out.push(["以前", "twz"]); if (T) out.push(T); out.push(V, O); break; }
+      if (T) out.push(T);
+      adv(); out.push(V, ["了", "mk"], O); break;
+    case "presS": if (T) out.push(T); adv(); out.push(V, O); break;
+    case "futS":
+      if (habit) { out.push(["以后", "twz"], ["会", "mk"]); if (T) out.push(T); out.push(V, O); break; }
+      if (T) out.push(T);
+      out.push(["会", "mk"], V, O); break;
+    case "presC":
+      if (T) out.push(T);
+      out.push([tw === "tomorrow" || tw === "next year" ? "要" : "正在", "mk"], V, O); break;
+    case "pastC":
+      if (T) out.push(T); else if (tw !== "when you called") out.push(["那时", "twz"]);
+      out.push(["正在", "mk"], V, O); break;
+    case "presP":
+      if (tw === "since 2020") { out.push(["从 2020 年起", "twz"], ["一直", "mk"], V, O); break; }
+      adv();
+      if (v.zres) out.push(...(tw === "just" ? [V, ["了", "mk"], O] : [V, O, ["了", "mk"]]));
+      else { out.push(V, ["过", "mk"], O); if (tw === "already") out.push(["了", "mk"]); }
+      break;
+    case "futC":
+      out.push(T ? [ZTW[tw] + "这个时候", "twz"] : ["那时", "twz"], ["会在", "mk"], V, O); break;
+  }
+  out.push(["。", ""]);
+  return out;
+}
+// Step 3 quiz: the picture decides the answer (tenseAt); opts are tenses offered.
+const QUIZ = [
+  { shape: "once", x: 200, subj: "she", v: 5, opts: ["presS", "pastS", "presP", "futS"] },
+  { shape: "prog", x: NOW, subj: "they", v: 6, opts: ["presS", "pastS", "presC", "pastC"] },
+  { shape: "perf", x: 120, subj: "I", v: 7, opts: ["pastS", "presP", "presC", "futS"] },
+  { shape: "prog", x: 215, subj: "I", v: 1, opts: ["pastS", "pastC", "presC", "presP"] },
+  { shape: "habit", x: NOW, subj: "she", v: 4, opts: ["presS", "pastS", "presC", "futS"] },
+];
+if (typeof module !== "undefined") module.exports = { VERBS, SUBJ, TENSES, TWS, forms, third, pastReg, ing, vp, vpText, sentence, sentText, place, tenseAt, suggest, fit, zhParts, QUIZ, NOW };
+
+if (typeof document !== "undefined") (function () {
+const P = Play.setup({
+  en: {
+    title: "Tenses on a timeline", eyebrow: "English · Stage 2", h1: "In English, the verb itself tells you when",
+    intro: "Put an action on a timeline and watch the verb change: played, plays, will play, is playing, has played, was playing. Chinese keeps the verb the same and adds words like 了, 正在 or 会 instead.",
+    reset: "Reset", subjL: "Who", verbL: "Verb", shapeL: "Picture", twL: "Time word",
+    tlAria: "Timeline with now in the middle. Left and right arrows move the action.",
+    sh_once: "● once", sh_habit: "●●● habit", sh_prog: "▬ in progress", sh_perf: "⟶ up to now", noTw: "none",
+    t2020: "2020", tLastYear: "last year", tYesterday: "yesterday", tTomorrow: "tomorrow", tNextYear: "next year",
+    nowT: "NOW", pastT: "← past", futT: "future →", refT: "at that moment",
+    s1: "Guess", s2: "Timeline", s3: "Rule",
+    k1: "Predict first", t1: "Fill the gap",
+    b1: "The time word “yesterday” is already there. Does the verb still need to change?",
+    k2: "Hands on", t2: "Drag the action along the timeline",
+    b2: "Pick a picture, then drag it (or tap the line; arrow keys work too). Watch the verb. Then try time words: the ones with a green border fit; pick one that doesn't and see what happens.",
+    k3: "The rule", t3: "The verb carries the time",
+    b3: "Where the action sits relative to now decides the verb form. Time words only add detail — and they must agree with the verb.",
+    q: "Yesterday I ___ football.", o_play: "play", o_played: "played", o_playing: "playing",
+    p_play: "In Chinese, 我昨天踢足球 is fine: 踢 never changes, and 昨天 carries the time. English works differently: “Yesterday I play football” is wrong. The verb itself must move into the past: played.",
+    p_played: "Yes: played. “Yesterday” helps, but it is not enough — the verb itself changes too.",
+    p_playing: "“playing” can't stand on its own: it needs a helper (I was playing). For one finished action yesterday, the verb becomes played.",
+    after1: "Same verb, three places on the timeline — three different verb forms. The time words could even be left out.",
+    after1en: "In Chinese the verb 踢 (play) stays the same in all three; time is carried by 昨天 / 正在 / 会.",
+    tn_pastS: "simple past", tn_presS: "simple present", tn_futS: "simple future (will)", tn_presC: "present continuous", tn_pastC: "past continuous", tn_presP: "present perfect", tn_futC: "future continuous",
+    td_pastS: "one finished action before now", td_presS: "a habit or fact around now", td_futS: "an action after now", td_presC: "in progress right now", td_pastC: "in progress at a moment before now", td_presP: "from some time before now, still linked to now", td_futC: "in progress at a moment after now — a preview, not one of this page's six",
+    w_past: "the past", w_now: "now", w_future: "the future",
+    wh_pastS: "in the past", wh_presS: "around now", wh_futS: "in the future", wh_presC: "right now", wh_pastC: "in the past", wh_presP: "in a span that reaches now", wh_futC: "in the future",
+    fitMsg: "✓ “{tw}” fits the {tn}.",
+    plan: "✓ Fine: present continuous + a future time = a fixed plan (I'm playing tomorrow).",
+    oddGen: "~ “{tw}” with the {tn} is possible but unusual — it changes the meaning.",
+    oddEvery: "~ Possible, but it sounds like a temporary routine or a complaint.",
+    oddNowS: "~ This means “these days”: I play football now (but I didn't before).",
+    oddNowF: "~ This means you decide right now: OK, I'll play now.",
+    oddTable: "~ Only for timetables: The train leaves tomorrow.",
+    oddUS: "~ Common in American English; British English prefers the present perfect ({perf}).",
+    oddSince: "~ With “{b}”, since sounds odd — it is not something you keep doing over years. Try already.",
+    clash: "✗ “{tw}” points to {when}, but “{vp}” puts the action {where}.",
+    clashPerf: "✗ “{vp}” links the action to now, so it can't take a finished past time like “{tw}”. Use {past}.",
+    clashSince: "✗ “since 2020” measures a span that reaches now — that needs have/has + past participle: {perf}.",
+    noneMsg: "No time word — and the sentence still says when. The verb does the work.",
+    nowDot: "A single finished action can't sit exactly on now. Drag it into the past or the future — or choose ▬ in progress.",
+    suggested: "suggested", say: "▶ Read aloud",
+    liveSent: "{tn}: {s}",
+    thTense: "Tense", thPic: "Picture", thForm: "Form",
+    more: "These are 6 of the English tenses. There are more: past perfect (had played), future continuous (will be playing), present perfect continuous (have been playing) and others. The future can also be said with “be going to” or the present continuous (I'm playing tomorrow).",
+    formsT: "All verb forms on this page", formsNote: "Regular verbs add -ed for both past forms. go, eat and see are irregular: learn their three forms by heart.",
+    fBase: "base", fS: "he/she/it", fPast: "past", fPp: "past participle", fIng: "-ing",
+    next: "Next sentence →", again: "Start the quiz again",
+    qNum: "Sentence {i} of {n}", qScore: "First try right: {k}", qDone: "Done: {k} of {n} right on the first try.",
+    qAsk: "Which verb form matches the picture? There is no time word — the verb alone must say when.",
+    qRight: "✓ {f}: {tn} — {td}.", qWrong: "✗ {f} is the {tn} ({td}). Look at the picture again.",
+    resultTitle: "What we found",
+    resultNote: "English moves the verb (or adds a helping verb) to show where the action sits relative to now. Chinese keeps 踢 and adds 了, 正在, 会 or a time word.",
+    explainK: "Explain it", explainQ: "A friend writes “Yesterday I go to the park.” Draw a timeline with now on it and use it to explain why the verb has to change, even though “yesterday” is already there.",
+    homeK: "Try at home", homeQ: "Stretch a string across the room and clip a card saying NOW in the middle. Clip action cards on it (eat breakfast, see a film…) and say each one aloud with the right verb form. Move a card and say it again.",
+    foot: "Six tenses covered: simple past, simple present, simple future (will), present continuous, past continuous, present perfect; the future continuous appears only as a preview. Strictly, many grammarians say English marks only two tenses on the verb (past and present) and call the others combinations of tense with aspect or with will; schools usually call all of them tenses. Spelling rules used: he/she/it + -s, -es after s, x, z, ch, sh, o, consonant + y → -ies; -ed: add -d after e, consonant + y → -ied, one-syllable verbs ending consonant–vowel–consonant double the last letter (stop → stopped, plan → planned; not w, x, y); -ing: drop a silent e (make → making), ie → ying, double as for -ed. Longer verbs double only when the last syllable is stressed (prefer → preferred, but visit → visited); British English also doubles l (travelled). She has gone to the park = she went and is still there; she has been to the park = she went and came back. The timeline is not to scale. Chinese lines are natural equivalents, not word-for-word: 了 completed, 过 experience, 正在 in progress, 会 / 将 / 要 future, 已经 already, 一直 continuing. All sentences are original. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "时态放到时间轴上", eyebrow: "英语 · 阶段 2", h1: "英语里，动词本身告诉你「什么时候」",
+    intro: "把一个动作放到时间轴上，看动词怎么变：played、plays、will play、is playing、has played、was playing。中文的动词不变，靠加「了」「正在」「会」这样的词。",
+    reset: "重置", subjL: "谁", verbL: "动词", shapeL: "图形", twL: "时间词",
+    tlAria: "时间轴，中间是现在。左右方向键移动动作。",
+    sh_once: "● 一次", sh_habit: "●●● 习惯", sh_prog: "▬ 正在进行", sh_perf: "⟶ 持续到现在", noTw: "不加",
+    t2020: "2020", tLastYear: "去年", tYesterday: "昨天", tTomorrow: "明天", tNextYear: "明年",
+    nowT: "现在", pastT: "← 过去", futT: "将来 →", refT: "那一刻",
+    s1: "先猜", s2: "时间轴", s3: "规律",
+    k1: "先猜一猜", t1: "填空",
+    b1: "句子里已经有时间词 yesterday 了。动词还需要变吗？",
+    k2: "动手", t2: "把动作在时间轴上拖来拖去",
+    b2: "先选一个图形，再拖动它（也可以点时间轴；方向键也行），看动词怎么变。再试试时间词：绿框的是搭配的；故意选一个不搭的，看看会怎样。",
+    k3: "规律", t3: "时间装在动词里",
+    b3: "动作相对「现在」在哪里，决定动词用什么形式。时间词只是补充细节，而且必须和动词对得上。",
+    q: "Yesterday I ___ football.", o_play: "play", o_played: "played", o_playing: "playing",
+    p_play: "中文说「我昨天踢足球」没问题：「踢」永远不变，时间靠「昨天」。英语不一样：Yesterday I play football 是错的，动词本身要变成过去式 played。",
+    p_played: "对：played。yesterday 有帮助，但不够——动词本身也要变。",
+    p_playing: "playing 不能单独当谓语，要有助动词（I was playing）。昨天做完的一件事，动词要变成 played。",
+    after1: "同一个动词，放在时间轴上三个位置，就是三种动词形式。时间词甚至可以不说。",
+    after1en: "中文三句里的「踢」都不变；时间靠「昨天」「正在」「会」。",
+    tn_pastS: "一般过去时", tn_presS: "一般现在时", tn_futS: "一般将来时（will）", tn_presC: "现在进行时", tn_pastC: "过去进行时", tn_presP: "现在完成时", tn_futC: "将来进行时",
+    td_pastS: "现在之前做完的一件事", td_presS: "现在前后一直有的习惯或事实", td_futS: "现在之后的一件事", td_presC: "此刻正在进行", td_pastC: "过去某一刻正在进行", td_presP: "从过去某时起，和现在连着", td_futC: "将来某一刻正在进行——预览，不在本页的六种里",
+    w_past: "过去", w_now: "现在", w_future: "将来",
+    wh_pastS: "放在过去", wh_presS: "放在现在前后", wh_futS: "放在将来", wh_presC: "放在此刻", wh_pastC: "放在过去", wh_presP: "放在一直连到现在的一段时间里", wh_futC: "放在将来",
+    fitMsg: "✓ {tw} 和{tn}搭配。",
+    plan: "✓ 可以：现在进行时 + 将来的时间 = 已经定好的安排（I'm playing tomorrow）。",
+    oddGen: "~ {tw} 配{tn}能说，但不常见，意思会变。",
+    oddEvery: "~ 能说，但听起来像是暂时的习惯，或者在抱怨。",
+    oddNowS: "~ 意思是「如今」：I play football now（以前不踢）。",
+    oddNowF: "~ 意思是此刻临时决定：OK, I'll play now.",
+    oddTable: "~ 只用于时刻表：The train leaves tomorrow.",
+    oddUS: "~ 美式英语常这样说；英式英语更爱用现在完成时（{perf}）。",
+    oddSince: "~ {b} 不是一件能持续好几年的事，配 since 别扭。试试 already。",
+    clash: "✗ {tw} 指向{when}，可 {vp} 把动作{where}。",
+    clashPerf: "✗ {vp} 把动作和现在连在一起，不能配 {tw} 这种已经结束的过去时间。要用 {past}。",
+    clashSince: "✗ since 2020 量的是一直连到现在的一段时间，要用 have/has + 过去分词：{perf}。",
+    noneMsg: "没有时间词，句子照样说清了「什么时候」——靠的是动词。",
+    nowDot: "做完的一件事不能正好落在「现在」上。把它拖到过去或将来，或者换成 ▬ 正在进行。",
+    suggested: "推荐", say: "▶ 读一读",
+    liveSent: "{tn}：{s}",
+    thTense: "时态", thPic: "图形", thForm: "形式",
+    more: "这里是英语时态中的 6 种，还有更多：过去完成时（had played）、将来进行时（will be playing）、现在完成进行时（have been playing）等。表示将来还可以用 be going to，或用现在进行时（I'm playing tomorrow）。",
+    formsT: "本页全部动词形式", formsNote: "规则动词的过去式和过去分词都加 -ed。go、eat、see 是不规则动词，三种形式要记住。",
+    fBase: "原形", fS: "第三人称单数", fPast: "过去式", fPp: "过去分词", fIng: "-ing 形式",
+    next: "下一句 →", again: "重新做小测",
+    qNum: "第 {i} / {n} 句", qScore: "一次答对：{k}", qDone: "完成：{n} 句里一次答对 {k} 句。",
+    qAsk: "哪个动词形式和图对得上？句子里没有时间词，只能靠动词说出「什么时候」。",
+    qRight: "✓ {f}：{tn}——{td}。", qWrong: "✗ {f} 是{tn}（{td}）。再看看图。",
+    resultTitle: "我们发现",
+    resultNote: "英语靠改动词（或加助动词）标出动作相对「现在」的位置；中文的「踢」不变，加「了」「正在」「会」或时间词。",
+    explainK: "说一说", explainQ: "同学写了 Yesterday I go to the park. 画一条标着「现在」的时间轴，用它给他讲清楚：句子里已经有 yesterday 了，为什么动词还要变。",
+    homeK: "家里做一做", homeQ: "在屋里拉一根绳子，中间夹一张写着 NOW 的卡片。把动作卡（eat breakfast、see a film……）夹到绳子上，用对的动词形式大声说出来。挪一挪卡片，再说一遍。",
+    foot: "本页讲六种时态：一般过去时、一般现在时、一般将来时（will）、现在进行时、过去进行时、现在完成时；将来进行时只作预览。严格说，不少语法学家认为英语动词本身只标两种时（过去和现在），其余是时和「体」或 will 的组合；学校里通常都叫时态。用到的拼写规则：第三人称单数加 -s，以 s、x、z、ch、sh、o 结尾加 -es，辅音 + y 变 -ies；-ed：以 e 结尾只加 -d，辅音 + y 变 -ied，单音节「辅音–元音–辅音」结尾的动词双写末字母（stop → stopped，plan → planned；w、x、y 不双写）；-ing：去掉不发音的 e（make → making），ie 变 ying，双写同 -ed。多音节动词只有末音节重读才双写（prefer → preferred，visit → visited）；英式英语 l 也双写（travelled）。She has gone to the park 是去了还没回来；she has been to the park 是去过又回来了。时间轴不按比例。中文句子是自然的对应说法，不是逐词翻译：了 表完成，过 表经历，正在 表进行，会 / 将 / 要 表将来，已经、一直。所有例句均为原创。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang, $ = (id) => document.getElementById(id), S = Play.svg;
+const tl = $("tl"), readout = $("readout"), liveEl = $("live");
+let step = 0, guess = -1;
+let st;
+const fresh = () => ({ subj: "I", v: 0, shape: "once", x: { once: 225, habit: NOW, prog: NOW, perf: 120 }, tw: "yesterday" });
+st = fresh();
+let qi = 0, qTried = false, qScore = 0, qDone = false, qPicked = [];
+
+const tn = (t) => P.t("tn_" + t), td = (t) => P.t("td_" + t);
+const V = () => VERBS[st.v];
+const curX = () => st.x[st.shape];
+const curTense = () => tenseAt(st.shape, curX());
+
+// ---- timeline drawing ----
+// k scales text so labels stay ≥ 13 px on a narrow screen.
+function drawTL(svg, shape, x, label, warn, interactive) {
+  const w = svg.clientWidth || 600;
+  const k = Math.min(2, Math.max(1, 600 / w));
+  const fs = 13 * k, fv = 17 * k;
+  const yNow = fs + 4, yVerb = yNow + 10 + fv, AX = yVerb + 24 + 4 * k;
+  const rowA = AX + 14 + fs, rowB = rowA + fs * 1.3, yPF = rowB + fs * 1.55, H = Math.round(yPF + 8);
+  svg.setAttribute("viewBox", "0 0 600 " + H);
+  svg.innerHTML = "";
+  S("rect", { x: 10, y: yNow + 6, width: NOW - 10, height: rowB - yNow - 2, rx: 10, class: "pastz" }, svg);
+  S("rect", { x: NOW - SNAP, y: yNow + 6, width: 2 * SNAP, height: rowB - yNow - 2, class: "nowz" }, svg);
+  S("line", { x1: 16, y1: AX, x2: 578, y2: AX, class: "axis" }, svg);
+  S("path", { d: `M590 ${AX} l-13 -6 v12 z`, class: "axhead" }, svg);
+  TICKS.forEach(([tx, key], i) => {
+    S("line", { x1: tx, y1: AX - 6, x2: tx, y2: AX + 6, class: "tick" }, svg);
+    S("text", { x: tx, y: i % 2 ? rowB : rowA, class: "tickt", "font-size": fs }, svg).textContent = P.t(key);
+  });
+  S("line", { x1: NOW, y1: yNow + 6, x2: NOW, y2: rowB + 4, class: "nowl" }, svg);
+  S("text", { x: NOW, y: yNow, class: "nowt", "font-size": fs }, svg).textContent = P.t("nowT");
+  S("text", { x: 14, y: yPF, class: "pft", "font-size": fs }, svg).textContent = P.t("pastT");
+  S("text", { x: 586, y: yPF, class: "pft", "font-size": fs, "text-anchor": "end" }, svg).textContent = P.t("futT");
+  const r = 9 + 2 * k;
+  let lx = x;
+  if (shape === "once") S("circle", { cx: x, cy: AX, r: r + 1, class: warn ? "warn" : "ev" }, svg);
+  else if (shape === "habit") {
+    for (let i = -2; i <= 2; i++) S("circle", { cx: x + i * (HAB / 2), cy: AX, r: r - 2, class: i ? "evs" : "ev" }, svg);
+    S("line", { x1: x - HAB - 6, y1: AX - r - 6, x2: x + HAB + 6, y2: AX - r - 6, class: "evb", "stroke-width": 1.5, "stroke-dasharray": "3 4" }, svg);
+  } else if (shape === "prog") {
+    S("rect", { x: x - 52, y: AX - r / 1.5, width: 104, height: (2 * r) / 1.5, rx: r / 1.5, class: "evs" }, svg);
+    S("path", { d: `M${x} ${AX - r - 3} l${r} ${r + 3} l${-r} ${r + 3} l${-r} ${-r - 3} z`, class: "ref" }, svg);
+  } else if (shape === "perf") {
+    S("line", { x1: x, y1: AX, x2: NOW - r, y2: AX, class: "evb", "stroke-width": 8 }, svg);
+    S("path", { d: `M${NOW} ${AX} l${-r - 6} ${-r} v${2 * r} z`, class: "ev" }, svg);
+    S("circle", { cx: x, cy: AX, r: r + 1, class: "ev" }, svg);
+    lx = (x + NOW) / 2;
+  }
+  if (label) {
+    const half = label.length * 0.3 * fv + 4;
+    lx = Math.min(600 - half, Math.max(half, lx));
+    S("text", { x: lx, y: yVerb, class: "vlab" + (warn ? " no" : ""), "font-size": fv }, svg).textContent = label;
+  }
+  if (interactive) {
+    svg.setAttribute("aria-valuenow", Math.round(((x - XMIN) / (XMAX - XMIN)) * 100));
+  }
+}
+
+// ---- pickers ----
+function chipRow(boxId, items, onPick) {
+  const box = $(boxId);
+  return items.map(([val, label]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small"; b.textContent = label;
+    b.addEventListener("click", () => onPick(val));
+    box.appendChild(b);
+    return { b, val };
+  });
+}
+const subjBtns = chipRow("pSubj", SUBJ.map((s) => [s, s]), (s) => { st.subj = s; render(); });
+subjBtns.forEach(({ b }) => (b.lang = "en"));
+const verbBtns = chipRow("pVerb", VERBS.map((v, i) => [i, v.b]), (i) => { st.v = i; render(); });
+verbBtns.forEach(({ b }) => (b.lang = "en"));
+const shapeBtns = chipRow("pShape", ["once", "habit", "prog", "perf"].map((s) => [s, P.t("sh_" + s)]), (s) => { st.shape = s; render(); announce(); });
+const twBtns = chipRow("pTw", [[null, P.t("noTw")], ...TWS.map((t) => [t, t])], (t) => { st.tw = t; render(); announce(); });
+twBtns.forEach(({ b, val }) => { if (val) b.lang = "en"; });
+
+function segsTo(box, segs, f) {
+  box.innerHTML = "";
+  segs.forEach(([t, c], i) => {
+    if (i) box.appendChild(document.createTextNode(" "));
+    const s = document.createElement("span");
+    s.textContent = t;
+    if (c) s.className = c + (c === "tw" && f ? " " + f : "");
+    box.appendChild(s);
+  });
+  box.appendChild(document.createTextNode("."));
+}
+function zhTo(box, parts) {
+  box.innerHTML = "";
+  parts.forEach(([t, c]) => { const s = document.createElement("span"); s.textContent = t; if (c) s.className = c; box.appendChild(s); });
+}
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+
+// Message for a time word + tense.
+function fitText(f, tw, tense) {
+  const v = V();
+  const vars = { tw, tn: tn(tense), vp: vpText(v, st.subj, tense), b: v.b,
+    when: TW_WHEN[tw] ? P.t("w_" + TW_WHEN[tw]) : "", where: P.t("wh_" + tense),
+    past: vpText(v, st.subj, "pastS"), perf: sentText(sentence(v, st.subj, "presP", tw === "since 2020" ? tw : "already")) };
+  if (f.lvl === "none") return P.t("noneMsg");
+  if (f.lvl === "fit" && !f.key) return P.t("fitMsg", vars);
+  return P.t(f.key, vars);
+}
+
+// ---- step 2 ----
+function renderTimeline() {
+  const v = V(), x = curX(), tense = curTense();
+  subjBtns.forEach(({ b, val }) => b.setAttribute("aria-pressed", String(val === st.subj)));
+  verbBtns.forEach(({ b, val }) => b.setAttribute("aria-pressed", String(val === st.v)));
+  shapeBtns.forEach(({ b, val }) => b.setAttribute("aria-pressed", String(val === st.shape)));
+  drawTL(tl, st.shape, x, tense ? vpText(v, st.subj, tense) : "?", !tense, true);
+  readout.innerHTML = "";
+  if (!tense) {
+    readout.appendChild(el("div", "status odd", P.t("nowDot")));
+    tl.setAttribute("aria-valuetext", P.t("nowDot"));
+  } else {
+    const f = fit(st.tw, tense, v);
+    const head = el("div", "tn");
+    head.appendChild(el("b", "", tn(tense)));
+    head.appendChild(document.createTextNode(" · " + td(tense)));
+    const sEl = el("div", "sent"); sEl.lang = "en";
+    const segs = sentence(v, st.subj, tense, st.tw);
+    segsTo(sEl, segs, f.lvl);
+    readout.append(head, sEl);
+    if (L === "zh" && f.lvl !== "clash" && f.lvl !== "odd") {
+      const z = el("div", "zh"); z.lang = "zh-CN";
+      zhTo(z, zhParts(v, st.subj, tense, st.tw, st.shape));
+      readout.appendChild(z);
+    }
+    readout.appendChild(el("div", "status " + f.lvl, fitText(f, st.tw, tense)));
+    const say = el("button", "small", P.t("say"));
+    say.type = "button"; say.style.marginTop = "6px";
+    say.addEventListener("click", () => Play.speak(sentText(segs), "en-US"));
+    readout.appendChild(say);
+    tl.setAttribute("aria-valuetext", tn(tense) + ": " + sentText(segs));
+  }
+  const sug = tense ? suggest(st.shape, tense, x, v) : null;
+  twBtns.forEach(({ b, val }) => {
+    b.setAttribute("aria-pressed", String(val === st.tw));
+    b.classList.toggle("ok", !!(val && tense && fit(val, tense, v).lvl === "fit"));
+    b.textContent = val || P.t("noTw");
+    if (val && val === sug) { const s = el("span", "star", "★"); s.title = P.t("suggested"); s.setAttribute("aria-label", P.t("suggested")); b.appendChild(s); }
+  });
+}
+function announce() {
+  const t = curTense();
+  Play.live(liveEl, t ? P.t("liveSent", { tn: tn(t), s: sentText(sentence(V(), st.subj, t, st.tw)) }) : P.t("nowDot"));
+}
+function moveTo(x) {
+  const nx = place(st.shape, x);
+  if (nx === curX()) return;
+  const before = curTense();
+  st.x[st.shape] = nx;
+  render();
+  if (curTense() !== before) announce();
+}
+let dragging = false;
+tl.addEventListener("pointerdown", (e) => {
+  if (step !== 1) return;
+  dragging = true;
+  try { tl.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  moveTo(Play.pointer(tl, e).x);
+  e.preventDefault();
+});
+tl.addEventListener("pointermove", (e) => { if (dragging) moveTo(Play.pointer(tl, e).x); });
+const stop = () => { dragging = false; };
+tl.addEventListener("pointerup", stop);
+tl.addEventListener("pointercancel", stop);
+tl.addEventListener("keydown", (e) => {
+  if (step !== 1) return;
+  const d = { ArrowRight: 10, ArrowUp: 10, ArrowLeft: -10, ArrowDown: -10, PageUp: 40, PageDown: -40 }[e.key];
+  if (d) {
+    let nx = curX() + (e.shiftKey ? d * 4 : d);
+    // step across the snap band in one press
+    const cx = curX();
+    if (cx === NOW && Math.abs(nx - NOW) <= SNAP) nx = NOW + Math.sign(d) * (SNAP + 1);
+    moveTo(nx); e.preventDefault();
+  } else if (e.key === "Home") { moveTo(XMIN); e.preventDefault(); } else if (e.key === "End") { moveTo(XMAX); e.preventDefault(); }
+});
+
+// ---- step 1 ----
+function renderGuess() {
+  drawTL(tl, "once", 225, guess < 0 ? "?" : vpText(VERBS[0], "I", "pastS"), false, false);
+  readout.innerHTML = "";
+  const s = el("div", "sent"); s.lang = "en";
+  s.append("Yesterday I ");
+  s.appendChild(el("span", "gap", guess < 0 ? " " : vpText(VERBS[0], "I", "pastS")));
+  s.append(" football.");
+  readout.appendChild(s);
+  if (guess < 0) return;
+  const rows = el("div", "rows");
+  [["yesterday", "pastS", "once"], ["now", "presC", "prog"], ["tomorrow", "futS", "once"]].forEach(([tw, t, sh]) => {
+    const r = el("div", "r");
+    const e = el("div", "sent"); e.lang = "en";
+    segsTo(e, sentence(VERBS[0], "I", t, tw), "fit");
+    r.appendChild(e);
+    if (L === "zh") { const z = el("div", "zh"); z.lang = "zh-CN"; zhTo(z, zhParts(VERBS[0], "I", t, tw, sh)); r.appendChild(z); }
+    rows.appendChild(r);
+  });
+  readout.appendChild(rows);
+  readout.appendChild(el("div", "status fit", P.t("after1")));
+  if (L === "en") readout.appendChild(el("div", "tn", P.t("after1en")));
+}
+
+// ---- step 3 ----
+function miniPic(shape, x) {
+  const s = S("svg", { viewBox: "0 0 120 36", "aria-hidden": "true" });
+  const m = (vx) => 6 + ((vx - 20) / 560) * 108, nx = m(NOW), X = m(x);
+  S("line", { x1: 4, y1: 22, x2: 116, y2: 22, class: "axis", "stroke-width": 1.5 }, s);
+  S("line", { x1: nx, y1: 4, x2: nx, y2: 34, class: "nowl", "stroke-width": 1.5, "stroke-dasharray": "3 2" }, s);
+  if (shape === "once") S("circle", { cx: X, cy: 22, r: 5, class: "ev" }, s);
+  if (shape === "habit") for (let i = -2; i <= 2; i++) S("circle", { cx: X + i * 5.5, cy: 22, r: 2.6, class: "ev" }, s);
+  if (shape === "prog") { S("rect", { x: X - 10, y: 19, width: 20, height: 6, rx: 3, class: "evs" }, s); S("path", { d: `M${X} 15 l6 7 l-6 7 l-6 -7 z`, class: "ref", "stroke-width": 1.5 }, s); }
+  if (shape === "perf") { S("line", { x1: X, y1: 22, x2: nx - 4, y2: 22, class: "evb" }, s); S("path", { d: `M${nx} 22 l-7 -5 v10 z`, class: "ev" }, s); S("circle", { cx: X, cy: 22, r: 4, class: "ev" }, s); }
+  return s;
+}
+const PICS = { pastS: ["once", 200], presS: ["habit", NOW], futS: ["once", 400], presC: ["prog", NOW], pastC: ["prog", 200], presP: ["perf", 120] };
+function renderRuleTable() {
+  const tb = $("tenseTbl"); tb.innerHTML = "";
+  const hr = el("tr"); ["thTense", "thPic", "thForm"].forEach((k) => hr.appendChild(el("th", "", P.t(k)))); tb.appendChild(hr);
+  const v = V();
+  TENSES.forEach((t) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", "", tn(t)));
+    const pc = el("td"); pc.appendChild(miniPic(...PICS[t])); tr.appendChild(pc);
+    const f = el("td", "f", (st.subj === "I" ? "I" : st.subj) + " " + vpText(v, st.subj, t)); f.lang = "en";
+    tr.appendChild(f);
+    tb.appendChild(tr);
+  });
+}
+function renderQuiz() {
+  const n = QUIZ.length;
+  $("qScore").textContent = P.t("qScore", { k: qScore });
+  const btn = $("qNext");
+  if (qDone) {
+    $("qNum").textContent = P.t("qDone", { k: qScore, n });
+    $("qfig").innerHTML = ""; $("qfig").setAttribute("viewBox", "0 0 600 1");
+    $("qSent").textContent = ""; $("qOpts").innerHTML = ""; $("qFb").textContent = "";
+    btn.textContent = P.t("again");
+    btn.hidden = false;
+    return;
+  }
+  const q = QUIZ[qi], v = VERBS[q.v], ans = tenseAt(q.shape, q.x);
+  const solved = qPicked.includes(ans);
+  $("qNum").textContent = P.t("qNum", { i: qi + 1, n });
+  drawTL($("qfig"), q.shape, q.x, solved ? vpText(v, q.subj, ans) : "?", false, false);
+  $("qfig").setAttribute("aria-label", td(ans));
+  const s = $("qSent"); s.innerHTML = "";
+  s.append((q.subj === "I" ? "I" : q.subj[0].toUpperCase() + q.subj.slice(1)) + " ");
+  s.appendChild(el("span", "gap", solved ? vpText(v, q.subj, ans) : " "));
+  s.append(" " + v.o + ".");
+  const box = $("qOpts"); box.innerHTML = "";
+  q.opts.forEach((t) => {
+    const b = el("button", "", vpText(v, q.subj, t)); b.type = "button"; b.lang = "en";
+    if (qPicked.includes(t)) b.classList.add(t === ans ? "right" : "wrong");
+    b.addEventListener("click", () => quizPick(t));
+    box.appendChild(b);
+  });
+  btn.textContent = P.t("next");
+  btn.hidden = !solved;
+}
+function quizPick(t) {
+  const q = QUIZ[qi], v = VERBS[q.v], ans = tenseAt(q.shape, q.x);
+  if (qPicked.includes(ans)) return;
+  if (!qPicked.length && t === ans) qScore++;
+  if (!qPicked.includes(t)) qPicked.push(t);
+  const vars = { f: vpText(v, q.subj, t), tn: tn(t), td: td(t) };
+  renderQuiz();
+  const fb = $("qFb");
+  fb.textContent = P.t(t === ans ? "qRight" : "qWrong", vars);
+  fb.className = "qfb" + (t === ans ? "" : " no");
+  if (t === ans) $("qNext").focus();
+}
+$("qNext").addEventListener("click", () => {
+  if (qDone) { qi = 0; qScore = 0; qDone = false; }
+  else if (qi + 1 >= QUIZ.length) qDone = true;
+  else qi++;
+  qPicked = []; $("qFb").textContent = "";
+  renderQuiz();
+  const first = $("qOpts").querySelector("button");
+  if (first) first.focus();
+});
+
+// ---- forms table ----
+(function () {
+  const tb = $("formsTbl");
+  const hr = el("tr"); ["fBase", "fS", "fPast", "fPp", "fIng"].forEach((k) => { const th = el("th", "", P.t(k)); th.lang = L === "zh" ? "zh-CN" : "en"; hr.appendChild(th); }); tb.appendChild(hr);
+  VERBS.forEach((v) => {
+    const f = forms(v), tr = el("tr");
+    [f.base, f.s, f.past, f.pp, f.ing].forEach((w) => tr.appendChild(el("td", "", w)));
+    if (v.irr) tr.style.fontWeight = "700";
+    tb.appendChild(tr);
+  });
+})();
+$("resultMain").textContent = "play → " + TENSES.map((t) => vpText(VERBS[0], "she", t)).join(" · ");
+
+function render() {
+  $("pickers").hidden = step !== 1;
+  $("pTw").hidden = step !== 1;
+  tl.hidden = step === 2;
+  readout.hidden = step === 2;
+  $("quiz").hidden = step !== 2;
+  $("ruleBox").hidden = step !== 2;
+  $("formsBox").hidden = step !== 1;
+  tl.classList.toggle("live", step === 1);
+  tl.tabIndex = step === 1 ? 0 : -1;
+  if (step === 0) renderGuess();
+  else if (step === 1) renderTimeline();
+  else { renderRuleTable(); renderQuiz(); }
+}
+
+const OPTS = ["play", "played", "playing"];
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: OPTS.map((o) => ({ label: P.t("o_" + o), right: o === forms(VERBS[0]).past })),
+  right: P.t("p_played"), wrong: "",
+}, (i) => {
+  guess = i;
+  $("predict").querySelector(".fb").textContent = P.t("p_" + OPTS[i]);
+  render();
+});
+$("predict").querySelectorAll("button").forEach((b) => (b.lang = "en"));
+
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("stepBody").className = i === 2 ? "rule" : "";
+  $("predict").hidden = i !== 0;
+  if (i === 2) $("qFb").textContent = qDone ? "" : P.t("qAsk");
+  render();
+});
+$("reset").addEventListener("click", () => {
+  st = fresh(); guess = -1; qi = 0; qScore = 0; qDone = false; qPicked = [];
+  pr.reset(); $("qFb").textContent = ""; liveEl.textContent = ""; steps.go(0);
+});
+let rt = 0;
+addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 120); });
+render();
+})();
+</script>
+</body>
+</html>

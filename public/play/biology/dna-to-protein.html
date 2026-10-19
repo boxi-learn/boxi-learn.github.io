@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From DNA letters to a protein</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .lbl { fill: var(--fg); font-size: 14px; }
+  .lbl.m { fill: var(--muted); font-size: 13px; }
+  .lbl.b { font-weight: 650; }
+  .lbl.big { font-size: 17px; font-weight: 700; }
+  .lbl.q { fill: var(--a); font-size: 22px; font-weight: 750; }
+  .lbl.no { fill: var(--no); }
+  .lbl.base { fill: var(--surface); font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; font-weight: 700; pointer-events: none; }
+  .lbl.aa { fill: var(--fg); font-size: 13px; font-weight: 650; pointer-events: none; }
+  .bA { fill: var(--a); } .bC { fill: var(--c); } .bG { fill: var(--b); } .bT, .bU { fill: var(--h); }
+  .ghost { fill: var(--soft); stroke: var(--line); }
+  .panel { fill: var(--soft); }
+  .cellf { fill: var(--soft); stroke: var(--muted); stroke-width: 1.5; }
+  .nuc { fill: var(--c); opacity: .3; stroke: var(--c); stroke-width: 1.5; }
+  .axon { stroke: var(--muted); stroke-width: 3; fill: none; stroke-linecap: round; }
+  .zoom { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; fill: none; }
+  .readbar { fill: var(--hl); }
+  .pol { fill: var(--hl); opacity: .35; stroke: var(--hl); stroke-width: 2; }
+  .ribo { fill: none; stroke: var(--a); stroke-width: 3; }
+  .bead { fill: var(--surface); stroke: var(--a); stroke-width: 2; }
+  .bead.chg { stroke: var(--no); stroke-width: 3; }
+  .stopb { fill: var(--no); }
+  .mut { fill: none; stroke: var(--no); stroke-width: 3; }
+  .sel { fill: none; stroke: var(--fg); stroke-width: 2; stroke-dasharray: 4 2; }
+  .hit { fill: transparent; cursor: pointer; }
+  .swOn { fill: var(--a); }
+  .swOff { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  .lbl.sw { font-size: 13px; font-weight: 700; pointer-events: none; }
+  .lbl.sw.on { fill: var(--surface); }
+  .dnaRow { fill: none; stroke: var(--muted); stroke-width: 2; }
+  .ok { fill: var(--a); font-weight: 750; }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .controls .seg { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .controls .seg button { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; min-width: 2.4em; }
+  #progVal { font-family: var(--font); font-size: 13px; min-width: 9em; }
+  #extra { font-size: 14px; color: var(--fg); }
+  .ctab { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 8px; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+  .ctab > div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; min-width: 0; }
+  .ctab span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ctab .stp { color: var(--no); font-weight: 700; }
+  .ctab .st { color: var(--a); font-weight: 700; }
+  .ctab .now { outline: 2px solid var(--a); border-radius: 4px; font-weight: 700; }
+  .ctab .was { text-decoration: line-through; }
+  #tableBox { margin: -4px 2px 16px; }
+  @media (max-width: 400px) { .ctab { font-size: 12px; gap: 3px; } .ctab > div { padding: 3px 4px; } }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlGene">
+        <button type="button" class="small" id="play"></button>
+        <label for="prog" data-t="progLabel"></label>
+        <input type="range" id="prog" min="0" max="40" step="1" value="0">
+        <span class="val" id="progVal"></span>
+      </div>
+      <div class="controls" id="ctlMut">
+        <span id="mutLbl"></span>
+        <span class="seg" id="seg"></span>
+        <button type="button" class="small" id="undo" data-t="undo"></button>
+      </div>
+      <div class="controls" id="ctlBook">
+        <button type="button" class="small" id="real" data-t="real"></button>
+        <button type="button" class="small" id="alloff" data-t="alloff"></button>
+        <span data-t="keysHint3"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="extra"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+  <details class="more" id="tableBox">
+    <summary data-t="tableSum"></summary>
+    <div class="ctab" id="ctab"></div>
+  </details>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "From DNA letters to a protein", eyebrow: "Biology · Stage 4", h1: "Same DNA in every cell, read three letters at a time",
+    intro: "Guess whether your cells carry different DNA. Then read a small made-up gene into a protein, change one letter, and switch genes on and off in three kinds of cell.",
+    reset: "Reset", figAria: "Cells, DNA strands, mRNA and a growing protein chain",
+    s1: "Guess", s2: "Read a gene", s3: "Same book",
+    k1: "Predict first", t1: "A skin cell and a nerve cell from the same person: is their DNA the same?",
+    b1: "They look and work nothing alike. Pick an answer, then look inside the two nuclei.",
+    q: "The DNA in the skin cell and in the nerve cell is…",
+    o1: "different: each cell type has its own DNA", o2: "the same DNA", o3: "bigger in the nerve cell, because its job is harder",
+    right: "Yes. Both nuclei hold the same letters. What differs is which genes each cell reads.",
+    wrong: "Look at the two strips: letter for letter, they match.",
+    fb1: "That is the most common guess, because the cells look so different. But both came from one fertilised egg, and every division copied the whole DNA. The skin cell reads its keratin gene; the nerve cell reads genes for making signals.",
+    fb2: "Right. Both came from one fertilised egg, and every division copied the whole DNA. The skin cell reads its keratin gene; the nerve cell reads genes for making signals. Step 2 shows how a gene is read.",
+    fb3: "The size of the job doesn't change the DNA. Both cells hold the same two sets of about 3.1 billion letters, copied from one fertilised egg. They read different parts of it.",
+    f1Hint: "Pick an answer to look inside the nuclei.", fSkin: "skin cell", fNerve: "nerve cell", fZoom: "DNA in the nucleus (zoomed in)",
+    fMatch: "{m} of {n} letters match", fReads: "reads {g}",
+    gRibo: "ribosome protein", gKrt: "keratin", gNt: "NT enzyme", gIns: "insulin", gHbb: "globin",
+    k2: "Hands on · read a gene", t2: "DNA → mRNA → protein, three letters per amino acid",
+    b2: "Transcription: RNA polymerase reads the template strand and builds mRNA from matching letters (A→U, T→A, G→C, C→G). So the mRNA reads exactly like the other DNA strand, the coding strand, with U in place of T. Translation: the ribosome reads the mRNA one codon (three letters) at a time, adding one amino acid per codon, from the start codon AUG to a stop codon.",
+    play: "▶ Play", pause: "❚❚ Pause", progLabel: "Progress",
+    progT: "copied {n}/{N} letters", progR: "read {n} of {r} codons", progNo: "no start codon",
+    mutLbl: "Letter {i} (codon {c}):", undo: "Undo change", keysHint3: "Tap a switch, or use arrow keys + Space.",
+    mNone: "Tap any letter of the gene to change it (each tap gives the next letter). Arrow keys pick a letter; ↑/↓ or A C G T change it. One change at a time.",
+    mSilent: "Silent: codon {n} {from} → {to} still codes for {a1}. Same protein, because several codons share one amino acid.",
+    mMissense: "Missense: codon {n} {from} → {to} swaps {a0} for {a1}. One amino acid differs; the protein is still {len} amino acids long.",
+    mSickle: " The same change (GAG → GUG, Glu → Val) in the β-globin gene causes sickle-cell disease.",
+    mNonsense: "Nonsense: codon {n} {from} → {to} is now a stop codon. The protein ends after {len} amino acids instead of {full}.",
+    mStart: "Start lost: codon 1 {from} → {to} is no longer AUG, so translation does not begin here. No protein from this start.",
+    mStop: "Stop lost: codon {n} {from} → {to} now codes for {a1}. The ribosome reads on past the end of the gene until it meets a stop codon by chance, making a longer protein.",
+    rCoding: "coding", rTemplate: "template", rMrna: "mRNA", rProt: "protein",
+    fDir: "coding strand and mRNA: 5' → 3'; template: 3' → 5'", fPol: "RNA polymerase", fRibo: "ribosome",
+    fCodon: "codon {c}: {cod} → {aa}", fDone: "protein: {seq} ({len} amino acids)", fNone: "no protein made", fMore: "…",
+    live2t: "Transcription: {n} of {N} letters copied into mRNA.", live2r: "Translation: codon {c} {cod} → {aa}.",
+    live2d: "Finished. Protein: {seq}, {len} amino acids.",
+    tableSum: "The standard genetic code: all 64 codons", stopW: "stop",
+    k3: "The rule · same book, different chapters", t3: "Every cell holds the whole book; each reads its own chapters",
+    b3: "Each row is the same DNA: five genes out of about 20,000 (schematic, not to scale). Switch genes on so each cell makes the proteins it needs. The DNA letters never change; only the switches do.",
+    x3: "{k} of 3 cells set up. DNA in the three cells: {m} of {n} letters identical.",
+    x3b: "Why \"almost\" every cell: mature red blood cells in mammals throw out their nucleus, so they carry no DNA (globin is switched on in the cells they develop from); sperm and egg carry one set of DNA instead of two; immune cells cut and re-join a few antibody genes; and each copying adds a few rare errors.",
+    real: "Show the real pattern", alloff: "Only the ribosome gene",
+    cSkin: "skin", cPanc: "pancreas", cNerve: "nerve", fOn: "on", fOff: "off", fSame: "same DNA in all three rows", fScheme: "schematic",
+    live3: "{cell} cell reads: {genes}. {v}", v3ok: "It works as a {cell} cell.", v3no: "Not yet a working {cell} cell.", nothing: "nothing",
+    resultTitle: "What we found", resultMain: "DNA → mRNA → protein · 3 letters = 1 amino acid",
+    resultNote: "From the code table: {n} codons, {s} code for {a} amino acids, {t} are stops. Every cell holds the same DNA; what a cell becomes depends on which genes it reads.",
+    explainK: "Explain it", explainQ: "A friend says a nerve cell has \"nerve DNA\" and a skin cell has \"skin DNA\". Use the idea of genes being switched on and off to explain why that is wrong, and name one exception.",
+    homeK: "Try at home", homeQ: "Write a sentence of three-letter words: THE CAT ATE THE RAT. Change one letter: how much of the meaning survives? Now delete one letter near the start and regroup into threes. Which mistake does more damage, and why?",
+    foot: "Genetic code: the standard code (NCBI translation table 1), built in code from the 64 codons: 61 code for 20 amino acids, 3 are stops (UAA, UAG, UGA); AUG codes for methionine and is the usual start. The 30-letter gene in step 2 is made up for this page; the genes in step 3 are a labelled schematic. A human cell holds two sets of about 3.1 billion DNA letters and about 20,000 protein-coding genes. Exceptions: mature mammalian red blood cells have no nucleus; sperm and egg carry one set (23 chromosomes instead of 46); B and T immune cells rearrange some genes; small copying errors build up over divisions. Sickle-cell disease: β-globin codon 6, GAG → GTG (Glu → Val). · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "从 DNA 字母到蛋白质", eyebrow: "生物 · 阶段 4", h1: "每个细胞的 DNA 都一样，三个字母一读",
+    intro: "先猜你身上不同的细胞 DNA 是否不同。再把一个编出来的小基因读成蛋白质，改一个字母，最后在三种细胞里开关基因。",
+    reset: "重置", figAria: "细胞、DNA 双链、mRNA 和逐渐变长的蛋白质链",
+    s1: "先猜", s2: "读基因", s3: "同一本书",
+    k1: "先猜一猜", t1: "同一个人的皮肤细胞和神经细胞，DNA 一样吗？",
+    b1: "它们长相和功能完全不同。先选一个答案，再看两个细胞核里面。",
+    q: "皮肤细胞和神经细胞里的 DNA……",
+    o1: "不同：每种细胞有自己的 DNA", o2: "是一样的 DNA", o3: "神经细胞的更多，因为它的工作更难",
+    right: "对。两个细胞核里的字母完全一样，不同的是各自读哪些基因。",
+    wrong: "看下面两条：一个字母一个字母对过去，完全相同。",
+    fb1: "这是最常见的猜法，因为两种细胞看起来差太多了。但它们都来自同一个受精卵，每次分裂都把整套 DNA 复制一份。皮肤细胞读的是角蛋白基因，神经细胞读的是制造信号物质的基因。",
+    fb2: "对。它们都来自同一个受精卵，每次分裂都复制整套 DNA。皮肤细胞读角蛋白基因，神经细胞读制造信号物质的基因。第 2 步看基因是怎么被读出来的。",
+    fb3: "工作难不难不会改变 DNA。两个细胞都带着同样的两套、每套约 31 亿个字母，都是从同一个受精卵复制来的，只是读的部分不同。",
+    f1Hint: "先选一个答案，再看细胞核里面。", fSkin: "皮肤细胞", fNerve: "神经细胞", fZoom: "细胞核里的 DNA（放大）",
+    fMatch: "{n} 个字母中 {m} 个相同", fReads: "读：{g}",
+    gRibo: "核糖体蛋白", gKrt: "角蛋白", gNt: "递质合成酶", gIns: "胰岛素", gHbb: "珠蛋白",
+    k2: "动手 · 读一个基因", t2: "DNA → mRNA → 蛋白质，三个字母对应一个氨基酸",
+    b2: "转录：RNA 聚合酶读模板链，按配对造出 mRNA（A→U，T→A，G→C，C→G）。所以 mRNA 读起来和另一条 DNA 链（编码链）一模一样，只是 T 换成了 U。翻译：核糖体沿 mRNA 每次读一个密码子（三个字母），每个密码子接上一个氨基酸，从起始密码子 AUG 读到终止密码子。",
+    play: "▶ 播放", pause: "❚❚ 暂停", progLabel: "进度",
+    progT: "已复制 {n}/{N} 个字母", progR: "已读 {n}/{r} 个密码子", progNo: "没有起始密码子",
+    mutLbl: "第 {i} 个字母（密码子 {c}）：", undo: "撤销改动", keysHint3: "点开关，或用方向键 + 空格。",
+    mNone: "点基因上任意一个字母就能改它（每点一次换成下一个字母）。方向键选字母，↑/↓ 或 A C G T 键改字母。一次只改一处。",
+    mSilent: "同义突变：密码子 {n} {from} → {to} 仍然对应 {a1}。蛋白质不变，因为几个密码子可以对应同一个氨基酸。",
+    mMissense: "错义突变：密码子 {n} {from} → {to}，{a0} 换成了 {a1}。只差一个氨基酸，蛋白质仍是 {len} 个氨基酸长。",
+    mSickle: "β-珠蛋白基因里发生同样的改变（GAG → GUG，Glu → Val），就会导致镰状细胞贫血。",
+    mNonsense: "无义突变：密码子 {n} {from} → {to} 变成了终止密码子。蛋白质只有 {len} 个氨基酸，原本是 {full} 个。",
+    mStart: "起始密码子丢失：第 1 个密码子 {from} → {to} 不再是 AUG，翻译不会从这里开始，这里造不出蛋白质。",
+    mStop: "终止密码子丢失：密码子 {n} {from} → {to} 现在对应 {a1}。核糖体会越过基因末尾继续读，直到碰巧遇到一个终止密码子，蛋白质变长。",
+    rCoding: "编码链", rTemplate: "模板链", rMrna: "mRNA", rProt: "蛋白质",
+    fDir: "编码链和 mRNA：5' → 3'；模板链：3' → 5'", fPol: "RNA 聚合酶", fRibo: "核糖体",
+    fCodon: "密码子 {c}：{cod} → {aa}", fDone: "蛋白质：{seq}（{len} 个氨基酸）", fNone: "造不出蛋白质", fMore: "…",
+    live2t: "转录：已复制 {n}/{N} 个字母到 mRNA。", live2r: "翻译：密码子 {c} {cod} → {aa}。",
+    live2d: "完成。蛋白质：{seq}，共 {len} 个氨基酸。",
+    tableSum: "标准遗传密码表：全部 64 个密码子", stopW: "终止",
+    k3: "规律 · 同一本书，读不同的章节", t3: "每个细胞都有整本书，各读各的章节",
+    b3: "每一行都是同一段 DNA：约 2 万个基因中的 5 个（示意图，不按比例）。打开需要的基因，让每种细胞造出它要的蛋白质。DNA 字母从头到尾没变，变的只是开关。",
+    x3: "已设好 {k}/3 种细胞。三种细胞的 DNA：{n} 个字母中 {m} 个相同。",
+    x3b: "为什么说「几乎」每个细胞：哺乳动物成熟的红细胞会把细胞核排出去，所以没有 DNA（珠蛋白基因是在它的前体细胞里打开的）；精子和卵细胞只带一套 DNA，不是两套；免疫细胞会剪接重组少数抗体基因；每次复制也会留下极少的差错。",
+    real: "看真实的开关", alloff: "只开核糖体基因",
+    cSkin: "皮肤", cPanc: "胰腺", cNerve: "神经", fOn: "开", fOff: "关", fSame: "三行 DNA 完全相同", fScheme: "示意",
+    live3: "{cell}细胞读：{genes}。{v}", v3ok: "它能当{cell}细胞用了。", v3no: "还不是一个能工作的{cell}细胞。", nothing: "什么也不读",
+    resultTitle: "我们发现", resultMain: "DNA → mRNA → 蛋白质 · 3 个字母 = 1 个氨基酸",
+    resultNote: "由密码表算出：{n} 个密码子，{s} 个对应 {a} 种氨基酸，{t} 个是终止密码子。每个细胞的 DNA 都一样；细胞成为什么，取决于它读哪些基因。",
+    explainK: "说一说", explainQ: "朋友说神经细胞里是「神经 DNA」，皮肤细胞里是「皮肤 DNA」。用「基因的开和关」给他讲讲为什么不对，再说出一个例外。",
+    homeK: "家里做一做", homeQ: "用三个字母的英文单词写一句话：THE CAT ATE THE RAT。改一个字母，意思还剩多少？再在开头附近删掉一个字母，重新三个一组地读。哪种错误破坏更大？为什么？",
+    foot: "遗传密码：标准密码表（NCBI 第 1 号翻译表），由代码从 64 个密码子生成：61 个对应 20 种氨基酸，3 个是终止密码子（UAA、UAG、UGA）；AUG 对应甲硫氨酸，通常也是起始密码子。第 2 步的 30 个字母的基因是为本页编的；第 3 步的基因是标注过的示意图。人的一个细胞带两套 DNA，每套约 31 亿个字母，约 2 万个编码蛋白质的基因。例外：哺乳动物成熟红细胞没有细胞核；精子和卵细胞只带一套（23 条染色体，而不是 46 条）；B 细胞和 T 细胞会重排部分基因；分裂中会积累少量复制差错。镰状细胞贫血：β-珠蛋白第 6 个密码子 GAG → GTG（Glu → Val）。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- pure logic (tested in node) ----------
+// LOGIC-START
+const B4 = "TCAG";
+// Standard code, NCBI table 1, in TCAG order: index 16*first + 4*second + third.
+const AA1 = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
+const CODE = {};
+for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) for (let k = 0; k < 4; k++)
+  CODE[(B4[i] + B4[j] + B4[k]).replace(/T/g, "U")] = AA1[16 * i + 4 * j + k];
+const AA3 = { A: "Ala", R: "Arg", N: "Asn", D: "Asp", C: "Cys", Q: "Gln", E: "Glu", G: "Gly", H: "His", I: "Ile",
+  L: "Leu", K: "Lys", M: "Met", F: "Phe", P: "Pro", S: "Ser", T: "Thr", W: "Trp", Y: "Tyr", V: "Val", "*": "Stop" };
+const AAN = {
+  en: { A: "alanine", R: "arginine", N: "asparagine", D: "aspartate", C: "cysteine", Q: "glutamine", E: "glutamate", G: "glycine",
+    H: "histidine", I: "isoleucine", L: "leucine", K: "lysine", M: "methionine", F: "phenylalanine", P: "proline", S: "serine",
+    T: "threonine", W: "tryptophan", Y: "tyrosine", V: "valine", "*": "stop" },
+  zh: { A: "丙氨酸", R: "精氨酸", N: "天冬酰胺", D: "天冬氨酸", C: "半胱氨酸", Q: "谷氨酰胺", E: "谷氨酸", G: "甘氨酸",
+    H: "组氨酸", I: "异亮氨酸", L: "亮氨酸", K: "赖氨酸", M: "甲硫氨酸", F: "苯丙氨酸", P: "脯氨酸", S: "丝氨酸",
+    T: "苏氨酸", W: "色氨酸", Y: "酪氨酸", V: "缬氨酸", "*": "终止" },
+};
+// Made-up gene, coding strand 5'→3': Met Ala Glu Trp Lys Tyr Leu Gly Ser Stop
+const GENE = "ATGGCTGAGTGGAAATACCTGGGCTCTTAA";
+const DNA_PAIR = { A: "T", T: "A", G: "C", C: "G" };
+const RNA_PAIR = { A: "U", T: "A", G: "C", C: "G" };
+const LETTERS = "ACGT";
+const templateOf = (s) => [...s].map((b) => DNA_PAIR[b]).join("");
+const mrnaFromTemplate = (t) => [...t].map((b) => RNA_PAIR[b]).join("");
+const codonsOf = (m) => { const o = []; for (let i = 0; i + 3 <= m.length; i += 3) o.push(m.slice(i, i + 3)); return o; };
+function translate(m) {
+  const cs = codonsOf(m);
+  if (cs[0] !== "AUG") return { started: false, aa: [], stopAt: -1, read: 0 };
+  const aa = [];
+  for (let c = 0; c < cs.length; c++) {
+    const a = CODE[cs[c]];
+    if (a === "*") return { started: true, aa, stopAt: c, read: c + 1 };
+    aa.push(a);
+  }
+  return { started: true, aa, stopAt: -1, read: cs.length };
+}
+const withBase = (s, i, b) => s.slice(0, i) + b + s.slice(i + 1);
+const nextLetter = (b) => LETTERS[(LETTERS.indexOf(b) + 1) % 4];
+function classify(orig, mut) {
+  let i = -1;
+  for (let k = 0; k < orig.length; k++) if (orig[k] !== mut[k]) { i = k; break; }
+  if (i < 0) return { kind: "none" };
+  const c = Math.floor(i / 3);
+  const m0 = mrnaFromTemplate(templateOf(orig)), m1 = mrnaFromTemplate(templateOf(mut));
+  const from = m0.slice(3 * c, 3 * c + 3), to = m1.slice(3 * c, 3 * c + 3);
+  const r = { pos: i, codon: c, from, to, a0: CODE[from], a1: CODE[to], len0: translate(m0).aa.length, len1: translate(m1).aa.length };
+  if (c === 0 && to !== "AUG") r.kind = "start";
+  else if (r.a0 === r.a1) r.kind = "silent";
+  else if (r.a1 === "*") r.kind = "nonsense";
+  else if (r.a0 === "*") r.kind = "stoplost";
+  else r.kind = "missense";
+  return r;
+}
+// Step 3: five schematic genes; which ones each cell type reads.
+const GENES = ["gRibo", "gKrt", "gNt", "gIns", "gHbb"];
+const CELLS = [{ id: "cSkin", on: [1, 1, 0, 0, 0] }, { id: "cPanc", on: [1, 0, 0, 1, 0] }, { id: "cNerve", on: [1, 0, 1, 0, 0] }];
+const GENE_LEN = 12;
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// The schematic genome: made-up letters, GENE_LEN per gene. Each cell gets its own copy (as a division would).
+function copyGenome() {
+  const r = mulberry32(2026);
+  let s = "";
+  for (let i = 0; i < GENES.length * GENE_LEN; i++) s += LETTERS[Math.floor(r() * 4)];
+  return s;
+}
+const sameLetters = (a, b) => { let n = 0; for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] === b[i]) n++; return n; };
+const fits = (sw, cell) => sw.every((v, g) => !!v === !!CELLS[cell].on[g]);
+function codeStats() {
+  const cods = Object.keys(CODE), stops = cods.filter((c) => CODE[c] === "*");
+  const aas = new Set(cods.map((c) => CODE[c]).filter((a) => a !== "*"));
+  return { n: cods.length, sense: cods.length - stops.length, aa: aas.size, stops: stops.sort() };
+}
+// LOGIC-END
+
+// ---------- state ----------
+const L = P.lang;
+let step = 0, answered = -1;
+let mut = null, sel = 0, prog = 0, playing = false, raf = 0, lastT = 0, acc = 0;
+const GENOMES = CELLS.map(() => copyGenome());
+let sw = CELLS.map(() => [1, 0, 0, 0, 0]), cur3 = { r: 0, g: 1 };
+const ST = codeStats();
+document.getElementById("resultNote").textContent = P.t("resultNote", { n: ST.n, s: ST.sense, a: ST.aa, t: ST.stops.length });
+
+const fig = document.getElementById("fig"), extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+const progIn = document.getElementById("prog"), playBtn = document.getElementById("play");
+const S = (tag, a, p) => Play.svg(tag, a, p || fig);
+function text(x, y, s, cls, anchor) {
+  const t = S("text", { x, y, class: "lbl " + (cls || ""), "text-anchor": anchor || "start" });
+  t.textContent = s;
+  return t;
+}
+const aaName = (a) => (a === "*" ? P.t("stopW") : AA3[a] + " (" + AAN[L][a] + ")");
+const gene = () => (mut ? withBase(GENE, mut.i, mut.b) : GENE);
+function size(H) {
+  const W = Math.max(280, Math.round(fig.getBoundingClientRect().width || 600));
+  if (fig.style.height !== H + "px") fig.style.height = H + "px";
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  return W;
+}
+const narrowH = () => (fig.getBoundingClientRect().width < 520 ? 300 : 360);
+
+// ---------- step 1: two cells, one DNA ----------
+function drawCellPair() {
+  const H = narrowH(), W = size(H), half = W / 2;
+  const n = W < 520 ? 8 : 12, g = copyGenome();
+  // the strip straddles the keratin gene (left half) and the NT-enzyme gene (right half)
+  const s0 = 2 * GENE_LEN - n / 2, strip = g.slice(s0, s0 + n);
+  const skinStrip = GENOMES[0].slice(s0, s0 + n), nerveStrip = GENOMES[2].slice(s0, s0 + n);
+  const cy = H < 340 ? 70 : 82, sy = H - 96;
+  [0, 1].forEach((k) => {
+    const cx = half * k + half / 2;
+    if (k === 0) {
+      const w = Math.min(120, half - 30), h = 54;
+      S("rect", { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 14, class: "cellf" });
+      S("rect", { x: cx - w / 2 - 6, y: cy - h / 2 - 16, width: w + 12, height: 12, rx: 5, class: "cellf", opacity: 0.5 });
+    } else {
+      const r = 26;
+      for (let d = 0; d < 5; d++) {
+        const a = -Math.PI * 0.95 + d * 0.42;
+        S("path", { d: `M${cx + Math.cos(a) * r} ${cy + Math.sin(a) * r} l${Math.cos(a) * 22} ${Math.sin(a) * 22} l${Math.cos(a + 0.5) * 10} ${Math.sin(a + 0.5) * 10}`, class: "axon" });
+      }
+      S("path", { d: `M${cx + r} ${cy} L${Math.min(W - 8, cx + half / 2 - 6)} ${cy + 10}`, class: "axon" });
+      S("circle", { cx, cy, r, class: "cellf" });
+    }
+    S("circle", { cx, cy, r: 13, class: "nuc" });
+    text(cx, cy + 50, P.t(k ? "fNerve" : "fSkin"), "b", "middle");
+    // zoom lines
+    const bw = Math.min(24, (half - 24) / n), x0 = cx - (bw * n) / 2;
+    S("path", { d: `M${cx - 13} ${cy} L${x0} ${sy - 22} M${cx + 13} ${cy} L${x0 + bw * n} ${sy - 22}`, class: "zoom" });
+    const letters = k ? nerveStrip : skinStrip;
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * bw, b = letters[i];
+      if (answered < 0) { S("rect", { x: x + 1, y: sy, width: bw - 2, height: 24, rx: 4, class: "ghost" }); continue; }
+      S("rect", { x: x + 1, y: sy, width: bw - 2, height: 24, rx: 4, class: "b" + b });
+      text(x + bw / 2, sy + 17, b, "base", "middle");
+    }
+    if (answered < 0) { text(cx, sy + 18, "?", "q", "middle"); return; }
+    // which half this cell reads
+    const rx = k ? x0 + (bw * n) / 2 : x0;
+    S("rect", { x: rx, y: sy + 28, width: (bw * n) / 2, height: 5, rx: 2, class: "readbar" });
+    text(cx, sy + 50, P.t("fReads", { g: P.t(k ? "gNt" : "gKrt") }), "m b", "middle");
+  });
+  const zl = text(W / 2, sy - 30, P.t("fZoom"), "m", "middle");
+  try { const bb = zl.getBBox(); fig.insertBefore(Play.svg("rect", { x: bb.x - 6, y: bb.y - 2, width: bb.width + 12, height: bb.height + 4, rx: 6, fill: "var(--surface)" }), zl); } catch (e) { /* no layout */ }
+  if (answered < 0) text(W / 2, H - 10, P.t("f1Hint"), "m", "middle");
+  else {
+    const m = sameLetters(skinStrip, nerveStrip);
+    const t = text(W / 2, H - 10, (m === n && strip === skinStrip ? "= " : "≠ ") + P.t("fMatch", { m, n }), "b", "middle");
+    if (m !== n) t.classList.add("no");
+  }
+}
+
+// ---------- step 2: transcription, translation, mutation ----------
+function geneState() {
+  const cod = gene(), tpl = templateOf(cod), m = mrnaFromTemplate(tpl), tr = translate(m);
+  return { cod, tpl, m, tr, maxP: GENE.length + tr.read, cl: classify(GENE, cod) };
+}
+function geneLayout(W) {
+  const Lw = W < 420 ? 66 : 78, gap = 6, avail = W - Lw - 8;
+  const pmax = Math.max(2, Math.min(10, Math.floor(avail / (3 * 17 + gap)))), per = Math.ceil(10 / Math.ceil(10 / pmax));
+  const bw = Math.min(24, (avail / per - gap) / 3), rh = 24, blockH = 4 * rh + 16, top = 30;
+  const rows = Math.ceil(GENE.length / 3 / per);
+  const pos = (i) => { const c = Math.floor(i / 3); return { x: Lw + (c % per) * (3 * bw + gap) + (i % 3) * bw, y: top + Math.floor(c / per) * blockH }; };
+  return { Lw, per, bw, rh, blockH, top, rows, pos, H: top + rows * blockH + 58 };
+}
+function drawGene() {
+  const W0 = Math.max(280, Math.round(fig.getBoundingClientRect().width || 600));
+  const G = geneState(), lay0 = geneLayout(W0), W = size(lay0.H), lay = geneLayout(W), H = lay.H;
+  const { bw, rh, blockH, top, pos } = lay;
+  prog = Play.clamp(prog, 0, G.maxP);
+  progIn.max = G.maxP; progIn.value = prog;
+  const nT = Math.min(GENE.length, prog), nC = Math.max(0, prog - GENE.length);
+  text(8, 18, P.t("fDir"), "m");
+  for (let r = 0; r < lay.rows; r++) {
+    const y = top + r * blockH;
+    ["rCoding", "rTemplate", "rMrna", "rProt"].forEach((k, j) => text(6, y + j * rh + 17, P.t(k), "m"));
+  }
+  for (let i = 0; i < GENE.length; i++) {
+    const { x, y } = pos(i);
+    const rows = [G.cod[i], G.tpl[i], i < nT ? G.m[i] : null];
+    rows.forEach((b, j) => {
+      if (!b) { S("rect", { x: x + 1, y: y + j * rh + 2, width: bw - 2, height: rh - 4, rx: 4, class: "ghost" }); return; }
+      S("rect", { x: x + 1, y: y + j * rh + 2, width: bw - 2, height: rh - 4, rx: 4, class: "b" + b });
+      text(x + bw / 2, y + j * rh + 17, b, "base", "middle");
+    });
+    if (mut && mut.i === i) [0, 1, 2].forEach((j) => S("rect", { x: x + 1, y: y + j * rh + 2, width: bw - 2, height: rh - 4, rx: 4, class: "mut" }));
+    if (sel === i) S("rect", { x: x - 1, y: y, width: bw + 2, height: 3 * rh, rx: 5, class: "sel" });
+    const h = S("rect", { x, y, width: bw, height: 3 * rh, class: "hit" });
+    h.dataset.i = i;
+  }
+  // RNA polymerase while copying
+  if (prog < GENE.length) {
+    const { x, y } = pos(nT);
+    S("rect", { x: x - 2, y: y - 2, width: bw + 4, height: 3 * rh + 4, rx: 7, class: "pol" });
+  }
+  // protein row
+  const nCod = GENE.length / 3;
+  for (let c = 0; c < nCod; c++) {
+    const { x, y } = pos(3 * c), py = y + 3 * rh + 2, w = 3 * bw - 2;
+    if (!G.tr.started || c >= nC || c >= G.tr.read) continue;
+    if (c === G.tr.stopAt) {
+      S("rect", { x: x + 1, y: py, width: w, height: rh - 4, rx: 9, class: "stopb" });
+      text(x + 1 + w / 2, py + 15, P.t("stopW"), "base", "middle").style.fontSize = "12px";
+    } else {
+      const changed = G.cl.kind !== "none" && G.cl.codon === c && G.cl.a0 !== G.cl.a1;
+      S("rect", { x: x + 1, y: py, width: w, height: rh - 4, rx: 9, class: "bead" + (changed ? " chg" : "") });
+      text(x + 1 + w / 2, py + 15, AA3[G.tr.aa[c]], "aa", "middle");
+    }
+  }
+  if (G.tr.started && G.tr.stopAt < 0 && nC >= G.tr.read) {
+    const { x, y } = pos(GENE.length - 1);
+    text(x + bw + 2, y + 3 * rh + 17, P.t("fMore"), "b");
+  }
+  // ribosome on the codon being read
+  if (prog >= GENE.length && nC >= 1 && nC <= G.tr.read && G.tr.started && prog < G.maxP) {
+    const c = nC - 1, { x, y } = pos(3 * c);
+    S("rect", { x: x - 1, y: y + 2 * rh - 1, width: 3 * bw + 2, height: 2 * rh, rx: 10, class: "ribo" });
+  }
+  // caption line
+  const yy = top + lay.rows * blockH + 18;
+  let cap, cap2 = "";
+  if (prog < GENE.length) { cap = P.t("fPol") + " → " + P.t("live2t", { n: nT, N: GENE.length }); }
+  else if (!G.tr.started) cap = P.t("fNone");
+  else if (prog < G.maxP) { const c = nC - 1; cap = P.t("fRibo") + " · " + (c >= 0 ? P.t("fCodon", { c: c + 1, cod: G.m.slice(3 * c, 3 * c + 3), aa: aaName(CODE[G.m.slice(3 * c, 3 * c + 3)]) }) : ""); }
+  else { cap = P.t("fDone", { seq: G.tr.aa.map((a) => AA3[a]).join("–") + (G.tr.stopAt < 0 ? "…" : ""), len: G.tr.aa.length }); }
+  if (G.cl.kind !== "none") cap2 = G.cl.from + " → " + G.cl.to;
+  const t = text(8, yy, cap, "b");
+  if (W < 420) t.style.fontSize = "13px";
+  if (cap2) text(8, yy + 22, cap2, "b no");
+  // controls + text
+  document.getElementById("progVal").textContent = prog < GENE.length ? P.t("progT", { n: nT, N: GENE.length })
+    : G.tr.started ? P.t("progR", { n: nC, r: G.tr.read }) : P.t("progNo");
+  playBtn.textContent = playing ? P.t("pause") : P.t("play");
+  playBtn.setAttribute("aria-pressed", playing);
+  document.getElementById("mutLbl").textContent = P.t("mutLbl", { i: sel + 1, c: Math.floor(sel / 3) + 1 });
+  segBtns.forEach((b) => { const on = G.cod[sel] === b.dataset.b; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+  document.getElementById("undo").disabled = !mut;
+  extra.textContent = mutText(G);
+  if (prog < GENE.length) Play.live(liveEl, P.t("live2t", { n: nT, N: GENE.length }));
+  else if (prog >= G.maxP || !G.tr.started) Play.live(liveEl, G.tr.started ? P.t("live2d", { seq: G.tr.aa.map((a) => AA3[a]).join("-"), len: G.tr.aa.length }) : P.t("fNone"));
+  else { const c = nC - 1, cod = G.m.slice(3 * c, 3 * c + 3); Play.live(liveEl, P.t("live2r", { c: c + 1, cod, aa: aaName(CODE[cod]) })); }
+  drawTable(G);
+}
+function mutText(G) {
+  const c = G.cl;
+  if (c.kind === "none") return P.t("mNone");
+  const v = { n: c.codon + 1, from: c.from, to: c.to, a0: AA3[c.a0], a1: AA3[c.a1], len: c.len1, full: c.len0 };
+  if (c.kind === "silent") return P.t("mSilent", v);
+  if (c.kind === "nonsense") return P.t("mNonsense", v);
+  if (c.kind === "start") return P.t("mStart", v);
+  if (c.kind === "stoplost") return P.t("mStop", v);
+  return P.t("mMissense", v) + (c.from === "GAG" && c.to === "GUG" ? P.t("mSickle") : "");
+}
+const ctab = document.getElementById("ctab");
+function drawTable(G) {
+  const c = Math.floor(sel / 3), now = G.m.slice(3 * c, 3 * c + 3);
+  const was = G.cl.kind !== "none" ? G.cl.from : "";
+  const R = "UCAG";
+  let h = "";
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    h += "<div>";
+    for (let k = 0; k < 4; k++) {
+      const cod = R[i] + R[j] + R[k], a = CODE[cod];
+      const cls = [a === "*" ? "stp" : cod === "AUG" ? "st" : "", cod === now ? "now" : "", cod === was && was !== now ? "was" : ""].join(" ").trim();
+      h += `<span class="${cls}">${cod} ${a === "*" ? P.t("stopW") : AA3[a]}</span>`;
+    }
+    h += "</div>";
+  }
+  ctab.innerHTML = h;
+}
+const seg = document.getElementById("seg");
+const segBtns = [...LETTERS].map((b) => {
+  const e = document.createElement("button");
+  e.type = "button"; e.className = "small"; e.textContent = b; e.dataset.b = b;
+  e.addEventListener("click", () => setBase(sel, b));
+  seg.appendChild(e);
+  return e;
+});
+function setBase(i, b) {
+  mut = b === GENE[i] ? null : { i, b };
+  sel = i;
+  stopPlay();
+  prog = geneState().maxP;
+  draw();
+}
+function tapBase(i) {
+  const curB = gene()[i];
+  if (mut && mut.i !== i) mut = null; // one change at a time
+  setBase(i, nextLetter(mut ? curB : GENE[i]));
+}
+function tick(t) {
+  if (!playing) return;
+  if (!lastT) lastT = t;
+  acc += t - lastT; lastT = t;
+  const dt = prog < GENE.length ? 120 : 700;
+  if (acc >= dt) {
+    acc = 0; prog++;
+    const mx = geneState().maxP;
+    if (prog >= mx) { prog = mx; playing = false; }
+    draw();
+  }
+  if (playing) raf = requestAnimationFrame(tick);
+}
+function startPlay() {
+  if (prog >= geneState().maxP) prog = 0;
+  playing = true; lastT = 0; acc = 0;
+  cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
+  draw();
+}
+function stopPlay() { playing = false; cancelAnimationFrame(raf); }
+
+// ---------- step 3: same book, different chapters ----------
+function bookLayout(W) {
+  const nameW = W < 420 ? 70 : 96, okW = 26, gw = (W - nameW - okW - 10) / GENES.length;
+  const head = W < 520 ? 104 : 96, rowH = 60;
+  return { nameW, okW, gw, head, rowH, H: head + CELLS.length * rowH + 64 };
+}
+function drawBook() {
+  const W0 = Math.max(280, Math.round(fig.getBoundingClientRect().width || 600));
+  const W = size(bookLayout(W0).H), lay = bookLayout(W), H = lay.H;
+  const { nameW, gw, head, rowH } = lay;
+  GENES.forEach((g, j) => {
+    const x = nameW + j * gw + gw / 2;
+    const t = text(x, head - 8, P.t(g), "m b", "start");
+    t.setAttribute("transform", `rotate(-38 ${x} ${head - 8})`);
+  });
+  let k = 0;
+  CELLS.forEach((c, r) => {
+    const y = head + r * rowH;
+    if (r % 2 === 0) S("rect", { x: 2, y: y + 2, width: W - 4, height: rowH - 4, rx: 8, class: "panel" });
+    text(8, y + rowH / 2 + 5, P.t(c.id), "b");
+    S("line", { x1: nameW, y1: y + rowH / 2, x2: nameW + GENES.length * gw, y2: y + rowH / 2, class: "dnaRow" });
+    GENES.forEach((g, j) => {
+      const on = !!sw[r][j], x = nameW + j * gw + 3, w = gw - 6, by = y + 14, bh = rowH - 28;
+      S("rect", { x, y: by, width: w, height: bh, rx: 7, class: on ? "swOn" : "swOff" });
+      text(x + w / 2, by + bh / 2 + 5, P.t(on ? "fOn" : "fOff"), "sw" + (on ? " on" : ""), "middle");
+      if (cur3.r === r && cur3.g === j) S("rect", { x: x - 2, y: by - 2, width: w + 4, height: bh + 4, rx: 9, class: "sel" });
+      const h = S("rect", { x: x - 2, y: y + 4, width: w + 4, height: rowH - 8, class: "hit" });
+      h.dataset.r = r; h.dataset.g = j;
+    });
+    const ok = fits(sw[r], r);
+    if (ok) k++;
+    const t = text(W - 8, y + rowH / 2 + 6, ok ? "✓" : "·", ok ? "big ok" : "m", "end");
+    t.setAttribute("aria-hidden", "true");
+  });
+  const m = Math.min(sameLetters(GENOMES[0], GENOMES[1]), sameLetters(GENOMES[1], GENOMES[2]));
+  const n = GENOMES[0].length, same = m === n;
+  const y2 = head + CELLS.length * rowH + 24;
+  text(8, y2, (same ? "= " : "≠ ") + P.t("fSame") + " (" + P.t("fMatch", { m, n }) + ")", same ? "b" : "b no");
+  text(8, y2 + 22, P.t("fScheme") + " · ✓ " + k + "/3", "m");
+  extra.textContent = P.t("x3", { k, m, n }) + " " + P.t("x3b");
+  const r = cur3.r, cell = P.t(CELLS[r].id);
+  const genes = GENES.filter((g, j) => sw[r][j]).map((g) => P.t(g)).join(L === "zh" ? "、" : ", ") || P.t("nothing");
+  Play.live(liveEl, P.t("live3", { cell, genes, v: fits(sw[r], r) ? P.t("v3ok", { cell }) : P.t("v3no", { cell }) }));
+}
+function toggle(r, g) { sw[r][g] = sw[r][g] ? 0 : 1; cur3 = { r, g }; draw(); }
+
+// ---------- steps, input ----------
+function draw() {
+  fig.innerHTML = "";
+  if (step === 0) {
+    drawCellPair();
+    extra.textContent = answered >= 0 ? P.t("fb" + (answered + 1)) : "";
+    Play.live(liveEl, "");
+  }
+  if (step === 1) drawGene();
+  if (step === 2) drawBook();
+}
+fig.addEventListener("click", (e) => {
+  const d = e.target.dataset || {};
+  if (step === 1 && d.i !== undefined) tapBase(+d.i);
+  if (step === 2 && d.r !== undefined) toggle(+d.r, +d.g);
+});
+fig.addEventListener("keydown", (e) => {
+  const k = e.key;
+  if (step === 1) {
+    if (k === "ArrowRight" || k === "ArrowLeft") { sel = Play.clamp(sel + (k === "ArrowRight" ? 1 : -1), 0, GENE.length - 1); draw(); }
+    else if (k === "ArrowUp" || k === "ArrowDown") {
+      const b = gene()[sel], d = k === "ArrowUp" ? 1 : 3;
+      if (mut && mut.i !== sel) mut = null;
+      setBase(sel, LETTERS[(LETTERS.indexOf(mut ? b : GENE[sel]) + d) % 4]);
+    } else if (/^[acgtACGT]$/.test(k)) { if (mut && mut.i !== sel) mut = null; setBase(sel, k.toUpperCase()); }
+    else if (k === "Escape" || k === "Backspace") { mut = null; draw(); }
+    else return;
+    e.preventDefault();
+  } else if (step === 2) {
+    const mv = { ArrowRight: [0, 1], ArrowLeft: [0, -1], ArrowDown: [1, 0], ArrowUp: [-1, 0] }[k];
+    if (mv) { cur3 = { r: Play.clamp(cur3.r + mv[0], 0, CELLS.length - 1), g: Play.clamp(cur3.g + mv[1], 0, GENES.length - 1) }; draw(); }
+    else if (k === " " || k === "Enter") toggle(cur3.r, cur3.g);
+    else return;
+    e.preventDefault();
+  }
+});
+progIn.addEventListener("input", () => { stopPlay(); prog = +progIn.value; draw(); });
+playBtn.addEventListener("click", () => { if (playing) { stopPlay(); draw(); } else startPlay(); });
+document.getElementById("undo").addEventListener("click", () => { mut = null; draw(); });
+document.getElementById("real").addEventListener("click", () => { sw = CELLS.map((c) => c.on.slice()); draw(); });
+document.getElementById("alloff").addEventListener("click", () => { sw = CELLS.map(() => [1, 0, 0, 0, 0]); draw(); });
+
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { answered = i; if (step === 0) draw(); });
+
+let entered2 = false;
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  document.getElementById("predict").hidden = i !== 0;
+  document.getElementById("ctlGene").hidden = i !== 1;
+  document.getElementById("ctlMut").hidden = i !== 1;
+  document.getElementById("ctlBook").hidden = i !== 2;
+  document.getElementById("tableBox").hidden = i !== 1;
+  if (i === 0) fig.removeAttribute("tabindex"); else fig.tabIndex = 0;
+  if (i !== 1) stopPlay();
+  if (i === 1 && !entered2) {
+    entered2 = true;
+    if (Play.reduced) prog = geneState().maxP; else { prog = 0; startPlay(); return; }
+  }
+  draw();
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  stopPlay();
+  answered = -1; mut = null; sel = 0; prog = 0; entered2 = false;
+  sw = CELLS.map(() => [1, 0, 0, 0, 0]); cur3 = { r: 0, g: 1 };
+  pr.reset(); st.go(0);
+});
+let lastW = 0;
+const onResize = () => { const w = Math.round(fig.getBoundingClientRect().width); if (w !== lastW) { lastW = w; draw(); } };
+if ("ResizeObserver" in window) new ResizeObserver(onResize).observe(fig);
+else window.addEventListener("resize", onResize);
+</script>
+</body>
+</html>

@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reorder and cut</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .board { padding: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 360px; }
+  .stage .explain { justify-content: flex-start; }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); }
+  .list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .para { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 8px 10px; transition: opacity .2s; }
+  .para.cut { opacity: .5; border-style: dashed; }
+  .para.cut .zh { text-decoration: line-through; }
+  .para.dragging { border-color: var(--a); box-shadow: 0 4px 16px rgba(0,0,0,.15); position: relative; z-index: 2; }
+  .para.flash { border-color: var(--hl); }
+  @media (prefers-reduced-motion: reduce) { .para { transition: none; } }
+  .ph { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  .ph .n { font-weight: 700; color: var(--a); font-size: 15px; }
+  .ph .sp { flex: 1 1 auto; }
+  .grip { touch-action: none; cursor: grab; padding: 2px 6px; border-radius: 6px; user-select: none; -webkit-user-select: none; font-size: 16px; line-height: 1; color: var(--muted); border: 1px solid var(--line); }
+  .grip:active { cursor: grabbing; }
+  .tag { font-size: 12px; border: 1px solid currentColor; border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+  .tag.scene { color: var(--c); } .tag.action { color: var(--b); } .tag.feeling { color: var(--h); }
+  .wc { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ph button { padding: 2px 9px; font-size: 13px; }
+  .ph button.cutb.on { background: var(--no); border-color: var(--no); color: var(--surface); }
+  .zh { font-size: 15px; line-height: 1.7; margin: 4px 0 0; color: var(--fg); }
+  .en { font-size: 13px; color: var(--muted); margin: 2px 0 0; line-height: 1.45; }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 0 0 10px; }
+  .stats > div { background: var(--soft); border-radius: 10px; padding: 6px 10px; font-size: 13px; color: var(--muted); min-width: 0; }
+  .stats b { display: block; color: var(--fg); font-size: 15px; font-variant-numeric: tabular-nums; }
+  .react { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 0 0 10px; font-size: 14px; }
+  .react .hd { font-size: 12px; color: var(--a); font-weight: 750; letter-spacing: .06em; margin-bottom: 4px; }
+  .react .row { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); gap: 6px; margin: 3px 0; }
+  .react .row > span:first-child { color: var(--muted); font-size: 13px; }
+  .react ul { margin: 0; padding-left: 1.1em; }
+  .chks { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .chks b { color: var(--fg); }
+  .chks .ok { color: var(--a); font-weight: 700; } .chks .x { color: var(--no); font-weight: 700; }
+  .chks span.it { display: inline-block; margin-right: 10px; white-space: nowrap; }
+  .cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ver { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+  .ver h4 { margin: 0 0 2px; font-size: 15px; }
+  .ver .vs { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; margin-bottom: 6px; }
+  .ver ol { margin: 0; padding-left: 0; list-style: none; font-size: 14px; }
+  .ver li { margin: 3px 0; }
+  .ver li .n { color: var(--a); font-weight: 700; margin-right: 4px; }
+  .ver li.pad { color: var(--no); }
+  .ver .cl { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .bar { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; margin: 4px 0 2px; }
+  .bar > div { height: 100%; background: var(--a); border-radius: 99px; }
+  .fb3 { font-size: 14px; min-height: 1.4em; color: var(--fg) !important; }
+  .fb3.no { color: var(--no) !important; }
+  .rule { font-size: 16px !important; color: var(--fg) !important; font-weight: 650; }
+  .nums { font-variant-numeric: tabular-nums; }
+  @media (max-width: 560px) {
+    .board { padding: 10px; }
+    .cmp { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="board" id="board">
+        <div class="presets" id="presets"></div>
+        <ol class="list" id="list" data-t-aria="listAria"></ol>
+        <div id="cmpWrap" hidden>
+          <div class="cmp" id="cmp"></div>
+          <div id="q2"></div>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="fb3" id="fb3" aria-live="polite"></p>
+      <div class="stats" id="stats"></div>
+      <div class="react" id="react"></div>
+      <p class="rule" id="rule" hidden></p>
+      <p class="nums" id="nums" hidden></p>
+      <p class="nums" id="yours" hidden></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// ---- logic (pure; tested in node) ----
+// Original six-paragraph 记叙文 written for this page (grade 4–5 level).
+// type: what the reader meets in it — scene (setting / set-up), action (events), feeling.
+// pad: a long description with nothing to do with the feeling (闲笔). end: the strong ending line.
+const PARAS = [
+  { id: 1, type: "scene", g: ["出发前", "setting off"],
+    zh: "星期六早上，妈妈把两枚硬币放进我手心，说：“今天你自己坐 3 路车去奶奶家，我在那头等你。”我点点头，硬币被我攥得发烫。",
+    en: "Saturday morning, Mum put two coins in my hand: “Today you'll take the No. 3 bus to Grandma's on your own. I'll be waiting at the other end.” I nodded, gripping the coins until they were warm." },
+  { id: 2, type: "scene", pad: true, g: ["早餐店和花猫", "breakfast shop and cat"],
+    zh: "车站旁边是一家早餐店，蒸笼摞得比我还高，白气一团一团地往上冒。店门口摆着三张小方桌，每张桌上都有一瓶醋、一罐辣椒和一筒筷子。老板娘系着蓝围裙，一边找零钱一边大声吆喝：“肉包两块，菜包一块五！”隔壁是一家修车铺，地上摆满了扳手、螺丝和旧轮胎，一只花猫趴在最高的那个轮胎上，眯着眼睛晒太阳，尾巴一甩一甩的。",
+    en: "Next to the bus stop is a breakfast shop. Its steamer baskets are stacked taller than me, puffing out steam. Three little tables stand by the door, each with vinegar, chilli and a pot of chopsticks. The owner, in a blue apron, gives change and calls out the bun prices. Next door is a bike-repair shop full of spanners, screws and old tyres; a tabby cat lies on the top tyre, sunbathing, flicking its tail." },
+  { id: 3, type: "action", g: ["车改道了", "the detour"],
+    zh: "3 路车来了。我投了币，在靠窗的位置坐下，眼睛一直盯着报站的小屏幕。才过了两站，广播突然响了：“前方道路施工，本车临时改道。”窗外的街一下子全变成了我不认识的样子，我的心怦怦直跳。",
+    en: "The No. 3 bus came. I paid, sat by the window and kept my eyes on the little stop screen. After only two stops the speaker crackled: “Road works ahead. This bus is taking a detour.” Suddenly every street outside was one I didn't know, and my heart was pounding." },
+  { id: 4, type: "action", g: ["问司机", "asking the driver"],
+    zh: "我想哭，可还是忍住了。我走到司机叔叔身边，小声问：“叔叔，我要去和平路，该在哪儿下车？”叔叔笑着说：“别急，下一站下，往回走两百米就到。”",
+    en: "I wanted to cry, but I held it in. I went up to the driver and asked quietly, “Excuse me, I need to get to Heping Road. Where should I get off?” He smiled: “Don't worry. Get off at the next stop and walk back two hundred metres.”" },
+  { id: 5, type: "action", g: ["到了奶奶家", "arriving"],
+    zh: "下了车，我一边走一边数路边的树。数到第二十棵，我看见了奶奶家楼下的大槐树，还有站在树下朝我使劲挥手的妈妈。",
+    en: "Off the bus, I counted the roadside trees as I walked. At the twentieth I saw the big pagoda tree outside Grandma's building, and Mum standing under it, waving hard at me." },
+  { id: 6, type: "feeling", end: true, g: ["路就在嘴边", "the way is on your lips"],
+    zh: "原来，心里再慌，只要肯开口问，路就在嘴边。",
+    en: "So that's it: however scared you are, if you are willing to ask, the way is right there on your lips." },
+];
+const PLOT = [1, 3, 4, 5];          // story events in time order
+const NEED = [1, 3, 4];             // cut one of these and the story has a hole
+const DRAFT = [1, 2, 3, 4, 6, 5];   // the writer's draft: strict time order (the realisation comes on the bus)
+const PRESETS = [
+  ["pChrono", [1, 2, 3, 4, 6, 5]],
+  ["pFlash", [3, 1, 2, 4, 6, 5]],
+  ["pFeel", [1, 2, 3, 4, 5, 6]],
+];
+const TRIM = { order: [1, 2, 3, 4, 5, 6], cut: [2] };   // step 3 "B": cut the padding, end with the feeling
+const SHORT_ONLY = { order: DRAFT.slice(), cut: [3] };   // shorter, but cuts the wrong paragraph
+const byId = (id) => PARAS.find((p) => p.id === id);
+// Characters counted: Han characters, Latin letters and digits; punctuation and spaces are not counted.
+const wc = (s) => (s.match(/[\p{Script=Han}A-Za-z0-9]/gu) || []).length;
+const kept = (st) => st.order.filter((id) => !st.cut.includes(id));
+const chars = (st) => kept(st).reduce((a, id) => a + wc(byId(id).zh), 0);
+// Story paragraphs out of time order, not counting the first one (moving one moment to the front = 倒叙).
+function inversions(k) {
+  const seq = k.slice(1).filter((id) => PLOT.includes(id)).map((id) => PLOT.indexOf(id));
+  let n = 0;
+  for (let i = 0; i < seq.length; i++) for (let j = i + 1; j < seq.length; j++) if (seq[i] > seq[j]) n++;
+  return n;
+}
+function metrics(st) {
+  const k = kept(st);
+  const first = k.length ? k[0] : null, last = k.length ? k[k.length - 1] : null;
+  const inv = inversions(k);
+  const padPos = k.findIndex((id) => byId(id).pad);
+  const missing = NEED.filter((id) => !k.includes(id));
+  const checks = {
+    cOpen: first === 1 || first === 3 || first === 6,
+    cNoPad: padPos < 0,
+    cOrder: inv === 0,
+    cPlot: missing.length === 0,
+    cEnd: last === 6,
+  };
+  const mid = [];
+  if (first === 3 && k[1] === 1) mid.push(["midFlash", {}]);
+  if (padPos > 0 && padPos < k.length - 1) mid.push(["midPad", { k: padPos + 1 }]);
+  if (inv > 0) mid.push(["midJump", {}]);
+  PLOT.forEach((id) => { if (!k.includes(id)) mid.push(["miss" + id, {}]); });
+  if (!mid.length) mid.push(["midOk", {}]);
+  return {
+    k, first, last, inv, padPos, missing, checks, mid,
+    chars: chars(st),
+    firstType: first === null ? null : byId(first).type,
+    endingLast: last === 6,
+    padKept: padPos >= 0,
+    passed: Object.values(checks).filter(Boolean).length,
+  };
+}
+const pctShorter = (a, b) => (a > 0 ? Math.round((100 * (a - b)) / a) : 0);
+function move(st, id, d) {
+  const i = st.order.indexOf(id), j = i + d;
+  if (i < 0 || j < 0 || j >= st.order.length) return st;
+  const order = st.order.slice();
+  [order[i], order[j]] = [order[j], order[i]];
+  return { order, cut: st.cut.slice() };
+}
+function toggleCut(st, id) {
+  if (st.cut.includes(id)) return { order: st.order.slice(), cut: st.cut.filter((x) => x !== id) };
+  if (kept(st).length <= 1) return st;   // keep at least one paragraph
+  return { order: st.order.slice(), cut: st.cut.concat(id) };
+}
+// ---- end logic ----
+
+const P = Play.setup({
+  en: {
+    title: "Reorder and cut", eyebrow: "Chinese · Stage 2", h1: "Reorder and cut: writing is choosing",
+    intro: "A Year-4 story in Chinese, “My first bus ride alone”, has six paragraphs. Move them and cut them, and see what the reader feels first and remembers last.",
+    reset: "Reset", listAria: "Paragraphs of the story",
+    s1: "Guess", s2: "Reorder & cut", s3: "Compare & rule",
+    k1: "Predict first", t1: "Is a longer essay a better essay?",
+    b1: "On the left is the draft, written in the order things happened. Pick an answer, then go to step 2 and edit it yourself.",
+    k2: "Hands on", t2: "Move a paragraph, cut a paragraph",
+    b2: "Drag a paragraph by its ⠿ handle, or use ↑ ↓. Keyboard: Tab to a paragraph and press ↑ / ↓ to move it. “Cut” removes a paragraph (it stays greyed so you can bring it back with “Keep”). Or try the three ready-made orders above the story.",
+    k3: "Compare · the rule", t3: "Draft or edit: which is clearer?",
+    b3: "The edit does just two things: it cuts paragraph ② and moves paragraph ⑥ to the end.",
+    q: "The draft has {n} characters. How should it be improved?",
+    o1: "Add more paragraphs: the longer the better", o2: "Cut hard: the shorter the better", o3: "Decide which paragraphs to keep, cut and put first",
+    right: "Right. Length is a result, not a standard. In step 2, cut one paragraph or move one and watch the reader's reaction change.",
+    wrong: "Try it in step 2. Cutting the breakfast-shop paragraph makes the story shorter and tighter; cutting the detour paragraph makes it just as short, but breaks the story. Length alone tells you nothing.",
+    presetL: "Three orders:", pChrono: "Time order (draft)", pFlash: "Flashback: start at the scariest moment", pFeel: "End on the feeling",
+    upA: "Move paragraph {n} up", downA: "Move paragraph {n} down", cutB: "Cut", keepB: "Keep",
+    cutA: "Cut paragraph {n}", keepA: "Bring paragraph {n} back",
+    paraA: "Paragraph {n}, now in place {k}{c}. Press up or down arrow to move it.", paraCut: ", cut",
+    typeScene: "scene · set-up", typeAction: "action · events", typeFeeling: "feeling",
+    chars: "{n} chars",
+    mChars: "Characters", mOpen: "Reader meets first", mEnd: "Ending line last?", mPad: "Padding (long, off the feeling)",
+    yes: "yes", no: "no", padKept: "still in", padCut: "cut",
+    rH: "THE READER'S REACTION (from the rules in the footnote)", rFirst: "First", rMid: "Middle", rLast: "Last",
+    f1: "Learns that “I” am taking the bus alone for the first time, and feels a little nervous for me.",
+    f2: "Reads a long while about a breakfast shop and a cat, and still doesn't know what the story is about.",
+    f3: "Panics straight away: the bus is going the wrong way! Wants to know what happens next.",
+    f4: "Someone wants to cry and is asking the way, but why? A bit lost.",
+    f5: "Sees Mum waving under the tree first. The ending is given away before anything has happened.",
+    f6: "Gets the lesson up front. The theme is clear, but there is less suspense.",
+    l1: "Stops before the trip has even begun. The story feels unfinished.",
+    l2: "What stays in the mind is a cat sunbathing on a tyre.",
+    l3: "Stops at the moment of the detour. The story feels unfinished.",
+    l4: "Stops at the driver's answer. The story feels unfinished.",
+    l5: "Remembers Mum waving: warm, but what “I” learned is not the last thing heard.",
+    l6: "Remembers the line: however scared you are, ask, and the way is on your lips.",
+    midPad: "At paragraph {k}, the breakfast shop and the cat break the nervous mood for a while.",
+    midJump: "Time jumps back and forth; the reader has to stop and sort out what came first.",
+    midFlash: "Flashback: the scariest moment first, then back to the start of the day.",
+    miss1: "We never learn who this is, where they are going or why they are alone.",
+    miss3: "With no detour, the crying and asking the way have no reason.",
+    miss4: "We never see how the way was found; panic jumps straight to something else.",
+    miss5: "We are not told whether “I” got there in the end.",
+    midOk: "Follows “my” feelings all the way, with no drifting off.",
+    chkH: "Five checks: {p} passed",
+    cOpen: "opening sets up or hooks", cNoPad: "no padding", cOrder: "time order is clear", cPlot: "no hole in the story (①③④)", cEnd: "ends on the feeling",
+    lastOne: "Keep at least one paragraph.",
+    moved: "Paragraph {n} is now in place {k}.", cutDone: "Paragraph {n} cut.", keptDone: "Paragraph {n} is back.", presetDone: "Now showing: {p}.",
+    verA: "A · draft", verB: "B · edit", verStat: "{c} chars · {p}/5 checks", cutList: "cut: {l}",
+    q2: "Having read A and B, which is clearer?", q2a: "A: more characters, more content", q2b: "B: the edit",
+    q2right: "Agreed. B is {p}% shorter and passes {b} checks instead of {a}: what was cut is only description with nothing to do with the feeling, and the story now ends on the line the writer most wants remembered.",
+    q2wrong: "Look again: the {d} extra characters in A are all about the breakfast shop and the cat, nothing to do with “my” nerves. B passes {b} checks, A only {a}. More characters is not more content.",
+    rule: "An essay is not better for being longer: what to keep, what to cut and what to put first are the writer's choices, and they decide what the reader feels first and remembers last.",
+    nums: "A (draft): {a} characters, {ca}/5 checks. B (edit): {b} characters, {p}% shorter, {cb}/5 checks. Shorter alone is not the aim: cutting the detour (③) makes it {q}% shorter but passes only {cc}/5.",
+    yours: "Your version from step 2: {c} characters, {p}/5 checks.",
+    resultTitle: "What we found", resultMain: "keep · cut · put first",
+    resultNote: "Length is not the standard. Cut one paragraph of padding, or change the opening or ending, and the same story makes the reader feel and remember something different. What a writer leaves out is a choice too.",
+    explainK: "Explain it", explainQ: "Take an essay you wrote. Find one paragraph that could go without hurting the feeling, and say what the reader would feel first and remember last once it is cut.",
+    homeK: "Try at home", homeQ: "Write a small event from your week on four or five slips of paper, one paragraph each. Read it aloud to your family in different orders, then take one slip away. Which order makes them want to hear more?",
+    foot: "The reader's reaction is a teaching heuristic, not a measurement. Rules: (1) the opening passes if it is the set-up (①), the scariest moment (③) or the feeling (⑥); starting with padding or the middle of the action does not. Starting with the feeling (开门见山) is a common, accepted way to write, so it is not marked wrong. (2) A long description with nothing to do with the feeling (②) counts as padding. (3) Apart from the first paragraph, the event paragraphs ①③④⑤ should come in time order; moving one moment to the front is a flashback (倒叙) and is fine. (4) Cutting ①, ③ or ④ leaves a hole; cutting ⑤ only gets a note. (5) Ending on the feeling line (⑥) passes. Characters counted: Chinese characters, letters and digits, not punctuation. The story is original, written for this page. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "段落重排", eyebrow: "语文 · 阶段 2", h1: "段落重排：写作就是做选择",
+    intro: "一篇四年级小作文《第一次自己坐公交》有六段。挪一挪、删一删，看看读者先感到什么、最后记住什么。",
+    reset: "重置", listAria: "作文的段落",
+    s1: "先猜", s2: "重排与删减", s3: "对比 · 规律",
+    k1: "先猜一猜", t1: "作文是不是越长越好？",
+    b1: "左边是原稿，按事情发生的先后写成。先选一个答案，再到第 2 步自己动手改。",
+    k2: "动手", t2: "挪一段，删一段",
+    b2: "按住段落左边的 ⠿ 上下拖，或点 ↑ ↓；键盘：Tab 选中一段，按 ↑ ↓ 移动。点「删去」删掉一段（它会变灰，点「留下」能放回来）。也可以点作文上方的三种排法比一比。",
+    k3: "对比 · 规律", t3: "原稿和删改版，哪篇更清楚？",
+    b3: "删改版只做了两件事：删掉第 ② 段，把第 ⑥ 段挪到最后。",
+    q: "原稿共 {n} 字。想让它更好，该怎么改？",
+    o1: "再加几段，越长越好", o2: "使劲删，越短越好", o3: "想清楚哪段留、哪段删、先写哪段",
+    right: "对。长短只是结果，不是标准。到第 2 步删一段、挪一段，看读者的反应怎么变。",
+    wrong: "到第 2 步试一试：删掉早餐店那段，文章短了，也更紧凑；可要是删掉车改道那段，文章同样变短，故事却断了。长短本身说明不了好坏。",
+    presetL: "三种排法：", pChrono: "顺叙（原稿）", pFlash: "倒叙：先写最紧张的一刻", pFeel: "感受收尾",
+    upA: "把第 {n} 段上移", downA: "把第 {n} 段下移", cutB: "删去", keepB: "留下",
+    cutA: "删去第 {n} 段", keepA: "把第 {n} 段放回来",
+    paraA: "第 {n} 段，现在排第 {k} 位{c}。按上下方向键移动。", paraCut: "，已删去",
+    typeScene: "场景·交代", typeAction: "动作·经过", typeFeeling: "感受",
+    chars: "{n} 字",
+    mChars: "字数", mOpen: "读者先碰到", mEnd: "结尾句在最后", mPad: "闲笔（和心情无关的长描写）",
+    yes: "是", no: "否", padKept: "还留着", padCut: "已删去",
+    rH: "读者的反应（按页脚的规则推出）", rFirst: "开头", rMid: "中间", rLast: "最后",
+    f1: "知道了「我」要第一次自己坐车，替「我」有点紧张。",
+    f2: "看了半天早餐店和花猫，还不知道这篇要讲什么。",
+    f3: "一上来就慌了：车改道了！想马上知道后来怎样。",
+    f4: "有人想哭、在问路，可为什么？有点摸不着头脑。",
+    f5: "先看到妈妈在树下挥手，结局先揭晓了，前面的事还没发生。",
+    f6: "开门见山先说道理，主题很清楚，悬念少了一些。",
+    l1: "停在出发前，故事好像没讲完。",
+    l2: "最后留在脑子里的，是一只在轮胎上晒太阳的花猫。",
+    l3: "停在车改道的那一刻，故事好像没讲完。",
+    l4: "停在司机的回答上，故事好像没讲完。",
+    l5: "最后记住妈妈在树下挥手：很温暖，可「我」明白了什么，没有落在最后。",
+    l6: "最后记住那一句：心里再慌，只要肯开口问，路就在嘴边。",
+    midPad: "读到第 {k} 段的早餐店和花猫，紧张的心情断了一下。",
+    midJump: "时间跳来跳去，读者得停下来理一理先后。",
+    midFlash: "倒叙：先看最紧张的一刻，再回头从早上讲起。",
+    miss1: "不知道是谁、要去哪、为什么一个人坐车。",
+    miss3: "没有车改道，后面的「想哭」和问路就没了原因。",
+    miss4: "没写怎么找到路，从慌张一下跳到了别处。",
+    miss5: "没写到奶奶家，读者不确定「我」最后到了没有。",
+    midOk: "一路跟着「我」的心情走，没有走神。",
+    chkH: "五项检查：过了 {p} 项",
+    cOpen: "开头交代清楚或抓人", cNoPad: "没有闲笔", cOrder: "先后读得懂", cPlot: "情节不缺（①③④）", cEnd: "最后落在感受",
+    lastOne: "至少要留一段。",
+    moved: "第 {n} 段移到了第 {k} 位。", cutDone: "删去了第 {n} 段。", keptDone: "第 {n} 段放回来了。", presetDone: "换成了：{p}。",
+    verA: "A 原稿", verB: "B 删改版", verStat: "{c} 字 · 五项检查过 {p} 项", cutList: "删去：{l}",
+    q2: "读完 A 和 B，哪一篇更清楚？", q2a: "A：字多，内容更丰富", q2b: "B：删改版",
+    q2right: "同意。B 比 A 短了 {p}%，检查从 {a} 项升到 {b} 项：删掉的只是和心情无关的描写，结尾落在作者最想让人记住的那句话上。",
+    q2wrong: "再看看：A 多出的 {d} 字全是早餐店和花猫，和「我」的紧张没关系。B 过了 {b} 项，A 只过 {a} 项。字多不等于内容好。",
+    rule: "作文不是越长越好：留下什么、删掉什么、先写什么，都是作者的选择，它们决定读者先感到什么、最后记住什么。",
+    nums: "A 原稿 {a} 字，过 {ca} 项；B 删改版 {b} 字，短了 {p}%，过 {cb} 项。只图短也不行：删掉车改道那段（③）能短 {q}%，却只过 {cc} 项。",
+    yours: "你在第 2 步改出的版本：{c} 字，过 {p} 项。",
+    resultTitle: "我们发现", resultMain: "留什么 · 删什么 · 先写什么",
+    resultNote: "长短不是标准。同一个故事，删掉一段闲笔、换一个开头或结尾，读者先感到的和最后记住的就不一样。不写什么，也是作者的选择。",
+    explainK: "说一说", explainQ: "拿出自己写过的一篇作文，找一段「删了也不影响心情」的话，说说删掉以后，读者会先感到什么、最后记住什么。",
+    homeK: "家里做一做", homeQ: "把这周的一件小事写在四五张纸条上，一张一段。换几种顺序读给家人听，再抽掉一张：哪种排法最让人想往下听？",
+    foot: "「读者的反应」是本页的教学经验规则，不是测量结果。规则：(1) 开头是交代（①）、最紧张的一刻（③）或感受（⑥）算通过；以闲笔或半截情节开头不通过。开门见山先写感受是常用写法，本页不算错。(2) 和心情无关的长描写（②）算闲笔。(3) 除第一段外，记事的 ①③④⑤ 要按时间先后；把某一刻提到最前面是倒叙，不算乱。(4) 删掉 ①、③ 或 ④ 故事会缺一块；删掉 ⑤ 只给提醒。(5) 最后一段是感受句（⑥）算通过。字数只数汉字、字母和数字，不数标点。短文为本页原创。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const listEl = $("list"), fb3 = $("fb3"), liveEl = $("live");
+const NUM = "①②③④⑤⑥";
+const num = (id) => NUM[id - 1];
+const gist = (id) => byId(id).g[L === "en" ? 1 : 0];
+const typeKey = { scene: "typeScene", action: "typeAction", feeling: "typeFeeling" };
+
+const fresh = () => ({ order: DRAFT.slice(), cut: [] });
+let step = 0, st = fresh();
+
+function say(text, no) { fb3.textContent = text; fb3.classList.toggle("no", !!no); }
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function zhText(cls, text) { const e = el("p", cls, text); e.lang = "zh-CN"; return e; }
+
+function renderPresets() {
+  const box = $("presets");
+  box.innerHTML = "";
+  box.hidden = step !== 1;
+  if (step !== 1) return;
+  box.appendChild(el("span", "", P.t("presetL")));
+  PRESETS.forEach(([key, order]) => {
+    const b = el("button", "small" + (order.join() === st.order.join() ? " on" : ""), P.t(key));
+    b.type = "button";
+    b.addEventListener("click", () => {
+      st = { order: order.slice(), cut: st.cut.slice() };
+      say(P.t("presetDone", { p: P.t(key) }));
+      render();
+    });
+    box.appendChild(b);
+  });
+}
+
+function card(id, view, live) {
+  const p = byId(id), isCut = view.cut.includes(id);
+  const li = el("li", "para" + (isCut ? " cut" : ""));
+  li.dataset.id = id;
+  const head = el("div", "ph");
+  if (live) {
+    const g = el("span", "grip", "⠿");
+    g.setAttribute("aria-hidden", "true");
+    g.addEventListener("pointerdown", (e) => startDrag(li, e));
+    head.appendChild(g);
+  }
+  head.appendChild(el("span", "n", num(id)));
+  head.appendChild(el("span", "tag " + p.type, P.t(typeKey[p.type])));
+  head.appendChild(el("span", "wc", P.t("chars", { n: wc(p.zh) })));
+  head.appendChild(el("span", "sp"));
+  if (live) {
+    const pos = view.order.indexOf(id);
+    const mk = (txt, aria, fn, cls) => {
+      const b = el("button", cls || "", txt);
+      b.type = "button";
+      b.setAttribute("aria-label", aria);
+      b.addEventListener("click", fn);
+      head.appendChild(b);
+      return b;
+    };
+    mk("↑", P.t("upA", { n: num(id) }), () => doMove(id, -1)).disabled = pos === 0;
+    mk("↓", P.t("downA", { n: num(id) }), () => doMove(id, 1)).disabled = pos === view.order.length - 1;
+    const c = mk(isCut ? P.t("keepB") : P.t("cutB"), P.t(isCut ? "keepA" : "cutA", { n: num(id) }), () => doCut(id), "cutb" + (isCut ? " on" : ""));
+    c.setAttribute("aria-pressed", isCut ? "true" : "false");
+    li.tabIndex = 0;
+    li.setAttribute("aria-label", P.t("paraA", { n: num(id), k: pos + 1, c: isCut ? P.t("paraCut") : "" }));
+    li.addEventListener("keydown", (e) => {
+      if (e.target !== li) return;
+      if (e.key === "ArrowUp") { doMove(id, -1); e.preventDefault(); }
+      if (e.key === "ArrowDown") { doMove(id, 1); e.preventDefault(); }
+    });
+  }
+  li.appendChild(head);
+  li.appendChild(zhText("zh", p.zh));
+  if (L === "en") { const e = el("p", "en", p.en); e.lang = "en"; li.appendChild(e); }
+  return li;
+}
+
+function renderList() {
+  listEl.innerHTML = "";
+  listEl.hidden = step === 2;
+  if (step === 2) return;
+  const view = step === 0 ? fresh() : st;
+  view.order.forEach((id) => listEl.appendChild(card(id, view, step === 1)));
+}
+
+function focusCard(id) {
+  const c = listEl.querySelector('[data-id="' + id + '"]');
+  if (c) c.focus();
+}
+function doMove(id, d) {
+  const n = move(st, id, d);
+  if (n !== st) { st = n; say(P.t("moved", { n: num(id), k: st.order.indexOf(id) + 1 })); }
+  render();
+  focusCard(id);
+}
+function doCut(id) {
+  const n = toggleCut(st, id);
+  if (n === st) say(P.t("lastOne"), true);
+  else { st = n; say(P.t(st.cut.includes(id) ? "cutDone" : "keptDone", { n: num(id) })); }
+  render();
+  const b = listEl.querySelector('[data-id="' + id + '"] .cutb');
+  if (b) b.focus();
+}
+
+// Pointer drag by the ⠿ handle (mouse, pen, touch). The card moves in the DOM; the order is read back on release.
+function startDrag(li, e) {
+  if (step !== 1) return;
+  e.preventDefault();
+  li.classList.add("dragging");
+  const id = +li.dataset.id;
+  const onMove = (ev) => {
+    const y = ev.clientY;
+    if (y < 50) window.scrollBy(0, -12);
+    else if (y > window.innerHeight - 50) window.scrollBy(0, 12);
+    let before = null;
+    for (const c of listEl.children) {
+      if (c === li) continue;
+      const r = c.getBoundingClientRect();
+      if (y < r.top + r.height / 2) { before = c; break; }
+    }
+    if (before !== li.nextSibling) listEl.insertBefore(li, before);
+  };
+  const onUp = () => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onUp);
+    li.classList.remove("dragging");
+    const order = [...listEl.children].map((c) => +c.dataset.id);
+    if (order.join() !== st.order.join()) {
+      st = { order, cut: st.cut.slice() };
+      say(P.t("moved", { n: num(id), k: order.indexOf(id) + 1 }));
+    }
+    render();
+    focusCard(id);
+  };
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onUp);
+}
+
+function renderStats(m) {
+  const box = $("stats");
+  box.innerHTML = "";
+  box.hidden = step === 2;
+  if (step === 2) return;
+  const tile = (label, val) => { const d = el("div", "", label); d.appendChild(el("b", "", val)); box.appendChild(d); };
+  tile(P.t("mChars"), String(m.chars));
+  tile(P.t("mOpen"), m.first === null ? "—" : num(m.first) + " " + P.t(typeKey[m.firstType]));
+  tile(P.t("mEnd"), P.t(m.endingLast ? "yes" : "no"));
+  tile(P.t("mPad"), P.t(m.padKept ? "padKept" : "padCut"));
+}
+
+function renderReact(m) {
+  const box = $("react");
+  box.innerHTML = "";
+  box.hidden = step !== 1;
+  if (step !== 1) return;
+  box.appendChild(el("div", "hd", P.t("rH")));
+  const row = (label, content) => { const r = el("div", "row"); r.appendChild(el("span", "", label)); r.appendChild(content); box.appendChild(r); };
+  row(P.t("rFirst"), el("span", "", P.t("f" + m.first)));
+  const ul = el("ul");
+  m.mid.forEach(([k, v]) => ul.appendChild(el("li", "", P.t(k, v))));
+  row(P.t("rMid"), ul);
+  row(P.t("rLast"), el("span", "", P.t("l" + m.last)));
+  const ck = el("div", "chks");
+  ck.appendChild(el("b", "", P.t("chkH", { p: m.passed })));
+  ck.appendChild(document.createElement("br"));
+  Object.entries(m.checks).forEach(([k, ok]) => {
+    const s = el("span", "it");
+    s.appendChild(el("span", ok ? "ok" : "x", ok ? "✓ " : "✗ "));
+    s.appendChild(document.createTextNode(P.t(k)));
+    ck.appendChild(s);
+  });
+  box.appendChild(ck);
+}
+
+function verBox(title, v, maxC) {
+  const m = metrics(v);
+  const d = el("div", "ver");
+  d.appendChild(el("h4", "", title));
+  d.appendChild(el("div", "vs", P.t("verStat", { c: m.chars, p: m.passed })));
+  const bar = el("div", "bar");
+  const f = el("div");
+  f.style.width = Play.clamp(maxC ? (100 * m.chars) / maxC : 0, 0, 100) + "%";
+  bar.appendChild(f);
+  d.appendChild(bar);
+  const ol = el("ol");
+  m.k.forEach((id) => {
+    const li = el("li", byId(id).pad ? "pad" : "");
+    li.appendChild(el("span", "n", num(id)));
+    const g = el("span", "", gist(id));
+    li.appendChild(g);
+    ol.appendChild(li);
+  });
+  d.appendChild(ol);
+  if (v.cut.length) d.appendChild(el("div", "cl", P.t("cutList", { l: v.cut.map(num).join(" ") })));
+  return d;
+}
+
+let q2 = null;
+function renderCompare() {
+  $("cmpWrap").hidden = step !== 2;
+  ["rule", "nums", "yours"].forEach((k) => ($(k).hidden = step !== 2));
+  if (step !== 2) return;
+  const A = { order: DRAFT.slice(), cut: [] };
+  const mA = metrics(A), mB = metrics(TRIM), mC = metrics(SHORT_ONLY), mY = metrics(st);
+  const cmp = $("cmp");
+  cmp.innerHTML = "";
+  cmp.appendChild(verBox(P.t("verA"), A, mA.chars));
+  cmp.appendChild(verBox(P.t("verB"), TRIM, mA.chars));
+  const p = pctShorter(mA.chars, mB.chars);
+  $("rule").textContent = P.t("rule");
+  $("nums").textContent = P.t("nums", { a: mA.chars, ca: mA.passed, b: mB.chars, p, cb: mB.passed, q: pctShorter(mA.chars, mC.chars), cc: mC.passed });
+  $("yours").textContent = P.t("yours", { c: mY.chars, p: mY.passed });
+  if (!q2) {
+    q2 = Play.predict($("q2"), {
+      q: P.t("q2"),
+      options: [{ label: P.t("q2a") }, { label: P.t("q2b"), right: true }],
+      right: P.t("q2right", { p, a: mA.passed, b: mB.passed }),
+      wrong: P.t("q2wrong", { d: mA.chars - mB.chars, a: mA.passed, b: mB.passed }),
+    });
+  }
+}
+
+function render() {
+  const view = step === 0 ? fresh() : st;
+  const m = metrics(view);
+  renderPresets();
+  renderList();
+  renderStats(m);
+  renderReact(m);
+  renderCompare();
+  Play.live(liveEl, step === 2 ? "" : P.t("mChars") + " " + m.chars + " · " + P.t("chkH", { p: m.passed }));
+}
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q", { n: chars(fresh()) }),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  say("");
+  render();
+});
+$("reset").addEventListener("click", () => {
+  st = fresh();
+  pr.reset();
+  if (q2) q2.reset();
+  say("");
+  steps.go(0);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why did printing spread so fast?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main.web, .stage svg.main.chart { height: auto; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  svg.chart { border-top: 1px solid var(--line); }
+  .web text, .chart text { font-size: 13px; }
+  .web .head { font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+  .web .node.L rect { stroke: var(--c); } .web .head.L { fill: var(--c); }
+  .web .node.T rect { stroke: var(--a); } .web .head.T { fill: var(--a); }
+  .web .node.C rect { stroke: var(--b); } .web .head.C { fill: var(--b); }
+  .web .head.O { fill: var(--fg); } .web .node.O rect { stroke: var(--fg); fill: var(--soft); }
+  .web .slot { fill: none; stroke: var(--line); stroke-width: 1.5px; stroke-dasharray: 5 5; }
+  .web .node { cursor: pointer; outline: none; }
+  .web .node rect { fill: var(--surface); stroke-width: 2px; }
+  .web .node text { fill: var(--fg); pointer-events: none; }
+  .web .node .num { font-weight: 750; fill: var(--a); }
+  .web .node.sel rect { fill: var(--soft); stroke-width: 3.5px; }
+  .web .node:focus-visible rect { stroke: var(--hl); stroke-width: 4px; }
+  .web .node.off rect { stroke-dasharray: 5 4; fill: transparent; }
+  .web .node.off text { fill: var(--muted); text-decoration: line-through; }
+  .web .lk { fill: none; stroke: var(--a); stroke-width: 2px; }
+  .web .lk.off { stroke: var(--line); stroke-dasharray: 4 4; }
+  .web .lk.new { stroke: var(--hl); stroke-width: 3px; }
+  .web #mOn path { fill: var(--a); } .web #mOff path { fill: var(--line); } .web #mNew path { fill: var(--hl); }
+  .chart .ax { stroke: var(--fg); stroke-width: 1.2px; } .chart .grid { stroke: var(--line); }
+  .chart .tick { fill: var(--muted); }
+  .chart .ref { stroke: var(--hl); stroke-width: 2px; stroke-dasharray: 6 5; }
+  .chart .refT { fill: var(--muted); font-size: 12px; }
+  .chart .base { fill: none; stroke: var(--muted); stroke-width: 2px; stroke-dasharray: 3 4; }
+  .chart .cur { fill: none; stroke: var(--a); stroke-width: 3px; }
+  .chart .lab { fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  .chart .bAll { fill: var(--a); } .chart .bNo { fill: var(--b); } .chart .bOne { fill: var(--no); }
+  .cardbox { margin: 12px 14px 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); padding: 10px 14px; }
+  .cardbox .ch { font-weight: 700; font-size: 15px; }
+  .cardbox .cm { font-size: 12px; color: var(--muted); }
+  .cardbox p { margin: 4px 0 8px; font-size: 14px; }
+  .cardbox .choices button.L { border-color: var(--c); } .cardbox .choices button.T { border-color: var(--a); } .cardbox .choices button.C { border-color: var(--b); }
+  .cardbox .hint { font-size: 13px; color: var(--muted); min-height: 1.3em; }
+  .cardbox .hint.no { color: var(--no); }
+  .whatif { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 14px 10px; }
+  .info { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 0 0 10px; }
+  .info p { margin: 0 0 6px !important; color: var(--fg) !important; }
+  .info p:last-child { margin-bottom: 0 !important; }
+  .explain h3 { font-size: 14px; margin: 10px 0 4px; }
+  #resMain { white-space: normal; }
+  @media (prefers-reduced-motion: no-preference) { .web .node rect { transition: fill .15s, stroke-width .15s; } }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+  <section class="stage">
+    <div class="visual" id="visual">
+      <div class="cardbox" id="cardbox" hidden></div>
+      <svg class="main web" id="web" viewBox="0 0 600 300" role="group" data-t-aria="webAria"></svg>
+      <div class="whatif" id="whatif" hidden>
+        <button type="button" class="small" id="allOn" data-t="allOn"></button>
+        <button type="button" class="small" id="onlyT" data-t="onlyT"></button>
+      </div>
+      <svg class="main chart" id="chart" viewBox="0 0 600 220" role="img" hidden></svg>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="info" id="info" hidden></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+  <div class="result" id="result">
+    <div><div class="rt" id="resTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" id="resNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+/* ---- Facts (consensus, see footnote) ---- */
+const START = 1450, END = 1500, SACK = 1462, CITED = 250;   // CITED: commonly cited approx. "250+ towns by 1500"
+const BISHENG = 11, JIKJI = 1377;
+/* ---- Model (illustrative, invented for this page) ----
+   N(START) = 1 printing town. Each year N += k·N·(1 − N/CAP), k = K0 × factor of every missing cause.
+   Without the trigger there is no press to copy: N = 0 every year. */
+const CAP = 400, K0 = 0.14;
+const CAUSES = [
+  { id: "paper", band: "L", f: 0.4 },
+  { id: "readers", band: "L", f: 0.35 },
+  { id: "metal", band: "L", f: 0.4 },
+  { id: "press", band: "L", f: 0.75 },
+  { id: "trade", band: "L", f: 0.6 },
+  { id: "gut", band: "T", f: 0 },
+  { id: "move", band: "C", f: 0.4 },
+  { id: "invest", band: "C", f: 0.6 },
+];
+const BANDS = ["L", "T", "C", "O"];
+const ORDER = ["gut", "paper", "move", "readers", "metal", "invest", "press", "trade"]; // sorting order
+/* supported links: [from, to] — "from helped to" */
+const LINKS = [["metal", "gut"], ["press", "gut"], ["paper", "out"], ["readers", "out"], ["gut", "out"],
+  ["move", "out"], ["invest", "out"], ["trade", "invest"], ["trade", "move"], ["readers", "invest"]];
+const byId = Object.fromEntries(CAUSES.map((c) => [c.id, c]));
+byId.out = { id: "out", band: "O" };
+
+function model(on) {
+  const ys = [];
+  if (!on.has("gut")) { for (let y = START; y <= END; y++) ys.push(0); return ys; }
+  let k = K0;
+  CAUSES.forEach((c) => { if (c.id !== "gut" && !on.has(c.id)) k *= c.f; });
+  let n = 1;
+  ys.push(n);
+  for (let y = START + 1; y <= END; y++) { n += k * n * (1 - n / CAP); n = Play.clamp(n, 0, CAP); ys.push(n); }
+  return ys;
+}
+const last = (on) => Math.round(model(on).at(-1));
+const ALL = () => new Set(CAUSES.map((c) => c.id));
+function summary() {
+  const all = last(ALL());
+  const only = last(new Set(["gut"]));
+  const without = CAUSES.map((c) => { const s = ALL(); s.delete(c.id); return { id: c.id, n: last(s) }; });
+  const rest = without.filter((w) => w.id !== "gut").map((w) => w.n);
+  return { all, only, without, lo: Math.min(...rest), hi: Math.max(...rest) };
+}
+
+const EN = {
+  title: "Why did printing spread so fast?", eyebrow: "History · Stage 4", h1: "Why did printing spread so fast?",
+  intro: "Mainz, 1450s: Gutenberg's press. By 1500, presses were working in roughly 250+ European towns. Sort the causes, link them, then take one away and see what changes.",
+  reset: "Reset", webAria: "Causes web: causes grouped into long-term conditions, trigger, people's choices and outcome. Tab to a cause, Enter to pick it, arrow keys to move between causes.",
+  s1: "Guess", s2: "Build", s3: "What if?", s4: "Rule",
+  k1: "Predict first", t1: "Mainz, 1450s: a new way to print",
+  b1: "The web shows the story many people tell: one cause, one result. Is that enough to explain how fast printing spread?",
+  q: "By {e}, printing presses were working in roughly {c}+ European towns (a commonly cited approximate figure) — about {g} years after Gutenberg's first press. Why so fast?",
+  o1: "Gutenberg invented printing — that one cause explains it", o2: "Several causes worked together: old conditions, a new trigger and people's choices", o3: "No real reason — it was just chance",
+  right: "Yes. Gutenberg's system mattered, but it needed cheap paper, readers, metalworkers and money — and printers who chose to move. Build the web in step 2.",
+  wrong: "Not quite. Gutenberg's system was the trigger, not the whole story: it needed cheap paper, readers, metalworkers and money, and printers chose to move. He did not invent printing either — movable type existed in China and Korea centuries earlier. Build the web in step 2.",
+  k2: "Hands on", t2: "Sort the causes, then link them",
+  b2: "Each card is one cause. Is it a long-term condition (built up over decades or centuries), the trigger (the new thing that set things off) or a choice people made? Sorted cards join the web. When all {n} are in, tap one cause, then another, to draw a link where one helped the other.",
+  k3: "What if?", t3: "Take one cause away",
+  b3: "Tap a cause in the web to remove it; tap again to bring it back. A simple model recounts how many towns would have a press by {e}. Remove just one — then try keeping only the trigger.",
+  k4: "The rule", t4: "Many causes, working together",
+  b4: "Big changes rarely have one cause. In this model all {n} causes give {all} towns by {e}; the trigger alone gives {only}; take any one cause away and it drops to between {lo} and {hi} (without the trigger: 0).",
+  band_L: "Long-term", band_T: "Trigger", band_C: "Choices", band_O: "Outcome",
+  bandLong_L: "Long-term condition", bandLong_T: "Trigger", bandLong_C: "People's choice",
+  outName: "Printing spreads", outNum: "{n} towns by {e}",
+  name_paper: "Cheap paper", name_readers: "Readers and universities", name_metal: "Metalworking skill", name_press: "Wine and olive presses",
+  name_trade: "Trade routes and money", name_gut: "Gutenberg's system", name_move: "Printers move on", name_invest: "Merchants invest",
+  short_paper: "paper", short_readers: "readers", short_metal: "metalwork", short_press: "presses", short_trade: "trade", short_gut: "trigger", short_move: "moving", short_invest: "investing",
+  desc_paper: "Paper mills had spread across Europe by the 1400s. Paper cost far less than parchment, so printing hundreds of copies made sense.",
+  desc_readers: "Universities had multiplied since about 1200, and more townspeople could read. Students, clergy, lawyers and merchants wanted more books than copyists could write.",
+  desc_metal: "Goldsmiths and coin makers knew how to cut punches and cast metal precisely — just what making type needs.",
+  desc_press: "Screw presses for wine and olive oil were common; a printing press could be adapted from them.",
+  desc_trade: "Merchant networks moved goods and money between cities, so paper, metal and books could be bought, sold and carried far.",
+  desc_gut: "In Mainz, around the 1450s, Johannes Gutenberg put the pieces together: metal type cast in a hand mould, an oil-based ink that sticks to metal, and a press.",
+  desc_move: "Printers trained in Mainz chose to open shops in other towns; after the sack of Mainz in {s}, many workers left the city.",
+  desc_invest: "A print shop was expensive to set up. Merchants chose to lend or invest — in Mainz, the businessman Johann Fust lent Gutenberg money.",
+  hint_L: "This had been building up for decades or centuries before the 1450s — a long-term condition.",
+  hint_T: "This is the new thing that set things off in the 1450s — the trigger.",
+  hint_C: "This is something people decided to do — a choice.",
+  cardOf: "Card {i} of {n}", sortQ: "What kind of cause is it?", notQuite: "Not quite. ", rightSort: "Right — {c}: {b}.",
+  allSorted: "All {n} sorted. Now link them: tap one cause, then the cause it helped.",
+  why_metal_gut: "casting type needs metalworking skill", why_press_gut: "the printing press was adapted from screw presses",
+  why_paper_out: "cheap paper made big print runs worth it", why_readers_out: "there were buyers for the books",
+  why_gut_out: "there was a working system to copy", why_move_out: "printers carried the know-how to new towns",
+  why_invest_out: "money paid for new print shops", why_trade_invest: "trade made merchants rich enough to invest",
+  why_trade_move: "trade routes carried printers, tools and books", why_readers_invest: "demand made printing look like good business",
+  linkAdd: "Linked: {a} → {b} — {w}.", linkDel: "Link removed: {a} → {b}.", linkNo: "This page has no direct link from {a} to {b}. Try another pair.",
+  pickA: "Picked {a}. Now tap the cause it helped (or tap it again to cancel).", same: "Cancelled.", notYet: "Sort all the cards first.",
+  removed: "Removed: {list}.", noneRemoved: "Nothing removed.", modelSays: "Model: {n} towns by {e} (all causes: {all}).",
+  offA: "{a} removed.", onA: "{a} back.",
+  allOn: "All causes on", onlyT: "Trigger only",
+  chartLine: "Model: towns with a press, {s}–{e}. Dashed grey: all causes; solid: your web; dashed gold: the commonly cited figure.",
+  chartBars: "Model towns by {e}: all causes, trigger only, and each cause removed in turn.",
+  refT: "≈{c}+ commonly cited", rowAll: "All causes", rowOnly: "Trigger only", rowNo: "Without {c}",
+  cautionH: "A thinking tool, not a measurement", caution: "We chose this model's rule and numbers to make the idea visible; they do not come from records. Historians ask “what if?” to find what mattered, then check against evidence — for example, records of where and when early books were printed.",
+  eastH: "Did Gutenberg invent printing?", east: "No. Movable type is older: in China, Bi Sheng made ceramic (baked clay) type in the {b}th century, described by Shen Kuo; in Korea, metal type printed the Jikji in {j}. Why printing spread differently there is a separate question that historians still debate — this page does not try to answer it.",
+  resQ: "The question", resQm: "One cause, or many?", resQn: "Commonly cited: roughly {c}+ towns with presses by {e}.",
+  resB: "Your causes web", resBm: "{s} of {n} sorted · {l} of {m} links", resBn: "Tip: a long-term condition can feed the trigger as well as the outcome.",
+  resW: "Model: towns with a press by {e}", resWm: "{n} (all causes: {all})", resWn: "Illustrative model, not a measurement.",
+  resR: "Rule", resRm: "Remove any one cause → {lo}–{hi} towns, not {all}", resRn: "Trigger alone: {only}. Conditions, trigger and choices work together.",
+  explainK: "Explain it", explainQ: "A friend says: “Gutenberg invented printing, end of story.” Use two other causes from this page — and what you learned about Bi Sheng and the Jikji — to give a fuller answer.",
+  homeK: "Try at home", homeQ: "Pick a change in your family or school (a new shop nearby, a new club, a new habit). Draw a causes web with at least one long-term condition, one trigger and one choice. Ask someone who was there: which one, taken away, would have changed the most?",
+  foot: "Facts: Gutenberg's press, Mainz, c. 1450s (metal type cast in a hand mould, oil-based ink, press); sack of Mainz {s}; presses in roughly {c}+ European towns by {e} (commonly cited approximate figure). Earlier movable type: Bi Sheng, ceramic type, {b}th century (described by Shen Kuo); Korean metal type, Jikji, {j}. Model (illustrative, invented for this page): {s0} starts with 1 printing town; each year N grows by k·N·(1 − N/{cap}), k = {k0} × the factor of every missing cause ({fs}); without the trigger N = 0. Text: Boxi Yu, CC BY 4.0.",
+};
+const ZH = {
+  title: "印刷术为什么传得那么快？", eyebrow: "历史 · 阶段 4", h1: "印刷术为什么传得那么快？",
+  intro: "15 世纪 50 年代，美因茨，古腾堡的印刷机。到 1500 年，欧洲大约 250 多个城镇已有印刷机。给原因分类、连线，再拿掉一个，看看结果怎么变。",
+  reset: "重来", webAria: "原因网：原因分为长期条件、直接诱因、人的选择和结果。用 Tab 键选到一个原因，回车选中，方向键在原因之间移动。",
+  s1: "先猜", s2: "搭网", s3: "如果", s4: "规律",
+  k1: "先猜一猜", t1: "15 世纪 50 年代的美因茨：一种新的印刷方法",
+  b1: "图里是很多人讲的故事：一个原因，一个结果。这足以解释印刷术为什么传得那么快吗？",
+  q: "到 {e} 年，欧洲大约 {c} 多个城镇已有印刷机（常被引用的近似数）——离古腾堡的第一台印刷机只有约 {g} 年。为什么这么快？",
+  o1: "古腾堡发明了印刷术——这一个原因就够了", o2: "几个原因一起起作用：老的条件、新的诱因、人的选择", o3: "没什么原因——纯属碰巧",
+  right: "对。古腾堡的方法很关键，但它还需要便宜的纸、读者、金属工匠和钱，也需要愿意到别处开店的印刷工。第 2 步来搭这张网。",
+  wrong: "不完全对。古腾堡的方法是诱因，不是全部：它还需要便宜的纸、读者、金属工匠和钱，印刷工也选择了到别处开店。而且印刷术也不是他发明的——中国和朝鲜早几百年就有活字。第 2 步来搭这张网。",
+  k2: "动手做", t2: "给原因分类，再连线",
+  b2: "每张卡片是一个原因。它是长期条件（几十年、几百年慢慢形成的）、直接诱因（引发变化的新东西），还是人的选择？分好的卡片会进到网里。{n} 张都放好后，先点一个原因，再点它帮助了的另一个，连一条线。",
+  k3: "如果……", t3: "拿掉一个原因",
+  b3: "点网里的一个原因就把它拿掉，再点一次放回来。一个简单的模型会重新算出：到 {e} 年会有多少城镇有印刷机。先只拿掉一个，再试试只留下诱因。",
+  k4: "规律", t4: "很多原因一起起作用",
+  b4: "大变化很少只有一个原因。在这个模型里，{n} 个原因都在时，到 {e} 年有 {all} 个城镇；只有诱因时是 {only} 个；拿掉任何一个原因，就降到 {lo} 到 {hi} 个（拿掉诱因则是 0）。",
+  band_L: "长期条件", band_T: "直接诱因", band_C: "人的选择", band_O: "结果",
+  bandLong_L: "长期条件", bandLong_T: "直接诱因", bandLong_C: "人的选择",
+  outName: "印刷术传开", outNum: "到 {e} 年 {n} 个城镇",
+  name_paper: "便宜的纸", name_readers: "读者和大学", name_metal: "金属加工手艺", name_press: "葡萄酒和橄榄榨机",
+  name_trade: "商路和资金", name_gut: "古腾堡的整套方法", name_move: "印刷工到别处开店", name_invest: "商人投资",
+  short_paper: "纸", short_readers: "读者", short_metal: "金属手艺", short_press: "榨机", short_trade: "商路", short_gut: "诱因", short_move: "迁移", short_invest: "投资",
+  desc_paper: "到 15 世纪，造纸作坊已遍布欧洲。纸比羊皮纸便宜得多，一次印几百份才划算。",
+  desc_readers: "约 1200 年以来大学越来越多，城里识字的人也在增加。学生、教士、律师、商人要的书，抄写员抄不过来。",
+  desc_metal: "金匠和铸币匠会刻冲头、精确浇铸金属——这正是造活字需要的本事。",
+  desc_press: "榨葡萄酒和橄榄油的螺旋压榨机很常见，印刷机可以照着它改。",
+  desc_trade: "商人网络在城市之间运货、调钱，纸、金属和书都能买卖、运到远处。",
+  desc_gut: "15 世纪 50 年代前后，约翰内斯·古腾堡在美因茨把几样东西配成一套：用手持铸模浇铸的金属活字、能附着在金属上的油性墨，再加上印刷机。",
+  desc_move: "在美因茨学会手艺的印刷工选择到别的城市开店；{s} 年美因茨被攻陷后，许多工匠离开了这座城。",
+  desc_invest: "开一家印刷坊很花钱。商人选择借钱或入股——在美因茨，商人约翰·福斯特就借钱给古腾堡。",
+  hint_L: "它在 15 世纪 50 年代之前已经慢慢形成了几十年、几百年——是长期条件。",
+  hint_T: "它是 15 世纪 50 年代引发变化的新东西——是直接诱因。",
+  hint_C: "它是人们决定去做的事——是人的选择。",
+  cardOf: "第 {i} 张，共 {n} 张", sortQ: "它属于哪一类原因？", notQuite: "不对。", rightSort: "对，「{c}」是{b}。",
+  allSorted: "{n} 张都分好了。现在连线：先点一个原因，再点它帮助了的那个。",
+  why_metal_gut: "浇铸活字要靠金属加工手艺", why_press_gut: "印刷机是从螺旋压榨机改来的",
+  why_paper_out: "纸便宜，大量印刷才划算", why_readers_out: "书印出来有人买",
+  why_gut_out: "有一套能照着学的方法", why_move_out: "印刷工把手艺带到了新城镇",
+  why_invest_out: "有钱开新的印刷坊", why_trade_invest: "贸易让商人有钱可投",
+  why_trade_move: "商路运送印刷工、工具和书", why_readers_invest: "需求大，印书看起来是好生意",
+  linkAdd: "已连线：{a} → {b}——{w}。", linkDel: "已去掉连线：{a} → {b}。", linkNo: "本页没有从「{a}」直接到「{b}」的连线，换一对试试。",
+  pickA: "已选「{a}」。再点它帮助了的原因（再点它自己就取消）。", same: "已取消。", notYet: "先把卡片都分好。",
+  removed: "已拿掉：{list}。", noneRemoved: "没有拿掉任何原因。", modelSays: "模型：到 {e} 年 {n} 个城镇（全部原因都在时：{all}）。",
+  offA: "已拿掉「{a}」。", onA: "已放回「{a}」。",
+  allOn: "全部放回", onlyT: "只留诱因",
+  chartLine: "模型：{s}–{e} 年有印刷机的城镇数。灰色虚线：全部原因；实线：你的网；金色虚线：常被引用的数字。",
+  chartBars: "模型里到 {e} 年的城镇数：全部原因、只有诱因、依次拿掉每个原因。",
+  refT: "约 {c} 多（常被引用）", rowAll: "全部原因", rowOnly: "只有诱因", rowNo: "拿掉{c}",
+  cautionH: "思考工具，不是测量", caution: "这个模型的规则和数字是为了把道理画出来而设定的，不是来自史料记录。历史学家问「如果……会怎样」，是为了找出哪些原因重要，然后再用证据去核对——比如早期书籍在哪里、哪一年印的记录。",
+  eastH: "印刷术是古腾堡发明的吗？", east: "不是。活字更早就有了：在中国，{b} 世纪的毕昇用胶泥烧制活字，沈括记下了这件事；在朝鲜，{j} 年用金属活字印了《直指》。印刷术在那里为什么以不同的方式传播，是另一个问题，历史学家至今仍有争论——本页不作回答。",
+  resQ: "问题", resQm: "一个原因，还是很多个？", resQn: "常被引用的说法：到 {e} 年，约 {c} 多个城镇有印刷机。",
+  resB: "你的原因网", resBm: "已分类 {s}/{n} · 连线 {l}/{m}", resBn: "提示：长期条件既可以帮助诱因，也可以直接帮助结果。",
+  resW: "模型：到 {e} 年有印刷机的城镇", resWm: "{n}（全部原因：{all}）", resWn: "示意模型，不是测量结果。",
+  resR: "规律", resRm: "拿掉任一原因 → {lo}–{hi} 个，而不是 {all} 个", resRn: "只有诱因：{only} 个。长期条件、诱因和选择一起起作用。",
+  explainK: "说一说", explainQ: "朋友说：「古腾堡发明了印刷术，就这么简单。」用本页另外两个原因，再加上毕昇和《直指》的事，给他一个更完整的回答。",
+  homeK: "家里做一做", homeQ: "挑一件家里或学校发生的变化（附近开了新店、新办了一个社团、养成一个新习惯），画一张原因网：至少一个长期条件、一个诱因、一个人的选择。问问当时在场的人：拿掉哪一个，结果会变得最多？",
+  foot: "史实：古腾堡印刷机，美因茨，约 15 世纪 50 年代（手持铸模浇铸的金属活字、油性墨、印刷机）；{s} 年美因茨被攻陷；到 {e} 年欧洲约 {c} 多个城镇有印刷机（常被引用的近似数）。更早的活字：毕昇胶泥活字，{b} 世纪（沈括记载）；朝鲜金属活字《直指》，{j} 年。模型（示意，为本页设定）：{s0} 年从 1 个城镇开始；每年 N 增加 k·N·(1 − N/{cap})，k = {k0} × 每个被拿掉的原因的系数（{fs}）；没有诱因则 N = 0。文字：Boxi Yu，CC BY 4.0。",
+};
+const P = Play.setup({ en: EN, zh: ZH });
+const $ = (id) => document.getElementById(id);
+const zh = P.lang === "zh";
+const NC = CAUSES.length, NL = LINKS.length;
+const nm = (id) => (id === "out" ? P.t("outName") : P.t("name_" + id));
+const SUM = summary();
+const V = { e: END, s: SACK, c: CITED, g: END - START, b: BISHENG, j: JIKJI, n: NC, cap: CAP, k0: K0, s0: START,
+  all: SUM.all, only: SUM.only, lo: SUM.lo, hi: SUM.hi };
+V.fs = CAUSES.filter((c) => c.id !== "gut").map((c) => P.t("short_" + c.id) + " " + c.f).join(zh ? "，" : ", ");
+$("foot").textContent = P.t("foot", V);
+
+/* ---- state ---- */
+let mode = 0, answered = false, cardI = 0, sortHint = "", sortBad = false;
+let sorted = new Set(), userLinks = new Set(), sel = null, on = ALL(), newLink = null, infoMsg = "";
+const key = (a, b) => a + ">" + b;
+const findLink = (a, b) => LINKS.find((l) => (l[0] === a && l[1] === b) || (l[0] === b && l[1] === a));
+
+/* ---- web layout: pixel coordinates, so 13 px text stays 13 px ---- */
+const web = $("web"), chart = $("chart");
+let W = 600;
+function wrap(s, maxW) {
+  const cw = (ch) => (/[　-鿿＀-￯]/.test(ch) ? 13.2 : 7.3);
+  const width = (t) => [...t].reduce((a, ch) => a + cw(ch), 0);
+  const parts = /\s/.test(s) ? s.split(/\s+/) : [...s];
+  const sep = /\s/.test(s) ? " " : "";
+  const lines = [];
+  let cur = "";
+  parts.forEach((p) => {
+    const t = cur ? cur + sep + p : p;
+    if (width(t) <= maxW || !cur) cur = t; else { lines.push(cur); cur = p; }
+  });
+  if (cur) lines.push(cur);
+  return lines;
+}
+/* Gutter lanes for links that skip a row in the narrow layout: side, lane (0 = outermost). */
+const LANES = { "paper>out": ["l", 0], "trade>move": ["l", 1], "readers>out": ["r", 0], "readers>invest": ["r", 1], "trade>invest": ["r", 2] };
+const LANE_W = 7;
+function layout() {
+  const pos = {}, heads = [];
+  const nh = 48;
+  let H, narrow = W < 600;
+  if (!narrow) {
+    /* columns; L order puts the causes that feed the trigger next to it, so no link crosses a box */
+    const pad = 8, gap = 22, cw = (W - 2 * pad - 3 * gap) / 4, top = 30, step = nh + 10;
+    const cx = (i) => pad + i * (cw + gap);
+    BANDS.forEach((b, i) => heads.push({ b, x: cx(i) + cw / 2, y: 18 }));
+    ["trade", "readers", "metal", "press", "paper"].forEach((id, i) => (pos[id] = { x: cx(0), y: top + i * step, w: cw, h: nh }));
+    const gm = top + 3 * step - 5;                       // between metal and press
+    pos.gut = { x: cx(1), y: gm - 34, w: cw, h: 68 };
+    pos.invest = { x: cx(2), y: top + 6, w: cw, h: nh + 12 };
+    pos.move = { x: cx(2), y: top + step + 10, w: cw, h: nh + 12 };
+    pos.out = { x: cx(3), y: gm - 40, w: cw, h: 80 };
+    H = top + 5 * step;
+  } else {
+    const gut = 8 + 3 * LANE_W, gap = 10, cw = (W - 2 * gut - gap) / 2, full = W - 2 * gut, vg = 30;
+    let y = 4;
+    const head = (b) => { heads.push({ b, x: gut + 2, y: y + 13, a: "start" }); y += 22; };
+    head("L");
+    pos.paper = { x: gut, y, w: cw, h: nh }; pos.readers = { x: gut + cw + gap, y, w: cw, h: nh }; y += nh + 8;
+    pos.trade = { x: gut + (full - cw) / 2, y, w: cw, h: nh }; y += nh + 8;
+    pos.metal = { x: gut, y, w: cw, h: nh }; pos.press = { x: gut + cw + gap, y, w: cw, h: nh }; y += nh + vg;
+    head("T"); pos.gut = { x: gut + (full - cw * 1.3) / 2, y, w: cw * 1.3, h: 64 }; y += 64 + vg;
+    head("C"); pos.move = { x: gut, y, w: cw, h: nh + 12 }; pos.invest = { x: gut + cw + gap, y, w: cw, h: nh + 12 }; y += nh + 12 + vg;
+    head("O"); pos.out = { x: gut + (full - cw * 1.3) / 2, y, w: cw * 1.3, h: 70 }; y += 70 + 6;
+    H = y;
+  }
+  Object.values(pos).forEach((q) => (q.dir = narrow ? "v" : "h"));
+  return { pos, heads, H, narrow };
+}
+function visibleNodes() {
+  if (mode === 0) return ["gut", "out"];
+  if (mode === 1) return CAUSES.filter((c) => sorted.has(c.id)).map((c) => c.id).concat("out");
+  return CAUSES.map((c) => c.id).concat("out");
+}
+function visibleLinks() {
+  if (mode === 0) return [["gut", "out"]];
+  if (mode === 1) return LINKS.filter((l) => userLinks.has(key(l[0], l[1])));
+  return LINKS;
+}
+function drawWeb() {
+  const L = layout();
+  web.setAttribute("viewBox", "0 0 " + W + " " + L.H);
+  web.innerHTML = "";
+  const defs = Play.svg("defs", {}, web);
+  [["mOn"], ["mOff"], ["mNew"]].forEach(([id]) => {
+    const m = Play.svg("marker", { id, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
+    Play.svg("path", { d: "M0 0 L10 5 L0 10 z" }, m);
+  });
+  const vis = new Set(visibleNodes());
+  const shown = new Set([...vis].map((id) => byId[id].band));
+  L.heads.forEach((h) => {
+    if (mode === 0 && !shown.has(h.b)) return;
+    const t = Play.svg("text", { x: h.x, y: h.y, "text-anchor": h.a || "middle", class: "head " + h.b }, web);
+    t.textContent = P.t("band_" + h.b);
+  });
+  if (mode === 0 && W < 600) { /* crop to the one-cause story */
+    const top = Math.min(...[...vis].map((id) => L.pos[id].y)) - 30, bot = Math.max(...[...vis].map((id) => L.pos[id].y + L.pos[id].h)) + 8;
+    const t0 = Math.max(0, top);
+    web.setAttribute("viewBox", "0 " + t0 + " " + W + " " + (bot - t0));
+  }
+  const links = visibleLinks().filter((l) => vis.has(l[0]) && vis.has(l[1]));
+  /* gutter-routed links (narrow layout only) */
+  const lane = (l) => (L.narrow ? LANES[key(l[0], l[1])] : null);
+  const direct = links.filter((l) => !lane(l));
+  /* spread endpoints of direct links along each node's edge */
+  const outs = {}, ins = {};
+  direct.forEach((l) => { (outs[l[0]] = outs[l[0]] || []).push(l); (ins[l[1]] = ins[l[1]] || []).push(l); });
+  const along = (p) => (p.dir === "h" ? p.y + p.h / 2 : p.x + p.w / 2);
+  Object.values(outs).forEach((a) => a.sort((u, v) => along(L.pos[u[1]]) - along(L.pos[v[1]])));
+  Object.values(ins).forEach((a) => a.sort((u, v) => along(L.pos[u[0]]) - along(L.pos[v[0]])));
+  const pt = (p, i, n, side) => {
+    const f = (i + 1) / (n + 1);
+    if (p.dir === "h") return { x: side ? p.x + p.w : p.x, y: p.y + 8 + (p.h - 16) * f };
+    return { x: p.x + 10 + (p.w - 20) * f, y: side ? p.y + p.h : p.y };
+  };
+  links.forEach((l) => {
+    const P0 = L.pos[l[0]], P1 = L.pos[l[1]], ln = lane(l);
+    let d;
+    if (ln) {
+      /* out of the source's side, down the gutter, into the target's side; outer lanes leave higher and arrive lower */
+      const left = ln[0] === "l", gx = left ? 4 + ln[1] * LANE_W : W - 4 - ln[1] * LANE_W;
+      const sx = left ? P0.x : P0.x + P0.w, sy = P0.y + 12 + ln[1] * 10;
+      const tx = left ? P1.x : P1.x + P1.w, ty = P1.y + P1.h - 12 - ln[1] * 10;
+      const r = 5, dir = left ? -1 : 1;
+      d = `M${sx} ${sy} H${gx - dir * r} Q${gx} ${sy} ${gx} ${sy + r} V${ty - r} Q${gx} ${ty} ${gx - dir * r} ${ty} H${tx + dir * 2}`;
+    } else {
+      const a = pt(P0, outs[l[0]].indexOf(l), outs[l[0]].length, 1);
+      const b = pt(P1, ins[l[1]].indexOf(l), ins[l[1]].length, 0);
+      if (P0.dir === "h") { const dx = Math.max(30, (b.x - a.x) / 2); d = `M${a.x} ${a.y} C${a.x + dx} ${a.y} ${b.x - dx} ${b.y} ${b.x - 2} ${b.y}`; }
+      else { const dy = Math.max(24, (b.y - a.y) / 2); d = `M${a.x} ${a.y} C${a.x} ${a.y + dy} ${b.x} ${b.y - dy} ${b.x} ${b.y - 2}`; }
+    }
+    const off = mode >= 2 && (!on.has(l[0]) || (l[1] !== "out" && !on.has(l[1])));
+    const isNew = mode === 1 && newLink === key(l[0], l[1]);
+    Play.svg("path", { d, class: "lk" + (off ? " off" : "") + (isNew ? " new" : ""), "marker-end": "url(#" + (off ? "mOff" : isNew ? "mNew" : "mOn") + ")" }, web);
+  });
+  if (mode === 1) CAUSES.forEach((c) => {           /* empty slots for cards not sorted yet */
+    if (vis.has(c.id)) return;
+    const p = L.pos[c.id];
+    Play.svg("rect", { x: p.x, y: p.y, width: p.w, height: p.h, rx: 10, class: "slot" }, web);
+  });
+  [...vis].forEach((id) => {
+    const p = L.pos[id], c = byId[id];
+    const off = mode >= 2 && id !== "out" && !on.has(id);
+    const g = Play.svg("g", { class: "node " + c.band + (sel === id ? " sel" : "") + (off ? " off" : ""), tabindex: 0, role: "button", "data-id": id }, web);
+    let label = nm(id);
+    if (id === "out" && mode >= 2) label += " · " + P.t("outNum", { n: last(on), e: END });
+    else if (id !== "out") label += " · " + P.t("bandLong_" + c.band);
+    if (mode === 2 && id !== "out") g.setAttribute("aria-pressed", off ? "false" : "true");
+    g.setAttribute("aria-label", label);
+    Play.svg("rect", { x: p.x, y: p.y, width: p.w, height: p.h, rx: 10 }, g);
+    const lines = wrap(nm(id), p.w - 14);
+    const extra = id === "out" && mode >= 2 ? 1 : 0;
+    const total = lines.length + extra, lh = 16;
+    const y0 = p.y + p.h / 2 - (total - 1) * lh / 2 + 4.5;
+    lines.forEach((s, i) => { const t = Play.svg("text", { x: p.x + p.w / 2, y: y0 + i * lh, "text-anchor": "middle" }, g); t.textContent = s; });
+    if (extra) {
+      const t = Play.svg("text", { x: p.x + p.w / 2, y: y0 + lines.length * lh, "text-anchor": "middle", class: "num" }, g);
+      t.textContent = P.t("outNum", { n: last(on), e: END });
+    }
+  });
+}
+
+/* ---- chart: line (step 3) or bars (step 4) ---- */
+function drawChart() {
+  chart.toggleAttribute("hidden", mode < 2);
+  if (mode < 2) return;
+  chart.innerHTML = "";
+  if (mode === 2) {
+    const H = 230, ml = 40, mr = W >= 480 ? 64 : 44, mt = 16, mb = 28;
+    chart.setAttribute("viewBox", "0 0 " + W + " " + H);
+    chart.setAttribute("aria-label", P.t("chartLine", { s: START, e: END }));
+    const X = (y) => ml + (y - START) / (END - START) * (W - ml - mr);
+    const Y = (n) => mt + (1 - n / CAP) * (H - mt - mb);
+    for (let n = 0; n <= CAP; n += 100) {
+      Play.svg("line", { x1: ml, x2: W - mr, y1: Y(n), y2: Y(n), class: "grid" }, chart);
+      const t = Play.svg("text", { x: ml - 6, y: Y(n) + 4, "text-anchor": "end", class: "tick" }, chart); t.textContent = n;
+    }
+    const stepY = W >= 480 ? 10 : 25;
+    for (let y = START; y <= END; y += stepY) {
+      const t = Play.svg("text", { x: X(y), y: H - 8, "text-anchor": "middle", class: "tick" }, chart); t.textContent = y;
+    }
+    Play.svg("line", { x1: ml, x2: ml, y1: mt, y2: H - mb, class: "ax" }, chart);
+    Play.svg("line", { x1: ml, x2: W - mr, y1: H - mb, y2: H - mb, class: "ax" }, chart);
+    Play.svg("line", { x1: ml, x2: W - mr, y1: Y(CITED), y2: Y(CITED), class: "ref" }, chart);
+    const rt = Play.svg("text", { x: ml + 6, y: Y(CITED) - 6, class: "refT" }, chart); rt.textContent = P.t("refT", { c: CITED });
+    const path = (ys) => ys.map((n, i) => (i ? "L" : "M") + X(START + i).toFixed(1) + " " + Y(n).toFixed(1)).join(" ");
+    const base = model(ALL()), cur = model(on);
+    Play.svg("path", { d: path(base), class: "base" }, chart);
+    Play.svg("path", { d: path(cur), class: "cur" }, chart);
+    const yb = Y(base.at(-1)), yc = Y(cur.at(-1));
+    const sepY = Math.abs(yb - yc) < 16 ? (yc >= yb ? 8 : -8) : 0;
+    const t1 = Play.svg("text", { x: W - mr + 6, y: yc + 4 + sepY, class: "lab" }, chart); t1.textContent = Math.round(cur.at(-1));
+    if (Math.round(base.at(-1)) !== Math.round(cur.at(-1))) {
+      const t2 = Play.svg("text", { x: W - mr + 6, y: yb + 4 - sepY, class: "tick" }, chart); t2.textContent = Math.round(base.at(-1));
+    }
+    return;
+  }
+  const rows = [{ k: P.t("rowAll"), n: SUM.all, c: "bAll" }, { k: P.t("rowOnly"), n: SUM.only, c: "bOne" }]
+    .concat(SUM.without.map((w) => ({ k: P.t("rowNo", { c: P.t("short_" + w.id) }), n: w.n, c: "bNo" })));
+  const rh = 22, mt = 8, H = mt + rows.length * rh + 26, ml = W >= 480 ? 150 : 112, mr = 40;
+  chart.setAttribute("viewBox", "0 0 " + W + " " + H);
+  chart.setAttribute("aria-label", P.t("chartBars", { e: END }));
+  const X = (n) => ml + n / CAP * (W - ml - mr);
+  Play.svg("line", { x1: X(CITED), x2: X(CITED), y1: mt - 4, y2: mt + rows.length * rh, class: "ref" }, chart);
+  const rt = Play.svg("text", { x: Math.min(X(CITED), W - 8), y: H - 8, "text-anchor": "end", class: "refT" }, chart); rt.textContent = P.t("refT", { c: CITED });
+  rows.forEach((r, i) => {
+    const y = mt + i * rh;
+    const t = Play.svg("text", { x: ml - 8, y: y + 15, "text-anchor": "end", class: "tick" }, chart); t.textContent = r.k;
+    Play.svg("rect", { x: ml, y: y + 3, width: Math.max(1, X(r.n) - ml), height: rh - 7, rx: 3, class: r.c }, chart);
+    const v = Play.svg("text", { x: X(r.n) + 5, y: y + 15, class: "lab" }, chart); v.textContent = r.n;
+  });
+  Play.svg("line", { x1: ml, x2: ml, y1: mt - 4, y2: mt + rows.length * rh, class: "ax" }, chart);
+}
+
+/* ---- sorting card (step 2) ---- */
+function drawCard() {
+  const box = $("cardbox");
+  box.hidden = mode !== 1;
+  if (mode !== 1) return;
+  box.innerHTML = "";
+  if (cardI >= ORDER.length) {
+    const p = document.createElement("div"); p.className = "ch"; p.textContent = P.t("allSorted", { n: NC }); box.appendChild(p);
+    return;
+  }
+  const id = ORDER[cardI];
+  const m = document.createElement("div"); m.className = "cm"; m.textContent = P.t("cardOf", { i: cardI + 1, n: NC });
+  const h = document.createElement("div"); h.className = "ch"; h.textContent = nm(id);
+  const d = document.createElement("p"); d.textContent = P.t("desc_" + id, V);
+  const q = document.createElement("div"); q.className = "cm"; q.textContent = P.t("sortQ");
+  const row = document.createElement("div"); row.className = "choices";
+  ["L", "T", "C"].forEach((b) => {
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "small " + b;
+    btn.textContent = P.t("bandLong_" + b);
+    btn.addEventListener("click", () => sortAs(b));
+    row.appendChild(btn);
+  });
+  const hint = document.createElement("div"); hint.className = "hint" + (sortBad ? " no" : ""); hint.textContent = sortHint;
+  hint.setAttribute("aria-live", "polite");
+  box.append(m, h, d, q, row, hint);
+}
+function sortAs(b) {
+  const id = ORDER[cardI], c = byId[id];
+  if (b === c.band) {
+    sorted.add(id); cardI++; sortBad = false;
+    sortHint = P.t("rightSort", { c: nm(id), b: P.t("bandLong_" + b) });
+    Play.live($("live"), sortHint);
+    if (cardI >= ORDER.length) Play.live($("live"), P.t("allSorted", { n: NC }));
+  } else {
+    sortBad = true; sortHint = P.t("notQuite") + P.t("hint_" + c.band);
+  }
+  render();
+  const first = $("cardbox").querySelector("button");
+  if (first) first.focus();
+}
+
+/* ---- clicking nodes ---- */
+function pressNode(id) {
+  if (mode === 1) {
+    if (cardI < ORDER.length) { infoMsg = P.t("desc_" + id, V); if (id === "out") infoMsg = P.t("notYet"); render(); return; }
+    if (sel === null) { sel = id; infoMsg = id === "out" ? "" : P.t("desc_" + id, V); Play.live($("live"), P.t("pickA", { a: nm(id) })); }
+    else if (sel === id) { sel = null; Play.live($("live"), P.t("same")); }
+    else {
+      const l = findLink(sel, id);
+      if (!l) { infoMsg = P.t("linkNo", { a: nm(sel), b: nm(id) }); newLink = null; }
+      else {
+        const k = key(l[0], l[1]);
+        if (userLinks.has(k)) { userLinks.delete(k); newLink = null; infoMsg = P.t("linkDel", { a: nm(l[0]), b: nm(l[1]) }); }
+        else { userLinks.add(k); newLink = k; infoMsg = P.t("linkAdd", { a: nm(l[0]), b: nm(l[1]), w: P.t("why_" + l[0] + "_" + l[1]) }); }
+      }
+      Play.live($("live"), infoMsg);
+      sel = null;
+    }
+    render(); focusNode(id); return;
+  }
+  if (mode === 2 && id !== "out") {
+    if (on.has(id)) on.delete(id); else on.add(id);
+    Play.live($("live"), P.t(on.has(id) ? "onA" : "offA", { a: nm(id) }) + " " + P.t("modelSays", { n: last(on), e: END, all: SUM.all }));
+    render(); focusNode(id); return;
+  }
+  infoMsg = id === "out" ? "" : P.t("desc_" + id, V);
+  render(); focusNode(id);
+}
+function focusNode(id) { const g = web.querySelector('[data-id="' + id + '"]'); if (g) g.focus(); }
+web.addEventListener("click", (ev) => { const g = ev.target.closest(".node"); if (g) pressNode(g.dataset.id); });
+web.addEventListener("keydown", (ev) => {
+  const g = ev.target.closest && ev.target.closest(".node");
+  if (!g) return;
+  if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pressNode(g.dataset.id); return; }
+  const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[ev.key];
+  if (!d) return;
+  ev.preventDefault();
+  const all = [...web.querySelectorAll(".node")];
+  const i = all.indexOf(g);
+  all[(i + d + all.length) % all.length].focus();
+});
+
+/* ---- text panels ---- */
+function para(parent, text, tag) { const p = document.createElement(tag || "p"); p.textContent = text; parent.appendChild(p); return p; }
+function renderInfo() {
+  const box = $("info");
+  box.innerHTML = "";
+  if (mode === 1 && infoMsg) para(box, infoMsg);
+  if (mode === 2) {
+    const rm = CAUSES.filter((c) => !on.has(c.id)).map((c) => nm(c.id));
+    para(box, rm.length ? P.t("removed", { list: rm.join(zh ? "、" : ", ") }) : P.t("noneRemoved"));
+    para(box, P.t("modelSays", { n: last(on), e: END, all: SUM.all }));
+  }
+  if (mode === 3) {
+    para(box, P.t("cautionH"), "h3"); para(box, P.t("caution"));
+    para(box, P.t("eastH"), "h3"); para(box, P.t("east", V));
+  }
+  if (mode === 0 && infoMsg) para(box, infoMsg);
+  box.hidden = !box.childNodes.length;
+}
+function renderResult() {
+  const r = $("result");
+  r.hidden = mode === 0 && !answered;
+  let t, m, n;
+  if (mode === 0) { t = P.t("resQ"); m = P.t("resQm"); n = P.t("resQn", V); }
+  else if (mode === 1) { t = P.t("resB"); m = P.t("resBm", { s: sorted.size, n: NC, l: userLinks.size, m: NL }); n = P.t("resBn"); }
+  else if (mode === 2) { t = P.t("resW", V); m = P.t("resWm", { n: last(on), all: SUM.all }); n = P.t("resWn"); }
+  else { t = P.t("resR"); m = P.t("resRm", V); n = P.t("resRn", V); }
+  $("resTitle").textContent = t; $("resMain").textContent = m; $("resNote").textContent = n;
+}
+function render() {
+  drawCard(); drawWeb(); drawChart(); renderInfo(); renderResult();
+  $("whatif").hidden = mode !== 2;
+}
+function resize() { const w = $("visual").getBoundingClientRect().width; if (w < 10) return; const nw = Math.round(Play.clamp(w, 280, 900)); if (nw !== W) { W = nw; drawWeb(); drawChart(); } }
+if (window.ResizeObserver) new ResizeObserver(resize).observe($("visual")); else window.addEventListener("resize", resize);
+
+$("allOn").addEventListener("click", () => { on = ALL(); Play.live($("live"), P.t("modelSays", { n: last(on), e: END, all: SUM.all })); render(); });
+$("onlyT").addEventListener("click", () => { on = new Set(["gut"]); Play.live($("live"), P.t("modelSays", { n: last(on), e: END, all: SUM.all })); render(); });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q", V),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { answered = true; render(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  mode = i; sel = null; newLink = null; infoMsg = "";
+  $("kicker").textContent = P.t("k" + (i + 1));
+  $("stepTitle").textContent = P.t("t" + (i + 1));
+  $("stepBody").textContent = P.t("b" + (i + 1), V);
+  $("predict").hidden = i !== 0;
+  $("live").textContent = "";
+  if (i === 3) on = ALL();
+  render(); resize();
+});
+
+$("reset").addEventListener("click", () => {
+  answered = false; cardI = 0; sortHint = ""; sortBad = false; sorted = new Set(); userLinks = new Set();
+  sel = null; on = ALL(); newLink = null; infoMsg = "";
+  pr.reset(); st.go(0);
+});
+</script>
+</body>
+</html>

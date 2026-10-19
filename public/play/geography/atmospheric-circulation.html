@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why deserts sit at 30°</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .fig { width: 100%; height: auto; display: block; touch-action: manipulation; }
+  #fig { cursor: pointer; }
+  .lb { font-size: 13px; fill: var(--muted); }
+  .lbf { font-size: 13px; fill: var(--fg); font-weight: 650; }
+  .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+  .pc { stroke: var(--surface); stroke-width: 1; }
+  .pc.wet { fill: var(--c); }
+  .pc.dry { fill: var(--hl); }
+  .pc.me { stroke: var(--fg); stroke-width: 2.5; }
+  .controls label { min-width: 6.5em; }
+  .controls .val { min-width: 10em; font-family: var(--font); font-size: 14px; }
+  .chips { padding-top: 0; }
+  .chips button.on { background: var(--fg); color: var(--bg); }
+  .legend { padding: 0 14px 10px; }
+  .legend .bar { display: inline-block; width: 14px; height: 7px; border-radius: 2px; margin-right: 5px; vertical-align: 1px; }
+  .trkbox { padding: 0 14px 14px; }
+  .read { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 6px 0 10px; font-size: 14px; }
+  .read dt { color: var(--muted); }
+  .read dd { margin: 0; font-variant-numeric: tabular-nums; color: var(--fg); }
+  .read dd.big { font-weight: 700; }
+  .result .math { white-space: normal; }
+  @media (max-width: 560px) {
+    .controls label { min-width: 0; }
+    .controls .val { min-width: 0; }
+  }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="playBtn"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="fig" id="fig" viewBox="0 0 600 362" tabindex="0" role="img" data-t-aria="figAria"></svg>
+      <div class="legend" aria-hidden="true">
+        <span><span class="dot" style="background:var(--c)"></span><span data-t="lgWet"></span></span>
+        <span><span class="dot" style="background:var(--hl)"></span><span data-t="lgDry"></span></span>
+        <span><span class="bar" style="background:var(--c);opacity:.55"></span><span data-t="lgRain"></span></span>
+        <span><span class="bar" style="background:var(--no);height:2px"></span><span data-t="lgTemp"></span></span>
+        <span><span class="bar" style="background:var(--b)"></span><span data-t="lgDesert"></span></span>
+      </div>
+      <div class="controls">
+        <label for="month" data-t="monthLabel"></label>
+        <input type="range" id="month" min="1" max="12" step="1" value="5">
+        <span class="val" id="monthVal"></span>
+      </div>
+      <div class="controls" id="cellBtns">
+        <span data-t="followLabel"></span>
+        <button type="button" class="small" data-kind="hadley" data-t="cHadley"></button>
+        <button type="button" class="small" data-kind="ferrel" data-t="cFerrel"></button>
+        <button type="button" class="small" data-kind="polar" data-t="cPolar"></button>
+        <button type="button" class="small" data-hemi="N" data-t="hN"></button>
+        <button type="button" class="small" data-hemi="S" data-t="hS"></button>
+      </div>
+      <div class="controls">
+        <label for="phase" data-t="phaseLabel"></label>
+        <input type="range" id="phase" min="0" max="99" step="1" value="0">
+        <span class="val" id="phaseVal"></span>
+      </div>
+      <div class="controls chips" id="chips"></div>
+      <div class="trkbox"><svg class="fig" id="trk" viewBox="0 0 600 196" role="img" data-t-aria="trkAria"></svg></div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <dl class="read">
+        <dt data-t="rSeason"></dt><dd id="oSeason"></dd>
+        <dt data-t="rCell"></dt><dd id="oCell" class="big"></dd>
+        <dt data-t="rWhere"></dt><dd id="oWhere"></dd>
+        <dt data-t="rDoing"></dt><dd id="oDoing" class="big"></dd>
+        <dt data-t="rT"></dt><dd id="oT"></dd>
+        <dt data-t="rQ"></dt><dd id="oQ"></dd>
+        <dt data-t="rRH"></dt><dd id="oRH"></dd>
+        <dt data-t="rDesert"></dt><dd id="oDesert"></dd>
+      </dl>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Why deserts sit at 30°", eyebrow: "Geography · Stage 4",
+    h1: "Big hot deserts sit where dry air sinks, around 30° north and south — not at the hot equator",
+    intro: "Follow the air from pole to pole: where it rises it rains, where it sinks it dries. Then check where the deserts are.",
+    reset: "Reset", play: "Play", pause: "Pause",
+    figAria: "Side view of the atmosphere from 90°S to 90°N with three circulation cells in each hemisphere, rain by latitude, and desert latitudes. Tap a parcel to follow it. Keys: left and right move the parcel along its loop, up and down change the cell.",
+    trkAria: "Temperature and water vapour of the followed parcel along its loop.",
+    lgWet: "moist air", lgDry: "dry air", lgRain: "rain (relative, schematic)", lgTemp: "yearly surface temperature (schematic)", lgDesert: "desert latitudes",
+    monthLabel: "Season", followLabel: "Follow:", phaseLabel: "Parcel position",
+    cHadley: "Hadley", cFerrel: "Ferrel", cPolar: "Polar", hN: "N", hS: "S",
+    nHadley: "Hadley cell", nFerrel: "Ferrel cell", nPolar: "Polar cell", hemN: "northern", hemS: "southern",
+    cellName: "{cell}, {hemi} hemisphere",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Where are most of the big hot deserts?",
+    b1: "Pick an answer. In step 2 you will follow the air around the planet and see where its rain falls.",
+    k2: "Hands on", t2: "Follow the air",
+    b2: "Air rises over the hot equator, cools and rains, flows toward the poles high up, then sinks near 30° — warming and drying. Tap a parcel (or use the buttons) to follow it, slide the season, and tap a desert to see where it sits.",
+    k3: "The rule", t3: "Rising air rains; sinking air dries",
+    b3: "Where air rises it cools and its water falls as rain; where it sinks it warms and dries out. The Hadley cells lift air at the equator and drop it around 30° north and south, so most big hot deserts line up near 30°. The air flowing back to the equator near the ground is the trade winds. Real circulation is messier: land and sea heat differently, monsoons pull the rain belt far inland, mountains cast rain shadows, and cold ocean currents dry some coasts.",
+    q: "Where are most of the world's big hot deserts?",
+    o1: "Near the equator, where it is hottest", o2: "Around 30° north and south", o3: "Near the poles",
+    right: "Yes. Step 2 shows why: that is where dry air sinks.",
+    wrong: "The equator is the hottest belt, but also one of the wettest. In step 2, compare the rain bars with the desert strip.",
+    wrongPole: "The poles are in fact very dry — cold deserts — but not hot. Find the hot ones in step 2.",
+    figTitle: "Side view, pole to pole (not to scale)", up: "↑ wet", down: "↓ dry",
+    trades: "trades", westerlies: "westerlies", easterlies: "easterlies", km: "{z} km",
+    latN: "{v}°N", latS: "{v}°S", lat0: "0°",
+    months: "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
+    vSeason: "{m}: rising belt at {lat}", phaseV: "{p}% round the loop",
+    trkTitle: "One parcel: {cell} cell ({hemi})", trkT: "temperature °C", trkQ: "water vapour g/kg", rainMark: "rain",
+    legUp: "rise", legAloft: "aloft", legDown: "sink", legSurface: "surface",
+    rSeason: "Season", rCell: "Following", rWhere: "Where", rDoing: "Doing", rT: "Temperature", rQ: "Water vapour", rRH: "Relative humidity", rDesert: "Desert",
+    vWhere: "{lat}, {z} km up", vT: "{t} °C", vQ: "{q} g per kg of air", vRH: "{rh}%",
+    dUpRain: "rising and cooling — its vapour turns to cloud and rain",
+    dUp: "rising and cooling",
+    dDown: "sinking and warming — it dries out",
+    dAloftPole: "flowing toward the pole, high and cold",
+    dAloftEq: "flowing toward the equator, high and cold",
+    dTrades: "trade winds: back toward the equator near the ground, picking up water",
+    dSurfPole: "toward the pole near the ground, picking up water",
+    dSurfEq: "toward the equator near the ground, picking up water",
+    dSurfRain: "toward the pole near the ground and cooling — rain from mid-latitude storms",
+    deSahara: "Sahara", deArabian: "Arabian", deThar: "Thar", deSonoran: "Sonoran", deKalahari: "Kalahari", deVictoria: "Great Victoria", deAtacama: "Atacama", deGobi: "Gobi",
+    dsH: "{name}, about {range}: under the sinking, drying air of the Hadley cell.",
+    dsA: "{name}, about {range}: sinking air helps, but a cold ocean current offshore (the Humboldt) and the rain shadow of the Andes make it one of the driest places on Earth.",
+    dsC: "{name}, about {range}: a cold desert. It is dry because it is far from the sea and walled off by mountains (rain shadow) — not because of the Hadley cell.",
+    noteNorth: "The rising belt has moved north: rain reaches toward the Sahel, the Sahara's southern edge (over land it moves further than this sketch shows).",
+    noteSouth: "The rising belt has moved south: it is the rainy season in southern Africa and northern Australia.",
+    resultTitle: "What we found", resultMain: "rising air → cools → rain; sinking air near 30° → warms → dry → deserts",
+    resultNote: "{k} of these {n} deserts have their middle within 10° of 30°N or 30°S. The exception: {ex}, a cold desert. Real circulation is messier — land and sea, mountains, cold currents and monsoons bend the belts.",
+    explainK: "Explain it", explainQ: "A friend says the Sahara is a desert because it is so hot. Explain, using rising and sinking air, why the even hotter equator is rainy and the Sahara is dry.",
+    homeK: "Try at home", homeQ: "Hold a cold glass of iced water near the steam from a hot drink (or breathe on a cold mirror): cooling air drops its water as drops. Then warm the misted mirror with a hair-dryer — warming air takes the water back. Rising air cools like the glass; sinking air warms like the dryer.",
+    foot: "Schematic model, not measured data. Cells: rising belt (ITCZ) at 4° + 6°·cos(2π(month − 8)/12) N; the ~30° and ~60° edges move with it by 0.6× and 0.3× of its swing. Heights: cells drawn 14 / 10 / 8 km tall, tropopause ~16 km at the equator and ~9 km at the poles, vertical scale exaggerated about 100×. Parcel: temperature = yearly surface temperature − 6.5 °C/km (standard lapse rate; schematic surface temperature −20 + 47·cos(latitude)^1.2 °C); saturation vapour from the Magnus formula with pressure 1013·e^(−height/8 km) hPa; near the ground the parcel takes up water toward 80% humidity; anything over 100% falls as rain. Rain bars are relative and schematic (peaks at the rising belt and near 53°). The side view shows only the north–south part of the flow: Earth's spin turns the surface winds into NE / SE trade winds, westerlies and polar easterlies. Desert latitudes rounded from standard atlases. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "为什么沙漠多在 30° 附近", eyebrow: "地理 · 阶段 4",
+    h1: "大热沙漠在干空气下沉的南北纬 30° 附近，不在最热的赤道",
+    intro: "从南极到北极跟着空气走一圈：空气上升的地方下雨，下沉的地方变干。再看看沙漠在哪里。",
+    reset: "重置", play: "播放", pause: "暂停",
+    figAria: "从南纬 90° 到北纬 90° 的大气剖面，每个半球三个环流圈，下面是各纬度的降水和沙漠所在纬度。点一个气团来跟踪。键盘：左右键让气团沿环流走，上下键换环流圈。",
+    trkAria: "被跟踪气团沿环流一圈的温度和水汽。",
+    lgWet: "湿空气", lgDry: "干空气", lgRain: "降水（相对值，示意）", lgTemp: "年均地面气温（示意）", lgDesert: "沙漠所在纬度",
+    monthLabel: "季节", followLabel: "跟踪：", phaseLabel: "气团位置",
+    cHadley: "哈得来", cFerrel: "费雷尔", cPolar: "极地", hN: "北", hS: "南",
+    nHadley: "哈得来环流圈", nFerrel: "费雷尔环流圈", nPolar: "极地环流圈", hemN: "北半球", hemS: "南半球",
+    cellName: "{hemi}{cell}",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "世界上的大热沙漠多在哪里？",
+    b1: "先选一个答案。第 2 步你会跟着空气绕地球走，看雨下在哪里。",
+    k2: "动手", t2: "跟着空气走",
+    b2: "空气在炎热的赤道上升，变冷下雨，在高空流向两极，到 30° 附近下沉——变暖、变干。点一个气团（或用按钮）跟踪它，拖季节滑块，再点一个沙漠看它在哪个纬度。",
+    k3: "规律", t3: "上升的空气下雨，下沉的空气变干",
+    b3: "空气上升就会变冷，水汽凝结成雨落下；空气下沉就会变暖、变干。哈得来环流在赤道把空气抬起，在南北纬 30° 附近让它下沉，所以大热沙漠多排在 30° 附近。贴着地面流回赤道的空气就是信风。真实的环流更复杂：海陆受热不同，季风把雨带拉到内陆深处，山地造成雨影，寒流让一些海岸变干。",
+    q: "世界上的大热沙漠多在哪里？",
+    o1: "赤道附近，那里最热", o2: "南北纬 30° 附近", o3: "两极附近",
+    right: "对。第 2 步会看到原因：那里是干空气下沉的地方。",
+    wrong: "赤道确实最热，但也是最多雨的地带之一。到第 2 步对照降水柱和沙漠条看看。",
+    wrongPole: "两极其实非常干——是冷沙漠——但不热。到第 2 步找找热沙漠在哪里。",
+    figTitle: "南北剖面（示意，不按比例）", up: "↑ 湿", down: "↓ 干",
+    trades: "信风", westerlies: "西风", easterlies: "东风", km: "{z} 千米",
+    latN: "{v}°N", latS: "{v}°S", lat0: "0°",
+    months: "1月,2月,3月,4月,5月,6月,7月,8月,9月,10月,11月,12月",
+    vSeason: "{m}：上升带在 {lat}", phaseV: "走了一圈的 {p}%",
+    trkTitle: "一个气团：{hemi}半球{cell}环流圈", trkT: "温度 °C", trkQ: "水汽 克/千克", rainMark: "下雨",
+    legUp: "上升", legAloft: "高空", legDown: "下沉", legSurface: "近地面",
+    rSeason: "季节", rCell: "跟踪", rWhere: "位置", rDoing: "正在", rT: "温度", rQ: "水汽", rRH: "相对湿度", rDesert: "沙漠",
+    vWhere: "{lat}，离地 {z} 千米", vT: "{t} °C", vQ: "每千克空气 {q} 克", vRH: "{rh}%",
+    dUpRain: "上升、变冷——水汽凝结成云和雨",
+    dUp: "上升、变冷",
+    dDown: "下沉、变暖——变干",
+    dAloftPole: "在又高又冷的高空流向极地",
+    dAloftEq: "在又高又冷的高空流向赤道",
+    dTrades: "信风：贴着地面流回赤道，一路吸收水汽",
+    dSurfPole: "贴着地面流向极地，一路吸收水汽",
+    dSurfEq: "贴着地面流向赤道，一路吸收水汽",
+    dSurfRain: "贴着地面流向极地、变冷——中纬度的风暴雨",
+    deSahara: "撒哈拉", deArabian: "阿拉伯", deThar: "塔尔", deSonoran: "索诺拉", deKalahari: "卡拉哈里", deVictoria: "维多利亚大沙漠", deAtacama: "阿塔卡马", deGobi: "戈壁",
+    dsH: "{name}，约 {range}：在哈得来环流下沉变干的空气之下。",
+    dsA: "{name}，约 {range}：下沉气流有作用，但近海的寒流（秘鲁寒流）和安第斯山的雨影让它成为地球上最干的地方之一。",
+    dsC: "{name}，约 {range}：是冷沙漠。它干，是因为离海远、又被山挡住（雨影）——不是哈得来环流造成的。",
+    noteNorth: "上升带移到了北边：雨带伸向撒哈拉南缘的萨赫勒（在陆地上移得比示意图更远）。",
+    noteSouth: "上升带移到了南边：非洲南部和澳大利亚北部正是雨季。",
+    resultTitle: "我们发现", resultMain: "空气上升 → 变冷 → 下雨；30° 附近空气下沉 → 变暖 → 变干 → 沙漠",
+    resultNote: "这 {n} 个沙漠里有 {k} 个的中心在南北纬 30° 上下 10° 以内。例外：{ex}，是冷沙漠。真实的环流更复杂——海陆、山地、寒流和季风都会让这些带弯曲。",
+    explainK: "说一说", explainQ: "朋友说撒哈拉是沙漠，因为它太热了。用空气的上升和下沉解释：为什么更热的赤道多雨，撒哈拉却干？",
+    homeK: "家里做一做", homeQ: "把装冰水的杯子靠近热饮冒出的水汽（或对着冷镜子哈气）：空气变冷，水汽变成水珠。再用吹风机吹热这块雾面——空气变暖，水又被带走。上升的空气像冷杯子一样变冷，下沉的空气像吹风机一样变暖。",
+    foot: "示意模型，不是实测数据。环流：上升带（赤道辐合带）在北纬 4° + 6°·cos(2π(月 − 8)/12)；约 30° 和约 60° 的边界随它移动，幅度为它的 0.6 倍和 0.3 倍。高度：三个环流圈画成 14 / 10 / 8 千米高，对流层顶赤道约 16 千米、两极约 9 千米，垂直方向放大约 100 倍。气团：温度 = 年均地面气温 − 6.5 °C/千米（标准气温递减率；示意地面气温 −20 + 47·cos(纬度)^1.2 °C）；饱和水汽用 Magnus 公式，气压取 1013·e^(−高度/8 千米) 百帕；近地面时气团吸收水汽，趋向 80% 湿度；超过 100% 的部分作为雨落下。降水柱是相对值、示意（峰值在上升带和约 53°）。剖面只画了南北方向的气流：地球自转让地面风偏成东北信风、东南信风、西风和极地东风。沙漠纬度按常用地图集取整。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- model (pure functions; schematic but self-consistent) ---------- */
+const RAD = Math.PI / 180, NS = 240, ITCZ_MEAN = 4;
+const itczLat = (m) => ITCZ_MEAN + 6 * Math.cos(2 * Math.PI * (m - 8) / 12);
+function bounds(m) {
+  const it = itczLat(m), dev = it - ITCZ_MEAN;
+  return { it, n30: 30 + 0.6 * dev, s30: -30 + 0.6 * dev, n60: 60 + 0.3 * dev, s60: -60 + 0.3 * dev };
+}
+function cellsFor(m) {
+  const B = bounds(m);
+  return [
+    { kind: "polar", hemi: "S", a: -90, b: B.s60, rise: "R", top: 8 },
+    { kind: "ferrel", hemi: "S", a: B.s60, b: B.s30, rise: "L", top: 10 },
+    { kind: "hadley", hemi: "S", a: B.s30, b: B.it, rise: "R", top: 14 },
+    { kind: "hadley", hemi: "N", a: B.it, b: B.n30, rise: "L", top: 14 },
+    { kind: "ferrel", hemi: "N", a: B.n30, b: B.n60, rise: "R", top: 10 },
+    { kind: "polar", hemi: "N", a: B.n60, b: 90, rise: "L", top: 8 },
+  ];
+}
+const sq = (v) => Math.sign(v) * Math.pow(Math.abs(v), 0.3); // squarish loop
+const frac = (u) => ((u % 1) + 1) % 1;
+function pos(c, u) {
+  const lc = (c.a + c.b) / 2, rl = (c.b - c.a) / 2 - 2.5, zb = 0.4, zc = (zb + c.top) / 2, rz = (c.top - zb) / 2;
+  const th = c.rise === "L" ? Math.PI + 0.6 - 2 * Math.PI * frac(u) : -0.6 + 2 * Math.PI * frac(u); // u = 0: foot of the rising leg
+  return { lat: lc + rl * sq(Math.cos(th)), z: zc + rz * sq(Math.sin(th)), th };
+}
+function leg(c, th) {
+  const s = Math.sin(th), co = Math.cos(th);
+  if (s > 0.6) return "aloft";
+  if (s < -0.6) return "surface";
+  return (c.rise === "L" ? co < 0 : co > 0) ? "up" : "down";
+}
+const surfT = (lat) => -20 + 47 * Math.pow(Math.max(0, Math.cos(lat * RAD)), 1.2); // °C, yearly, schematic
+const tempAt = (lat, z) => surfT(lat) - 6.5 * z;
+function qsat(T, z) { // g of vapour per kg of air
+  const p = 1013.25 * Math.exp(-z / 8), e = 6.112 * Math.exp(17.67 * T / (T + 243.5));
+  return 622 * e / Math.max(p - 0.378 * e, 1);
+}
+function track(c) { // one parcel round its loop; 3 laps so the start state settles
+  let q = null; const out = [];
+  for (let lap = 0; lap < 3; lap++) for (let i = 0; i < NS; i++) {
+    const u = i / NS, p = pos(c, u), T = tempAt(p.lat, p.z), qs = qsat(T, p.z);
+    if (q === null) q = 0.8 * qs;
+    if (p.z < 1.2 && q < 0.8 * qs) q += (0.8 * qs - q) * 0.05;
+    let rain = 0;
+    if (q > qs) { rain = q - qs; q = qs; }
+    if (lap === 2) out.push({ u, lat: p.lat, z: p.z, T, q, rh: q / qs, rain, leg: leg(c, p.th) });
+  }
+  return out;
+}
+const g = (x, s) => Math.exp(-(x / s) * (x / s));
+function rainAt(lat, m) { // relative, schematic
+  const B = bounds(m);
+  return 0.08 + g(lat - B.it, 7) + 0.5 * g(lat - (B.n60 - 7), 12) + 0.5 * g(lat - (B.s60 + 7), 12);
+}
+const DESERTS = [
+  { id: "Sahara", lo: 15, hi: 30, kind: "H" }, { id: "Arabian", lo: 15, hi: 30, kind: "H" },
+  { id: "Thar", lo: 24, hi: 30, kind: "H" }, { id: "Sonoran", lo: 27, hi: 33, kind: "H" },
+  { id: "Kalahari", lo: -26, hi: -20, kind: "H" }, { id: "Victoria", lo: -30, hi: -26, kind: "H" },
+  { id: "Atacama", lo: -27, hi: -18, kind: "A" }, { id: "Gobi", lo: 40, hi: 46, kind: "C" },
+];
+const near30 = (d) => Math.abs(Math.abs((d.lo + d.hi) / 2) - 30) <= 10;
+function stripRows(list) { // greedy rows so overlapping bars do not cover each other
+  const ends = [];
+  return list.map((d) => {
+    let r = ends.findIndex((e) => e < d.lo - 1);
+    if (r < 0) { r = ends.length; ends.push(-999); }
+    ends[r] = d.hi;
+    return r;
+  });
+}
+/* ---------- end model ---------- */
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), trk = $("trk"), monthEl = $("month"), phaseEl = $("phase"), playBtn = $("playBtn");
+const MONTHS = P.t("months").split(",");
+const S = { m: 5, kind: "hadley", hemi: "N", u: 0, desert: 0 };
+let cells = [], tracks = [], step = 0;
+const ROWS = stripRows([...DESERTS].sort((a, b) => a.lo - b.lo).map((d) => d));
+const ORDER = [...DESERTS].sort((a, b) => a.lo - b.lo);
+const latStr = (v) => (Math.abs(v) < 0.5 ? P.t("lat0") : P.t(v > 0 ? "latN" : "latS", { v: Math.round(Math.abs(v)) }));
+const rangeStr = (d) => (d.lo >= 0 ? P.t("latN", { v: d.lo + "–" + d.hi }) : P.t("latS", { v: -d.hi + "–" + -d.lo }));
+const dName = (d) => P.t("de" + d.id);
+const cellIdx = () => cells.findIndex((c) => c.kind === S.kind && c.hemi === S.hemi);
+const PER = 8; // parcels per cell
+function txt(parent, x, y, s, cls, anchor) {
+  const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "start" }, parent);
+  t.textContent = s;
+  return t;
+}
+const tw = (s) => [...s].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2e80 ? 13 : 7.2), 0); // rough text width at 13px
+
+/* ---------- main figure (drawn in real pixels so labels stay 13px) ---------- */
+let W = 600;
+const H = 362, PL = 12, PR = 12, Y0 = 200, Y1 = 44, ZT = 16, RB = 292, RH = 52, STRIP = 302, ROWH = 9;
+const X = (lat) => PL + (lat + 90) / 180 * (W - PL - PR);
+const Y = (z) => Y0 - (Y0 - Y1) * z / ZT;
+let dots = [], trkMarker = null;
+
+function drawFig() {
+  fig.innerHTML = "";
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const B = bounds(S.m), ci = cellIdx();
+  txt(fig, PL, 15, P.t("figTitle"), "lbf");
+  // sinking (dry) zones
+  [B.s30, B.n30].forEach((l) => Play.svg("rect", { x: X(l - 6), y: Y1 - 4, width: X(l + 6) - X(l - 6), height: STRIP + 40 - Y1, fill: "var(--b)", opacity: 0.1 }, fig));
+  // tropopause
+  let d = "";
+  for (let l = -90; l <= 90; l += 3) d += (l > -90 ? "L" : "M") + X(l).toFixed(1) + " " + Y(9 + 7 * Math.cos(l * RAD) ** 2).toFixed(1);
+  Play.svg("path", { d, fill: "none", stroke: "var(--line)", "stroke-width": 1.5, "stroke-dasharray": "5 4" }, fig);
+  txt(fig, PL + 2, Y(10) + 4, P.t("km", { z: 10 }), "lb halo");
+  // clouds + rain under the rising zones
+  [[B.it, 9, 1], [B.n60, 6, 0.6], [B.s60, 6, 0.6]].forEach(([l, z, k]) => {
+    for (let i = -2; i <= 2; i++) Play.svg("line", { x1: X(l) + i * 6 * k, y1: Y(z), x2: X(l) + i * 6 * k - 3, y2: Y0, stroke: "var(--c)", "stroke-width": 1.2, "stroke-dasharray": "3 4", opacity: 0.7 }, fig);
+    Play.svg("ellipse", { cx: X(l), cy: Y(z), rx: 18 * k + 6, ry: 7 * k + 3, fill: "var(--muted)", opacity: 0.3 }, fig);
+  });
+  // cells: loop outlines, arrows, names, surface winds
+  cells.forEach((c, i) => {
+    let p = "";
+    for (let k = 0; k <= 96; k++) { const q = pos(c, k / 96); p += (k ? "L" : "M") + X(q.lat).toFixed(1) + " " + Y(q.z).toFixed(1); }
+    Play.svg("path", { d: p, fill: "none", stroke: i === ci ? "var(--a)" : "var(--muted)", "stroke-width": i === ci ? 2.5 : 1.2, opacity: i === ci ? 1 : 0.55 }, fig);
+    const xm = X((c.a + c.b) / 2), topDir = c.rise === "L" ? 1 : -1;
+    [[Y(c.top), topDir], [Y(0.4), -topDir]].forEach(([y, dir]) => Play.svg("path", { d: `M${xm - 5 * dir} ${y - 5}L${xm + 5 * dir} ${y}L${xm - 5 * dir} ${y + 5}Z`, fill: i === ci ? "var(--a)" : "var(--muted)" }, fig));
+    const wpx = X(c.b) - X(c.a) - 6, name = P.t("c" + c.kind[0].toUpperCase() + c.kind.slice(1));
+    if (tw(name) < wpx) txt(fig, xm, Y(c.top * 0.55) + 4, name, i === ci ? "lbf halo" : "lb halo", "middle");
+    const wind = P.t({ hadley: "trades", ferrel: "westerlies", polar: "easterlies" }[c.kind]);
+    const lab = topDir > 0 ? "← " + wind : wind + " →";
+    if (tw(lab) < wpx) txt(fig, xm, Y(1.5), lab, "lb halo", "middle");
+  });
+  // rising / sinking labels
+  [[B.it, "up", "middle"], [B.n30, "down", "middle"], [B.s30, "down", "middle"], [B.n60, "up", "middle"], [B.s60, "up", "middle"], [-90, "down", "start"], [90, "down", "end"]]
+    .forEach(([l, k, an]) => txt(fig, Math.abs(l) === 90 ? X(l) : X(l), 34, P.t(k), k === "up" ? "lbf" : "lb", an));
+  // ground + latitude axis
+  Play.svg("line", { x1: PL, x2: W - PR, y1: Y0, y2: Y0, stroke: "var(--fg)", "stroke-width": 1.5 }, fig);
+  [-90, -60, -30, 0, 30, 60, 90].forEach((l) => {
+    Play.svg("line", { x1: X(l), x2: X(l), y1: Y0, y2: Y0 + 4, stroke: "var(--fg)" }, fig);
+    txt(fig, X(l), Y0 + 17, latStr(l), "lb", l === -90 ? "start" : l === 90 ? "end" : "middle");
+  });
+  // rain bars + surface temperature line
+  let rmax = 0;
+  for (let l = -87.5; l < 90; l += 5) rmax = Math.max(rmax, rainAt(l, S.m));
+  const bw = Math.max(2, (X(5) - X(0)) - 2);
+  for (let l = -87.5; l < 90; l += 5) {
+    const h = RH * rainAt(l, S.m) / rmax;
+    Play.svg("rect", { x: X(l) - bw / 2, y: RB - h, width: bw, height: h, fill: "var(--c)", opacity: 0.55 }, fig);
+  }
+  const TY = (t) => RB - RH * (t + 20) / 50;
+  d = "";
+  for (let l = -90; l <= 90; l += 2) d += (l > -90 ? "L" : "M") + X(l).toFixed(1) + " " + TY(surfT(l)).toFixed(1);
+  Play.svg("path", { d, fill: "none", stroke: "var(--no)", "stroke-width": 2 }, fig);
+  txt(fig, X(0), TY(surfT(0)) - 5, P.t("vT", { t: Play.fmt(surfT(0), 0) }), "lb halo", "middle");
+  Play.svg("line", { x1: PL, x2: W - PR, y1: RB, y2: RB, stroke: "var(--line)" }, fig);
+  // desert strip
+  ORDER.forEach((dd, i) => {
+    const on = DESERTS[S.desert] === dd;
+    Play.svg("rect", {
+      x: X(dd.lo), y: STRIP + ROWS[i] * ROWH, width: Math.max(3, X(dd.hi) - X(dd.lo)), height: ROWH - 2, rx: 2,
+      fill: dd.kind === "C" ? "var(--c)" : "var(--b)", opacity: on ? 1 : dd.kind === "H" ? 0.75 : 0.45,
+      stroke: on ? "var(--fg)" : "none", "stroke-width": 1.5,
+    }, fig);
+  });
+  const sel = DESERTS[S.desert], sx = X((sel.lo + sel.hi) / 2), lab = dName(sel) + " " + rangeStr(sel) + (sel.kind === "H" ? "" : " *");
+  const half = tw(lab) / 2;
+  txt(fig, Play.clamp(sx, PL + half, W - PR - half), STRIP + Math.max(...ROWS) * ROWH + ROWH + 16, lab, "lbf", "middle");
+  // parcels
+  const pg = Play.svg("g", {}, fig);
+  dots = cells.map(() => Array.from({ length: PER }, () => Play.svg("circle", { r: 4, class: "pc" }, pg)));
+  placeParcels();
+}
+function placeParcels() {
+  const ci = cellIdx();
+  cells.forEach((c, i) => dots[i].forEach((el, k) => {
+    const u = frac(S.u + k / PER), p = pos(c, u), s = tracks[i][Math.floor(u * NS) % NS];
+    const me = i === ci && k === 0;
+    el.setAttribute("cx", X(p.lat).toFixed(1));
+    el.setAttribute("cy", Y(p.z).toFixed(1));
+    el.setAttribute("r", me ? 7 : 4);
+    el.setAttribute("class", "pc " + (s.rh > 0.5 ? "wet" : "dry") + (me ? " me" : ""));
+  }));
+  if (dots[ci]) dots[ci][0].parentNode.appendChild(dots[ci][0]); // draw the followed parcel on top
+}
+
+/* ---------- tracker chart: temperature and vapour round the loop ---------- */
+let WT = 600;
+const HT = 196, TL = 44, TR = 10, TT = [52, 104], TQ = [140, 190];
+function drawTrk() {
+  trk.innerHTML = "";
+  trk.setAttribute("viewBox", `0 0 ${WT} ${HT}`);
+  const ci = cellIdx(), c = cells[ci], tr = tracks[ci];
+  const XU = (u) => TL + (WT - TL - TR) * u;
+  txt(trk, 0, 14, P.t("trkTitle", { cell: P.t("c" + c.kind[0].toUpperCase() + c.kind.slice(1)), hemi: P.t("h" + c.hemi) }), "lbf");
+  // leg bands
+  let start = 0;
+  for (let i = 1; i <= NS; i++) {
+    if (i < NS && tr[i].leg === tr[start].leg) continue;
+    const lg = tr[start].leg, x1 = XU(start / NS), x2 = XU(i / NS);
+    if (lg === "up" || lg === "down") Play.svg("rect", { x: x1, y: TT[0] - 4, width: x2 - x1, height: TQ[1] - TT[0] + 4, fill: lg === "up" ? "var(--c)" : "var(--b)", opacity: 0.1 }, trk);
+    const name = P.t("leg" + lg[0].toUpperCase() + lg.slice(1));
+    if (tw(name) < x2 - x1 - 2) txt(trk, (x1 + x2) / 2, 32, name, "lb", "middle");
+    start = i;
+  }
+  const tMin = Math.min(...tr.map((s) => s.T)), tMax = Math.max(...tr.map((s) => s.T)), qMax = Math.max(0.1, ...tr.map((s) => s.q));
+  const yT = (t) => TT[1] - (TT[1] - TT[0]) * (t - tMin) / Math.max(1, tMax - tMin);
+  const yQ = (q) => TQ[1] - (TQ[1] - TQ[0]) * q / qMax;
+  [[TT, tMax, tMin, (v) => Play.fmt(v, 0).replace("-", "−") + "°"], [TQ, qMax, 0, (v) => Play.fmt(v, v < 1 ? 1 : 0)]].forEach(([r, hi, lo, f]) => {
+    Play.svg("line", { x1: TL, x2: WT - TR, y1: r[1], y2: r[1], stroke: "var(--line)" }, trk);
+    txt(trk, TL - 5, r[0] + 9, f(hi), "lb", "end");
+    txt(trk, TL - 5, r[1], f(lo), "lb", "end");
+  });
+  txt(trk, WT - TR, TT[0] - 2, P.t("trkT"), "lb halo", "end");
+  txt(trk, WT - TR, TQ[0] - 2, P.t("trkQ"), "lb halo", "end");
+  let dT = "", dQ = "", firstRain = -1;
+  tr.forEach((s, i) => {
+    dT += (i ? "L" : "M") + XU(s.u).toFixed(1) + " " + yT(s.T).toFixed(1);
+    dQ += (i ? "L" : "M") + XU(s.u).toFixed(1) + " " + yQ(s.q).toFixed(1);
+    if (s.rain > 0.01) {
+      if (firstRain < 0) firstRain = i;
+      Play.svg("line", { x1: XU(s.u), x2: XU(s.u), y1: TQ[1] - 6, y2: TQ[1], stroke: "var(--c)", "stroke-width": 1.5 }, trk);
+    }
+  });
+  Play.svg("path", { d: dT, fill: "none", stroke: "var(--no)", "stroke-width": 2 }, trk);
+  Play.svg("path", { d: dQ, fill: "none", stroke: "var(--c)", "stroke-width": 2 }, trk);
+  if (firstRain >= 0) txt(trk, XU(tr[firstRain].u) + 2, TQ[1] - 9, P.t("rainMark"), "lb halo", "start");
+  trkMarker = { g: Play.svg("g", {}, trk), XU, yT, yQ };
+  placeMarker();
+}
+function placeMarker() {
+  const m = trkMarker; if (!m) return;
+  const s = tracks[cellIdx()][Math.floor(frac(S.u) * NS) % NS], x = m.XU(s.u);
+  m.g.innerHTML = "";
+  Play.svg("line", { x1: x, x2: x, y1: TT[0] - 4, y2: TQ[1], stroke: "var(--fg)", opacity: 0.5 }, m.g);
+  Play.svg("circle", { cx: x, cy: m.yT(s.T), r: 4.5, fill: "var(--no)", stroke: "var(--surface)", "stroke-width": 1.5 }, m.g);
+  Play.svg("circle", { cx: x, cy: m.yQ(s.q), r: 4.5, fill: "var(--c)", stroke: "var(--surface)", "stroke-width": 1.5 }, m.g);
+}
+
+/* ---------- readout ---------- */
+function doing(c, tr, i) {
+  const s = tr[i], n = tr[(i + 1) % NS];
+  if (s.leg === "up") return P.t(tr.slice(Math.max(0, i - 3), i + 1).some((x) => x.rain > 0.01) ? "dUpRain" : "dUp");
+  if (s.leg === "down") return P.t("dDown");
+  const pole = Math.abs(n.lat) > Math.abs(s.lat);
+  if (s.leg === "aloft") return P.t(pole ? "dAloftPole" : "dAloftEq");
+  if (c.kind === "hadley") return P.t("dTrades");
+  if (pole && tr.slice(Math.max(0, i - 3), i + 1).some((x) => x.rain > 0.01)) return P.t("dSurfRain");
+  return P.t(pole ? "dSurfPole" : "dSurfEq");
+}
+function readout() {
+  const ci = cellIdx(), c = cells[ci], tr = tracks[ci], i = Math.floor(frac(S.u) * NS) % NS, s = tr[i];
+  $("oCell").textContent = P.t("cellName", { cell: P.t("n" + c.kind[0].toUpperCase() + c.kind.slice(1)), hemi: P.t(c.hemi === "N" ? "hemN" : "hemS") });
+  $("oWhere").textContent = P.t("vWhere", { lat: latStr(s.lat), z: Play.fmt(s.z, 1) });
+  $("oDoing").textContent = doing(c, tr, i);
+  $("oT").textContent = P.t("vT", { t: Play.fmt(s.T, 0).replace("-", "−") });
+  $("oQ").textContent = P.t("vQ", { q: Play.fmt(s.q, s.q < 1 ? 2 : 1) });
+  $("oRH").textContent = P.t("vRH", { rh: Play.fmt(100 * s.rh, 0) });
+  const pc = Math.round(frac(S.u) * 100) % 100;
+  phaseEl.value = pc;
+  $("phaseVal").textContent = P.t("phaseV", { p: pc });
+}
+function render() {
+  cells = cellsFor(S.m);
+  tracks = cells.map(track);
+  monthEl.value = S.m;
+  const season = P.t("vSeason", { m: MONTHS[S.m - 1], lat: latStr(itczLat(S.m)) });
+  $("monthVal").textContent = season;
+  $("oSeason").textContent = season;
+  const dd = DESERTS[S.desert];
+  $("oDesert").textContent = P.t("ds" + dd.kind, { name: dName(dd), range: rangeStr(dd) });
+  document.querySelectorAll("[data-kind]").forEach((b) => b.classList.toggle("on", b.dataset.kind === S.kind));
+  document.querySelectorAll("[data-hemi]").forEach((b) => b.classList.toggle("on", b.dataset.hemi === S.hemi));
+  document.querySelectorAll("#chips button").forEach((b, i) => b.classList.toggle("on", i === S.desert));
+  drawFig(); drawTrk(); readout();
+  const it = itczLat(S.m);
+  Play.live($("live"), it >= 8 ? P.t("noteNorth") : it <= 0 ? P.t("noteSouth") : "");
+}
+function frame() { placeParcels(); placeMarker(); readout(); }
+
+/* ---------- interaction ---------- */
+DESERTS.forEach((d, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small";
+  b.textContent = dName(d) + (d.kind === "H" ? "" : " *");
+  b.addEventListener("click", () => { S.desert = i; render(); });
+  $("chips").appendChild(b);
+});
+let anim = 0, last = 0;
+function stop() { if (anim) cancelAnimationFrame(anim); anim = 0; playBtn.textContent = P.t("play"); }
+function tick(ts) {
+  if (last) S.u = frac(S.u + Math.min(0.1, (ts - last) / 1000) / 16); // one loop per 16 s
+  last = ts; frame(); anim = requestAnimationFrame(tick);
+}
+function start() { last = 0; playBtn.textContent = P.t("pause"); anim = requestAnimationFrame(tick); }
+playBtn.addEventListener("click", () => (anim ? stop() : start()));
+monthEl.addEventListener("input", () => { S.m = Play.clamp(Math.round(+monthEl.value), 1, 12); render(); });
+phaseEl.addEventListener("input", () => { stop(); S.u = Play.clamp(+phaseEl.value, 0, 99) / 100; frame(); });
+document.querySelectorAll("[data-kind]").forEach((b) => b.addEventListener("click", () => { S.kind = b.dataset.kind; render(); }));
+document.querySelectorAll("[data-hemi]").forEach((b) => b.addEventListener("click", () => { S.hemi = b.dataset.hemi; render(); }));
+fig.addEventListener("pointerdown", (e) => {
+  const p = Play.pointer(fig, e);
+  if (p.y > STRIP - 4) { // desert strip: pick the nearest bar
+    let best = -1, bd = 1e9;
+    ORDER.forEach((d, i) => {
+      const cy = STRIP + ROWS[i] * ROWH + 3, dx = p.x < X(d.lo) ? X(d.lo) - p.x : p.x > X(d.hi) ? p.x - X(d.hi) : 0, dist = dx + Math.abs(p.y - cy);
+      if (dist < bd) { bd = dist; best = i; }
+    });
+    if (best >= 0 && bd < 30) { S.desert = DESERTS.indexOf(ORDER[best]); render(); }
+    return;
+  }
+  let best = null, bd = 26;
+  cells.forEach((c, i) => dots[i].forEach((el, k) => {
+    const dist = Math.hypot(+el.getAttribute("cx") - p.x, +el.getAttribute("cy") - p.y);
+    if (dist < bd) { bd = dist; best = [i, k]; }
+  }));
+  if (!best && p.y < Y0) { const i = cells.findIndex((c) => p.x >= X(c.a) && p.x <= X(c.b)); if (i >= 0) best = [i, 0]; }
+  if (!best) return;
+  const c = cells[best[0]];
+  S.kind = c.kind; S.hemi = c.hemi; S.u = frac(S.u + best[1] / PER);
+  render();
+});
+fig.addEventListener("keydown", (e) => {
+  const kinds = ["polar", "ferrel", "hadley"];
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") { stop(); S.u = frac(S.u + (e.key === "ArrowRight" ? 1 : -1) / 50); frame(); e.preventDefault(); }
+  if (e.key === "ArrowUp" || e.key === "ArrowDown") { // walk through the six cells from south to north
+    const order = [...kinds.map((k) => ["S", k]), ...[...kinds].reverse().map((k) => ["N", k])];
+    let i = order.findIndex(([h, k]) => h === S.hemi && k === S.kind);
+    i = Play.clamp(i + (e.key === "ArrowUp" ? 1 : -1), 0, 5);
+    [S.hemi, S.kind] = order[i]; render(); e.preventDefault();
+  }
+});
+function measure() {
+  const w1 = Math.round(fig.getBoundingClientRect().width) || 600, w2 = Math.round(trk.getBoundingClientRect().width) || 600;
+  if (Math.abs(w1 - W) > 1 || Math.abs(w2 - WT) > 1) { W = Math.max(280, w1); WT = Math.max(260, w2); drawFig(); drawTrk(); frame(); }
+}
+if ("ResizeObserver" in window) new ResizeObserver(measure).observe(fig.parentNode);
+addEventListener("resize", measure);
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { if (i === 2) $("predict").querySelector(".fb").textContent = P.t("wrongPole"); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+});
+const inBand = DESERTS.filter(near30), outBand = DESERTS.filter((d) => !near30(d));
+$("resultNote").textContent = P.t("resultNote", { k: inBand.length, n: DESERTS.length, ex: outBand.map(dName).join(", ") || "—" });
+$("reset").addEventListener("click", () => { stop(); Object.assign(S, { m: 5, kind: "hadley", hemi: "N", u: 0, desert: 0 }); pr.reset(); st.go(0); render(); if (!Play.reduced) start(); });
+stop();
+W = Math.max(280, Math.round(fig.getBoundingClientRect().width) || 600);
+WT = Math.max(260, Math.round(trk.getBoundingClientRect().width) || 600);
+render();
+if (!Play.reduced) start();
+</script>
+</body>
+</html>

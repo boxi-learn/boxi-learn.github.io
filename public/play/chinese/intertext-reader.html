@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two texts side by side</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .han { font-family: "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", "Songti SC", serif; }
+  .vwrap { padding: 14px 14px 12px; }
+  .ccard { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 12px; background: var(--bg); margin-bottom: 10px; }
+  .ccard .src { font-size: 13px; color: var(--muted); }
+  .ccard .q { font-size: 14px; font-weight: 650; margin: 4px 0 6px; }
+  .sent { display: flex; flex-wrap: wrap; row-gap: 2px; margin: 4px 0 0; }
+  .tk { display: inline-flex; flex-direction: column; align-items: center; min-width: 1.6em; padding: 0 1px; border-radius: 6px; }
+  .tk .py { font-family: var(--font); font-size: 13px; color: var(--muted); line-height: 1.3; min-height: 1.3em; }
+  .tk .hz { font-size: 22px; line-height: 1.3; }
+  .tk.p { min-width: .8em; }
+  .tk.hit { background: color-mix(in srgb, var(--hl) 30%, transparent); }
+  .tk.hit .hz { font-weight: 700; }
+  .gl { font-size: 13px; color: var(--muted); font-style: italic; margin: 0 0 6px; }
+  /* side-by-side poems */
+  .pair { display: grid; grid-template-columns: 1.4em minmax(0, 1fr) minmax(0, 1fr); column-gap: 8px; align-items: center; }
+  .pair .hd { font-size: 13px; color: var(--muted); line-height: 1.3; padding-bottom: 4px; }
+  .pair .hd b { display: block; color: var(--fg); font-size: 14px; }
+  .pair .ln { font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .pair .ln.gap, .pair .pl.gap { margin-top: 8px; }
+  .pl { font-size: 21px; line-height: 1.55; white-space: nowrap; letter-spacing: .02em; }
+  .pl .seg { display: inline; padding: 0 1px; margin: 0; border: 0; border-radius: 4px; background: transparent; font: inherit; color: inherit; line-height: inherit; letter-spacing: inherit; cursor: pointer;
+    border-bottom: 2px dotted var(--muted); }
+  .pl .seg:hover { background: var(--soft); }
+  .pl .seg:focus-visible { outline: 2px solid var(--a); outline-offset: 1px; }
+  .pl .seg.k-same { border-bottom: 3px solid var(--c); color: var(--c); }
+  .pl .seg.k-change { border-bottom: 3px solid var(--b); color: var(--b); }
+  .pl .seg.k-drop { border-bottom: 3px solid var(--h); color: var(--h); }
+  .pl .seg.sel { background: color-mix(in srgb, var(--hl) 38%, transparent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 0 8px; }
+  .chips button { min-width: 34px; padding: 3px 8px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .chips button.sel { outline: 2px solid var(--hl); outline-offset: 1px; }
+  .chips button.k-same { background: var(--c); border-color: var(--c); color: var(--surface); }
+  .chips button.k-change { background: var(--b); border-color: var(--b); color: var(--surface); }
+  .chips button.k-drop { background: var(--h); border-color: var(--h); color: var(--surface); }
+  .legend .sw { display: inline-block; width: 14px; height: 4px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+  .panel h3 { font-size: 15px; margin: 2px 0 6px; }
+  .side { margin: 6px 0 4px; }
+  .side .who { font-size: 12px; color: var(--muted); font-weight: 650; }
+  .side .none { font-size: 13px; color: var(--muted); font-style: italic; }
+  .kinds { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 6px; }
+  .kinds button .hz { font-size: 17px; margin-right: 4px; }
+  .kinds button.on.right { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .kinds button.on.wrong { background: var(--no); border-color: var(--no); color: var(--surface); }
+  .fb { font-size: 14px; }
+  .fb .v { font-weight: 700; }
+  .fb .v.ok { color: var(--a); } .fb .v.no { color: var(--no); }
+  .tally { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 8px; align-items: center; font-size: 14px; margin: 4px 0 6px; }
+  .tally .bar { height: 12px; border-radius: 6px; background: var(--soft); overflow: hidden; }
+  .tally .bar i { display: block; height: 100%; border-radius: 6px; }
+  .tally .n { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 1.5em; text-align: right; }
+  .argue .choices { flex-direction: column; align-items: stretch; }
+  .argue .choices button { text-align: left; }
+  .argue .choices button.right { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .argue .choices button.wrong { background: var(--no); border-color: var(--no); color: var(--surface); }
+  .hint { font-size: 13px; color: var(--muted); }
+  .stats { font-size: 14px; margin: 6px 0 10px; padding-left: 18px; }
+  .stats li { margin-bottom: 3px; }
+  svg.tbar { width: 100%; height: 64px; display: block; }
+  svg.tbar text { font-size: 14px; fill: var(--surface); font-weight: 700; }
+  svg.tbar text.out { fill: var(--muted); font-weight: 400; font-size: 13px; }
+  .explain { justify-content: flex-start; }
+  .rulebox { font-family: var(--serif); font-size: 17px; color: var(--fg) !important; line-height: 1.55; }
+  .result .math { white-space: normal; line-height: 1.4; font-size: 19px; }
+  .result .score { font-size: 13px; color: var(--on-panel-muted); margin-top: 6px; }
+  @media (max-width: 560px) {
+    .vwrap { padding: 12px 8px 10px; }
+    .pl { font-size: 18px; letter-spacing: 0; }
+    .pair { column-gap: 5px; grid-template-columns: 1.1em minmax(0, 1fr) minmax(0, 1fr); }
+    .tk .hz { font-size: 20px; }
+    .tk { min-width: 1.45em; }
+  }
+  @media (max-width: 360px) { .pl { font-size: 16px; } }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vwrap" id="v1"><div class="ccard" id="solo"></div><div id="reveal"></div></div>
+      <div class="vwrap" id="v2" hidden>
+        <div class="pair" id="pair" role="group" data-t-aria="pairAria"></div>
+        <div class="chips" id="chips" role="group" data-t-aria="chipsAria"></div>
+        <div class="legend" id="legend"></div>
+        <div class="ccard panel" id="panel" style="margin-top:10px"></div>
+        <div class="ccard"><div class="q" data-t="tallyT"></div><div class="tally" id="tally"></div><div class="hint" id="tallyNote" aria-live="polite"></div></div>
+        <div class="ccard argue" id="argue"></div>
+      </div>
+      <div class="vwrap" id="v3" hidden>
+        <svg class="tbar" id="tbar" viewBox="0 0 600 64" role="img" data-t-aria="tbarAria"></svg>
+        <ul class="stats" id="stats"></ul>
+        <div class="ccard"><div class="q" data-t="c1T"></div><div class="fb" data-t="c1B"></div></div>
+        <div class="ccard"><div class="q" data-t="c2T"></div><div class="fb" data-t="c2B"></div></div>
+        <div class="ccard"><div class="q" data-t="c3T"></div><div class="fb" data-t="c3B"></div></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="rulebox" id="rule" hidden></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="rmain"></div><div class="score" id="rscore"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// ---------- data ----------
+// Texts: the received versions in common modern editions (variants in the footnote).
+// py: one syllable per character, Putonghua citation tones.
+const POEMS = [
+  { who: { zh: "崔颢《黄鹤楼》", en: "Cui Hao, 'Yellow Crane Tower' 《黄鹤楼》" }, tag: { zh: "前作", en: "earlier" },
+    rhyme: [1, 3, 5, 7], // lines whose last character rhymes (line 1 ends in 去, which does not)
+    lines: [
+      { s: "昔人已乘黄鹤去", py: "xī rén yǐ chéng huáng hè qù", en: "Long ago someone rode the yellow crane away;", zh: "传说中的仙人早已骑着黄鹤飞走，" },
+      { s: "此地空余黄鹤楼", py: "cǐ dì kōng yú huáng hè lóu", en: "all that is left here is the empty Yellow Crane Tower.", zh: "这里只剩下一座空空的黄鹤楼。" },
+      { s: "黄鹤一去不复返", py: "huáng hè yī qù bù fù fǎn", en: "The yellow crane, once gone, never came back;", zh: "黄鹤一去，再也没有回来，" },
+      { s: "白云千载空悠悠", py: "bái yún qiān zǎi kōng yōu yōu", en: "for a thousand years white clouds have drifted, empty.", zh: "千百年来只有白云空自飘荡。" },
+      { s: "晴川历历汉阳树", py: "qíng chuān lì lì hàn yáng shù", en: "Across the sunlit river the trees of Hanyang stand clear;", zh: "晴天的江对岸，汉阳的树木清清楚楚，" },
+      { s: "芳草萋萋鹦鹉洲", py: "fāng cǎo qī qī yīng wǔ zhōu", en: "sweet grass grows thick on Parrot Island.", zh: "鹦鹉洲上芳草长得茂盛。" },
+      { s: "日暮乡关何处是", py: "rì mù xiāng guān hé chù shì", en: "The sun is setting — where is my home town?", zh: "天色晚了，我的家乡在哪里？" },
+      { s: "烟波江上使人愁", py: "yān bō jiāng shàng shǐ rén chóu", en: "Mist and waves on the river make one sad.", zh: "江上烟雾笼罩的水波，让人发愁。" },
+    ] },
+  { who: { zh: "李白《登金陵凤凰台》", en: "Li Bai, 'Climbing Phoenix Terrace at Jinling' 《登金陵凤凰台》" }, tag: { zh: "后作", en: "later" },
+    rhyme: [0, 1, 3, 5, 7],
+    lines: [
+      { s: "凤凰台上凤凰游", py: "fèng huáng tái shàng fèng huáng yóu", en: "On Phoenix Terrace phoenixes once came to roam;", zh: "凤凰台上曾有凤凰来游，" },
+      { s: "凤去台空江自流", py: "fèng qù tái kōng jiāng zì liú", en: "the phoenixes gone, the terrace empty, the river flows on by itself.", zh: "凤凰飞走，台也空了，只有江水自己流着。" },
+      { s: "吴宫花草埋幽径", py: "wú gōng huā cǎo mái yōu jìng", en: "Flowers and weeds of the Wu palace bury its hidden paths;", zh: "吴国宫殿的花草，埋没了幽深的小路，" },
+      { s: "晋代衣冠成古丘", py: "jìn dài yī guān chéng gǔ qiū", en: "the robed and capped nobles of Jin are old grave mounds now.", zh: "晋朝的达官贵人，都成了古墓。" },
+      { s: "三山半落青天外", py: "sān shān bàn luò qīng tiān wài", en: "The Three Mountains half drop away beyond the blue sky;", zh: "三山一半隐没在青天之外，" },
+      { s: "二水中分白鹭洲", py: "èr shuǐ zhōng fēn bái lù zhōu", en: "White Egret Island splits the water in two.", zh: "白鹭洲把江水分成两道。" },
+      { s: "总为浮云能蔽日", py: "zǒng wèi fú yún néng bì rì", en: "It is all because drifting clouds can hide the sun:", zh: "总是因为浮云能遮住太阳，" },
+      { s: "长安不见使人愁", py: "cháng ān bù jiàn shǐ rén chóu", en: "Chang'an cannot be seen, and that makes one sad.", zh: "望不见长安，让人发愁。" },
+    ] },
+];
+// Pre-annotated features. a = spans in Cui's poem, b = spans in Li's: [line, start, end) (0-based, character index).
+// kind: same 同 (kept) · change 改 · drop 弃 (in the earlier poem, gone from the later one).
+const FEATURES = [
+  { kind: "same", a: [[0, 4, 6], [1, 4, 7]], b: [[0, 0, 3], [0, 4, 6]],
+    label: { zh: "开头：楼台以鸟得名，鸟名一再出现", en: "Opening: a building named after a bird, the bird's name repeated" },
+    why: { zh: "崔颢前三句用了三次「黄鹤」；李白第一句就两次「凤凰」，第二句又一个「凤」。开法一样：先说这座楼（台）为什么叫这个名字。",
+      en: "Cui uses 黄鹤 'yellow crane' three times in three lines; Li puts 凤凰 'phoenix' twice into his first line and 凤 again in the second. Same opening move: say why the building carries a bird's name." } },
+  { kind: "same", a: [[0, 6, 7], [1, 2, 4]], b: [[1, 0, 4]],
+    label: { zh: "鸟去楼空", en: "The bird is gone, the building is empty" },
+    why: { zh: "崔颢用两句说「乘黄鹤去」「空余黄鹤楼」；李白压成四个字「凤去台空」。意思一样：传说里的鸟走了，只剩下建筑。",
+      en: "Cui takes two lines: 乘黄鹤去 'rode the crane away', 空余黄鹤楼 'only the empty tower is left'. Li squeezes it into four characters, 凤去台空 'phoenix gone, terrace empty'. Same idea." } },
+  { kind: "change", a: [[3, 0, 2], [3, 5, 7]], b: [[1, 4, 7]],
+    label: { zh: "不变的自然：白云 → 江水", en: "What never changes: white clouds → the river" },
+    why: { zh: "崔颢拿千年飘着的白云，对照一去不回的黄鹤；李白换成「江自流」——人事变了，江水照样自己流。作用一样，景物换了。",
+      en: "Cui sets clouds that drift for a thousand years against the crane that never returns; Li uses 江自流 'the river flows on by itself'. Same job, a different thing in nature." } },
+  { kind: "change", a: [[3, 2, 4]], b: [[2, 0, 7], [3, 0, 7]],
+    label: { zh: "感叹的对象：仙人传说 → 六朝兴亡", en: "What time has erased: a legend → real history" },
+    why: { zh: "崔颢三四句还停在黄鹤的传说里，感叹「千载」的空；李白三四句写吴宫、晋代——金陵做过六朝都城，当年的宫殿和贵人都成了荒草古墓。神话换成了真实的历史。",
+      en: "Cui's lines 3–4 stay with the crane legend and the emptiness of 千载 'a thousand years'. Li's lines 3–4 name the Wu palace and the Jin nobles: Jinling was the capital of six dynasties, and its palaces and grandees are weeds and grave mounds now. Myth is swapped for history." } },
+  { kind: "same", a: [[5, 4, 7]], b: [[5, 4, 7]],
+    label: { zh: "第六句落在江中小洲：鹦鹉洲 → 白鹭洲", en: "Line 6 ends on an island in the river: Parrot Island → White Egret Island" },
+    why: { zh: "两首的第五、六句都写登高望见的远景，第六句都落在一个以鸟命名的江中小洲上，韵脚还是同一个「洲」字。",
+      en: "In both poems lines 5–6 describe the view from the height, and line 6 ends on a river island named after a bird — with the same rhyme character, 洲 zhōu 'island'." } },
+  { kind: "change", a: [[6, 0, 2]], b: [[6, 2, 7]],
+    label: { zh: "第七句的「日」：日暮 → 浮云蔽日", en: "The sun in line 7: sunset → the sun hidden by clouds" },
+    why: { zh: "崔颢的「日暮」是真实的黄昏，天晚了想回家。李白的「日」被浮云遮住：「浮云蔽日」是古诗文里常见的比喻，太阳常比君主，浮云比遮蔽君主的小人。同一个「日」，从写景变成了比喻。",
+      en: "Cui's 日暮 is a real sunset: it is late, he wants to go home. Li's 日 is covered by 浮云 'drifting clouds' — an old figure of speech in which the sun stands for the ruler and the clouds for the schemers around him. The same character 日 goes from scenery to metaphor." } },
+  { kind: "change", a: [[6, 2, 7]], b: [[7, 0, 4]],
+    label: { zh: "望不见的地方：乡关 → 长安", en: "The place out of sight: home town → Chang'an" },
+    why: { zh: "崔颢问「乡关何处是」——故乡在哪里；李白说「长安不见」——看不见的是都城，是朝廷。愁的对象换了。",
+      en: "Cui asks 乡关何处是 'where is my home town?'. Li says 长安不见 'Chang'an cannot be seen' — the capital, the imperial court. What the sadness is about has changed." } },
+  { kind: "same", a: [[7, 4, 7]], b: [[7, 4, 7]],
+    label: { zh: "末三字一字不改：使人愁", en: "The last three characters, unchanged: 使人愁" },
+    why: { zh: "两首最后三个字完全相同，位置也相同。李白特意留着它，读者才会把两个结尾放在一起比：同样是愁，愁的不是一回事。",
+      en: "Both poems end with exactly the same three characters in the same place. Keeping them invites the reader to compare the two endings: the same word 'sad', but not the same sadness." } },
+  { kind: "drop", a: [[0, 0, 4]], b: [],
+    label: { zh: "骑鹤飞走的仙人", en: "The immortal who flew off on the crane" },
+    why: { zh: "崔颢开头就有一个人：「昔人已乘黄鹤去」。李白的凤凰台上没有人骑凤凰；全诗不写神仙，写的是吴宫、晋代这些真实的人和事。",
+      en: "Cui starts with a person: 昔人已乘黄鹤去 'someone long ago rode the crane away'. On Li's terrace nobody rides the phoenix; the poem has no immortals at all, only the real people of Wu and Jin." } },
+  { kind: "drop", a: [[2, 1, 7]], b: [],
+    label: { zh: "不守格律的写法", en: "Breaking the tone rules" },
+    why: { zh: "崔颢第三句「黄鹤一去不复返」从「鹤」起连着六个仄声字，第四句以「空悠悠」三个平声收尾——律诗本来要避开这些，崔颢写得像古体歌行。李白也重复了「凤凰」，但平仄基本合律，没有照搬这种破格。",
+      en: "Cui's line 3 runs six oblique-tone syllables in a row (from 鹤 on), and line 4 ends on three level tones (空悠悠) — both things a regulated poem should avoid; his first half sounds like an old-style ballad. Li repeats 凤凰 too, but his tones basically follow the rules: he did not copy this rule-breaking." } },
+];
+const KINDS = ["same", "change", "drop"];
+const KHAN = { same: "同", change: "改", drop: "弃" };
+// Interpretations of what the later poem is arguing with; right = index 1.
+const ARGUE = [
+  { zh: "李白只是在模仿：两首诗说的是同一种愁", en: "Li is just copying: both poems are about the same sadness" },
+  { zh: "李白借崔颢的架子，把「想家」的愁换成「望不见长安」的愁：浮云蔽日，自己被挡在朝廷之外", en: "Li borrows Cui's frame but swaps homesickness for the sadness of 'not seeing Chang'an': clouds hide the sun, and he is shut out of the court" },
+  { zh: "李白在嘲笑崔颢写得不好", en: "Li is mocking Cui's poem as badly written" },
+  { zh: "李白在写天气：云多，所以看不见长安", en: "Li is describing the weather: it is cloudy, so he cannot see Chang'an" },
+];
+const ARGUE_RIGHT = 1;
+const NEED_FOR_ARGUE = 6;
+// City centres for the distance in the feedback (degrees): Nanjing (Jinling), Xi'an (Chang'an).
+const JINLING = [32.06, 118.80], CHANGAN = [34.26, 108.94];
+
+// ---------- pure logic ----------
+function haversineKm(p, q) {
+  const R = 6371, r = Math.PI / 180;
+  const dLat = (q[0] - p[0]) * r, dLon = (q[1] - p[1]) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(p[0] * r) * Math.cos(q[0] * r) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+// owner[poem][line][char] = feature index or -1; throws if spans overlap or run off a line.
+function ownerMap(poems, feats) {
+  const own = poems.map((p) => p.lines.map((l) => Array.from(l.s).map(() => -1)));
+  feats.forEach((f, fi) => [f.a, f.b].forEach((spans, pi) => spans.forEach(([ln, s, e]) => {
+    const row = own[pi][ln];
+    if (!row || s < 0 || e > row.length || s >= e) throw new Error("bad span " + fi);
+    for (let k = s; k < e; k++) { if (row[k] !== -1) throw new Error("overlap " + fi); row[k] = fi; }
+  })));
+  return own;
+}
+function segments(chars, owners) { // consecutive characters with the same owner
+  const out = [];
+  chars.forEach((c, k) => {
+    const last = out[out.length - 1];
+    if (last && last.f === owners[k]) last.t += c; else out.push({ f: owners[k], t: c });
+  });
+  return out;
+}
+function countKinds(feats, filter) {
+  const n = { same: 0, change: 0, drop: 0 };
+  feats.forEach((f, i) => { if (!filter || filter(i)) n[f.kind]++; });
+  return n;
+}
+function samePlaceChars(a, b) { // characters identical at the same line and position
+  const out = [];
+  a.lines.forEach((l, i) => { const x = Array.from(l.s), y = Array.from(b.lines[i].s); x.forEach((c, k) => { if (c === y[k]) out.push({ line: i, pos: k, c }); }); });
+  return out;
+}
+const rhymeChars = (p) => p.rhyme.map((i) => Array.from(p.lines[i].s).pop());
+function sharedRhymes(a, b) { const B = new Set(rhymeChars(b)); return rhymeChars(a).filter((c) => B.has(c)); }
+const spanText = (poem, [ln, s, e]) => Array.from(poem.lines[ln].s).slice(s, e).join("");
+
+const OWN = ownerMap(POEMS, FEATURES);
+const TOTAL = countKinds(FEATURES);
+const SAMEPLACE = samePlaceChars(POEMS[0], POEMS[1]);
+const SHARED_RHYME = sharedRhymes(POEMS[0], POEMS[1]);
+const DIST = Math.round(haversineKm(JINLING, CHANGAN) / 10) * 10;
+
+const P = Play.setup({
+  en: {
+    title: "Two texts side by side", eyebrow: "Chinese · Stage 4",
+    h1: "A later poem answers an earlier one: what it keeps, changes and drops is what it has to say",
+    intro: "Li Bai's 'Phoenix Terrace' is traditionally read as a reply to Cui Hao's 'Yellow Crane Tower'. Put the two side by side, mark what Li kept, changed and dropped, and see what he was arguing with.",
+    reset: "Reset", pairAria: "The two poems line by line; marked words can be tapped", chipsAria: "The ten marked features",
+    tbarAria: "Bar: how many features Li kept, changed and dropped",
+    s1: "Guess", s2: "Compare", s3: "Rule",
+    k1: "Predict first", t1: "Why does Li Bai end with 使人愁?",
+    b1: "Read Li Bai's poem on its own first. Then pick an answer.",
+    k2: "Hands on", t2: "Mark what the later poem keeps, changes and drops",
+    b2: "Tap an underlined word in either poem (or a numbered chip; ← → move between chips). Its partner lights up in the other poem. Decide: did Li keep it (同), change it (改) or drop it (弃)? The tally counts as you go. After {n} marks, say what Li is arguing with.",
+    k3: "The rule", t3: "Read a text next to the text it answers",
+    b3: "The same words build the bridge; the changes and the gaps carry the later writer's own point.",
+    rule: "Put a text next to the earlier text it answers: what it keeps is the shared frame; what it changes or drops is what the later writer is saying.",
+    q: "Li Bai's poem ends 长安不见使人愁 'Chang'an cannot be seen, and that makes one sad'. Why end with 使人愁?",
+    o1: "No special reason — a poem means what it says on its own; just read the words", o2: "It answers Cui Hao's 'Yellow Crane Tower', which ends with the same 使人愁: read them together", o3: "Only for the rhyme: 愁 happened to fit",
+    right: "Yes. Cui Hao's poem ends 烟波江上使人愁 — the same three characters in the same place, and even the same rhyme. Set side by side, what Li changed jumps out. Try it in step 2.",
+    wrong: "On its own the poem can't tell you. But Cui Hao's 'Yellow Crane Tower' ends 烟波江上使人愁 — the same three characters, in the same place, with the same rhyme. Li is answering it. See step 2.",
+    revealT: "The earlier poem's last line", rhymeL: "Rhyme characters — Cui: {a} · Li: {b} · shared: {c}",
+    glossL: "Meaning:", side0: "Cui Hao (earlier)", side1: "Li Bai (later)", noneL: "— nothing in Li's poem —",
+    askK: "What did Li do here?", kSame: "kept", kChange: "changed", kDrop: "dropped",
+    pickHint: "Tap an underlined word or a chip to start.",
+    okV: "✓ Right.", noV: "✗ Not quite — it's {k}.", liveF: "Feature {i}: {label}. {v}",
+    tallyT: "Tally: what Li did with Cui's poem", tallyNote: "Marked {k} of {n} · judged right {r}.", allDone: "All {n} marked: Li kept {s}, changed {c}, dropped {d}.",
+    argueQ: "So what is the later poem arguing with?", argueLock: "Mark at least {n} features first ({k} so far).",
+    aR: "Yes. The evidence is in the words: Cui's 日暮乡关何处是 becomes 总为浮云能蔽日，长安不见. The ending 使人愁 is kept, so we compare the two sadnesses: a traveller's homesickness against the bitterness of a man away from the court. (The poem is usually dated after Li left Chang'an in 744.)",
+    a0: "Look at feature ⑦: Cui asks 乡关何处是 'where is home?', Li says 长安不见 'Chang'an cannot be seen'. The last three characters stay; what comes before them — the reason for the sadness — is changed.",
+    a2: "There is no mocking in the text: Li keeps Cui's opening, rhyme and ending. The changes are about Li's own situation, not a verdict on Cui.",
+    a3: "From Jinling to Chang'an is about {d} km in a straight line — you never could see it. 总为……能蔽日 'it is all because … can hide the sun' is a reason, not a forecast, and 浮云蔽日 is an old figure for schemers blocking the ruler. Reading only the surface misses that.",
+    st1: "Pre-marked features: kept {s} · changed {c} · dropped {d} (of {n}).",
+    st2: "Same character in the same place: {k} — {list}.",
+    st3: "Shared rhyme characters: {list}; both poems rhyme in the same group (-ou).",
+    c1T: "互文 hùwén — texts talking to texts",
+    c1B: "When a later text answers an earlier one, part of its meaning comes from that relationship; literary theory calls this intertextuality (互文性). Careful: classical rhetoric also has a device called 互文, where two halves of a line fill each other in (秦时明月汉时关 'Qin-era moon, Han-era pass' means both belong to both eras). That is a different thing.",
+    c2T: "用典 yòngdiǎn — borrowing an old phrase",
+    c2B: "An allusion is a smaller step: borrowing a phrase or story someone used before. 浮云蔽日 'clouds hide the sun' was an established figure from Han times (Lu Jia's 新语 compares evil ministers hiding worthy men to clouds covering sun and moon). Some commentators also hear in 长安不见 the young Emperor Ming of Jin's remark 举目见日，不见长安 'I lift my eyes and see the sun, but not Chang'an' (世说新语·夙惠). To read an allusion, you again need the earlier text.",
+    c3T: "The legend of the laid-down brush (相传)",
+    c3B: "Legend says Li Bai climbed Yellow Crane Tower, read Cui's poem and said 眼前有景道不得，崔颢题诗在上头 'There's a view before my eyes I cannot put into words: Cui Hao's poem is written up above', and left without writing (as told in Xin Wenfang's 唐才子传, Yuan dynasty). It may not have happened. The evidence that Li answers Cui is in the two poems, not in the story.",
+    resultTitle: "What we found",
+    rmain: "Li kept {s}, changed {c} and dropped {d} of Cui's features — and the change 乡关 → 长安 is his answer.",
+    rscore: "Marked {k}/{n} · judged right {r} · reading: {a}",
+    resultNote: "The kept parts are the bridge between the poems; the changed and dropped parts are the later poem's own point. A legend can be doubted; the lines can be checked.",
+    explainK: "Explain it",
+    explainQ: "A friend says, 'Li Bai's Phoenix Terrace just copies Cui Hao.' Answer with evidence: what did Li keep, what did he change, and what do the changes tell you?",
+    homeK: "Try at home",
+    homeQ: "Take a song, nursery rhyme or slogan your family knows and find a version that rewrites it (a parody, a cover, an advert). Write both out side by side, mark 同 / 改 / 弃, and say what the rewriter wanted to say.",
+    foot: "Poems (public domain, Tang): 崔颢 (?–754)《黄鹤楼》; 李白 (701–762)《登金陵凤凰台》. Texts as in common modern editions; known variants: 昔人已乘白云去 (some early anthologies), 芳草青青, and 一水中分白鹭洲. Yellow Crane Tower is in Wuchang (Wuhan); Phoenix Terrace was in Jinling (Nanjing), capital of six dynasties including Wu and Eastern Jin. That Li's poem answers Cui's is the traditional reading; the 'laid-down brush' story is a legend (唐才子传). Song-dynasty critic Yan Yu called 黄鹤楼 the best Tang seven-character regulated poem (沧浪诗话). The poem's date is debated; most place it after 744. Tones: Middle Chinese entering-tone syllables (鹤 一 不 复 白) count as oblique. Distance: great-circle between Nanjing (32.06° N, 118.80° E) and Xi'an (34.26° N, 108.94° E), rounded to 10 km. Pinyin: Putonghua citation tones (no sandhi for 一, 不). Translations are our own. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "互文对照阅读器", eyebrow: "语文 · 阶段 4",
+    h1: "后作在回应前作：它保留、改动、删掉了什么，就是它要说的话",
+    intro: "相传李白《登金陵凤凰台》是在回应崔颢《黄鹤楼》。把两首并排放好，标出李白保留、改动、删掉的地方，看看他在和谁对话、说了什么。",
+    reset: "重置", pairAria: "两首诗逐句对照；画线的字可以点", chipsAria: "十处标记",
+    tbarAria: "条形图：李白保留、改动、删掉的处数",
+    s1: "先猜", s2: "对照", s3: "规律",
+    k1: "先猜一猜", t1: "李白为什么用「使人愁」收尾？",
+    b1: "先只读李白这一首，再选一个答案。",
+    k2: "动手", t2: "标出后作保留、改动、删掉了什么",
+    b2: "点任一首诗里画虚线的字（或下面的编号，← → 可在编号间移动），另一首里对应的地方会一起亮起。判断李白是保留了（同）、改动了（改），还是删掉了（弃）。下面会自动计数。标满 {n} 处后，说说李白在和崔颢争什么。",
+    k3: "规律", t3: "把一篇和它回应的那篇放在一起读",
+    b3: "相同的字搭起桥，改动和空缺处才是后来者自己的话。",
+    rule: "读一篇作品，把它回应的前作放在旁边：保留的是共同的框架，改动和删掉的地方，就是后来的作者要说的话。",
+    q: "李白这首诗结尾是「长安不见使人愁」。为什么用「使人愁」收尾？",
+    o1: "没什么特别——一首诗只看它自己就能读懂，照字面读就行", o2: "它在回应崔颢《黄鹤楼》，那首也以「使人愁」结尾，要对照着读", o3: "只是为了押韵，「愁」字正好合韵",
+    right: "对。崔颢《黄鹤楼》末句是「烟波江上使人愁」——同样三个字、同样的位置，连韵都一样。两首并排，李白改了什么就一目了然。第 2 步试试。",
+    wrong: "单读这一首，确实看不出来。可崔颢《黄鹤楼》末句是「烟波江上使人愁」——同样三个字、同样的位置、同一个韵。李白在回应它。看第 2 步。",
+    revealT: "前作的末句", rhymeL: "韵脚——崔：{a} · 李：{b} · 相同：{c}",
+    glossL: "大意：", side0: "崔颢（前作）", side1: "李白（后作）", noneL: "——李白诗中没有对应——",
+    askK: "李白在这里做了什么？", kSame: "保留", kChange: "改动", kDrop: "删掉",
+    pickHint: "点一处画线的字或一个编号开始。",
+    okV: "✓ 对。", noV: "✗ 不太对——这一处是「{k}」。", liveF: "第 {i} 处：{label}。{v}",
+    tallyT: "计数：李白怎样处理崔颢的诗", tallyNote: "已标 {k} / {n} 处 · 判断对 {r} 处。", allDone: "{n} 处全部标完：李白保留 {s} 处、改动 {c} 处、删掉 {d} 处。",
+    argueQ: "那么，后作在和前作争什么？", argueLock: "先至少标 {n} 处（已标 {k} 处）。",
+    aR: "对。证据就在字面上：崔颢「日暮乡关何处是」→ 李白「总为浮云能蔽日，长安不见」。结尾「使人愁」原样保留，读者自然把两种愁放在一起比：一个是游子的乡愁，一个是远离朝廷的失意。（此诗一般认为作于李白 744 年离开长安以后。）",
+    a0: "看第 ⑦ 处：崔颢问「乡关何处是」，李白说「长安不见」。末三字留着，前面换了——换掉的正是愁的原因。",
+    a2: "诗里找不到嘲笑的证据：李白保留了崔颢的开法、韵脚和结尾。他的改动说的是自己的处境，不是给崔颢打分。",
+    a3: "金陵到长安直线约 {d} 公里，天再晴也望不见。「总为……能蔽日」是在讲原因，不是天气预报；「浮云蔽日」在古诗文里常比小人遮蔽君主。只读字面，就漏掉了这一层。",
+    st1: "预先标好的 {n} 处：保留 {s} · 改动 {c} · 删掉 {d}。",
+    st2: "同一位置、同一个字：{k} 个——{list}。",
+    st3: "相同的韵脚字：{list}；两首押的是同一个韵（尤韵）。",
+    c1T: "互文：文字和文字之间的对话",
+    c1B: "后来的作品回应前人时，它的意思有一部分来自这层关系，文学理论叫「互文性」。注意：古汉语修辞里也有个「互文」，指上下文互相补足，如「秦时明月汉时关」是说秦汉时的明月、秦汉时的关——那是另一回事。",
+    c2T: "用典：借前人的一句话、一个故事",
+    c2B: "用典是更小的一步。「浮云蔽日」是汉代以来就有的比喻（陆贾《新语》拿浮云遮日月比奸臣蔽贤）。有注家还从「长安不见」联想到《世说新语·夙惠》里晋明帝小时候说的「举目见日，不见长安」。要读懂典故，同样得把前面那篇找出来。",
+    c3T: "相传：李白搁笔",
+    c3B: "相传李白登黄鹤楼，读到崔颢的诗，说「眼前有景道不得，崔颢题诗在上头」，没写就走了（见元代辛文房《唐才子传》）。这是传说，未必真有其事。李白在回应崔颢，证据在两首诗里，不在故事里。",
+    resultTitle: "我们发现",
+    rmain: "李白对崔颢的诗保留 {s} 处、改动 {c} 处、删掉 {d} 处——「乡关 → 长安」这一改，就是他的回答。",
+    rscore: "已标 {k}/{n} · 判断对 {r} · 解读：{a}",
+    resultNote: "保留的地方是两首诗之间的桥，改动和删掉的地方才是后作自己的观点。传说可以存疑，诗句可以核对。",
+    explainK: "说一说",
+    explainQ: "同学说：「李白的《登金陵凤凰台》就是抄崔颢的。」用今天找到的证据回应他：李白保留了什么、改了什么，改动说明了什么？",
+    homeK: "家里做一做",
+    homeQ: "找一首家里人都熟悉的歌、童谣或广告语，再找一个改编它的版本（仿写、翻唱、段子都行）。并排写下来，标出同、改、弃，说说改编的人想说什么。",
+    foot: "诗作均为公有领域唐诗：崔颢（？—754）《黄鹤楼》；李白（701—762）《登金陵凤凰台》。文本依通行本；异文有「昔人已乘白云去」（部分早期选本）、「芳草青青」、「一水中分白鹭洲」。黄鹤楼在武昌（今武汉）；凤凰台在金陵（今南京），金陵是吴、东晋等六朝的都城。李白此诗回应崔颢是传统说法；「搁笔」故事是传说（《唐才子传》）。南宋严羽《沧浪诗话》推《黄鹤楼》为唐人七律第一。此诗写作年代有争议，多数认为在 744 年以后。平仄按古音：鹤、一、不、复、白等入声字算仄声。距离：南京（北纬 32.06°，东经 118.80°）到西安（北纬 34.26°，东经 108.94°）的大圆距离，取整到 10 公里。拼音为普通话单字本调（「一」「不」不标变调）。译文为本站自译。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+const circ = (i) => String.fromCharCode(0x2460 + i); // ① …
+const kindName = (k) => KHAN[k] + (L === "en" ? " " + P.t("k" + k[0].toUpperCase() + k.slice(1)) : "（" + P.t("k" + k[0].toUpperCase() + k.slice(1)) + "）");
+
+let sel = -1, predicted = false, argued = null;
+let answers = FEATURES.map(() => null); // kind the reader picked, or null
+
+// ---------- shared: one line with pinyin ----------
+function rubyLine(line, hitFrom, hitTo) {
+  const box = el("div", "sent han");
+  box.lang = "zh-CN";
+  const syl = line.py.split(/\s+/);
+  Array.from(line.s).forEach((c, k) => {
+    const tk = el("span", "tk" + (k >= hitFrom && k < hitTo ? " hit" : ""));
+    tk.append(el("span", "py", syl[k] || ""), el("span", "hz", c));
+    box.appendChild(tk);
+  });
+  return box;
+}
+
+// ---------- step 1 ----------
+function renderSolo() {
+  const p = POEMS[1], box = $("solo");
+  box.innerHTML = "";
+  box.appendChild(el("div", "src", p.who[L]));
+  p.lines.forEach((ln, i) => {
+    box.appendChild(i === 7 && predicted ? rubyLine(ln, 4, 7) : rubyLine(ln, -1, -1));
+    if (L === "en") box.appendChild(el("div", "gl", ln.en));
+  });
+  const rv = $("reveal");
+  rv.innerHTML = "";
+  if (!predicted) return;
+  const c = el("div", "ccard");
+  c.appendChild(el("div", "src", P.t("revealT") + " · " + POEMS[0].who[L]));
+  c.appendChild(rubyLine(POEMS[0].lines[7], 4, 7));
+  c.appendChild(el("div", "gl", L === "en" ? POEMS[0].lines[7].en : POEMS[0].lines[7].zh));
+  c.appendChild(el("div", "fb", P.t("rhymeL", { a: rhymeChars(POEMS[0]).join(""), b: rhymeChars(POEMS[1]).join(""), c: SHARED_RHYME.join(L === "zh" ? "、" : ", ") })));
+  rv.appendChild(c);
+}
+
+// ---------- step 2 ----------
+const segBtns = []; // {btn, f}
+function buildPair() {
+  const g = $("pair");
+  g.innerHTML = "";
+  g.appendChild(el("div", "hd", ""));
+  POEMS.forEach((p) => {
+    const h = el("div", "hd");
+    h.append(el("b", "han", L === "zh" ? p.who.zh : p.who.zh.replace(/^.*?《/, "《")), document.createTextNode(L === "zh" ? p.tag.zh : (p.who.zh.slice(0, 2) + " · " + p.tag.en)));
+    g.appendChild(h);
+  });
+  for (let i = 0; i < 8; i++) {
+    const gap = i > 0 && i % 2 === 0 ? " gap" : "";
+    g.appendChild(el("div", "ln" + gap, String(i + 1)));
+    POEMS.forEach((p, pi) => {
+      const cell = el("div", "pl han" + gap);
+      cell.lang = "zh-CN";
+      segments(Array.from(p.lines[i].s), OWN[pi][i]).forEach((sg) => {
+        if (sg.f < 0) { cell.appendChild(document.createTextNode(sg.t)); return; }
+        const b = el("button", "seg", sg.t);
+        b.type = "button";
+        b.addEventListener("click", () => select(sg.f, true));
+        cell.appendChild(b);
+        segBtns.push({ btn: b, f: sg.f });
+      });
+      g.appendChild(cell);
+    });
+  }
+  const chips = $("chips");
+  chips.innerHTML = "";
+  FEATURES.forEach((f, i) => {
+    const b = el("button", "", circ(i));
+    b.type = "button";
+    b.addEventListener("click", () => select(i));
+    b.addEventListener("keydown", (e) => {
+      const d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      const j = (i + d + FEATURES.length) % FEATURES.length;
+      select(j); chips.children[j].focus();
+    });
+    chips.appendChild(b);
+  });
+  const lg = $("legend");
+  lg.innerHTML = "";
+  KINDS.forEach((k) => {
+    const s = el("span");
+    const sw = el("span", "sw");
+    sw.style.background = "var(--" + { same: "c", change: "b", drop: "h" }[k] + ")";
+    s.append(sw, document.createTextNode(kindName(k)));
+    lg.appendChild(s);
+  });
+}
+function paintMarks() {
+  segBtns.forEach(({ btn, f }) => {
+    btn.className = "seg" + (answers[f] ? " k-" + FEATURES[f].kind : "") + (f === sel ? " sel" : "");
+    btn.setAttribute("aria-label", circ(f) + " " + btn.textContent + (answers[f] ? " · " + KHAN[FEATURES[f].kind] : ""));
+    btn.setAttribute("aria-pressed", f === sel ? "true" : "false");
+  });
+  Array.from($("chips").children).forEach((b, i) => {
+    b.className = (answers[i] ? "k-" + FEATURES[i].kind : "") + (i === sel ? " sel" : "");
+    b.setAttribute("aria-pressed", i === sel ? "true" : "false");
+    b.setAttribute("aria-label", circ(i) + " " + FEATURES[i].label[L] + (answers[i] ? " · " + KHAN[FEATURES[i].kind] : ""));
+  });
+}
+function select(i, fromSeg) {
+  sel = Play.clamp(i, 0, FEATURES.length - 1);
+  paintMarks(); renderPanel();
+  if (fromSeg) { const b = $("panel").querySelector(".kinds button"); if (b) b.focus({ preventScroll: true }); }
+}
+function sideBox(pi, spans) {
+  const p = POEMS[pi], box = el("div", "side");
+  box.appendChild(el("div", "who", P.t("side" + pi) + " · " + spans.map((s) => s[0] + 1).filter((v, k, a) => a.indexOf(v) === k).map((n) => "#" + n).join(" ")));
+  if (!spans.length) { box.appendChild(el("div", "none", P.t("noneL"))); return box; }
+  const lines = [...new Set(spans.map((s) => s[0]))];
+  lines.forEach((ln) => {
+    const sp = spans.filter((s) => s[0] === ln);
+    const row = rubyLine(p.lines[ln], -1, -1);
+    sp.forEach(([, s, e]) => { for (let k = s; k < e; k++) row.children[k].classList.add("hit"); });
+    box.appendChild(row);
+    box.appendChild(el("div", "gl", L === "en" ? p.lines[ln].en : P.t("glossL") + p.lines[ln].zh));
+  });
+  return box;
+}
+function renderPanel() {
+  const box = $("panel");
+  box.innerHTML = "";
+  if (sel < 0) { box.appendChild(el("div", "hint", P.t("pickHint"))); return; }
+  const f = FEATURES[sel], ans = answers[sel];
+  box.appendChild(el("h3", "", circ(sel) + " " + (ans ? f.label[L] : f.a.map((s) => spanText(POEMS[0], s)).join(" / ") + "  ↔  " + (f.b.length ? f.b.map((s) => spanText(POEMS[1], s)).join(" / ") : "?"))));
+  box.appendChild(sideBox(0, f.a));
+  box.appendChild(sideBox(1, f.b));
+  box.appendChild(el("div", "q", P.t("askK")));
+  const row = el("div", "kinds");
+  KINDS.forEach((k) => {
+    const b = el("button", ans === k ? "on " + (k === f.kind ? "right" : "wrong") : "");
+    b.type = "button";
+    b.append(el("span", "hz han", KHAN[k]), document.createTextNode(P.t("k" + k[0].toUpperCase() + k.slice(1))));
+    b.setAttribute("aria-pressed", ans === k ? "true" : "false");
+    b.addEventListener("click", () => classify(k));
+    row.appendChild(b);
+  });
+  box.appendChild(row);
+  if (ans) {
+    const fb = el("div", "fb");
+    const ok = ans === f.kind;
+    fb.appendChild(el("span", "v " + (ok ? "ok" : "no"), (ok ? P.t("okV") : P.t("noV", { k: kindName(f.kind) })) + " "));
+    fb.appendChild(document.createTextNode(f.why[L]));
+    box.appendChild(fb);
+  }
+}
+function classify(k) {
+  if (sel < 0) return;
+  answers[sel] = k;
+  const f = FEATURES[sel];
+  paintMarks(); renderPanel(); renderTally(); renderArgue(); renderResult();
+  Play.live($("live"), P.t("liveF", { i: sel + 1, label: f.label[L], v: k === f.kind ? P.t("okV") : P.t("noV", { k: kindName(f.kind) }) }));
+  const b = $("panel").querySelectorAll(".kinds button")[KINDS.indexOf(k)];
+  if (b) b.focus({ preventScroll: true });
+}
+const doneCount = () => answers.filter(Boolean).length;
+const rightCount = () => answers.filter((a, i) => a && a === FEATURES[i].kind).length;
+function renderTally() {
+  const t = $("tally"), n = countKinds(FEATURES, (i) => !!answers[i]);
+  t.innerHTML = "";
+  KINDS.forEach((k) => {
+    t.appendChild(el("span", "", kindName(k)));
+    const bar = el("div", "bar"), fill = el("i");
+    fill.style.width = (TOTAL[k] ? (n[k] / FEATURES.length) * 100 : 0) + "%";
+    fill.style.background = "var(--" + { same: "c", change: "b", drop: "h" }[k] + ")";
+    bar.appendChild(fill);
+    t.append(bar, el("span", "n", String(n[k])));
+  });
+  const k = doneCount();
+  $("tallyNote").textContent = P.t("tallyNote", { k, n: FEATURES.length, r: rightCount() }) +
+    (k === FEATURES.length ? " " + P.t("allDone", { n: FEATURES.length, s: n.same, c: n.change, d: n.drop }) : "");
+}
+function renderArgue() {
+  const box = $("argue"), k = doneCount();
+  box.innerHTML = "";
+  box.appendChild(el("div", "q", P.t("argueQ")));
+  if (k < NEED_FOR_ARGUE && argued == null) { box.appendChild(el("div", "hint", P.t("argueLock", { n: NEED_FOR_ARGUE, k }))); return; }
+  const row = el("div", "choices");
+  ARGUE.forEach((o, i) => {
+    const b = el("button", argued === i ? "on " + (i === ARGUE_RIGHT ? "right" : "wrong") : "", o[L]);
+    b.type = "button";
+    b.setAttribute("aria-pressed", argued === i ? "true" : "false");
+    b.addEventListener("click", () => {
+      argued = i; renderArgue(); renderResult();
+      const nb = $("argue").querySelectorAll(".choices button")[i];
+      if (nb) nb.focus({ preventScroll: true });
+    });
+    row.appendChild(b);
+  });
+  box.appendChild(row);
+  if (argued != null) {
+    const ok = argued === ARGUE_RIGHT;
+    const fb = el("div", "fb");
+    fb.setAttribute("aria-live", "polite");
+    fb.appendChild(el("span", "v " + (ok ? "ok" : "no"), (ok ? P.t("okV").replace(/ .*/, "") : "✗") + " "));
+    fb.appendChild(document.createTextNode(ok ? P.t("aR") : P.t("a" + argued, { d: DIST })));
+    box.appendChild(fb);
+  }
+}
+
+// ---------- step 3 ----------
+function renderRule() {
+  const svg = $("tbar");
+  svg.innerHTML = "";
+  const W = Math.max(240, Math.round(svg.getBoundingClientRect().width) || 600), n = FEATURES.length;
+  svg.setAttribute("viewBox", "0 0 " + W + " 64");
+  let x = 0;
+  KINDS.forEach((k) => {
+    const w = (TOTAL[k] / n) * W;
+    if (w <= 0) return;
+    Play.svg("rect", { x: x + 1, y: 8, width: Math.max(0, w - 2), height: 36, rx: 8, fill: "var(--" + { same: "c", change: "b", drop: "h" }[k] + ")" }, svg);
+    const t = Play.svg("text", { x: x + w / 2, y: 32, "text-anchor": "middle" }, svg);
+    t.textContent = KHAN[k] + " " + TOTAL[k];
+    x += w;
+  });
+  const cap = Play.svg("text", { x: 0, y: 60, class: "out" }, svg);
+  cap.textContent = L === "zh" ? "崔颢 → 李白：共 " + n + " 处" : "Cui → Li: " + n + " features";
+  const ul = $("stats");
+  ul.innerHTML = "";
+  const byLine = [];
+  SAMEPLACE.forEach((o) => { const last = byLine[byLine.length - 1]; if (last && last.line === o.line && last.end === o.pos) { last.t += o.c; last.end++; } else byLine.push({ line: o.line, t: o.c, end: o.pos + 1 }); });
+  const list = byLine.map((o) => (L === "zh" ? "第 " + (o.line + 1) + " 句「" : "line " + (o.line + 1) + " 「") + o.t + "」").join(L === "zh" ? "、" : ", ");
+  [P.t("st1", { n, s: TOTAL.same, c: TOTAL.change, d: TOTAL.drop }), P.t("st2", { k: SAMEPLACE.length, list }), P.t("st3", { list: SHARED_RHYME.join(L === "zh" ? "、" : ", ") })]
+    .forEach((s) => ul.appendChild(el("li", "", s)));
+}
+function renderResult() {
+  $("rmain").textContent = P.t("rmain", { s: TOTAL.same, c: TOTAL.change, d: TOTAL.drop });
+  $("rscore").textContent = P.t("rscore", { k: doneCount(), n: FEATURES.length, r: rightCount(), a: argued == null ? "—" : argued === ARGUE_RIGHT ? "✓" : "✗" });
+}
+
+// ---------- steps ----------
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { predicted = true; renderSolo(); });
+buildPair();
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k, { n: NEED_FOR_ARGUE });
+  $("predict").hidden = i !== 0;
+  $("rule").hidden = i !== 2;
+  $("rule").textContent = P.t("rule");
+  $("v1").hidden = i !== 0; $("v2").hidden = i !== 1; $("v3").hidden = i !== 2;
+  Play.live($("live"), "");
+  if (i === 0) renderSolo();
+  if (i === 1) { paintMarks(); renderPanel(); renderTally(); renderArgue(); }
+  if (i === 2) renderRule();
+});
+$("reset").addEventListener("click", () => {
+  sel = -1; predicted = false; argued = null;
+  answers = FEATURES.map(() => null);
+  pr.reset(); renderResult(); steps.go(0);
+});
+renderResult();
+addEventListener("resize", () => { if (steps.i === 2) renderRule(); });
+</script>
+</body>
+</html>

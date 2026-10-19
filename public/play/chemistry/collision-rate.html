@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hotter means harder hits</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage canvas.main { height: 300px; cursor: default; }
+  .stage .vtitle { font-size: 13px; color: var(--fg); background: var(--surface); border-radius: 6px; padding: 1px 6px; }
+  .stage .vtag { font-size: 12px; }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 5.2em; }
+  .controls label { min-width: 6.5em; }
+  .controls button[aria-pressed="true"] { border-color: var(--a); background: var(--soft); color: var(--fg); }
+  .crow { display: flex; align-items: center; gap: 10px; width: 100%; }
+  .crow input[type=range] { flex: 1 1 120px; }
+  .legend { padding: 0 14px 6px; }
+  #chart { width: 100%; height: 230px; display: block; touch-action: none; cursor: ew-resize; border-top: 1px solid var(--line); }
+  #chart text { font-family: var(--font); fill: var(--muted); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+  #chart text.fg { fill: var(--fg); font-weight: 650; }
+  #chart .knob:focus { outline: none; }
+  #chart .knob:focus-visible rect { stroke: var(--hl); stroke-width: 4; }
+  .stats { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; font-size: 13px; margin: 4px 0 10px; color: var(--muted); }
+  .stats .v { font-family: var(--math); color: var(--fg); text-align: right; font-size: 15px; white-space: nowrap; }
+  .stats .v small { color: var(--muted); font-size: 12px; }
+  .ratio { background: var(--soft); border-radius: 12px; padding: 10px 12px; font-size: 13px; margin: 0 0 10px; }
+  .ratio .hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--fg); font-weight: 650; margin-bottom: 6px; }
+  .ratio .row { display: grid; grid-template-columns: minmax(0, 1fr) 4.2em; gap: 2px 8px; align-items: center; margin: 4px 0; }
+  .ratio .row .lb { grid-column: 1 / -1; color: var(--muted); }
+  .ratio .bar { height: 9px; background: var(--surface); border-radius: 5px; overflow: hidden; }
+  .ratio .bar i { display: block; height: 100%; border-radius: 5px; background: var(--a); }
+  .ratio .x { font-family: var(--math); color: var(--fg); font-size: 15px; text-align: right; }
+  .ways { margin: 0 0 10px; padding-left: 18px; font-size: 14px; color: var(--muted); }
+  .ways li { margin-bottom: 6px; }
+  .ways strong { color: var(--fg); }
+  .rule { font-size: 15px !important; color: var(--fg) !important; }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+  .result .math { font-size: 20px; white-space: normal; }
+  @media (max-width: 560px) { .stage canvas.main { height: 220px; } .controls label { min-width: 0; } }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="fast" aria-pressed="false" data-t="fast"></button>
+      <button type="button" class="small" id="pause" aria-pressed="false"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <canvas class="main" id="sim" role="img" data-t-aria="simAria"></canvas>
+      <div class="vtitle" id="vtitle"></div>
+      <div class="vtag" id="vtag"></div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--c)"></i><span data-t="lgA"></span></span>
+        <span><i class="dot" style="background:var(--b)"></i><span data-t="lgB"></span></span>
+        <span><i class="dot" style="background:var(--hl)"></i><span data-t="lgP"></span></span>
+      </div>
+      <div id="cT" class="controls">
+        <div class="crow"><label for="temp" data-t="tLabel"></label><input type="range" id="temp" min="250" max="400" step="1" value="300"><output id="tVal" for="temp"></output></div>
+        <div class="crow"><label for="ea" data-t="eaLabel"></label><input type="range" id="ea" min="4" max="16" step="0.5" value="8"><output id="eaVal" for="ea"></output></div>
+      </div>
+      <div id="c3" class="controls" hidden>
+        <span data-t="concLabel"></span>
+        <button type="button" class="small" data-conc="15" data-t="conc1"></button>
+        <button type="button" class="small" data-conc="30" data-t="conc2"></button>
+        <button type="button" class="small" data-conc="45" data-t="conc3"></button>
+        <label class="check"><input type="checkbox" id="cat"> <span id="catLabel"></span></label>
+      </div>
+      <svg id="chart" viewBox="0 0 600 230" role="group" data-t-aria="chartAria"></svg>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="extra"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" id="data"></p>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Hotter means harder hits", eyebrow: "Chemistry · Stage 4",
+    h1: "Heat speeds a reaction mostly by making hits harder, not more frequent",
+    intro: "Guess first. Then warm a box of A and B particles and count how many of their collisions actually react.",
+    reset: "Reset", pause: "Pause", play: "Play", fast: "Fast ×5", vtag: "Model · {n} particles",
+    simAria: "A 2D box of A and B particles bouncing around; collisions that react turn the pair into products",
+    chartAria: "Energy distribution of collisions at two temperatures, with a draggable activation energy line",
+    lgA: "A", lgB: "B", lgP: "product (just reacted)",
+    tLabel: "Temperature", eaLabel: "Activation energy Ea",
+    concLabel: "Reactants:", conc1: "fewer", conc2: "normal", conc3: "more", catLabel: "Catalyst (Ea × {f})",
+    s1: "Guess", s2: "Count collisions", s3: "Rule",
+    k1: "Predict first", t1: "Ten degrees warmer",
+    q: "Warm a reaction from 25 °C to 35 °C (298 K → 308 K). Its particles now collide only about {zc}% more often, yet many reactions go about twice as fast. What explains it?",
+    o1: "The extra collisions: more hits, so more reactions", o2: "Warm particles are bigger, so they are easier to hit",
+    o3: "A much larger share of the collisions is hard enough to react",
+    right: "Yes. Now count it in the box: how many collisions there are, and how many of them react.",
+    wrong: "Many people think so. But {zc}% more hits can only give about {zc}% more reaction. Count it in the box.",
+    b1: "Each dot is a particle of A or B. They hit each other all the time, but only a few of those hits turn into products (the yellow flashes). Answer first.",
+    b1done: "From 298 K to 308 K the particles move only {zc}% faster, so they collide {zc}% more often. But for a typical reaction (Ea = {ea} kJ/mol) the share of collisions with at least Ea grows ×{ff}. That is where the doubling comes from.",
+    k2: "Hands on", t2: "Which collisions react?",
+    b2: "A collision between A and B reacts only if the head-on part of its kinetic energy is at least Ea. Change the temperature or Ea (slider, or drag the Ea line on the chart) and let the counts settle. Fast ×5 collects them quicker.",
+    stColl: "A–B collisions per second", stFrac: "Fraction that react (measured)", stTheo: "Formula e^(−Ea/RT)",
+    stRate: "Reactions per second", stProd: "Products formed (total)", stWin: "Counted over",
+    winV: "{s} model s", pmV: "± {e}",
+    ratioH: "From T₁ = {t1} K to T = {t} K", setT1: "Make this T₁",
+    rColl: "Collisions per second ×√(T/T₁)", rFrac: "Fraction with E ≥ Ea: {f1} → {f2}", rRate: "Reaction rate (product of the two)",
+    k3: "The rule", t3: "Rate = collisions × the share that is hard enough",
+    rule: "Warming adds only a few more collisions (they grow like √T), but it multiplies the share with at least Ea, e^(−Ea/RT). The second factor is why reactions speed up.",
+    real: "For a real reaction with Ea = {ea} kJ/mol, 298 K → 308 K: collisions ×{z}, hard-enough share ×{f}, rate ×{r}.",
+    waysH: "Other ways to speed a reaction up",
+    wConc: "<strong>Concentration.</strong> More particles in the same space hit more often. Try the reactant buttons: collisions per second change, the reacting fraction stays the same.",
+    wArea: "<strong>Surface area.</strong> A solid reacts only where it is touched. Cut a 1 cm cube into 1 mm cubes and its surface grows ×{a}.",
+    wCat: "<strong>Catalyst.</strong> It opens a path with a lower Ea, so a bigger share of the same collisions is hard enough. Here: {f1} → {f2} (×{x}). For a real reaction, lowering Ea from {ea} to {eb} kJ/mol at 298 K gives ×{rc}.",
+    live1: "{t} K. Of the A–B collisions, {f} carry at least Ea = {ea} kJ/mol.",
+    live2: "{t} K, Ea {ea} kJ/mol: {c} collisions per second, {f} react, {r} reactions per second.",
+    eaChart: "Ea", eaCat: "Ea with catalyst", axE: "energy of a collision (kJ/mol)", axP: "share", axClip: "higher (cut off)",
+    knobAria: "Activation energy", knobVal: "{ea} kilojoules per mole",
+    resultTitle: "What we found", resultMain: "rate ∝ (collisions per second) × e^(−Ea/RT)",
+    resultNote: "298 K → 308 K, Ea = {ea} kJ/mol: collisions ×{z}, hard-enough share ×{f}. The share does almost all of the work.",
+    explainK: "Explain it", explainQ: "A friend says: “Heat makes particles bump into each other more, that’s why reactions go faster.” Using the words “activation energy” and “fraction”, tell them what they are missing.",
+    homeK: "Try at home", homeQ: "Drop a fizzing tablet (vitamin C or antacid) into cold water and another into warm water, and time how long each fizzes. Then crush one and drop it into cold water: that is surface area at work.",
+    dataNote: "The model: {n} equal-mass discs in a 2D box, elastic collisions, and a gentle thermostat that now and then gives a random particle a new velocity at the set temperature. An A–B collision reacts when ½μu² ≥ Ea, where u is the approach speed along the line between the centres and μ is the reduced mass. In 2D the kinetic energy of a particle follows p(E) = e^(−E/RT)/RT (per mole), so the fraction above E is exactly e^(−E/RT); the chart uses that exact 2D formula. The same formula gives the fraction of collisions whose head-on energy is at least Ea, in 2D and in 3D (the textbook collision-theory result), which is why the measured fraction settles near it. At fixed concentration the collision frequency grows with the mean relative speed, ∝ √T. R = 8.314 J/(mol·K). The model uses Ea of 4–16 kJ/mol because most real reactions have 40–120 kJ/mol, where at 298 K only about {real} of collisions (Ea = {ea}) succeed, far too few to count in a small box. Each product pair is swapped at once for a fresh A and B with the same motion (it stays yellow for {life} model seconds so you can see it), so the supply stays steady, like a stirred flow reactor. “Twice as fast per 10 °C” is only a rule of thumb; it fits Ea ≈ 50 kJ/mol near room temperature. Sources: collision theory and the Arrhenius equation as in standard physical chemistry texts (e.g. Atkins, Physical Chemistry); IUPAC Gold Book, “activation energy”.",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "温度高，撞得更猛", eyebrow: "化学 · 阶段 4",
+    h1: "升温让反应变快，主要是撞得更猛，而不是撞得更多",
+    intro: "先猜。再给一盒 A、B 颗粒加热，数一数它们的碰撞里有多少真的反应了。",
+    reset: "重置", pause: "暂停", play: "播放", fast: "快进 ×5", vtag: "模型 · {n} 个颗粒",
+    simAria: "二维盒子里的 A、B 颗粒来回碰撞；反应成功的一对变成产物",
+    chartAria: "两个温度下碰撞能量的分布，可拖动的活化能线",
+    lgA: "A", lgB: "B", lgP: "产物（刚反应）",
+    tLabel: "温度", eaLabel: "活化能 Ea",
+    concLabel: "反应物：", conc1: "少", conc2: "中", conc3: "多", catLabel: "催化剂（Ea × {f}）",
+    s1: "先猜", s2: "数碰撞", s3: "规律",
+    k1: "先猜一猜", t1: "升温 10 度",
+    q: "把一个反应从 25 °C 加热到 35 °C（298 K → 308 K）。颗粒的碰撞次数只多了约 {zc}%，可很多反应快了差不多一倍。这是为什么？",
+    o1: "碰撞多了：撞得多，反应就多", o2: "颗粒热了会变大，更容易撞上",
+    o3: "撞得够猛、能反应的碰撞占比大了很多",
+    right: "对。到盒子里数一数：一共撞了多少次，其中多少次反应了。",
+    wrong: "很多人都这么想。可碰撞只多 {zc}%，反应也只能多 {zc}% 左右。到盒子里数一数。",
+    b1: "每个点是一个 A 或 B 颗粒。它们一直在互撞，但只有少数碰撞变成了产物（黄色闪光）。先选答案。",
+    b1done: "从 298 K 到 308 K，颗粒只快了 {zc}%，所以碰撞也只多了 {zc}%。但对一个典型反应（Ea = {ea} kJ/mol），能量不低于 Ea 的碰撞占比变成了 ×{ff}。快一倍靠的是这个。",
+    k2: "动手", t2: "哪些碰撞会反应？",
+    b2: "A 和 B 相撞时，只有正面那部分动能不低于 Ea 才会反应。调温度或 Ea（拖滑块，或在图上拖 Ea 线），等计数稳定下来。按「快进 ×5」数得更快。",
+    stColl: "每秒 A–B 碰撞", stFrac: "反应的比例（实测）", stTheo: "公式 e^(−Ea/RT)",
+    stRate: "每秒反应次数", stProd: "累计产物", stWin: "统计时长",
+    winV: "{s} 模型秒", pmV: "± {e}",
+    ratioH: "从 T₁ = {t1} K 到 T = {t} K", setT1: "把这里设为 T₁",
+    rColl: "每秒碰撞 ×√(T/T₁)", rFrac: "能量 ≥ Ea 的比例：{f1} → {f2}", rRate: "反应速率（两者相乘）",
+    k3: "规律", t3: "速率 = 碰撞次数 × 够猛的比例",
+    rule: "升温只让碰撞多了一点（按 √T 增长），却让能量不低于 Ea 的比例 e^(−Ea/RT) 成倍增长。反应变快主要靠后者。",
+    real: "真实反应 Ea = {ea} kJ/mol，298 K → 308 K：碰撞 ×{z}，够猛的比例 ×{f}，速率 ×{r}。",
+    waysH: "让反应变快的其他办法",
+    wConc: "<strong>浓度。</strong>同样的空间里颗粒越多，撞得越频繁。点反应物按钮：每秒碰撞变了，反应的比例不变。",
+    wArea: "<strong>表面积。</strong>固体只有被碰到的表面才反应。把 1 cm 的正方体切成 1 mm 的小块，表面积变成 ×{a}。",
+    wCat: "<strong>催化剂。</strong>它开辟一条 Ea 更低的路，同样的碰撞里够猛的比例更大。这里：{f1} → {f2}（×{x}）。真实反应在 298 K 把 Ea 从 {ea} 降到 {eb} kJ/mol，速率 ×{rc}。",
+    live1: "{t} K。A–B 碰撞中有 {f} 的能量不低于 Ea = {ea} kJ/mol。",
+    live2: "{t} K，Ea {ea} kJ/mol：每秒 {c} 次碰撞，{f} 反应，每秒 {r} 次反应。",
+    eaChart: "Ea", eaCat: "加催化剂的 Ea", axE: "一次碰撞的能量（kJ/mol）", axP: "比例", axClip: "更高（截掉了）",
+    knobAria: "活化能", knobVal: "{ea} 千焦每摩尔",
+    resultTitle: "我们发现", resultMain: "速率 ∝（每秒碰撞次数）× e^(−Ea/RT)",
+    resultNote: "298 K → 308 K，Ea = {ea} kJ/mol：碰撞 ×{z}，够猛的比例 ×{f}。几乎全靠这个比例。",
+    explainK: "说一说", explainQ: "朋友说：「加热让颗粒撞得更多，所以反应变快。」用上「活化能」和「比例」两个词，告诉他漏掉了什么。",
+    homeK: "家里做一做", homeQ: "一片泡腾片（维生素 C 或胃药）放进冷水，另一片放进温水，计时看各冒泡多久。再把一片压碎放进冷水：这就是表面积的作用。",
+    dataNote: "模型：{n} 个质量相同的圆盘在二维盒子里做弹性碰撞，恒温器不时按设定温度给随机一个颗粒换一个速度。A–B 相撞时，若 ½μu² ≥ Ea 就反应，u 是沿两球心连线的接近速度，μ 是约化质量。二维中颗粒动能的分布是 p(E) = e^(−E/RT)/RT（按每摩尔），所以能量高于 E 的比例正好是 e^(−E/RT)；图上用的就是这个二维的精确公式。同一个公式也给出正面能量不低于 Ea 的碰撞比例，二维和三维都成立（教科书碰撞理论的结论），所以实测比例会稳定在它附近。浓度不变时，碰撞频率随平均相对速度增长，∝ √T。R = 8.314 J/(mol·K)。模型的 Ea 只取 4–16 kJ/mol，因为多数真实反应在 40–120 kJ/mol，298 K 时只有约 {real} 的碰撞（Ea = {ea}）能成功，小盒子里根本数不到。每对产物立刻换成一对运动不变的新 A 和 B（黄色保留 {life} 模型秒，方便看见），让反应物供应保持稳定，像一个搅拌的连续流反应器。「每升 10 °C 快一倍」只是经验说法，大约对应室温附近 Ea ≈ 50 kJ/mol。来源：标准物理化学教材中的碰撞理论与阿伦尼乌斯方程（如 Atkins《物理化学》）；IUPAC Gold Book「活化能」条目。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+const $ = (id) => document.getElementById(id);
+
+// ---------- theory (energies in kJ/mol) ----------
+const R = 8.314; // J/(mol·K)
+const RT = (T) => (R * T) / 1000;
+const frac = (ea, T) => Math.exp(-ea / RT(T)); // share with E ≥ Ea (2D energy; collision head-on energy in 2D and 3D)
+const pE = (E, T) => Math.exp(-E / RT(T)) / RT(T); // 2D energy distribution, per kJ/mol
+const collRatio = (t1, t2) => Math.sqrt(t2 / t1);
+const REAL = { ea: 50, t1: 298, t2: 308, eb: 40 };
+const CAT = 0.6; // catalyst multiplies the model's Ea
+const CUT = 10; // 1 cm cube cut into 1 mm cubes: CUT³ pieces, each with 1/CUT² of a face area
+const T_MIN = 250, T_MAX = 400, EA_MIN = 4, EA_MAX = 16, E_AX = 24;
+
+// ---------- particle model (2D, equal masses m = 1, world units) ----------
+const W = 300, H = 190, RAD = 6, V300 = 140, DT = 1 / 480, NU = 3, LIFE = 0.6;
+const SIMPERKJ = (V300 * V300) / RT(300); // model energy per kJ/mol, so that kT = V300²·T/300
+const sigmaV = (T) => V300 * Math.sqrt(T / 300);
+let seed = 7;
+const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+function gauss() { let u = 0; while (!u) u = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rand()); }
+const MAXN = 90;
+const S = { n: 0, x: new Float64Array(MAXN), y: new Float64Array(MAXN), vx: new Float64Array(MAXN), vy: new Float64Array(MAXN),
+  type: new Uint8Array(MAXN), orig: new Uint8Array(MAXN), life: new Float64Array(MAXN) };
+const cnt = { coll: 0, succ: 0, time: 0, prod: 0 };
+const flashes = [];
+let T = 300, T1 = 300, ea = 8, cat = false, pairs = 30;
+const eaEff = () => (cat ? ea * CAT : ea);
+
+function init() {
+  seed = 7;
+  S.n = 2 * pairs;
+  const s = sigmaV(T);
+  for (let i = 0; i < S.n; i++) {
+    let ok = false, tries = 0, x = 0, y = 0;
+    while (!ok && tries++ < 400) {
+      x = RAD + rand() * (W - 2 * RAD); y = RAD + rand() * (H - 2 * RAD); ok = true;
+      for (let j = 0; j < i; j++) if ((S.x[j] - x) ** 2 + (S.y[j] - y) ** 2 < (2 * RAD + 1) ** 2) { ok = false; break; }
+    }
+    S.x[i] = x; S.y[i] = y; S.vx[i] = gauss() * s; S.vy[i] = gauss() * s;
+    S.type[i] = S.orig[i] = i % 2; S.life[i] = 0;
+  }
+  flashes.length = 0; cnt.prod = 0; clearWindow();
+}
+function clearWindow() { cnt.coll = 0; cnt.succ = 0; cnt.time = 0; }
+function setT(t) { // rescale velocities right away, the thermostat keeps it there
+  const k = Math.sqrt(t / T);
+  for (let i = 0; i < S.n; i++) { S.vx[i] *= k; S.vy[i] *= k; }
+  T = t;
+}
+function step() {
+  const { n, x, y, vx, vy, type, orig, life } = S, s = sigmaV(T), d2 = 4 * RAD * RAD, eaS = eaEff() * SIMPERKJ;
+  for (let i = 0; i < n; i++) {
+    x[i] += vx[i] * DT; y[i] += vy[i] * DT;
+    if (x[i] < RAD) { x[i] = 2 * RAD - x[i]; vx[i] = Math.abs(vx[i]); } else if (x[i] > W - RAD) { x[i] = 2 * (W - RAD) - x[i]; vx[i] = -Math.abs(vx[i]); }
+    if (y[i] < RAD) { y[i] = 2 * RAD - y[i]; vy[i] = Math.abs(vy[i]); } else if (y[i] > H - RAD) { y[i] = 2 * (H - RAD) - y[i]; vy[i] = -Math.abs(vy[i]); }
+    if (rand() < NU * DT) { vx[i] = gauss() * s; vy[i] = gauss() * s; }
+    if (type[i] === 2 && (life[i] -= DT) <= 0) type[i] = orig[i];
+  }
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const dx = x[i] - x[j], dy = y[i] - y[j], r2 = dx * dx + dy * dy;
+    if (r2 >= d2 || r2 === 0) continue;
+    const r = Math.sqrt(r2), nx = dx / r, ny = dy / r, vn = (vx[i] - vx[j]) * nx + (vy[i] - vy[j]) * ny;
+    const push = (2 * RAD - r) / 2;
+    x[i] += nx * push; y[i] += ny * push; x[j] -= nx * push; y[j] -= ny * push;
+    if (vn >= 0) continue; // already moving apart
+    vx[i] -= vn * nx; vy[i] -= vn * ny; vx[j] += vn * nx; vy[j] += vn * ny; // equal masses: swap normal parts
+    if (orig[i] + orig[j] === 1) { // an A meets a B (a just-made pair already counts as fresh A and B)
+      cnt.coll++;
+      if ((vn * vn) / 4 >= eaS) { // ½·μ·u² with μ = ½
+        cnt.succ++; cnt.prod++;
+        type[i] = type[j] = 2; life[i] = life[j] = LIFE;
+        if (flashes.length < 24) flashes.push({ x: (x[i] + x[j]) / 2, y: (y[i] + y[j]) / 2, t: 0.5 });
+      }
+    }
+  }
+  for (let k = flashes.length - 1; k >= 0; k--) if ((flashes[k].t -= DT) <= 0) flashes.splice(k, 1);
+  cnt.time += DT;
+}
+
+// ---------- drawing the box ----------
+const cv = $("sim"), ctx = cv.getContext("2d");
+let col = {}, view = { s: 1, ox: 0, oy: 0, w: 0, h: 0 };
+function readColors() {
+  const cs = getComputedStyle(document.body);
+  ["--c", "--b", "--hl", "--muted", "--soft"].forEach((k) => (col[k] = cs.getPropertyValue(k).trim() || "#888"));
+}
+function resize() {
+  const r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (!r.width) return;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const top = 34, pad = 8, s = Math.min((r.width - 2 * pad) / W, (r.height - top - pad) / H);
+  view = { s, ox: (r.width - W * s) / 2, oy: top + (r.height - top - pad - H * s) / 2, w: r.width, h: r.height };
+}
+function draw() {
+  const { s, ox, oy } = view;
+  ctx.clearRect(0, 0, view.w, view.h);
+  ctx.fillStyle = col["--soft"]; ctx.fillRect(ox, oy, W * s, H * s);
+  ctx.strokeStyle = col["--muted"]; ctx.lineWidth = 1.5; ctx.strokeRect(ox, oy, W * s, H * s);
+  for (const f of flashes) {
+    ctx.globalAlpha = f.t / 0.5; ctx.strokeStyle = col["--hl"]; ctx.lineWidth = 3; ctx.beginPath();
+    ctx.arc(ox + f.x * s, oy + f.y * s, RAD * (1.2 + 2.8 * (1 - f.t / 0.5)) * s, 0, 2 * Math.PI); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  [["--c", 0], ["--b", 1], ["--hl", 2]].forEach(([c, ty]) => {
+    ctx.fillStyle = col[c]; ctx.beginPath();
+    for (let i = 0; i < S.n; i++) if (S.type[i] === ty) { const X = ox + S.x[i] * s, Y = oy + S.y[i] * s; ctx.moveTo(X + RAD * s, Y); ctx.arc(X, Y, RAD * s, 0, 2 * Math.PI); }
+    ctx.fill();
+  });
+}
+
+// ---------- formatting ----------
+const pct = (f) => (f >= 0.1 ? Play.fmt(f * 100, 0) : f >= 0.01 ? Play.fmt(f * 100, 1) : Play.fmt(f * 100, 2)) + "%";
+const sup = (n) => String(n).replace(/-/g, "⁻").replace(/\d/g, (d) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[d]);
+function sci(f) { // 1.7 × 10⁻⁹
+  if (!(f > 0)) return "0";
+  const e = Math.floor(Math.log10(f));
+  return Play.fmt(f / 10 ** e, 1) + " × 10" + sup(e);
+}
+const x2 = (r) => (r < 1.1 ? Play.fmt(r, 3) : r < 10 ? Play.fmt(r, 2) : Play.fmt(r, 0));
+const fmtEa = (e) => Play.fmt(e, Number.isInteger(e) ? 0 : 1);
+
+// ---------- chart: 2D energy distribution at T₁ and T ----------
+const svg = $("chart"), CH = 230, CY0 = 188, CY1 = 60, CX0 = 44;
+let CX1 = 580, knob;
+const cx = (E) => CX0 + (E / E_AX) * (CX1 - CX0);
+const PMAX = 0.15; // per kJ/mol; the curves start higher (up to 1/RT) and are clipped so the tails are visible
+const cy = (p) => CY0 - (p / PMAX) * (CY0 - CY1);
+function curve(t, from) { const pts = []; for (let k = 0; k <= 60; k++) { const E = from + ((E_AX - from) * k) / 60; pts.push([cx(E), cy(pE(E, t))]); } return pts; }
+function drawChart() {
+  const w = Math.round(svg.getBoundingClientRect().width) || 600;
+  CX1 = w - 16;
+  svg.setAttribute("viewBox", `0 0 ${w} ${CH}`);
+  svg.innerHTML = "";
+  const clip = Play.svg("clipPath", { id: "plotclip" }, Play.svg("defs", {}, svg));
+  Play.svg("rect", { x: 0, y: CY1, width: w, height: CY0 - CY1 + 1 }, clip);
+  const g = Play.svg("g", {}, svg), gp = Play.svg("g", { "clip-path": "url(#plotclip)" }, g), narrow = w < 460;
+  const e = eaEff();
+  const shade = (t, fill, op) => {
+    const pts = curve(t, e);
+    Play.svg("polygon", { points: [[cx(e), CY0], ...pts, [cx(E_AX), CY0]].map((p) => p.join(",")).join(" "), fill, opacity: op }, gp);
+  };
+  shade(T1, "var(--c)", 0.28); shade(T, "var(--a)", 0.38);
+  Play.svg("line", { x1: CX0, x2: CX1, y1: CY0, y2: CY0, stroke: "var(--muted)" }, g);
+  for (let E = 0; E <= E_AX; E += narrow ? 8 : 4) {
+    Play.svg("line", { x1: cx(E), x2: cx(E), y1: CY0, y2: CY0 + 4, stroke: "var(--muted)" }, g);
+    Play.svg("text", { x: cx(E), y: CY0 + 18, "text-anchor": "middle", "font-size": 13 }, g).textContent = E;
+  }
+  Play.svg("text", { x: CX1, y: CY0 + 36, "text-anchor": "end", "font-size": 13 }, g).textContent = P.t("axE");
+  Play.svg("text", { x: 6, y: 16, "font-size": 13 }, g).textContent = P.t("axP") + " ↑";
+  Play.svg("text", { x: CX0 + 4, y: CY1 - 8, "font-size": 13 }, g).textContent = "↑ " + P.t("axClip");
+  const line = (t, stroke, dash) => Play.svg("polyline", { points: curve(t, 0).map((p) => p.join(",")).join(" "), fill: "none", stroke, "stroke-width": 2.5, "stroke-dasharray": dash || "" }, gp);
+  line(T1, "var(--c)", "6 4"); line(T, "var(--a)");
+  // legend with the computed shares
+  const lx = CX1 - 150, lab = (y, color, dash, txt) => {
+    Play.svg("line", { x1: lx, x2: lx + 22, y1: y - 4, y2: y - 4, stroke: color, "stroke-width": 2.5, "stroke-dasharray": dash }, g);
+    Play.svg("text", { x: lx + 28, y, "font-size": 13, class: "fg" }, g).textContent = txt;
+  };
+  lab(22, "var(--c)", "6 4", `T₁ ${T1} K: ${pct(frac(e, T1))}`);
+  lab(42, "var(--a)", "", `T ${T} K: ${pct(frac(e, T))}`);
+  if (cat) {
+    Play.svg("line", { x1: cx(ea), x2: cx(ea), y1: CY0, y2: CY1 + 20, stroke: "var(--muted)", "stroke-dasharray": "3 3" }, g);
+    Play.svg("text", { x: cx(ea) + 4, y: CY1 + 32, "font-size": 13 }, g).textContent = P.t("eaChart") + " " + fmtEa(ea);
+  }
+  knob = Play.svg("g", { class: "knob", tabindex: 0, role: "slider", "aria-label": P.t("knobAria"), "aria-valuemin": EA_MIN, "aria-valuemax": EA_MAX, "aria-valuenow": ea, "aria-valuetext": P.t("knobVal", { ea: fmtEa(ea) }) }, svg);
+  Play.svg("line", { x1: cx(e), x2: cx(e), y1: CY0, y2: CY1 - 2, stroke: "var(--fg)", "stroke-width": 2 }, knob);
+  Play.svg("rect", { x: cx(e) - 7, y: CY0 - 64, width: 14, height: 30, rx: 5, fill: "var(--surface)", stroke: "var(--fg)", "stroke-width": 2 }, knob);
+  const tx = Play.svg("text", { x: cx(e) + 6, y: CY1 + 12, "font-size": 13, class: "fg" }, knob);
+  tx.textContent = (cat ? P.t("eaCat") : P.t("eaChart")) + " = " + fmtEa(e) + " kJ/mol";
+  let len = 0; try { len = tx.getComputedTextLength(); } catch (err) { len = 0; }
+  if (cx(e) - 6 - len >= 2 && (cat || cx(e) + 6 + len > w - 2)) { tx.setAttribute("x", cx(e) - 6); tx.setAttribute("text-anchor", "end"); }
+  else if (cx(e) + 6 + len > w - 2) { tx.setAttribute("x", w - 2); tx.setAttribute("y", CY1 + 30); tx.setAttribute("text-anchor", "end"); }
+  knob.addEventListener("keydown", (ev) => {
+    const d = { ArrowRight: 0.5, ArrowUp: 0.5, ArrowLeft: -0.5, ArrowDown: -0.5, PageUp: 2, PageDown: -2 }[ev.key];
+    if (d !== undefined) { setEa(ea + d); ev.preventDefault(); keepFocus(); }
+    if (ev.key === "Home") { setEa(EA_MIN); ev.preventDefault(); keepFocus(); }
+    if (ev.key === "End") { setEa(EA_MAX); ev.preventDefault(); keepFocus(); }
+  });
+}
+function keepFocus() { knob.focus(); }
+let dragging = false;
+const eaFromEvt = (ev) => (((Play.pointer(svg, ev).x - CX0) / (CX1 - CX0)) * E_AX) / (cat ? CAT : 1);
+svg.addEventListener("pointerdown", (ev) => { dragging = true; svg.setPointerCapture(ev.pointerId); setEa(eaFromEvt(ev)); keepFocus(); ev.preventDefault(); });
+svg.addEventListener("pointermove", (ev) => { if (dragging) { setEa(eaFromEvt(ev)); keepFocus(); } });
+["pointerup", "pointercancel"].forEach((nm) => svg.addEventListener(nm, () => (dragging = false)));
+
+// ---------- settings ----------
+const tempEl = $("temp"), eaEl = $("ea");
+function setEa(v) {
+  const nv = Math.round(Play.clamp(v, EA_MIN, EA_MAX) * 2) / 2;
+  if (nv === ea && eaEl.value == nv) return;
+  ea = nv; eaEl.value = ea; clearWindow(); refresh();
+}
+tempEl.addEventListener("input", () => { setT(+tempEl.value); clearWindow(); refresh(); });
+eaEl.addEventListener("input", () => setEa(+eaEl.value));
+$("cat").addEventListener("change", (ev) => { cat = ev.target.checked; clearWindow(); refresh(); });
+document.querySelectorAll("[data-conc]").forEach((b) => b.addEventListener("click", () => { pairs = +b.dataset.conc; init(); refresh(); if (paused) draw(); }));
+
+// ---------- text ----------
+const extra = $("extra"), live = $("live");
+const el = (tag, html, cls) => { const e = document.createElement(tag); if (html != null) e.innerHTML = html; if (cls) e.className = cls; return e; };
+let cur = 0, answered = false, statEls = null;
+const realZ = collRatio(REAL.t1, REAL.t2), realF = frac(REAL.ea, REAL.t2) / frac(REAL.ea, REAL.t1);
+const zcPct = Play.fmt((realZ - 1) * 100, 1);
+function measured() {
+  const c = cnt.coll, f = c ? cnt.succ / c : NaN, err = c ? Math.sqrt(Math.max(cnt.succ, 1)) / c : NaN;
+  return { cps: cnt.time > 0.05 ? c / cnt.time : NaN, f, err, rps: cnt.time > 0.05 ? cnt.succ / cnt.time : NaN };
+}
+function buildStats() {
+  const box = el("div", null, "stats");
+  const row = (k) => { const v = el("span", "", "v"); box.append(el("span", P.t(k)), v); return v; };
+  statEls = { coll: row("stColl"), frac: row("stFrac"), theo: row("stTheo"), rate: row("stRate"), prod: row("stProd"), win: row("stWin") };
+  return box;
+}
+function updStats() {
+  if (!statEls || !statEls.coll.isConnected) return;
+  const m = measured();
+  statEls.coll.textContent = Play.fmt(m.cps, 1);
+  statEls.frac.innerHTML = Number.isFinite(m.f) ? pct(m.f) + " <small>" + P.t("pmV", { e: pct(m.err) }) + "</small>" : "—";
+  statEls.theo.textContent = pct(frac(eaEff(), T));
+  statEls.rate.textContent = Play.fmt(m.rps, 2);
+  statEls.prod.textContent = cnt.prod;
+  statEls.win.textContent = P.t("winV", { s: Play.fmt(cnt.time, 0) });
+  if (cur > 0) Play.live(live, P.t("live2", { t: T, ea: fmtEa(eaEff()), c: Play.fmt(m.cps, 0), f: Number.isFinite(m.f) ? pct(m.f) : "—", r: Play.fmt(m.rps, 1) }));
+}
+function ratioBox() {
+  const e = eaEff(), z = collRatio(T1, T), f = frac(e, T) / frac(e, T1), r = z * f, mx = Math.max(z, f, r, 1);
+  const box = el("div", null, "ratio"), hd = el("div", null, "hd");
+  hd.append(el("span", P.t("ratioH", { t1: T1, t: T })));
+  const b = el("button", P.t("setT1"), "small"); b.type = "button";
+  b.addEventListener("click", () => { T1 = T; refresh(); });
+  hd.append(b); box.append(hd);
+  [[P.t("rColl"), z], [P.t("rFrac", { f1: pct(frac(e, T1)), f2: pct(frac(e, T)) }), f], [P.t("rRate"), r]].forEach(([lb, v]) => {
+    const row = el("div", null, "row"), bar = el("div", null, "bar"), i = el("i");
+    i.style.width = Play.clamp((v / mx) * 100, 1, 100) + "%"; bar.append(i);
+    row.append(el("span", lb, "lb"), bar, el("span", "×" + x2(v), "x"));
+    box.append(row);
+  });
+  return box;
+}
+function text() {
+  extra.innerHTML = "";
+  $("vtitle").textContent = T + " K · Ea " + fmtEa(eaEff()) + " kJ/mol";
+  $("tVal").textContent = T + " K";
+  $("eaVal").textContent = fmtEa(ea) + " kJ/mol";
+  document.querySelectorAll("[data-conc]").forEach((b) => b.setAttribute("aria-pressed", +b.dataset.conc === pairs ? "true" : "false"));
+  $("vtag").textContent = P.t("vtag", { n: S.n });
+  if (cur === 0) {
+    $("stepBody").textContent = answered ? P.t("b1done", { zc: zcPct, ea: REAL.ea, ff: x2(realF) }) : P.t("b1");
+    Play.live(live, P.t("live1", { t: T, f: pct(frac(eaEff(), T)), ea: fmtEa(eaEff()) }));
+  } else if (cur === 1) {
+    $("stepBody").textContent = P.t("b2");
+    extra.append(buildStats(), ratioBox());
+    updStats();
+  } else {
+    $("stepBody").textContent = P.t("rule"); $("stepBody").className = "rule";
+    extra.append(el("p", P.t("real", { ea: REAL.ea, z: x2(realZ), f: x2(realF), r: x2(realZ * realF) })));
+    extra.append(el("p", "<strong>" + P.t("waysH") + "</strong>"));
+    const ul = el("ul", null, "ways");
+    const fc0 = frac(ea, T), fc1 = frac(ea * CAT, T), rc = frac(REAL.eb, REAL.t1) / frac(REAL.ea, REAL.t1);
+    ul.append(el("li", P.t("wConc")), el("li", P.t("wArea", { a: Play.fmt(CUT ** 3 / CUT ** 2, 0) })),
+      el("li", P.t("wCat", { f1: pct(fc0), f2: pct(fc1), x: x2(fc1 / fc0), ea: REAL.ea, eb: REAL.eb, rc: x2(rc) })));
+    extra.append(ul, buildStats());
+    updStats();
+  }
+  if (cur !== 2) $("stepBody").className = "";
+}
+function refresh() { text(); drawChart(); }
+
+// ---------- loop ----------
+let paused = Play.reduced, fast = false, raf = 0, last = 0, visible = true, acc = 0, lastStat = 0;
+function tick(now) {
+  raf = 0;
+  if (paused || !visible || document.hidden) return;
+  const dt = last ? Math.min((now - last) / 1000, 0.05) : 1 / 60;
+  last = now;
+  acc += dt * (fast ? 5 : 1);
+  let k = 0;
+  while (acc >= DT && k++ < 160) { step(); acc -= DT; }
+  if (acc > DT) acc = 0;
+  draw();
+  if (now - lastStat > 300) { lastStat = now; updStats(); }
+  raf = requestAnimationFrame(tick);
+}
+function wake() { if (!raf && !paused && visible && !document.hidden) { last = 0; raf = requestAnimationFrame(tick); } }
+if ("IntersectionObserver" in window) new IntersectionObserver((es) => { visible = es[0].isIntersecting; wake(); }).observe(cv);
+document.addEventListener("visibilitychange", wake);
+const pauseBtn = $("pause"), fastBtn = $("fast");
+function setPause(p) {
+  paused = p;
+  pauseBtn.textContent = P.t(p ? "play" : "pause"); pauseBtn.setAttribute("aria-pressed", p ? "true" : "false");
+  if (!p) wake(); else updStats();
+}
+pauseBtn.addEventListener("click", () => setPause(!paused));
+fastBtn.addEventListener("click", () => { fast = !fast; fastBtn.setAttribute("aria-pressed", fast ? "true" : "false"); });
+$("catLabel").textContent = P.t("catLabel", { f: CAT });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q", { zc: zcPct }),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong", { zc: zcPct }),
+}, () => { answered = true; text(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  cur = i;
+  $("kicker").textContent = P.t("k" + (i + 1)); $("stepTitle").textContent = P.t("t" + (i + 1));
+  $("predict").hidden = i !== 0;
+  $("cT").hidden = i === 0; $("c3").hidden = i !== 2;
+  resize(); refresh(); draw(); wake();
+});
+
+function start() {
+  T = 300; T1 = 300; ea = 8; cat = false; pairs = 30; answered = false; fast = false;
+  tempEl.value = T; eaEl.value = ea; $("cat").checked = false; fastBtn.setAttribute("aria-pressed", "false");
+  init();
+}
+$("reset").addEventListener("click", () => { pr.reset(); start(); setPause(Play.reduced); st.go(0); });
+window.addEventListener("resize", () => { resize(); draw(); drawChart(); });
+if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readColors(); draw(); });
+
+$("resultNote").textContent = P.t("resultNote", { ea: REAL.ea, z: x2(realZ), f: x2(realF) });
+$("data").textContent = P.t("dataNote", { n: 2 * pairs, real: sci(frac(REAL.ea, 298)), ea: REAL.ea, life: LIFE });
+readColors(); start(); setPause(paused); resize(); refresh(); draw();
+</script>
+</body>
+</html>

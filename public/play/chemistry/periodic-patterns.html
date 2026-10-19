@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why the table has rows and columns</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .result .math { white-space: normal; }
+  .vis { padding: 14px 14px 6px; }
+  .heads, .grid { max-width: 520px; margin: 0 auto; }
+  .heads { display: grid; grid-template-columns: repeat(8, 1fr); text-align: center; font-size: 13px; color: var(--muted); font-weight: 650; margin-bottom: 4px; }
+  .grid { position: relative; aspect-ratio: 8 / 5; }
+  .tile {
+    position: absolute; width: calc(12.5% - 4px); height: calc(25% - 4px); margin: 2px; padding: 0;
+    border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    line-height: 1.1; background: var(--surface); border: 1.5px solid var(--line); touch-action: manipulation;
+    transition: left .7s ease, top .7s ease, background .3s, border-color .3s;
+  }
+  .tile .z { position: absolute; top: 2px; left: 4px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tile .s { font-size: 19px; font-weight: 750; margin-top: 6px; }
+  .tile .m { font-size: 13px; letter-spacing: -.03em; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tile .dots { display: grid; grid-template-columns: repeat(4, 5px); gap: 2px; margin-top: 2px; min-height: 12px; }
+  .tile .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--fg); }
+  .tile.sel { outline: 3px solid var(--hl); outline-offset: 1px; z-index: 2; }
+  .tile.bad { border: 2px dashed var(--no); }
+  .tile.bad .z { color: var(--no); font-weight: 700; }
+  .noanim .tile { transition: none; }
+  .grid.colour .tile { background: color-mix(in srgb, var(--k) 30%, var(--surface)); border-color: var(--k); }
+  .grid.colour .tile.bad { border: 2px dashed var(--no); }
+  .k1 { --k: var(--no); } .k2 { --k: var(--b); } .k3 { --k: var(--hl); } .k4 { --k: var(--a); }
+  .k5 { --k: var(--c); } .k6 { --k: var(--h); } .k7 { --k: color-mix(in srgb, var(--c) 50%, var(--a)); } .k8 { --k: var(--muted); }
+  .seg { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .seg button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .bohrrow { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 4px 14px 14px; }
+  #bohr { width: 210px; height: 210px; flex: none; }
+  .shell { fill: none; stroke: var(--line); stroke-width: 1.5; }
+  .nuc { fill: var(--a); }
+  .nuct { fill: var(--surface); font: 700 15px var(--font); }
+  .e-in { fill: var(--muted); }
+  .e-out { fill: var(--hl); stroke: var(--fg); stroke-width: 1.2; }
+  .bcap { font-size: 14px; max-width: 260px; }
+  .bcap b { font-size: 18px; }
+  .bcap .cfg { font-family: var(--math); font-size: 17px; }
+  .ecard { background: var(--soft); border-radius: 12px; padding: 10px 14px; margin: 4px 0 10px; font-size: 14px; }
+  .ecard p { margin: 0 0 6px !important; }
+  .ecard .gname { font-weight: 700; color: var(--fg); }
+  table.cols { border-collapse: collapse; width: 100%; font-size: 14px; margin: 2px 0 10px; }
+  table.cols th, table.cols td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.cols td.n { font-family: var(--math); font-weight: 700; color: var(--a); text-align: center; }
+  .msg { font-size: 14px !important; color: var(--fg) !important; min-height: 1.5em; }
+  .msg.bad { color: var(--no) !important; font-weight: 650; }
+  @media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
+  @media (max-width: 560px) {
+    .vis { padding: 10px 6px 4px; }
+    .tile { width: calc(12.5% - 2px); margin: 1px; border-radius: 6px; }
+    .tile .z { top: 1px; left: 3px; }
+    .tile .s { font-size: 17px; margin-top: 8px; }
+    .grid { aspect-ratio: 8 / 6; }
+  }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vis">
+        <div class="heads" id="heads" aria-hidden="true"></div>
+        <div class="grid" id="grid" role="group" data-t-aria="gridAria"></div>
+      </div>
+      <div class="controls">
+        <span data-t="orderLbl"></span>
+        <span class="seg"><button type="button" class="small" id="byZ" data-t="byZ"></button><button type="button" class="small" id="byM" data-t="byM"></button></span>
+        <button type="button" class="small" id="colour" data-t="colour" aria-pressed="false"></button>
+      </div>
+      <div class="bohrrow">
+        <svg id="bohr" viewBox="0 0 240 240" role="img"></svg>
+        <div class="bcap" id="bcap" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="ecard" id="ecard"></div>
+      <div id="ruleBox">
+        <table class="cols" id="colTable"></table>
+        <p id="history"></p>
+      </div>
+      <p class="msg" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — element data and pure layout logic, no DOM (checked in node)
+// [Z, symbol, English, Chinese, standard atomic mass (2 d.p.), electrons per shell]
+const ELEMENTS = [
+  [1, "H", "hydrogen", "氢", 1.01, [1]],
+  [2, "He", "helium", "氦", 4.00, [2]],
+  [3, "Li", "lithium", "锂", 6.94, [2, 1]],
+  [4, "Be", "beryllium", "铍", 9.01, [2, 2]],
+  [5, "B", "boron", "硼", 10.81, [2, 3]],
+  [6, "C", "carbon", "碳", 12.01, [2, 4]],
+  [7, "N", "nitrogen", "氮", 14.01, [2, 5]],
+  [8, "O", "oxygen", "氧", 16.00, [2, 6]],
+  [9, "F", "fluorine", "氟", 19.00, [2, 7]],
+  [10, "Ne", "neon", "氖", 20.18, [2, 8]],
+  [11, "Na", "sodium", "钠", 22.99, [2, 8, 1]],
+  [12, "Mg", "magnesium", "镁", 24.31, [2, 8, 2]],
+  [13, "Al", "aluminium", "铝", 26.98, [2, 8, 3]],
+  [14, "Si", "silicon", "硅", 28.09, [2, 8, 4]],
+  [15, "P", "phosphorus", "磷", 30.97, [2, 8, 5]],
+  [16, "S", "sulfur", "硫", 32.06, [2, 8, 6]],
+  [17, "Cl", "chlorine", "氯", 35.45, [2, 8, 7]],
+  [18, "Ar", "argon", "氩", 39.95, [2, 8, 8]],
+  [19, "K", "potassium", "钾", 39.10, [2, 8, 8, 1]],
+  [20, "Ca", "calcium", "钙", 40.08, [2, 8, 8, 2]],
+].map(([z, sym, en, zh, mass, shells]) => ({ z, sym, en, zh, mass, shells }));
+const GROUP_NO = [1, 2, 13, 14, 15, 16, 17, 18];   // IUPAC numbers of the 8 main-group columns
+const outer = (e) => e.shells[e.shells.length - 1];
+const period = (e) => e.shells.length;
+// A shell is "full" here when it holds 2 (first shell) or 8 (outer shell of the first 20 elements).
+const fullOuter = (e) => outer(e) === (period(e) === 1 ? 2 : 8);
+// Column 0..7: number of outer electrons, except a full outer shell goes to the noble-gas column (He has 2).
+const column = (e) => (fullOuter(e) ? 7 : outer(e) - 1);
+// Colour class 1..8: outer electrons; a full shell counts with the noble gases.
+const colourKey = (e) => (fullOuter(e) ? 8 : outer(e));
+// Electron-shell filling for the first 20: 2, then 8, then 8, then the rest.
+function fillShells(z) {
+  const caps = [2, 8, 8, 2], out = [];
+  let left = z;
+  for (const c of caps) { if (left <= 0) break; out.push(Math.min(c, left)); left -= c; }
+  return out;
+}
+// Slots: where element number i (1-based, by Z) sits in the table.
+const SLOTS = ELEMENTS.map((e) => ({ row: period(e) - 1, col: column(e) }));
+// Put elements into the slots in a given order (the order fills slot 1, slot 2, …).
+function layout(order) { return order.map((e, i) => ({ e, slot: SLOTS[i], home: SLOTS[e.z - 1] })); }
+const byZ = () => ELEMENTS.slice().sort((a, b) => a.z - b.z);
+const byMass = () => ELEMENTS.slice().sort((a, b) => a.mass - b.mass || a.z - b.z);
+// Elements that land somewhere other than their atomic-number slot.
+const misplaced = (lay) => lay.filter((p) => p.slot !== p.home).map((p) => p.e);
+// Pairs next to each other in Z order whose masses go the "wrong" way.
+function massInversions(list) {
+  const s = list.slice().sort((a, b) => a.z - b.z), out = [];
+  for (let i = 1; i < s.length; i++) if (s[i].mass < s[i - 1].mass) out.push([s[i - 1], s[i]]);
+  return out;
+}
+const membersOfColumn = (c) => ELEMENTS.filter((e) => column(e) === c);
+// Points (x, y) for k electrons evenly round a circle of radius r centred at (cx, cy); pairs drawn as in Bohr pictures.
+function ringPoints(k, r, cx, cy) {
+  const pts = [];
+  for (let i = 0; i < k; i++) {
+    const t = -Math.PI / 2 + (2 * Math.PI * i) / Math.max(1, k);
+    pts.push({ x: cx + r * Math.cos(t), y: cy + r * Math.sin(t) });
+  }
+  return pts;
+}
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "Why the table has rows and columns", eyebrow: "Chemistry · Stage 4",
+    h1: "Elements in a column behave alike because they have the same number of outer electrons",
+    intro: "Lay out the first 20 elements, tap one to see its electron shells, then try ordering them by mass instead.",
+    reset: "Reset", gridAria: "The first 20 elements in periodic-table layout. Use the arrow keys to move between elements.",
+    orderLbl: "Order by:", byZ: "Atomic number", byM: "Atomic mass", colour: "Colour by outer electrons",
+    s1: "Guess", s2: "Sort and tap", s3: "Rule",
+    k1: "Predict first", t1: "What puts the elements in order?",
+    b1: "Pick an answer. Then open step 2 and try both orders.",
+    q: "The periodic table lists elements in order of…", o1: "their mass: lightest first, heaviest last", o2: "the number of protons in the nucleus",
+    o3: "the year they were discovered", o4: "their names, A to Z",
+    right: "Yes. That number is the atomic number Z. In step 2, sort by mass instead and see where it goes wrong.",
+    wrong: "Many people think it is mass, and mass works almost all the time, but not always. In step 2, sort by mass and see what goes wrong.",
+    k2: "Hands on", t2: "Sort by mass, colour by outer electrons",
+    b2: "Tap any element to see its shells. Switch to ordering by atomic mass and watch which elements move. Then turn on the colours.",
+    k3: "The rule", t3: "Order by protons. Columns share outer electrons.",
+    b3: "The order is the atomic number Z (the number of protons). Each row is one more electron shell. Each column has the same number of outer electrons, which is why the elements in it behave alike.",
+    cap: "{name} · Z = {z}", capP: "{z} protons, {z} electrons", capCfg: "Shells: {cfg}", capM: "Atomic mass {m}",
+    capPos: "Column {g}, row {p}", capOut: "Outer electrons: {n}",
+    bohrAria: "Shell diagram of {name}: {cfg}. The {n} outer electrons are highlighted.",
+    nucl: "{z}+",
+    cardOut: "{sym} has {n} outer electrons, in shell {p}.", cardOut1: "{sym} has 1 outer electron, in shell {p}.",
+    cardHe: "He has only 2 electrons, but that fills its only shell, so it behaves like the other noble gases.",
+    cardH: "H has 1 outer electron and is often put in column 1, but it is a non-metal gas, not an alkali metal.",
+    g1: "Alkali metals", r1: "Soft metals with 1 outer electron, which they lose easily. All react with water to give hydrogen gas. Lithium fizzes steadily, sodium melts into a ball and darts around, potassium bursts into a lilac flame: more vigorous down the column, because the outer electron is further from the nucleus.",
+    g2: "Alkaline earth metals", r2: "2 outer electrons, lost to form 2+ ions. Beryllium hardly reacts with water, magnesium reacts very slowly with cold water, calcium fizzes steadily: again more vigorous down the column.",
+    g13: "Group 13", r13: "3 outer electrons. Aluminium forms Al³⁺ ions; a thin oxide layer protects it, which is why foil does not fizz in water. Boron is a hard non-metal-like element.",
+    g14: "Group 14", r14: "4 outer electrons, usually shared in 4 bonds: CH₄, SiH₄. Carbon and silicon both form giant covalent crystals (diamond, silicon chips).",
+    g15: "Group 15", r15: "5 outer electrons; both make 3 bonds to hydrogen: NH₃ (ammonia) and PH₃ (phosphine).",
+    g16: "Group 16", r16: "6 outer electrons; both make 2 bonds to hydrogen: H₂O and H₂S, and form oxide / sulfide ions O²⁻ and S²⁻.",
+    g17: "Halogens", r17: "7 outer electrons, one short of a full shell, so they grab an electron. Very reactive non-metals; fluorine is the most reactive of all, and reactivity falls down the column.",
+    g18: "Noble gases", r18: "Full outer shell. They almost never react: helium in balloons, neon in glowing signs, argon to protect hot metal in light bulbs and welding.",
+    mZ: "Ordered by atomic number: every column holds elements with the same number of outer electrons.",
+    mM: "Ordered by mass, {a} ({ma}) comes after {b} ({mb}), so they swap: {b} (outer electrons: {nb}) lands in column {gb}, {a} (outer electrons: {na}) lands in column {ga}. The columns stop matching.",
+    mSel: "{name}: Z = {z}, shells {cfg}.",
+    mCol: "Colours on: each column is one colour, because each column has one number of outer electrons.",
+    thG: "Column", thN: "Outer e⁻", thEl: "Elements",
+    hist: "Mendeleev (1869) ordered the elements known to him mostly by atomic mass, but he grouped them by behaviour, left gaps for elements not yet found, and swapped tellurium (127.60) and iodine (126.90) so iodine would sit with the halogens. Among the first 20 the same clash happens at argon and potassium: {a} {ma} vs {b} {mb}. In 1913 Moseley measured X-rays from the elements and showed the real order is the charge of the nucleus, the atomic number. With Z there are no swaps.",
+    resultTitle: "What we found", resultMain: "order = Z (protons) · row = shells · column = outer electrons",
+    resultNote: "Mass rises almost in step with Z, which is why ordering by mass nearly works, but argon and potassium (and tellurium and iodine) break it.",
+    explainK: "Explain it", explainQ: "Sodium and potassium react fiercely with water, but magnesium barely does, even though magnesium sits between them by mass. Explain why using outer electrons and shells, not mass.",
+    homeK: "Try at home", homeQ: "Write the first 20 element symbols on 20 cards with their mass. Lay them in a line by mass, then by atomic number. Which two cards change place? Now deal them into rows of 2, 8, 8, 2.",
+    foot: "Atomic masses are IUPAC standard atomic weights rounded to 2 decimals (conventional values for H, Li, B, C, N, O, Mg, Si, S, Cl). Shells use the simple 2, 8, 8 model that works for the first 20 elements; from scandium on, the third shell fills up to 18. Columns use IUPAC numbering 1, 2, 13–18 (Chinese textbooks: ⅠA–ⅦA and group 0). Mendeleev's table: 1869; argon was not discovered until 1894. Moseley's X-ray work: 1913–1914. Other pairs where mass and Z disagree: Co/Ni, Th/Pa, U/Np. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "周期表为什么有行有列", eyebrow: "化学 · 阶段 4",
+    h1: "同一列的元素性质相似，因为最外层电子数一样",
+    intro: "把前 20 种元素排出来，点一个看它的电子层，再试试按质量排。",
+    reset: "重置", gridAria: "前 20 种元素，按周期表的位置摆放。用方向键在元素间移动。",
+    orderLbl: "排序：", byZ: "原子序数", byM: "相对原子质量", colour: "按最外层电子数上色",
+    s1: "先猜", s2: "排一排、点一点", s3: "规律",
+    k1: "先猜一猜", t1: "元素是按什么排序的？",
+    b1: "先选一个答案，再去第 2 步把两种排法都试一下。",
+    q: "元素周期表里的元素是按什么顺序排的？", o1: "按质量：最轻的在前，最重的在后", o2: "按原子核里质子的个数",
+    o3: "按被发现的年份", o4: "按名称的字母顺序",
+    right: "对。这个数叫原子序数 Z。到第 2 步改成按质量排，看看哪里出错。",
+    wrong: "很多人以为是质量。按质量排几乎都对，但不是全对。到第 2 步按质量排一次，看看哪里出错。",
+    k2: "动手", t2: "按质量排，按最外层电子上色",
+    b2: "点任意一个元素看它的电子层。把排序改成「相对原子质量」，看哪些元素换了位置；再打开上色。",
+    k3: "规律", t3: "按质子数排；同一列最外层电子数相同",
+    b3: "排序依据是原子序数 Z（质子数）。每一行多一层电子；每一列最外层电子数相同，所以同列元素性质相似。",
+    cap: "{name} · Z = {z}", capP: "{z} 个质子，{z} 个电子", capCfg: "电子层：{cfg}", capM: "相对原子质量 {m}",
+    capPos: "第 {g} 列，第 {p} 行", capOut: "最外层电子：{n} 个",
+    bohrAria: "{name}的电子层示意图：{cfg}，最外层的 {n} 个电子高亮。",
+    nucl: "{z}+",
+    cardOut: "{sym} 最外层有 {n} 个电子，在第 {p} 层。", cardOut1: "{sym} 最外层有 1 个电子，在第 {p} 层。",
+    cardHe: "He 只有 2 个电子，但这已经把它唯一的一层填满了，所以它的性质和其他稀有气体一样。",
+    cardH: "H 最外层 1 个电子，常放在第 1 列，但它是非金属气体，不是碱金属。",
+    g1: "碱金属", r1: "很软的金属，最外层 1 个电子，很容易失去。都能和水反应放出氢气：锂平稳地冒泡，钠熔成小球四处游动，钾一放进去就燃起淡紫色火焰。越往下越剧烈，因为最外层电子离原子核越远。",
+    g2: "碱土金属", r2: "最外层 2 个电子，失去后成为 2+ 离子。铍几乎不和水反应，镁和冷水反应很慢，钙平稳地冒泡：同样是越往下越剧烈。",
+    g13: "第 13 列", r13: "最外层 3 个电子。铝形成 Al³⁺；表面一层薄薄的氧化膜保护着它，所以铝箔放进水里不冒泡。硼是很硬、像非金属的元素。",
+    g14: "第 14 列", r14: "最外层 4 个电子，通常共用成 4 个键：CH₄、SiH₄。碳和硅都能形成巨大的共价晶体（金刚石、硅芯片）。",
+    g15: "第 15 列", r15: "最外层 5 个电子；和氢都形成 3 个键：NH₃（氨）、PH₃（磷化氢）。",
+    g16: "第 16 列", r16: "最外层 6 个电子；和氢都形成 2 个键：H₂O、H₂S，也能形成 O²⁻、S²⁻ 离子。",
+    g17: "卤素", r17: "最外层 7 个电子，差 1 个就满，所以爱抢电子。都是很活泼的非金属；氟是所有元素里最活泼的，越往下越不活泼。",
+    g18: "稀有气体", r18: "最外层已满，几乎不发生反应：氦充气球，氖做霓虹灯，氩在灯泡和焊接中保护高温金属。",
+    mZ: "按原子序数排：每一列元素的最外层电子数都相同。",
+    mM: "按质量排，{a}（{ma}）排到了 {b}（{mb}）后面，两者对调：最外层 {nb} 个电子的 {b} 跑进了第 {gb} 列，最外层 {na} 个电子的 {a} 跑进了第 {ga} 列。列和性质对不上了。",
+    mSel: "{name}：Z = {z}，电子层 {cfg}。",
+    mCol: "已上色：每一列一个颜色，因为同一列最外层电子数相同。",
+    thG: "列", thN: "最外层电子", thEl: "元素",
+    hist: "门捷列夫（1869）主要按原子量给当时已知的元素排序，但他按性质分组，为尚未发现的元素留了空位，还把碲（127.60）和碘（126.90）对调，让碘和卤素在一起。前 20 种元素里，氩和钾也有同样的冲突：{a} {ma}，{b} {mb}。1913 年莫塞莱测量各元素的 X 射线，证明真正的顺序是原子核的电荷数，也就是原子序数。按 Z 排就不用对调。",
+    resultTitle: "我们发现", resultMain: "顺序 = Z（质子数）· 行 = 电子层 · 列 = 最外层电子数",
+    resultNote: "质量大体随 Z 增大，所以按质量排几乎都对；但氩和钾（还有碲和碘）不对。",
+    explainK: "说一说", explainQ: "钠和钾遇水反应都很剧烈，镁却几乎不反应，虽然按质量镁就夹在它们中间。用最外层电子和电子层（而不是质量）解释为什么。",
+    homeK: "家里做一做", homeQ: "在 20 张卡片上写前 20 种元素的符号和相对原子质量。先按质量排成一行，再按原子序数排。哪两张换了位置？再按 2、8、8、2 分成几行。",
+    foot: "相对原子质量取 IUPAC 标准原子量，保留两位小数（H、Li、B、C、N、O、Mg、Si、S、Cl 用约定值）。电子层用前 20 种元素适用的 2、8、8 简化模型；从钪开始第三层会填到 18 个。列号用 IUPAC 的 1、2、13–18（中国教材写作 ⅠA–ⅦA 和 0 族）。门捷列夫周期表：1869 年；氩到 1894 年才被发现。莫塞莱的 X 射线工作：1913–1914 年。质量和 Z 顺序相反的还有 Co/Ni、Th/Pa、U/Np。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const zh = P.lang === "zh";
+const nameOf = (e) => (zh ? e.zh : e.en);
+const sep = zh ? "、" : ", ";
+const cfgOf = (e) => e.shells.join(zh ? "、" : ", ");
+const m2 = (x) => Play.fmt(x, 2);
+const state = { order: "z", colour: false, sel: 11 };
+const grid = $("grid"), tiles = new Map();
+
+GROUP_NO.forEach((g) => { const d = document.createElement("div"); d.textContent = g; $("heads").appendChild(d); });
+ELEMENTS.forEach((e) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tile k" + colourKey(e);
+  b.innerHTML = '<span class="z">' + e.z + '</span><span class="s">' + e.sym + '</span><span class="m"></span><span class="dots" hidden></span>';
+  const dots = b.querySelector(".dots");
+  for (let i = 0; i < outer(e); i++) dots.appendChild(document.createElement("i"));
+  b.addEventListener("click", () => select(e.z, false));
+  b.addEventListener("keydown", onKey);
+  grid.appendChild(b);
+  tiles.set(e.z, b);
+});
+if (Play.reduced) grid.classList.add("noanim");
+
+function currentLayout() { return layout(state.order === "z" ? byZ() : byMass()); }
+function posOf(z) { return currentLayout().find((p) => p.e.z === z).slot; }
+
+function render() {
+  const lay = currentLayout(), bad = new Set(misplaced(lay).map((e) => e.z));
+  grid.classList.toggle("colour", state.colour);
+  lay.forEach((p) => {
+    const b = tiles.get(p.e.z);
+    b.style.left = p.slot.col * 12.5 + "%";
+    b.style.top = p.slot.row * 25 + "%";
+    b.classList.toggle("bad", bad.has(p.e.z));
+    b.classList.toggle("sel", p.e.z === state.sel);
+    b.tabIndex = p.e.z === state.sel ? 0 : -1;
+    b.querySelector(".m").textContent = m2(p.e.mass);
+    b.querySelector(".m").hidden = state.colour;
+    b.querySelector(".dots").hidden = !state.colour;
+    b.setAttribute("aria-label", P.t("mSel", { name: nameOf(p.e) + " " + p.e.sym, z: p.e.z, cfg: cfgOf(p.e) }) + " " + P.t("capM", { m: m2(p.e.mass) }));
+    b.setAttribute("aria-pressed", p.e.z === state.sel ? "true" : "false");
+  });
+  $("byZ").setAttribute("aria-pressed", state.order === "z" ? "true" : "false");
+  $("byM").setAttribute("aria-pressed", state.order === "m" ? "true" : "false");
+  $("colour").setAttribute("aria-pressed", state.colour ? "true" : "false");
+  drawBohr();
+  drawCard();
+  const msg = $("live");
+  if (state.order === "m") {
+    const [a, b] = massInversions(ELEMENTS)[0];
+    msg.className = "msg bad";
+    msg.textContent = P.t("mM", { a: a.sym, ma: m2(a.mass), b: b.sym, mb: m2(b.mass), nb: outer(b), gb: GROUP_NO[posOf(b.z).col], na: outer(a), ga: GROUP_NO[posOf(a.z).col] });
+  } else {
+    msg.className = "msg";
+    msg.textContent = state.colour ? P.t("mCol") : P.t("mZ");
+  }
+}
+
+function drawBohr() {
+  const e = ELEMENTS[state.sel - 1], svg = $("bohr"), cx = 120, cy = 120;
+  svg.innerHTML = "";
+  const n = e.shells.length;
+  e.shells.forEach((k, i) => {
+    const r = n === 1 ? 64 : 46 + (i * 66) / (n - 1);   // innermost 46, outermost 112
+    Play.svg("circle", { class: "shell", cx, cy, r }, svg);
+    const isOut = i === n - 1;
+    ringPoints(k, r, cx, cy).forEach((p) => Play.svg("circle", { class: isOut ? "e-out" : "e-in", cx: p.x, cy: p.y, r: isOut ? 6.5 : 4.5 }, svg));
+  });
+  Play.svg("circle", { class: "nuc", cx, cy, r: 26 }, svg);
+  const t = Play.svg("text", { class: "nuct", x: cx, y: cy + 5, "text-anchor": "middle" }, svg);
+  t.textContent = P.t("nucl", { z: e.z });
+  svg.setAttribute("aria-label", P.t("bohrAria", { name: nameOf(e), cfg: cfgOf(e), n: outer(e) }));
+  $("bcap").innerHTML = "";
+  const lines = [
+    ["b", P.t("cap", { name: nameOf(e) + " " + e.sym, z: e.z })],
+    ["", P.t("capP", { z: e.z })],
+    ["cfg", P.t("capCfg", { cfg: cfgOf(e) })],
+    ["", P.t("capOut", { n: outer(e) })],
+    ["", P.t("capM", { m: m2(e.mass) })],
+    ["", P.t("capPos", { g: GROUP_NO[column(e)], p: period(e) })],
+  ];
+  lines.forEach(([cls, txt]) => {
+    const d = document.createElement("div");
+    if (cls === "b") { const b = document.createElement("b"); b.textContent = txt; d.appendChild(b); }
+    else { d.textContent = txt; if (cls) d.className = cls; }
+    $("bcap").appendChild(d);
+  });
+}
+
+function drawCard() {
+  const e = ELEMENTS[state.sel - 1], g = GROUP_NO[column(e)], box = $("ecard");
+  box.innerHTML = "";
+  const add = (txt, cls) => { const p = document.createElement("p"); p.textContent = txt; if (cls) p.className = cls; box.appendChild(p); };
+  add(P.t("g" + g) + " · " + membersOfColumn(column(e)).map((x) => x.sym).join(sep), "gname");
+  add(P.t(outer(e) === 1 ? "cardOut1" : "cardOut", { sym: e.sym, n: outer(e), p: period(e) }));
+  if (e.sym === "He") add(P.t("cardHe"));
+  if (e.sym === "H") add(P.t("cardH"));
+  add(P.t("r" + g));
+}
+
+function drawRule() {
+  const tb = $("colTable");
+  tb.innerHTML = "";
+  const head = document.createElement("tr");
+  [P.t("thG"), P.t("thN"), P.t("thEl")].forEach((s) => { const th = document.createElement("th"); th.textContent = s; head.appendChild(th); });
+  tb.appendChild(head);
+  GROUP_NO.forEach((g, c) => {
+    const mem = membersOfColumn(c), tr = document.createElement("tr");
+    const outs = [...new Set(mem.map(outer))].join(" / ");
+    [[g + " · " + P.t("g" + g), ""], [outs, "n"], [mem.map((x) => x.sym).join(sep), ""]].forEach(([s, cls]) => {
+      const td = document.createElement("td"); td.textContent = s; if (cls) td.className = cls; tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  const [a, b] = massInversions(ELEMENTS)[0];
+  $("history").textContent = P.t("hist", { a: a.sym, ma: m2(a.mass), b: b.sym, mb: m2(b.mass) });
+}
+
+function select(z, focus) {
+  state.sel = Play.clamp(z, 1, ELEMENTS.length);
+  render();
+  if (focus) tiles.get(state.sel).focus();
+}
+
+// Arrow keys move to the nearest element in that direction in the current layout.
+function onKey(ev) {
+  const d = { ArrowRight: [0, 1], ArrowLeft: [0, -1], ArrowDown: [1, 0], ArrowUp: [-1, 0] }[ev.key];
+  if (!d) return;
+  ev.preventDefault();
+  const lay = currentLayout(), me = lay.find((p) => p.e.z === state.sel).slot;
+  let best = null, bd = Infinity;
+  lay.forEach((p) => {
+    const dr = p.slot.row - me.row, dc = p.slot.col - me.col;
+    const along = d[0] ? dr * d[0] : dc * d[1], across = d[0] ? Math.abs(dc) : Math.abs(dr);
+    if (along <= 0) return;
+    const score = along * 10 + across * (d[0] ? 1 : 100);
+    if (score < bd) { bd = score; best = p; }
+  });
+  if (best) select(best.e.z, true);
+}
+
+$("byZ").addEventListener("click", () => { state.order = "z"; render(); });
+$("byM").addEventListener("click", () => { state.order = "m"; render(); });
+$("colour").addEventListener("click", () => { state.colour = !state.colour; render(); });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }, { label: P.t("o4") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("ecard").hidden = i !== 1;
+  $("ruleBox").hidden = i !== 2;
+  $("live").hidden = i === 0;
+  if (i === 2) { drawRule(); if (!state.colour) { state.colour = true; render(); } }
+});
+$("reset").addEventListener("click", () => {
+  state.order = "z"; state.colour = false; state.sel = 11;
+  pr.reset(); st.go(0); render();
+});
+render();
+</script>
+</body>
+</html>

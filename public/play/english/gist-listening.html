@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>You don't need every word</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .visual { padding: 14px 14px 12px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .tabs button { flex: 1 1 0; min-width: 0; font-family: var(--serif); font-size: 15px; padding: 6px 6px; }
+  .row .sp { flex: 1 1 auto; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; font-size: 14px; padding: 5px 12px; }
+  button[aria-pressed=true].tog { background: var(--a); border-color: var(--a); color: var(--surface); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .controls { padding: 2px 0 6px; }
+  .controls .val { font-family: var(--font); font-size: 14px; min-width: 9em; font-variant-numeric: tabular-nums; }
+  .story { border: 1px solid var(--line); border-radius: 12px; background: var(--bg); padding: 12px 14px; min-height: 170px; font-family: var(--serif); font-size: 17px; line-height: 1.8; overflow-wrap: anywhere; }
+  .story .fog { color: transparent; background: var(--line); border-radius: 4px; user-select: none; -webkit-user-select: none; }
+  .story .clue { background: color-mix(in srgb, var(--hl) 45%, transparent); border-radius: 3px; }
+  .story button.rare { font: inherit; padding: 0 2px; border: 0; border-bottom: 2px dotted var(--a); border-radius: 2px; background: transparent; color: var(--a); font-weight: 650; line-height: inherit; }
+  .story button.rare.on { background: var(--a); color: var(--surface); }
+  .ph { font-family: var(--font); font-size: 14px; color: var(--muted); margin: 0 0 10px; }
+  .slots { display: flex; flex-wrap: wrap; gap: 3px; }
+  .slots i { display: block; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--a) 35%, transparent); }
+  .slots i.h { background: transparent; border: 1.5px dashed var(--muted); }
+  .gloss { font-size: 14px; color: var(--muted); margin: 8px 2px 0; min-height: 1.4em; }
+  .gloss b { color: var(--fg); font-family: var(--serif); }
+  .gloss button { margin-left: 6px; }
+  .qs { margin-top: 12px; }
+  .qs h3 { font-size: 14px; margin: 0 0 6px; }
+  .qq { margin-bottom: 8px; font-size: 14px; }
+  .qq .qt { font-weight: 600; margin-bottom: 4px; }
+  .qq .choices { margin: 0; }
+  .qq button { font-size: 14px; padding: 4px 10px; text-align: left; }
+  .qq button.right { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .qq button.wrong { background: var(--no); border-color: var(--no); color: var(--surface); }
+  .qq button.show { border-color: var(--a); border-width: 2px; }
+  .qmsg { font-size: 14px; color: var(--muted); min-height: 1.4em; margin: 2px 0 0; }
+  .qmsg.ok { color: var(--a); font-weight: 600; }
+  svg.plot { width: 100%; max-width: 460px; height: auto; display: block; margin: 4px 0 6px; }
+  svg.plot text { font-family: var(--font); font-size: 14px; fill: var(--muted); }
+  svg.plot .ax { stroke: var(--line); }
+  svg.plot .band { fill: var(--a); opacity: .14; }
+  .legend { font-size: 13px; }
+  .sum { font-size: 14px !important; }
+  ol.strat { margin: 0 0 10px; padding-left: 20px; font-size: 14px; color: var(--muted); }
+  ol.strat li { margin-bottom: 4px; }
+  ol.strat b { color: var(--fg); }
+  .cov { font-size: 14px !important; }
+  .rule { color: var(--fg) !important; font-weight: 600; }
+  .play .note { font-size: 14px !important; }
+  .result .math { font-family: var(--serif); white-space: normal; overflow-wrap: anywhere; }
+  .foot { font-size: 13px; }
+  @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 560px) {
+    .tabs button { font-size: 14px; }
+    .story { font-size: 16px; padding: 10px 11px; }
+  }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="row tabs" id="tabs" role="group" data-t-aria="tabsAria"></div>
+      <div class="row">
+        <span class="seg" role="group" data-t-aria="modeAria">
+          <button type="button" id="mListen" data-t="mListen"></button>
+          <button type="button" id="mRead" data-t="mRead"></button>
+        </span>
+        <button type="button" class="tog" id="clueBtn" aria-pressed="false" data-t="clue"></button>
+        <span class="sp"></span>
+        <button type="button" class="small" id="playBtn"></button>
+        <button type="button" class="small" id="replayBtn" data-t="replay"></button>
+      </div>
+      <div class="controls">
+        <label for="fog" data-t="fogLabel"></label>
+        <input type="range" id="fog" min="0" max="80" step="1" value="4">
+        <span class="val" id="fogVal"></span>
+      </div>
+      <p class="note" id="noSpeech" hidden data-t="noSpeech"></p>
+      <div class="story" id="story" lang="en"></div>
+      <p class="gloss" id="gloss" aria-live="polite"></p>
+      <div class="qs">
+        <h3 data-t="qsTitle"></h3>
+        <div id="qs"></div>
+        <p class="qmsg" id="qmsg" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="plotBox" hidden>
+        <svg class="plot" id="plot" viewBox="0 0 360 214" role="img" data-t-aria="plotAria"></svg>
+        <div class="legend" id="legend"></div>
+        <p class="sum" id="sum"></p>
+      </div>
+      <div id="ruleBox" hidden>
+        <p class="rule" data-t="rule"></p>
+        <ol class="strat">
+          <li data-t-html="st1"></li>
+          <li data-t-html="st2"></li>
+          <li data-t-html="st3"></li>
+        </ol>
+        <p class="cov" id="cov"></p>
+        <p data-t="research"></p>
+      </div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// ---- data: original stories (A2). rare = the words a learner probably does not know; clues = nearby phrases that give them away ----
+const STORIES = [
+  { title: "The Late Bus",
+    text: "Mia woke up late. Her clock said ten to eight, and the school bus came at eight. She jumped out of bed, put on her clothes and took an apple. Then she ran out of the door. The bus was already at the corner! Mia sprinted down the street as fast as she could. It was raining hard, and she had no umbrella. When she got on the bus, she was drenched. Water ran from her hair onto the floor. She sat down, out of breath, and nibbled her apple in small bites. Her friend Leo grinned at her. “Good morning, little fish!” he said. Mia laughed too.",
+    rare: [
+      { w: "sprinted", clues: ["as fast as she could", "ran out of the door"], g: { en: "ran very fast", zh: "全速奔跑" } },
+      { w: "drenched", clues: ["raining hard", "no umbrella", "Water ran from her hair"], g: { en: "very, very wet", zh: "湿透了" } },
+      { w: "nibbled", clues: ["in small bites", "apple"], g: { en: "ate in small bites", zh: "小口小口地咬着吃" } },
+      { w: "grinned", clues: ["little fish", "laughed too"], g: { en: "smiled widely", zh: "咧嘴笑" } },
+    ],
+    qs: [
+      { q: { en: "Why did Mia hurry?", zh: "Mia 为什么急匆匆的？" }, a: 0,
+        o: [{ en: "She was late for the bus.", zh: "她快赶不上校车了。" }, { en: "She wanted to buy an apple.", zh: "她想去买苹果。" }, { en: "Leo was waiting at her house.", zh: "Leo 在她家等她。" }] },
+      { q: { en: "How was Mia when she got on the bus?", zh: "Mia 上车时是什么样子？" }, a: 2,
+        o: [{ en: "Dry and warm.", zh: "又干又暖和。" }, { en: "Angry with Leo.", zh: "在生 Leo 的气。" }, { en: "Very wet.", zh: "全身湿了。" }] },
+      { q: { en: "Why did Leo call her “little fish”?", zh: "Leo 为什么叫她“小鱼”？" }, a: 1,
+        o: [{ en: "She ate fish for breakfast.", zh: "她早饭吃了鱼。" }, { en: "She was wet from the rain.", zh: "她被雨淋湿了。" }, { en: "She swam to school.", zh: "她是游泳去上学的。" }] },
+    ] },
+  { title: "The Kitten",
+    text: "After dinner, Sam heard a small sound under the car outside his house. He looked down and saw a tiny grey kitten. It was trembling with cold, and it was so thin that he could see its bones. “You must be famished,” Sam said softly. He brought out a bowl of milk and some fish, and the kitten ate everything in one minute. Then it curled up in Sam’s old sweater, closed its eyes and began to purr, a soft and happy sound. The next morning, Sam put a paper on the tree: “Found: one grey kitten. Very hungry. Very friendly.” Nobody came for it, so the kitten stayed.",
+    rare: [
+      { w: "trembling", clues: ["with cold"], g: { en: "shaking", zh: "发抖" } },
+      { w: "famished", clues: ["so thin", "ate everything in one minute", "Very hungry"], g: { en: "very hungry", zh: "饿极了" } },
+      { w: "curled", clues: ["up", "old sweater", "closed its eyes"], g: { en: "lay with its body in a round shape", zh: "蜷成一团" } },
+      { w: "purr", clues: ["a soft and happy sound"], g: { en: "make the soft sound of a happy cat", zh: "（猫）发出呼噜声" } },
+    ],
+    qs: [
+      { q: { en: "Where did Sam find the kitten?", zh: "Sam 在哪儿发现了小猫？" }, a: 1,
+        o: [{ en: "In a tree.", zh: "在树上。" }, { en: "Under a car.", zh: "在汽车底下。" }, { en: "At school.", zh: "在学校。" }] },
+      { q: { en: "What did the kitten need most?", zh: "小猫最需要什么？" }, a: 0,
+        o: [{ en: "Food — it was very hungry.", zh: "吃的——它饿坏了。" }, { en: "A bath.", zh: "洗个澡。" }, { en: "A new name.", zh: "一个新名字。" }] },
+      { q: { en: "What happened in the end?", zh: "最后怎么样了？" }, a: 2,
+        o: [{ en: "Its owner came for it.", zh: "主人把它领走了。" }, { en: "It ran away.", zh: "它跑掉了。" }, { en: "It stayed with Sam.", zh: "它留在了 Sam 家。" }] },
+    ] },
+  { title: "Up the Hill",
+    text: "Grandpa and Lin started their walk early in the morning. The path up the hill was steep, so they walked slowly and stopped often to rest. Halfway up, Lin was weary. Her legs felt heavy, and she wanted to sit down. Grandpa gave her some chocolate, and soon she felt strong again. At the top, the view was magnificent: they could see the whole town, the river and the blue sea far away. Lin wanted to stay there forever. But dark clouds began to gather in the west, so they hurried down. They got home just before the rain started.",
+    rare: [
+      { w: "steep", clues: ["up the hill", "walked slowly", "stopped often to rest"], g: { en: "going up sharply, hard to climb", zh: "陡的" } },
+      { w: "weary", clues: ["legs felt heavy", "wanted to sit down", "felt strong again"], g: { en: "very tired", zh: "疲惫的" } },
+      { w: "magnificent", clues: ["see the whole town", "stay there forever"], g: { en: "very beautiful and grand", zh: "壮丽的" } },
+      { w: "gather", clues: ["dark clouds", "rain"], g: { en: "come together", zh: "聚集" } },
+    ],
+    qs: [
+      { q: { en: "Who went on the walk?", zh: "谁去爬山了？" }, a: 2,
+        o: [{ en: "Lin and her friends.", zh: "Lin 和她的朋友们。" }, { en: "Grandpa alone.", zh: "爷爷一个人。" }, { en: "Lin and her grandpa.", zh: "Lin 和爷爷。" }] },
+      { q: { en: "How did Lin feel at the top?", zh: "到了山顶，Lin 感觉怎么样？" }, a: 0,
+        o: [{ en: "She loved the view.", zh: "她很喜欢那里的风景。" }, { en: "She was scared.", zh: "她很害怕。" }, { en: "She was bored.", zh: "她觉得无聊。" }] },
+      { q: { en: "Why did they go down quickly?", zh: "他们为什么急着下山？" }, a: 1,
+        o: [{ en: "It was dinner time.", zh: "到吃晚饭的时间了。" }, { en: "Rain was coming.", zh: "要下雨了。" }, { en: "Lin was hungry.", zh: "Lin 饿了。" }] },
+    ] },
+];
+
+// ---- pure logic ----
+const WORD = /[A-Za-z]+(?:['’][A-Za-z]+)*/;
+function tokenize(text) {
+  return (text.match(/[A-Za-z]+(?:['’][A-Za-z]+)*|[^A-Za-z]+/g) || []).map((t) => ({ t, w: WORD.test(t) && /^[A-Za-z]/.test(t) }));
+}
+const norm = (s) => s.toLowerCase().replace(/’/g, "'");
+const wordList = (toks) => toks.filter((x) => x.w).map((x) => norm(x.t));
+// Seeded PRNG (mulberry32): the same story always fogs the same words in the same order.
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// Word index of each rare word (first match).
+function rareIdx(s, words) { return s.rare.map((r) => words.indexOf(norm(r.w))); }
+// Word indexes of the clue phrase occurrence nearest to word index at.
+function clueIdx(words, phrase, at) {
+  const p = wordList(tokenize(phrase));
+  let best = null;
+  for (let i = 0; i + p.length <= words.length; i++) {
+    if (p.every((x, j) => words[i + j] === x)) {
+      const d = Math.min(Math.abs(i - at), Math.abs(i + p.length - 1 - at));
+      if (!best || d < best.d) best = { i, d };
+    }
+  }
+  return best ? p.map((x, j) => best.i + j) : [];
+}
+// Fog order: the rare words first, then every other word in a seeded random order.
+function fogOrder(s, si) {
+  const words = wordList(tokenize(s.text)), rare = rareIdx(s, words).filter((i) => i >= 0);
+  const rest = words.map((x, i) => i).filter((i) => !rare.includes(i));
+  const r = rng(1009 + 7919 * si);
+  for (let i = rest.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }
+  return rare.concat(rest);
+}
+const hiddenCount = (n, pct) => Math.round(Math.min(100, Math.max(0, +pct || 0)) / 100 * n);
+function hiddenSet(order, pct) { return new Set(order.slice(0, hiddenCount(order.length, pct))); }
+// Text for speech: every fogged word becomes "hmm".
+function spoken(toks, hid) {
+  let k = -1;
+  return toks.map((x) => (x.w ? (hid.has(++k) ? "hmm" : x.t) : x.t)).join("");
+}
+function coverage(s) {
+  const n = wordList(tokenize(s.text)).length, r = s.rare.length;
+  return { n, r, known: n ? (n - r) / n * 100 : 0 };
+}
+const BANDS = [[0, 10], [11, 35], [36, 80]];
+function bands(results) {
+  return BANDS.map(([lo, hi]) => {
+    const rs = results.filter((x) => x.pct >= lo && x.pct <= hi);
+    return { lo, hi, n: rs.length, avg: rs.length ? rs.reduce((a, x) => a + x.score, 0) / rs.length : NaN };
+  });
+}
+if (typeof module !== "undefined") module.exports = { STORIES, tokenize, wordList, rng, rareIdx, clueIdx, fogOrder, hiddenCount, hiddenSet, spoken, coverage, bands };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "You don't need every word", eyebrow: "English · Stage 2", h1: "You don't need every word",
+    intro: "Listen to a short story while a fog hides some of its words. How many words can you miss and still get the story?",
+    reset: "Reset", tabsAria: "Choose a story", modeAria: "Listen or read",
+    mListen: "Listen", mRead: "Read", clue: "Clue mode", replay: "↺ Replay",
+    pPlay: "▶ Play", pPause: "⏸ Pause", pResume: "▶ Resume",
+    fogLabel: "Fog", fogVal: "{p}% · {k} of {n} words hidden",
+    noSpeech: "This browser has no speech voice, so the story is shown as text. Everything else works the same.",
+    listenPh: "The text is hidden — just listen. Each “hmm” is a word in fog. Dashed boxes = hidden words.",
+    slotsAria: "{n} words, {k} hidden",
+    fogWord: "hidden word",
+    clueHint: "Clue mode shows the whole story. Tap a dotted word.",
+    clueQ: "{w}: the highlighted words are clues. What could it mean?",
+    clueShow: "Show meaning", clueA: "{w} = {g}",
+    qsTitle: "Gist questions — answer without looking anything up",
+    qDone: "{s} of 3 right with {p}% of the words hidden. Added to your chart.",
+    qChanged: "Fog changed — answer again at this level.",
+    qLeft: "Answered {a} of 3.",
+    s1: "Guess", s2: "Listen", s3: "Rule",
+    k1: "Predict first", t1: "A story with 4 new words in 100",
+    b1: "Pick an answer. Then press ▶ Play for “The Late Bus”: at 4% fog, the words in fog are exactly the new words (sprinted, drenched …). Can you still answer the questions?",
+    q: "A story has 100 words. You do not know 4 of them. Can you follow the story?",
+    o1: "No — if I miss a word, I have not understood", o2: "Yes, mostly — the other 96 words carry the story", o3: "Only after I look up all 4 words",
+    right: "Test it: the questions on the left are about the story, not about single words.",
+    wrong: "Test it: listen with the new words in fog and answer the 3 questions. Most people get them right.",
+    k2: "Hands on", t2: "Turn up the fog",
+    b2: "Pick a story, set the fog, listen (or Read) and answer the 3 questions. Each finished try puts a dot on the chart. Then turn on Clue mode and tap a dotted word: the highlighted words around it give its meaning away.",
+    k3: "The rule", t3: "Keep going — the story carries you",
+    b3: "Missing a word is not missing the story. Up to a point, the words you know and the context fill the gaps; with much more fog, answers start to fail.",
+    rule: "If you know most of the words (about 95 in 100), keep going: the story still makes sense, and the context explains many of the new words.",
+    st1: "<b>Keep going.</b> Don't stop at a new word; the next sentence often explains it.",
+    st2: "<b>Guess from context.</b> What is happening, how do people feel, what comes next?",
+    st3: "<b>Check later.</b> After the story, look up only the words that still matter — was your guess close?",
+    covLine: "{t}: {r} new words in {n} → {k}% known",
+    research: "Research note: commonly cited studies (Hu & Nation 2000; Nation 2006) suggest that reading a text comfortably takes knowing about 95–98% of its words. That is why each story here has only about 4 new words per 100. The exact figure differs between readers and texts.",
+    plotAria: "Chart of your right answers against the percent of words hidden",
+    axX: "% of words hidden", axY: "right (of 3)", bandL: "new words",
+    sumNone: "No tries yet — answer the 3 questions to put your first dot on the chart.",
+    sumBand: "{lo}–{hi}% hidden: {avg} of 3 (tries: {n})", sumBandNone: "{lo}–{hi}% hidden: no tries yet",
+    liveFog: "{p}% hidden: {k} of {n} words in fog.",
+    resultTitle: "Words you know vs. the story",
+    resMain: "≈ {k}% of the words known → the story still makes sense",
+    resMine: " · your score with ≤ 10% fog: {avg} of 3",
+    resultNote: "Missing one word is not missing the story. Keep going, guess from context, check later.",
+    explainK: "Explain it", explainQ: "Tell someone about a time you understood an English story, song or video without knowing every word. Which words did you skip, and what helped you guess them?",
+    homeK: "Try at home", homeQ: "Listen to a short English story or cartoon once without stopping. Write down 3 words you didn't know and a guess for each from context. Then check them in a dictionary: how many guesses were close?",
+    foot: "The three stories were written for this page. The fog hides the marked new words first, then other words in a fixed pseudo-random order (seeded, the same every time); the percent is rounded to whole words. Your dots are kept only in this browser tab for this session. Speech uses your browser's built-in voice; a hidden word is read as “hmm”. Coverage figures: Hu, M. & Nation, P. (2000), Reading in a Foreign Language 13(1); Nation, P. (2006), Canadian Modern Language Review 63(1). CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "不必听懂每一个词", eyebrow: "英语 · 阶段 2", h1: "不必听懂每一个词",
+    intro: "听一个短故事，一层“雾”遮住其中一些词。漏掉多少词，你还能听懂这个故事？",
+    reset: "重置", tabsAria: "选一个故事", modeAria: "听还是读",
+    mListen: "听", mRead: "读", clue: "线索模式", replay: "↺ 重播",
+    pPlay: "▶ 播放", pPause: "⏸ 暂停", pResume: "▶ 继续",
+    fogLabel: "雾", fogVal: "{p}% · 遮住 {k}/{n} 个词",
+    noSpeech: "这个浏览器没有语音，故事改为文字显示。其他功能都一样。",
+    listenPh: "文字藏起来了——只用耳朵听。每个 “hmm” 就是一个被雾遮住的词。虚线框 = 被遮住的词。",
+    slotsAria: "共 {n} 个词，遮住 {k} 个",
+    fogWord: "被遮住的词",
+    clueHint: "线索模式显示整个故事。点一个带虚线的词。",
+    clueQ: "{w}：高亮的词就是线索。你猜它是什么意思？",
+    clueShow: "看意思", clueA: "{w} = {g}",
+    qsTitle: "大意题——不查任何词，直接答",
+    qDone: "遮住 {p}% 的词时答对 {s}/3。已画到你的图上。",
+    qChanged: "雾变了——在这个浓度下再答一次。",
+    qLeft: "已答 {a}/3。",
+    s1: "先猜", s2: "听一听", s3: "规律",
+    k1: "先猜一猜", t1: "100 个词里有 4 个生词",
+    b1: "先选一个答案，再点 ▶ 播放听《The Late Bus》：雾在 4% 时，遮住的正好是那几个生词（sprinted、drenched……）。你还能答对题吗？",
+    q: "一个故事 100 个词，你有 4 个不认识。你能听懂这个故事吗？",
+    o1: "不能——漏掉一个词就等于没听懂", o2: "大体能——另外 96 个词撑得起故事", o3: "得先把 4 个词都查了才行",
+    right: "验证一下：左边的题问的是故事大意，不是单个词。",
+    wrong: "验证一下：把生词遮住，听完答那 3 道题。大多数人都能答对。",
+    k2: "动手", t2: "把雾调浓",
+    b2: "选一个故事，调好雾，听（或点“读”），答 3 道题。每答完一组，图上多一个点。再打开线索模式，点带虚线的词：它周围高亮的词会把意思“泄露”出来。",
+    k3: "规律", t3: "接着听——故事会带着你走",
+    b3: "漏掉一个词不等于漏掉故事。在一定范围内，认识的词和上下文会把空补上；雾太浓时，题才开始答错。",
+    rule: "认识大部分词（大约 100 个里认识 95 个）就接着往下听：故事照样讲得通，很多生词上下文会自己解释。",
+    st1: "<b>接着听。</b>遇到生词别停，下一句常常就把它解释了。",
+    st2: "<b>从上下文猜。</b>发生了什么事、人物什么心情、接下来怎样？",
+    st3: "<b>过后再查。</b>听完再查真正要紧的词——看看你猜得准不准。",
+    covLine: "{t}：{n} 个词里 {r} 个生词 → 认识 {k}%",
+    research: "研究备注：常被引用的研究（Hu & Nation 2000；Nation 2006）认为，要比较轻松地读懂一篇文章，大约要认识其中 95–98% 的词。所以这里每个故事大约 100 个词里只有 4 个生词。具体比例因人、因文而异。",
+    plotAria: "你答对的题数随被遮住词的百分比变化的图",
+    axX: "被遮住的词 %", axY: "答对（共 3）", bandL: "生词",
+    sumNone: "还没有记录——答完 3 道题，图上就有你的第一个点。",
+    sumBand: "遮住 {lo}–{hi}%：平均答对 {avg}/3（{n} 次）", sumBandNone: "遮住 {lo}–{hi}%：还没试",
+    liveFog: "遮住 {p}%：{n} 个词里有 {k} 个在雾里。",
+    resultTitle: "认识的词 vs. 听懂故事",
+    resMain: "认识约 {k}% 的词 → 故事照样讲得通",
+    resMine: " · 你在雾 ≤ 10% 时平均答对 {avg}/3",
+    resultNote: "漏掉一个词，不等于漏掉整个故事。接着听，从上下文猜，过后再查。",
+    explainK: "说一说", explainQ: "跟别人讲一次你没认全每个词、却看懂了一个英文故事、一首歌或一段视频的经历。你跳过了哪些词？是什么帮你猜出了它们？",
+    homeK: "家里做一做", homeQ: "找一个英文短故事或动画，从头到尾听一遍，中间不停。写下 3 个不认识的词，各写一个你从上下文猜的意思。再查词典：猜得接近的有几个？",
+    foot: "三个故事是为本页原创的。雾先遮住标出的生词，再按固定的伪随机顺序（固定种子，每次相同）遮其他词；百分比按整词四舍五入。你的点只保存在本浏览器标签页的这次会话里。发音用浏览器自带的语音，被遮住的词读作 “hmm”。认识词比例的出处：Hu, M. & Nation, P. (2000), Reading in a Foreign Language 13(1)；Nation, P. (2006), Canadian Modern Language Review 63(1)。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const L = P.lang;
+const HAS = typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
+const COLORS = ["var(--a)", "var(--b)", "var(--h)"];
+const DATA = STORIES.map((s, si) => {
+  const toks = tokenize(s.text), words = wordList(toks), ri = rareIdx(s, words);
+  return { toks, words, ri, order: fogOrder(s, si), clues: s.rare.map((r, k) => [...new Set(r.clues.flatMap((c) => clueIdx(words, c, ri[k])))]) };
+});
+
+let cur = 0, mode = HAS ? "listen" : "read", clueOn = false, selRare = -1, showGloss = false, answers = [null, null, null], results = [];
+try { results = JSON.parse(sessionStorage.getItem("gist-listening") || "[]").filter((x) => x && Number.isFinite(x.pct) && Number.isFinite(x.score)); } catch (e) { results = []; }
+function save() { try { sessionStorage.setItem("gist-listening", JSON.stringify(results)); } catch (e) { /* no storage: keep in memory */ } }
+const pct = () => +$("fog").value;
+
+// ---- story tabs ----
+const tabBtns = STORIES.map((s, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.lang = "en"; b.textContent = s.title;
+  b.addEventListener("click", () => { if (cur === i) return; cur = i; stopSpeech(); selRare = -1; showGloss = false; clearAnswers(""); drawAll(); });
+  $("tabs").appendChild(b);
+  return b;
+});
+
+// ---- speech ----
+let poll = null, isPaused = false;
+function stopSpeech() { if (HAS) { try { speechSynthesis.cancel(); } catch (e) { /* ignore */ } } updPlay(); }
+function updPlay() {
+  let k = "pPlay";
+  if (HAS) { try { if (!speechSynthesis.speaking) isPaused = false; else k = isPaused || speechSynthesis.paused ? "pResume" : "pPause"; } catch (e) { /* ignore */ } }
+  $("playBtn").textContent = P.t(k);
+  if (k === "pPlay" && poll) { clearInterval(poll); poll = null; }
+}
+function startSpeech() {
+  const d = DATA[cur];
+  isPaused = false;
+  Play.speak(spoken(d.toks, hiddenSet(d.order, clueOn ? 0 : pct())), "en-US");
+  if (!poll) poll = setInterval(updPlay, 300);
+  setTimeout(updPlay, 120);
+}
+$("playBtn").addEventListener("click", () => {
+  if (!HAS) return;
+  try {
+    if (speechSynthesis.speaking && (isPaused || speechSynthesis.paused)) { isPaused = false; speechSynthesis.resume(); }
+    else if (speechSynthesis.speaking) { isPaused = true; speechSynthesis.pause(); }
+    else startSpeech();
+  } catch (e) { /* ignore */ }
+  setTimeout(updPlay, 60);
+});
+$("replayBtn").addEventListener("click", startSpeech);
+if (!HAS) { $("playBtn").disabled = true; $("replayBtn").disabled = true; $("mListen").disabled = true; $("noSpeech").hidden = false; }
+
+// ---- mode, clue, fog ----
+$("mListen").addEventListener("click", () => { if (HAS) { mode = "listen"; drawStory(); } });
+$("mRead").addEventListener("click", () => { mode = "read"; drawStory(); });
+$("clueBtn").addEventListener("click", () => { clueOn = !clueOn; selRare = -1; showGloss = false; drawStory(); });
+$("fog").addEventListener("input", () => {
+  stopSpeech();
+  if (answers.some((a) => a !== null)) clearAnswers(P.t("qChanged"));
+  drawStory();
+  const d = DATA[cur], k = hiddenCount(d.words.length, pct());
+  Play.live($("live"), P.t("liveFog", { p: pct(), k, n: d.words.length }));
+});
+
+function drawStory() {
+  const d = DATA[cur], n = d.words.length, hid = hiddenSet(d.order, pct());
+  $("fogVal").textContent = P.t("fogVal", { p: pct(), k: hid.size, n });
+  $("mListen").classList.toggle("on", mode === "listen"); $("mListen").setAttribute("aria-pressed", mode === "listen");
+  $("mRead").classList.toggle("on", mode === "read"); $("mRead").setAttribute("aria-pressed", mode === "read");
+  $("clueBtn").setAttribute("aria-pressed", clueOn);
+  $("fog").disabled = clueOn;
+  const box = $("story");
+  box.innerHTML = "";
+  if (mode === "listen" && !clueOn) {
+    const ph = document.createElement("p"); ph.className = "ph"; ph.lang = L === "zh" ? "zh-CN" : "en"; ph.textContent = P.t("listenPh");
+    const sl = document.createElement("div"); sl.className = "slots"; sl.setAttribute("role", "img");
+    sl.setAttribute("aria-label", P.t("slotsAria", { n, k: hid.size }));
+    d.words.forEach((w, i) => { const b = document.createElement("i"); b.style.width = (5 + w.length * 4) + "px"; if (hid.has(i)) b.className = "h"; sl.appendChild(b); });
+    box.append(ph, sl);
+  } else {
+    const clueSet = new Set(clueOn && selRare >= 0 ? d.clues[selRare] : []);
+    let k = -1;
+    d.toks.forEach((x) => {
+      if (!x.w) { box.appendChild(document.createTextNode(x.t)); return; }
+      k++;
+      const ri = d.ri.indexOf(k);
+      if (clueOn && ri >= 0) {
+        const b = document.createElement("button"); b.type = "button"; b.className = "rare" + (ri === selRare ? " on" : ""); b.textContent = x.t;
+        b.setAttribute("aria-pressed", ri === selRare);
+        b.addEventListener("click", () => { selRare = ri; showGloss = false; Play.speak(x.t, "en-US"); drawStory(); const nb = $("story").querySelectorAll("button.rare")[ri]; if (nb) nb.focus(); });
+        box.appendChild(b);
+      } else if (!clueOn && hid.has(k)) {
+        const s = document.createElement("span"); s.className = "fog"; s.textContent = x.t; s.setAttribute("role", "img"); s.setAttribute("aria-label", P.t("fogWord"));
+        box.appendChild(s);
+      } else if (clueSet.has(k)) {
+        const s = document.createElement("span"); s.className = "clue"; s.textContent = x.t; box.appendChild(s);
+      } else box.appendChild(document.createTextNode(x.t));
+    });
+  }
+  drawGloss();
+}
+function drawGloss() {
+  const g = $("gloss"); g.innerHTML = "";
+  if (!clueOn) return;
+  if (selRare < 0) { g.textContent = P.t("clueHint"); return; }
+  const r = STORIES[cur].rare[selRare];
+  const b = document.createElement("b"); b.lang = "en"; b.textContent = r.w;
+  if (showGloss) { g.append(b, " = " + r.g[L]); return; }
+  const parts = P.t("clueQ", { w: "\u0000" }).split("\u0000");
+  g.append(parts[0], b, parts[1] || "");
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "small"; btn.textContent = P.t("clueShow");
+  btn.addEventListener("click", () => { showGloss = true; drawGloss(); });
+  g.appendChild(btn);
+}
+
+// ---- questions ----
+function clearAnswers(msg) { answers = [null, null, null]; drawQs(); setQmsg(msg, ""); }
+function setQmsg(t, cls) { const m = $("qmsg"); m.textContent = t; m.className = "qmsg" + (cls ? " " + cls : ""); }
+function drawQs() {
+  const box = $("qs"); box.innerHTML = "";
+  STORIES[cur].qs.forEach((q, qi) => {
+    const div = document.createElement("div"); div.className = "qq";
+    const qt = document.createElement("div"); qt.className = "qt"; qt.textContent = (qi + 1) + ". " + q.q[L];
+    const row = document.createElement("div"); row.className = "choices"; row.setAttribute("role", "group"); row.setAttribute("aria-label", q.q[L]);
+    q.o.forEach((o, oi) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = o[L];
+      const a = answers[qi];
+      if (a !== null) {
+        b.disabled = false; b.setAttribute("aria-disabled", "true");
+        if (oi === a) b.classList.add(a === q.a ? "right" : "wrong");
+        else if (oi === q.a) b.classList.add("show");
+      }
+      b.addEventListener("click", () => answer(qi, oi));
+      row.appendChild(b);
+    });
+    div.append(qt, row); box.appendChild(div);
+  });
+}
+function answer(qi, oi) {
+  if (answers[qi] !== null) return;
+  answers[qi] = oi;
+  drawQs();
+  const btn = $("qs").querySelectorAll(".qq")[qi].querySelectorAll("button")[oi]; if (btn) btn.focus();
+  const nA = answers.filter((a) => a !== null).length;
+  if (nA < 3) { setQmsg(P.t("qLeft", { a: nA }), ""); return; }
+  const score = STORIES[cur].qs.reduce((k, q, i) => k + (answers[i] === q.a ? 1 : 0), 0);
+  const p = clueOn ? 0 : pct();
+  results.push({ s: cur, pct: p, score });
+  save();
+  setQmsg(P.t("qDone", { s: score, p }), "ok");
+  Play.live($("live"), P.t("qDone", { s: score, p }));
+  drawPlot(); drawResult();
+}
+
+// ---- chart of your tries ----
+const PX = { l: 40, r: 12, t: 28, b: 40, w: 360, h: 214 };
+const xS = (p) => PX.l + p / 80 * (PX.w - PX.l - PX.r);
+const yS = (s) => PX.h - PX.b - s / 3 * (PX.h - PX.t - PX.b);
+function drawPlot() {
+  const svg = $("plot"); svg.innerHTML = "";
+  // band: share of words that are the marked new words in each story
+  const covs = STORIES.map(coverage), lo = Math.min(...covs.map((c) => 100 - c.known)), hi = Math.max(...covs.map((c) => 100 - c.known));
+  Play.svg("rect", { class: "band", x: xS(0), y: PX.t, width: Math.max(4, xS(hi) - xS(0)), height: PX.h - PX.t - PX.b }, svg);
+  const bl = Play.svg("text", { x: xS(0), y: 16 }, svg); bl.textContent = P.t("bandL") + " ≈ " + Play.fmt((lo + hi) / 2, 0) + "%";
+  for (let s = 0; s <= 3; s++) {
+    Play.svg("line", { class: "ax", x1: PX.l, x2: PX.w - PX.r, y1: yS(s), y2: yS(s) }, svg);
+    const t = Play.svg("text", { x: PX.l - 8, y: yS(s) + 5, "text-anchor": "end" }, svg); t.textContent = s;
+  }
+  for (let p = 0; p <= 80; p += 20) {
+    const t = Play.svg("text", { x: xS(p), y: PX.h - PX.b + 18, "text-anchor": "middle" }, svg); t.textContent = p;
+  }
+  const ax = Play.svg("text", { x: (PX.l + PX.w - PX.r) / 2, y: PX.h - 4, "text-anchor": "middle" }, svg); ax.textContent = P.t("axX");
+  const ay = Play.svg("text", { x: 12, y: PX.h - PX.b, transform: "rotate(-90 12 " + (PX.h - PX.b) + ")", "text-anchor": "start" }, svg); ay.textContent = P.t("axY");
+  const seen = {};
+  results.forEach((r) => {
+    const key = r.pct + ":" + r.score, n = seen[key] = (seen[key] || 0) + 1;
+    const c = Play.svg("circle", { cx: xS(r.pct) + [0, 6, -6][(n - 1) % 3], cy: yS(r.score) - Math.floor((n - 1) / 3) * 6, r: 5.5, fill: COLORS[r.s] || "var(--a)", stroke: "var(--surface)", "stroke-width": 1.5 }, svg);
+    const tt = Play.svg("title", {}, c); tt.textContent = STORIES[r.s].title + ": " + r.score + "/3, " + r.pct + "%";
+  });
+  const lg = $("legend"); lg.innerHTML = "";
+  STORIES.forEach((s, i) => { const sp = document.createElement("span"); sp.lang = "en"; const d = document.createElement("span"); d.className = "dot"; d.style.background = COLORS[i]; sp.append(d, s.title); lg.appendChild(sp); });
+  $("sum").textContent = results.length
+    ? bands(results).map((b) => P.t(b.n ? "sumBand" : "sumBandNone", { lo: b.lo, hi: b.hi, avg: Play.fmt(b.avg, 1), n: b.n })).join(" · ")
+    : P.t("sumNone");
+}
+function drawResult() {
+  const covs = STORIES.map(coverage), avgK = covs.reduce((a, c) => a + c.known, 0) / covs.length;
+  let t = P.t("resMain", { k: Play.fmt(avgK, 0) });
+  const b0 = bands(results)[0];
+  if (b0.n) t += P.t("resMine", { avg: Play.fmt(b0.avg, 1) });
+  $("resultMain").textContent = t;
+  $("cov").textContent = covs.map((c, i) => P.t("covLine", { t: STORIES[i].title, r: c.r, n: c.n, k: Play.fmt(c.known, 1) })).join(" · ");
+}
+
+function drawAll() {
+  tabBtns.forEach((b, i) => { b.classList.toggle("on", i === cur); b.setAttribute("aria-pressed", i === cur); });
+  drawStory(); drawQs(); updPlay(); drawPlot(); drawResult();
+}
+
+// ---- steps ----
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+const stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("plotBox").hidden = i === 0;
+  $("ruleBox").hidden = i !== 2;
+});
+$("reset").addEventListener("click", () => {
+  stopSpeech();
+  cur = 0; mode = HAS ? "listen" : "read"; clueOn = false; selRare = -1; showGloss = false;
+  results = []; save(); $("fog").value = 4;
+  pr.reset(); stp.go(0); clearAnswers(""); drawAll(); $("live").textContent = "";
+});
+addEventListener("pagehide", () => stopSpeech());
+drawAll();
+</script>
+</body>
+</html>

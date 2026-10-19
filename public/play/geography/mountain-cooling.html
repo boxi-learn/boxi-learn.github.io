@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why is it cold on a mountain top?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .fig { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; touch-action: none; cursor: ns-resize; }
+  .fig.locked { cursor: default; }
+  .lb { font-size: 15px; fill: var(--muted); }
+  .lbf { font-size: 15px; fill: var(--fg); font-weight: 650; }
+  .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  .picks { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 12px 2px; justify-content: center; }
+  .picks button { font-size: 13px; padding: 3px 9px; }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 4.2em; }
+  .legend .sw { display: inline-block; width: 12px; height: 10px; margin-right: 5px; vertical-align: 0; border-radius: 2px; border: 1px solid var(--line); }
+  .read { display: grid; gap: 4px; margin: 0 0 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .read div { border-bottom: 1px solid var(--line); padding: 2px 0 4px; }
+  .read b { color: var(--fg); }
+  .sun { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; font-size: 14px; color: var(--muted); margin: 0 0 10px; }
+  .sun .kicker { margin-bottom: 2px; }
+  .sun strong { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .rates { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+  .rates button { font-size: 13px; padding: 4px 10px; }
+  table.tbl { border-collapse: collapse; width: 100%; font-size: 14px; margin: 0 0 10px; font-variant-numeric: tabular-nums; }
+  table.tbl th, table.tbl td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+  table.tbl th { color: var(--muted); font-weight: 600; }
+  .result .math { white-space: normal; font-size: 22px; }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="fig" id="fig" viewBox="0 0 400 340" role="slider" tabindex="0" aria-orientation="vertical" data-t-aria="figAria"></svg>
+      <div class="picks" id="picks"></div>
+      <div class="controls">
+        <label for="t0" data-t="t0Label"></label>
+        <input type="range" id="t0" min="-10" max="35" step="1" value="25">
+        <output id="t0Val" for="t0"></output>
+      </div>
+      <div class="controls legend" id="legend">
+        <span><i class="sw" style="background:var(--a);opacity:.6"></i><span data-t="bForest"></span></span>
+        <span><i class="sw" style="background:var(--hl);opacity:.7"></i><span data-t="bMeadow"></span></span>
+        <span><i class="sw" style="background:var(--muted);opacity:.55"></i><span data-t="bRock"></span></span>
+        <span><i class="sw" style="background:var(--on-panel)"></i><span data-t="bSnow"></span></span>
+        <span data-t="legHint"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="rates" id="rates" hidden></div>
+      <div class="read" id="read" hidden></div>
+      <div class="sun" id="sun" hidden></div>
+      <table class="tbl" id="tbl" hidden></table>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Why is it cold on a mountain top?", eyebrow: "Geography · Stage 2",
+    h1: "The air is warmed from the ground up, so every kilometre you climb it gets about 6.5 °C colder",
+    intro: "Guess first, then drag a climber up real mountains, change the temperature at sea level and find the snow line.",
+    reset: "Reset", figAria: "Mountain with a climber. Drag up and down, or use the up and down arrow keys, to change the climber's height.",
+    t0Label: "Temperature at sea level", legHint: "Drag the climber, or focus the picture and press ↑ ↓.",
+    bForest: "forest", bMeadow: "meadow", bRock: "bare rock", bSnow: "snow and ice",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "The top is closer to the Sun. Is it warmer?",
+    b1: "Pick an answer. Then the temperatures appear on the mountain.",
+    b1after: "Look at the line on the right: the higher the climber, the colder the air. Go to step 2 to climb real mountains.",
+    k2: "Hands on", t2: "Climb and watch the temperature",
+    b2: "Drag the climber, change the sea-level temperature, and pick a real mountain. The dashed line is where the air reaches 0 °C: above it you find snow and ice.",
+    k3: "The rule", t3: "Every kilometre up, about 6.5 °C colder",
+    b3: "Sunlight passes through the air and warms it very little. It warms the ground, and the ground warms the air from below, so the air is warmest near the ground. Higher up the air is thinner: rising air spreads out and cools, and thin air holds less heat (a simplified picture). That is why Kilimanjaro, only 3° south of the equator, has ice: with a lowland at {t0} °C and {r} °C per km, the air reaches 0 °C at about {hs} m, below its {H} m summit.",
+    b3rate: "6.5 °C/km is an average. Dry air that rises cools faster, 9.8 °C/km. Moist air that forms clouds cools more slowly, because water vapour turning into cloud gives off heat.",
+    rAvg: "6.5 °C/km — average", rDry: "9.8 °C/km — dry rising air",
+    q: "On a sunny day it is {t0} °C on the beach. You climb a {H} m mountain right next to it. What is the air like at the top?",
+    o1: "Warmer — the top is closer to the Sun", o2: "About the same", o3: "Much colder — about {d} °C colder",
+    right: "Yes. At the top it is about {t} °C, {d} °C colder than the beach.",
+    wrong: "Many people think so, because the top is closer to the Sun. But the top is about {d} °C colder: {t} °C. Step 2 shows how little \"closer to the Sun\" means.",
+    mGen: "A {H} m mountain", mEv: "Mount Everest", mKi: "Kilimanjaro", mTs: "Tai Shan",
+    pick: "{name} {H} m", m: "{v} m", c: "{v} °C",
+    seaLabel: "sea level {t} °C", snowLabel: "0 °C at {h} m", sunLabel: "Sun: 149,600,000 km away",
+    rH: "Height", rT: "Air temperature", rD: "Colder than sea level", rB: "Belt here", rS: "Snow line (0 °C)",
+    sAll: "at sea level — it is freezing everywhere", sAbove: "{h} m — higher than this mountain", sAt: "{h} m",
+    sunK: "Closer to the Sun?",
+    sun0: "The climber is at sea level. Drag them up to see how much closer to the Sun they get.",
+    sun: "Climbing <strong>{km} km</strong> shortens your distance to the Sun (149,600,000 km) by <strong>{pct}%</strong>. The sunlight gets stronger by only <strong>{inten}%</strong>. Earth's own distance to the Sun changes by about 5,000,000 km every year — <strong>{ratio}</strong> times more — and Earth is closest in early January, in the northern winter.",
+    tH: "Height", tT: "Air temperature",
+    liveRead: "{h} m: {t} °C, {belt}.", liveHidden: "Sea level: {t} °C. Pick an answer to see the top.",
+    resultTitle: "What we found", resultMain: "temperature at height h ≈ sea-level temperature − 6.5 °C × h (in km)",
+    resultNote: "Everest: {H} km up is {d} °C colder than sea level. Being {H} km closer to the Sun changes the distance by only {pct}%.",
+    explainK: "Explain it", explainQ: "A friend says mountain tops should be warm because they are closer to the Sun. Use the 6.5 °C-per-kilometre rule and the \"closer to the Sun\" numbers to explain why Kilimanjaro has ice although it is almost on the equator.",
+    homeK: "Try at home", homeQ: "In a weather app, find two places near each other at different heights (a town and a nearby mountain or hill station). Compare their temperatures at the same time, and work out how many °C colder it is per 1,000 m.",
+    foot: "Model: T = T₀ − 6.5 × h, where T₀ is the temperature at sea level and h the height in km; 6.5 °C/km is the average environmental lapse rate (as in the International Standard Atmosphere); dry rising air cools at 9.8 °C/km (dry adiabatic rate). Real lapse rates change with humidity, season and weather, and real snow lines also depend on snowfall and sunshine. The vegetation belts are a schematic sketch by air temperature (forest above 8 °C, meadow 3–8 °C, bare rock 0–3 °C, snow and ice at 0 °C or below), not real boundaries. Heights: Mount Everest 8,849 m (28.0°N), Kilimanjaro 5,895 m (3.1°S), Tai Shan 1,545 m (36.3°N). Picking a mountain sets a rounded typical lowland temperature nearby (Everest 25 °C, Kilimanjaro 27 °C, Tai Shan 14 °C); the summit temperature is then the model's estimate. Mean Earth–Sun distance 149,600,000 km; it ranges from about 147,100,000 km (early January) to 152,100,000 km (early July). Sunlight strength falls with the square of the distance. All numbers on this page are computed from these values. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "山顶为什么冷？", eyebrow: "地理 · 阶段 2",
+    h1: "空气是从地面往上被加热的，所以每升高 1 千米，大约冷 6.5 °C",
+    intro: "先猜一猜，再把登山者拖上真实的高山，调一调海平面的气温，找出雪线。",
+    reset: "重置", figAria: "一座山和一个登山者。上下拖动或按上下方向键，改变登山者的高度。",
+    t0Label: "海平面气温", legHint: "拖动登山者，或选中图后按 ↑ ↓。",
+    bForest: "森林", bMeadow: "草甸", bRock: "裸岩", bSnow: "冰雪",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "山顶离太阳更近，会更暖和吗？",
+    b1: "先选一个答案，山上的气温才会显示出来。",
+    b1after: "看右边那条线：登山者越高，空气越冷。到第 2 步去爬真实的高山。",
+    k2: "动手", t2: "往上爬，看气温",
+    b2: "拖动登山者，调海平面气温，再选一座真实的山。虚线是空气降到 0 °C 的高度：虚线以上是冰雪。",
+    k3: "规律", t3: "每升高 1 千米，大约冷 6.5 °C",
+    b3: "阳光穿过空气时，几乎不加热空气。它先把地面晒热，地面再从下往上加热空气，所以贴近地面的空气最暖。越往高处空气越稀薄：上升的空气膨胀变冷，稀薄的空气也存不住多少热（这是简化的说法）。所以离赤道只有 3° 的乞力马扎罗山顶也有冰：山下低地 {t0} °C，每千米降 {r} °C，到约 {hs} 米就降到 0 °C，比它 {H} 米的山顶低。",
+    b3rate: "6.5 °C/千米是平均值。干燥的空气上升时降温更快，每千米 9.8 °C；潮湿的空气上升成云时降温慢一些，因为水汽变成云会放出热量。",
+    rAvg: "6.5 °C/千米：平均", rDry: "9.8 °C/千米：干空气上升",
+    q: "晴天，海滩上 {t0} °C。你爬上海滩旁边一座 {H} 米高的山。山顶的空气会怎样？",
+    o1: "更暖和——山顶离太阳更近", o2: "差不多", o3: "冷得多——大约冷 {d} °C",
+    right: "对。山顶大约 {t} °C，比海滩冷 {d} °C。",
+    wrong: "很多人这样想，因为山顶离太阳更近。但山顶大约冷 {d} °C，只有 {t} °C。第 2 步算一算「离太阳更近」到底近了多少。",
+    mGen: "一座 {H} 米的山", mEv: "珠穆朗玛峰", mKi: "乞力马扎罗山", mTs: "泰山",
+    pick: "{name} {H} 米", m: "{v} 米", c: "{v} °C",
+    seaLabel: "海平面 {t} °C", snowLabel: "{h} 米处 0 °C", sunLabel: "太阳：在 1.496 亿千米外",
+    rH: "高度", rT: "气温", rD: "比海平面冷", rB: "这里是", rS: "雪线（0 °C）",
+    sAll: "在海平面——到处都结冰", sAbove: "{h} 米——比这座山还高", sAt: "{h} 米",
+    sunK: "离太阳更近？",
+    sun0: "登山者在海平面。把他往上拖，看看离太阳近了多少。",
+    sun: "往上爬 <strong>{km} 千米</strong>，到太阳的距离（1.496 亿千米）只缩短 <strong>{pct}%</strong>，阳光只强 <strong>{inten}%</strong>。地球自己到太阳的距离每年要变约 500 万千米——是它的 <strong>{ratio}</strong> 倍——而且地球在 1 月初离太阳最近，那时北半球正是冬天。",
+    tH: "高度", tT: "气温",
+    liveRead: "{h} 米：{t} °C，{belt}。", liveHidden: "海平面：{t} °C。选一个答案，看看山顶。",
+    resultTitle: "我们发现", resultMain: "高度 h 处的气温 ≈ 海平面气温 − 6.5 °C × h（千米）",
+    resultNote: "珠峰：升高 {H} 千米，比海平面冷 {d} °C。离太阳近了 {H} 千米，距离只变了 {pct}%。",
+    explainK: "说一说", explainQ: "朋友说山顶离太阳更近，应该更暖和。用「每千米降 6.5 °C」和「离太阳近了多少」的数字，解释为什么几乎在赤道上的乞力马扎罗山顶也有冰。",
+    homeK: "家里做一做", homeQ: "在天气 App 里找两个离得近、但高度不同的地方（比如一座城市和附近的山顶或山区小镇）。比较同一时刻的气温，算一算每升高 1000 米冷了多少度。",
+    foot: "模型：T = T₀ − 6.5 × h，T₀ 是海平面气温，h 是高度（千米）；6.5 °C/千米是大气的平均气温直减率（国际标准大气采用的值）；干燥空气上升时每千米降 9.8 °C（干绝热直减率）。真实的直减率随湿度、季节和天气变化，真实的雪线还和降雪量、日照有关。植被带是按气温画的示意（8 °C 以上森林，3–8 °C 草甸，0–3 °C 裸岩，0 °C 及以下冰雪），不是真实界线。高度：珠穆朗玛峰 8849 米（北纬 28.0°），乞力马扎罗山 5895 米（南纬 3.1°），泰山 1545 米（北纬 36.3°）。选一座山时，海平面气温设为附近低地的典型取整值（珠峰 25 °C，乞力马扎罗 27 °C，泰山 14 °C），山顶气温是模型估算。日地平均距离 1.496 亿千米，一年中约在 1.471 亿千米（1 月初）到 1.521 亿千米（7 月初）之间。阳光强弱与距离的平方成反比。页面上的数都由这些值算出。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- constants ---------- */
+const LAPSE = 6.5, DRY = 9.8;          // °C per km
+const SUN_D = 149600000;               // km, mean Earth–Sun distance
+const SUN_PERI = 147100000, SUN_APH = 152100000;
+const ORBIT_SWING = SUN_APH - SUN_PERI; // km per year
+const TF = 8, TM = 3;                  // schematic belt limits (°C): forest > 8, meadow 3–8, rock 0–3, snow ≤ 0
+const MTS = {
+  gen: { H: 3, T0: 25, k: "mGen" },
+  ev: { H: 8.849, T0: 25, k: "mEv" },
+  ki: { H: 5.895, T0: 27, k: "mKi" },
+  ts: { H: 1.545, T0: 14, k: "mTs" },
+};
+const ORDER = ["gen", "ev", "ki", "ts"];
+
+/* ---------- pure logic ---------- */
+const tempAt = (t0, h, r) => t0 - r * h;
+const heightOf = (t0, t, r) => (t0 - t) / r;            // height (km) where the air is t °C
+function belt(t) { return t <= 0 ? "snow" : t < TM ? "rock" : t < TF ? "meadow" : "forest"; }
+function snowLine(t0, r) { return t0 <= 0 ? 0 : heightOf(t0, 0, r); }
+function sunPct(h) { return (h / SUN_D) * 100; }
+function sunIntensityPct(h) { const q = SUN_D / (SUN_D - h); return (q * q - 1) * 100; }
+function sig(x, n) {                                      // decimal string with n significant digits
+  if (!Number.isFinite(x)) return "—";
+  if (x === 0) return "0";
+  const d = Math.max(0, n - 1 - Math.floor(Math.log10(Math.abs(x))));
+  return x.toFixed(Math.min(d, 20));
+}
+function round2sig(x) { if (!(x > 0)) return 0; const p = Math.pow(10, Math.floor(Math.log10(x)) - 1); return Math.round(x / p) * p; }
+
+/* ---------- formatting ---------- */
+const $ = (id) => document.getElementById(id);
+const neg = (s) => s.replace(/^-/, "−");
+function fT(t) { const s = Play.fmt(t, 1); return neg(s === "-0.0" ? "0.0" : s); }
+function group(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+function fM(km) { const m = Math.round(km * 1000); return P.lang === "zh" ? String(m) : group(m); }
+function fBig(n) {
+  if (P.lang !== "zh") return group(n);
+  if (n >= 1e8) return String(Number(sig(n / 1e8, 3))) + "亿";
+  if (n >= 1e4) return String(Number(sig(n / 1e4, 2))) + "万";
+  return String(Math.round(n));
+}
+const fM10 = (km) => fM(Math.round(km * 100) / 100);  // snow-line heights: nearest 10 m
+const beltName = (b) => P.t({ forest: "bForest", meadow: "bMeadow", rock: "bRock", snow: "bSnow" }[b]);
+const mtName = (id) => P.t(MTS[id].k, { H: fM(MTS[id].H) });
+
+/* ---------- state ---------- */
+const S = { step: 0, mt: "gen", H: 3, t0: 25, h: 0, rate: LAPSE, revealed: false };
+
+/* ---------- geometry ---------- */
+const BASE = 300, PX = 28, HMAX = 9.3;          // y of sea level, px per km
+const XL = 50, XP = 175, XR = 290;             // mountain foot, peak, foot
+const TX0 = 306, TX1 = 392, TMIN = -70, TMAX = 40;
+const yH = (h) => BASE - h * PX;
+const xT = (t) => TX0 + (TX1 - TX0) * (Play.clamp(t, TMIN, TMAX) - TMIN) / (TMAX - TMIN);
+const LEFT = [[0, 0], [0.2, 0.12], [0.35, 0.3], [0.5, 0.42], [0.62, 0.6], [0.78, 0.74], [0.9, 0.9], [1, 1]];
+const RIGHT = [[0, 1], [0.12, 0.86], [0.3, 0.7], [0.45, 0.62], [0.6, 0.4], [0.8, 0.22], [1, 0]];
+function profile(H) {
+  const pts = LEFT.map(([fx, fy]) => [XL + fx * (XP - XL), yH(fy * H)]);
+  RIGHT.slice(1).forEach(([fx, fy]) => pts.push([XP + fx * (XR - XP), yH(fy * H)]));
+  return pts;
+}
+function climberX(h, H) {                       // x on the left slope at height h
+  const f = H > 0 ? Play.clamp(h / H, 0, 1) : 0;
+  for (let i = 1; i < LEFT.length; i++) {
+    const [x0, y0] = LEFT[i - 1], [x1, y1] = LEFT[i];
+    if (f <= y1) { const u = y1 > y0 ? (f - y0) / (y1 - y0) : 0; return XL + (x0 + u * (x1 - x0)) * (XP - XL); }
+  }
+  return XP;
+}
+
+/* ---------- drawing ---------- */
+const fig = $("fig");
+function txt(x, y, s, cls, anchor, parent) {
+  const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "start" }, parent || fig);
+  t.textContent = s;
+  return t;
+}
+function draw() {
+  fig.innerHTML = "";
+  const show = S.revealed, H = S.H, r = S.rate;
+  const pts = profile(H);
+  const poly = pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  const defs = Play.svg("defs", {}, fig);
+  const cp = Play.svg("clipPath", { id: "mclip" }, defs);
+  Play.svg("polygon", { points: poly }, cp);
+  const cg = Play.svg("clipPath", { id: "tclip" }, defs);
+  Play.svg("rect", { x: TX0, y: yH(HMAX), width: TX1 - TX0, height: BASE - yH(HMAX) }, cg);
+
+  // sun hint
+  Play.svg("circle", { cx: 60, cy: 17, r: 9, fill: "var(--hl)" }, fig);
+  txt(76, 22, P.t("sunLabel"), "lb");
+
+  // height axis
+  for (let k = 0; k <= 9; k++) {
+    const y = yH(k);
+    Play.svg("line", { x1: 40, x2: XR, y1: y, y2: y, stroke: "var(--line)", "stroke-width": 1 }, fig);
+    if (k % 3 === 0) txt(34, y + 5, String(k), "lb", "end");
+  }
+  txt(34, yH(HMAX) - 4, "km", "lb", "end");
+
+  // mountain
+  Play.svg("polygon", { points: poly, fill: "var(--soft)" }, fig);
+  if (show) {
+    const g = Play.svg("g", { "clip-path": "url(#mclip)" }, fig);
+    const bands = [
+      [0, heightOf(S.t0, TF, r), "var(--a)", 0.6],
+      [heightOf(S.t0, TF, r), heightOf(S.t0, TM, r), "var(--hl)", 0.7],
+      [heightOf(S.t0, TM, r), heightOf(S.t0, 0, r), "var(--muted)", 0.55],
+      [heightOf(S.t0, 0, r), HMAX, "var(--on-panel)", 1],
+    ];
+    bands.forEach(([a, b, fill, op]) => {
+      const lo = Play.clamp(a, 0, HMAX), hi = Play.clamp(b, 0, HMAX);
+      if (hi > lo) Play.svg("rect", { x: XL, y: yH(hi), width: XR - XL, height: (hi - lo) * PX, fill, opacity: op }, g);
+    });
+  }
+  Play.svg("polygon", { points: poly, fill: "none", stroke: "var(--fg)", "stroke-width": 1.6, "stroke-linejoin": "round" }, fig);
+  Play.svg("line", { x1: 40, x2: TX1, y1: BASE, y2: BASE, stroke: "var(--c)", "stroke-width": 2 }, fig);
+
+  // snow line
+  const hs = snowLine(S.t0, r);
+  if (show && hs <= HMAX) {
+    const y = yH(hs);
+    Play.svg("line", { x1: XL - 8, x2: TX1, y1: y, y2: y, stroke: "var(--c)", "stroke-width": 1.8, "stroke-dasharray": "6 4" }, fig);
+    const ly = hs > H - 0.2 && hs < H + 0.8 ? y + 17 : y - 5;
+    txt(XL - 6, Play.clamp(ly, 40, BASE - 4), P.t("snowLabel", { h: fM10(hs) }), "lb halo", "start");
+  }
+
+  // temperature-height line (right)
+  Play.svg("line", { x1: xT(0), x2: xT(0), y1: yH(HMAX), y2: BASE, stroke: "var(--muted)", "stroke-dasharray": "3 3" }, fig);
+  txt(xT(-40), BASE + 18, "−40", "lb", "middle");
+  txt(xT(0), BASE + 18, "0", "lb", "middle");
+  txt(xT(30), BASE + 18, "30", "lb", "middle");
+  txt((TX0 + TX1) / 2, BASE + 36, "°C", "lb", "middle");
+  if (show) {
+    const tg = Play.svg("g", { "clip-path": "url(#tclip)" }, fig);
+    Play.svg("line", { x1: xT(S.t0), y1: BASE, x2: TX0 + (TX1 - TX0) * (tempAt(S.t0, HMAX, r) - TMIN) / (TMAX - TMIN), y2: yH(HMAX), stroke: "var(--no)", "stroke-width": 2.5 }, tg);
+  }
+
+  // peak label
+  const tp = tempAt(S.t0, H, r);
+  txt(XP + 12, Math.max(yH(H) + 2, 40), fM(H) + (P.lang === "zh" ? " 米 · " : " m · ") + (show ? P.t("c", { v: fT(tp) }) : "? °C"), "lbf halo", "start");
+  txt(XL - 6, BASE + 18, P.t("seaLabel", { t: fT(S.t0) }), "lb");
+
+  // climber
+  const h = S.h, cx = climberX(h, H), cy = yH(h), t = tempAt(S.t0, h, r);
+  if (show) {
+    Play.svg("line", { x1: cx, x2: xT(t), y1: cy, y2: cy, stroke: "var(--no)", "stroke-width": 1, "stroke-dasharray": "2 3" }, fig);
+    Play.svg("circle", { cx: xT(t), cy, r: 5, fill: "var(--no)", stroke: "var(--surface)", "stroke-width": 1.5 }, fig);
+  }
+  const g = Play.svg("g", { transform: "translate(" + cx.toFixed(1) + " " + cy.toFixed(1) + ")" }, fig);
+  Play.svg("circle", { cx: 0, cy: -24, r: 5, fill: "var(--no)" }, g);
+  Play.svg("path", { d: "M0 -19 L0 -8 M0 -8 L-5 0 M0 -8 L5 0 M-6 -15 L6 -13 M6 -13 L9 -3", stroke: "var(--no)", "stroke-width": 2.5, "stroke-linecap": "round", fill: "none" }, g);
+  Play.svg("circle", { cx: 0, cy: -10, r: 16, fill: "transparent" }, g);   // larger touch target
+  if (show && h > 0.05 && H - h > 0.6) {
+    txt(cx + 12, cy - 10, fM(h) + (P.lang === "zh" ? " 米 · " : " m · ") + P.t("c", { v: fT(t) }), "lbf halo", "start");
+  }
+  fig.setAttribute("aria-valuemin", 0);
+  fig.setAttribute("aria-valuemax", Math.round(H * 1000));
+  fig.setAttribute("aria-valuenow", Math.round(h * 1000));
+  fig.setAttribute("aria-valuetext", show ? P.t("liveRead", { h: fM(h), t: fT(t), belt: beltName(belt(t)) }) : P.t("liveHidden", { t: fT(S.t0) }));
+  fig.classList.toggle("locked", !show);
+}
+
+/* ---------- side panel ---------- */
+function panel() {
+  const r = S.rate, h = S.h, t = tempAt(S.t0, h, r), hs = snowLine(S.t0, r);
+  const sTxt = S.t0 <= 0 ? P.t("sAll") : hs > S.H ? P.t("sAbove", { h: fM10(hs) }) : P.t("sAt", { h: fM10(hs) });
+  const sep = P.lang === "zh" ? "：" : ": ";
+  $("read").innerHTML = "";
+  [["rH", P.t("m", { v: fM(h) })], ["rT", P.t("c", { v: fT(t) })], ["rD", P.t("c", { v: fT(S.t0 - t) })], ["rB", beltName(belt(t))], ["rS", sTxt]].forEach(([k, v]) => {
+    const d = document.createElement("div");
+    const b = document.createElement("b");
+    b.textContent = v;
+    d.append(P.t(k) + sep, b);
+    $("read").appendChild(d);
+  });
+  const kick = '<div class="kicker">' + P.t("sunK") + "</div>";
+  $("sun").innerHTML = kick + (h < 0.005 ? P.t("sun0") : P.t("sun", {
+    km: Play.fmt(h, 2), pct: sig(sunPct(h), 2), inten: sig(sunIntensityPct(h), 2), ratio: fBig(round2sig(ORBIT_SWING / h)),
+  }));
+  // step 3: table for the current mountain
+  const hs3 = [];
+  const stepKm = S.H > 4 ? 2 : S.H > 2 ? 1 : 0.5;
+  for (let k = 0; k < S.H - 1e-9; k += stepKm) hs3.push(k);
+  hs3.push(S.H);
+  let html = "<thead><tr><th>" + P.t("tH") + "</th><th>" + P.t("tT") + "</th><th></th></tr></thead><tbody>";
+  hs3.forEach((x) => { const tt = tempAt(S.t0, x, r); html += "<tr><td>" + P.t("m", { v: fM(x) }) + "</td><td>" + P.t("c", { v: fT(tt) }) + "</td><td>" + beltName(belt(tt)) + "</td></tr>"; });
+  $("tbl").innerHTML = html + "</tbody>";
+  rateBtns.forEach((b, j) => { const on = [LAPSE, DRY][j] === r; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+}
+function bodyText() {
+  if (S.step === 0) return P.t(S.revealed ? "b1after" : "b1");
+  if (S.step === 1) return P.t("b2");
+  const ki = MTS.ki, r = S.rate;
+  return P.t("b3", { t0: fT(ki.T0), r: Play.fmt(r, 1), hs: fM10(snowLine(ki.T0, r)), H: fM(ki.H) }) + " " + P.t("b3rate");
+}
+
+/* ---------- render ---------- */
+function render() {
+  $("t0").value = S.t0;
+  $("t0Val").textContent = P.t("c", { v: fT(S.t0) });
+  pickBtns.forEach((b, j) => { const on = ORDER[j] === S.mt; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+  draw();
+  $("stepBody").textContent = bodyText();
+  $("read").hidden = !S.revealed;
+  $("sun").hidden = S.step !== 1;
+  $("rates").hidden = $("tbl").hidden = S.step !== 2;
+  $("legend").hidden = !S.revealed;
+  if (S.revealed) panel();
+  const t = tempAt(S.t0, S.h, S.rate);
+  Play.live($("live"), S.revealed ? P.t("liveRead", { h: fM(S.h), t: fT(t), belt: beltName(belt(t)) }) : P.t("liveHidden", { t: fT(S.t0) }));
+}
+
+/* ---------- controls ---------- */
+const pickBtns = ORDER.map((id) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small";
+  b.textContent = id === "gen" ? mtName(id) : P.t("pick", { name: mtName(id), H: fM(MTS[id].H) });
+  b.addEventListener("click", () => { S.mt = id; S.H = MTS[id].H; S.t0 = MTS[id].T0; S.h = S.H; render(); });
+  $("picks").appendChild(b);
+  return b;
+});
+const rateBtns = [["rAvg", LAPSE], ["rDry", DRY]].map(([k, v]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(k);
+  b.addEventListener("click", () => { S.rate = v; render(); });
+  $("rates").appendChild(b);
+  return b;
+});
+$("t0").addEventListener("input", (e) => { const v = +e.target.value; S.t0 = Number.isFinite(v) ? Play.clamp(v, -10, 35) : 25; render(); });
+
+function setH(h) {
+  const v = Play.clamp(Math.round(h * 100) / 100, 0, S.H);
+  if (v !== S.h) { S.h = v; render(); }
+}
+let drag = false;
+fig.addEventListener("pointerdown", (e) => {
+  if (!S.revealed) return;
+  drag = true; fig.setPointerCapture(e.pointerId);
+  setH((BASE - Play.pointer(fig, e).y) / PX);
+  e.preventDefault();
+});
+fig.addEventListener("pointermove", (e) => { if (drag) setH((BASE - Play.pointer(fig, e).y) / PX); });
+fig.addEventListener("pointerup", () => (drag = false));
+fig.addEventListener("pointercancel", () => (drag = false));
+fig.addEventListener("keydown", (e) => {
+  if (!S.revealed) return;
+  const d = { ArrowUp: 0.1, ArrowRight: 0.1, ArrowDown: -0.1, ArrowLeft: -0.1, PageUp: 1, PageDown: -1 }[e.key];
+  if (d !== undefined) setH(S.h + d);
+  else if (e.key === "Home") setH(0);
+  else if (e.key === "End") setH(S.H);
+  else return;
+  e.preventDefault();
+});
+
+function predictCfg() {
+  const g = MTS.gen, d = LAPSE * g.H, tTop = tempAt(g.T0, g.H, LAPSE);
+  const v = { t0: fT(g.T0), H: fM(g.H), d: Play.fmt(d, 0), t: fT(tTop) };
+  return {
+    q: P.t("q", v),
+    options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3", v), right: true }],
+    right: P.t("right", v), wrong: P.t("wrong", v),
+  };
+}
+const pr = Play.predict($("predict"), predictCfg(), () => { if (!S.revealed) { S.revealed = true; S.h = S.H; } render(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  S.step = i;
+  if (i > 0 && !S.revealed) { S.revealed = true; S.h = S.H; }
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  Object.assign(S, { mt: "gen", H: MTS.gen.H, t0: MTS.gen.T0, h: 0, rate: LAPSE, revealed: false });
+  pr.reset(); st.go(0);
+});
+(function resultNote() {
+  const ev = MTS.ev;
+  $("resultNote").textContent = P.t("resultNote", { H: Play.fmt(ev.H, 3), d: Play.fmt(LAPSE * ev.H, 1), pct: sig(sunPct(ev.H), 2) });
+})();
+render();
+</script>
+</body>
+</html>

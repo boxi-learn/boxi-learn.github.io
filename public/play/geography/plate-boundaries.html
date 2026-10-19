@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where earthquakes happen</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  #map { width: 100%; height: auto; display: block; touch-action: manipulation; overflow: hidden; --k: 1; }
+  #map.drawing { cursor: crosshair; touch-action: none; }
+  #map text { font-size: calc(13px * var(--k)); }
+  .lb { fill: var(--muted); }
+  .lbf { fill: var(--fg); font-weight: 650; }
+  .halo { paint-order: stroke; stroke: var(--surface); stroke-width: calc(3px * var(--k)); stroke-linejoin: round; }
+  .cap { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 6px 14px 2px; font-size: 12px; color: var(--muted); }
+  .cap b { color: var(--b); font-weight: 700; }
+  .controls label.lab { min-width: 4.5em; }
+  .controls .val { min-width: 5.5em; font-family: var(--font); font-size: 14px; }
+  .read { display: grid; grid-template-columns: auto auto; gap: 3px 12px; margin: 6px 0 10px; font-size: 14px; }
+  .read dt { color: var(--muted); }
+  .read dd { margin: 0; font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 650; }
+  .ex { margin: 4px 0 10px; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+  .ex li { margin: 0 0 5px; }
+  .ex b { color: var(--fg); }
+  .num { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 750; color: var(--surface); margin-right: 5px; vertical-align: 1px; }
+  .tri { display: inline-block; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid var(--b); margin-right: 5px; }
+  .line { display: inline-block; width: 16px; height: 3px; margin-right: 5px; vertical-align: 3px; border-radius: 2px; }
+  .result .math { white-space: normal; font-family: var(--font); font-size: 18px; font-weight: 650; }
+  @media (max-width: 560px) { .result .math { font-size: 16px; } .read { grid-template-columns: 1fr auto; } }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg id="map" viewBox="0 0 360 142" role="application" tabindex="0" data-t-aria="mapAria"></svg>
+      <div class="cap"><span data-t="mapCap"></span><b id="simTag"></b></div>
+      <div class="legend" style="padding: 0 14px 4px" id="legend"></div>
+      <div class="controls" id="rowYear">
+        <label class="lab" for="year" data-t="yearLabel"></label>
+        <input type="range" id="year" min="0" max="20" step="1" value="0">
+        <span class="val" id="yearVal"></span>
+        <button type="button" class="small" id="playBtn"></button>
+      </div>
+      <div class="controls" id="rowChecks">
+        <label class="check"><input type="checkbox" id="cVol"> <span data-t="cVol"></span></label>
+        <label class="check"><input type="checkbox" id="cEven"> <span data-t="cEven"></span></label>
+        <label class="check" id="lReveal"><input type="checkbox" id="cReveal"> <span data-t="cReveal"></span></label>
+        <button type="button" class="small" id="reseed" data-t="reseed"></button>
+      </div>
+      <div class="controls" id="rowDraw">
+        <button type="button" class="small" id="newLine" data-t="newLine"></button>
+        <button type="button" class="small" id="undo" data-t="undo"></button>
+        <button type="button" class="small" id="clear" data-t="clear"></button>
+        <span data-t="drawHint"></span>
+      </div>
+      <div class="controls" id="rowDist">
+        <label class="lab" for="dist" data-t="distLabel"></label>
+        <input type="range" id="dist" min="50" max="500" step="25" value="200">
+        <span class="val" id="distVal"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <dl class="read" id="read"></dl>
+      <ul class="ex" id="examples"></ul>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Where earthquakes happen", eyebrow: "Geography · Stage 4", h1: "Map the earthquakes and the plates draw themselves",
+    intro: "Drop 20 years of earthquakes onto a world map, guess where the plate edges are, then check your lines against the real ones.",
+    reset: "Reset", play: "Play", pause: "Pause",
+    mapAria: "Schematic world map. In step 3 move the cross with the arrow keys and press Enter to add a point to your line. In step 2 the arrow keys change the year.",
+    mapCap: "Schematic map, Pacific in the middle, 62°S–80°N.", simTag: "schematic, not real catalogue data · seed {s}",
+    yearLabel: "Years", yearVal: "{y} / 20", cVol: "Volcanoes", cEven: "What if quakes could be anywhere?", cReveal: "Reveal plates", reseed: "New random set",
+    newLine: "New line", undo: "Undo point", clear: "Clear", drawHint: "Tap the map to add points.",
+    distLabel: "Within", km: "{d} km",
+    s1: "Guess", s2: "Drop the dots", s3: "Draw the edges", s4: "Rule",
+    k1: "Predict first", t1: "Where do earthquakes strike?",
+    b1: "Pick an answer. In the next step you will drop 20 years of strong earthquakes onto the map and see.",
+    k2: "Hands on", t2: "Drop the dots, year by year",
+    b2: "Drag the years slider or press Play. Each dot is one simulated strong earthquake; bigger dots are bigger quakes. Watch where they pile up. Then tick “What if quakes could be anywhere?” to compare with an even spread, and tick Volcanoes.",
+    k3: "Be the geologist", t3: "Draw where the plate edges are",
+    b3: "Follow the belts of dots: tap the map to draw a line through them (keyboard: arrows move the cross, Enter adds a point). Start a new line for each belt. Your score is how far your line is, on average, from the true plate edges. Then tick Reveal plates.",
+    k4: "The rule", t4: "Earthquakes trace the plate edges",
+    b4: "Earth's outer shell is broken into plates that move a few centimetres a year. At their edges they pull apart (divergent), push together (convergent) or slide past each other (transform). That is where rock breaks — so that is where earthquakes and most volcanoes are. A map of earthquakes is a map of the plates.",
+    q: "Suppose we mark every strong earthquake of 20 years on a world map. What will the dots look like?",
+    o1: "Spread fairly evenly: an earthquake can happen anywhere", o2: "Packed into long, narrow belts", o3: "Mostly in the middle of the big continents",
+    right: "Yes. Drop the dots in step 2 and watch the belts appear.",
+    wrong: "A common guess. Drop the dots in step 2 and check it.",
+    rYear: "Years shown", rQuakes: "Quakes on the map", rMean: "Your line: average distance to a true edge", rCover: "Quakes within 250 km of your line",
+    rNear: "Quakes within {d} km of an edge", rEven: "Same, if quakes were anywhere", rArea: "Map area within {d} km of an edge", rVol: "Volcanoes within {d} km of an edge",
+    none: "—", pct: "{p}%", ofN: "{a} of {b}",
+    vGood: "Great — your line follows a real plate edge.", vOk: "Close. Tick Reveal plates and compare.", vFar: "Far off. Look for the thickest belt of dots.", vStart: "Tap the map to start your line.",
+    evenOn: "Now showing an even random spread, for comparison.",
+    liveYear: "Year {y}: {n} quakes on the map.",
+    tC: "convergent (push together)", tD: "divergent (pull apart)", tT: "transform (slide past)", lQuake: "earthquake", lVol: "volcano", lYou: "your line",
+    e1: "Iceland", e1d: "divergent — the Mid-Atlantic Ridge rises above the sea; the island widens about 2 cm a year.",
+    e2: "Japan", e2d: "convergent — the Pacific plate dives under Japan (2011 Tōhoku quake, magnitude 9.0).",
+    e3: "Andes", e3d: "convergent — the Nazca plate dives under South America (1960 Chile quake, magnitude 9.5, the largest recorded).",
+    e4: "San Andreas Fault", e4d: "transform — the Pacific and North American plates slide past each other.",
+    e5: "Himalaya", e5d: "convergent — two continents collide: India pushes into Asia and lifts the mountains.",
+    e6: "East African Rift", e6d: "divergent — a continent is slowly splitting apart.",
+    hot: "Volcanoes above a diving plate sit about 100–350 km behind the edge line, so try a wider distance. Hawaii and Yellowstone are the famous exceptions: “hotspot” volcanoes in the middle of a plate.",
+    pPac: "Pacific", pNA: "North American", pEu: "Eurasian", pAf: "African", pSA: "South American", pNz: "Nazca", pIA: "Indo-Australian", pAn: "Antarctic",
+    resultTitle: "What we found",
+    resultMain: "{p}% of the simulated quakes lie within {d} km of a plate edge — a strip that covers only {s}% of the map.",
+    resultNote: "That percentage is a property of this simulation, which we built from the plate edges. Real world (scientific consensus): most earthquakes happen at plate boundaries; a few happen inside plates.",
+    explainK: "Explain it", explainQ: "A friend says an earthquake is just as likely anywhere. Use the dot map to explain why Japan and Chile get big quakes but central Australia almost never does.",
+    homeK: "Try at home", homeQ: "Put two biscuits (crackers) side by side on a plate. Push them together, pull them apart, slide them past each other. Where do the crumbs and cracks appear — in the middle or at the edges?",
+    foot: "Map: hand-drawn schematic outlines, equirectangular projection centred on 120°W so the Pacific is whole (left edge 60°E). Plate edges: simplified by hand from published global plate-boundary maps (e.g. Bird 2003; USGS “This Dynamic Planet”). Earthquakes: 300 points simulated with a fixed random seed — about 94% placed near an edge (spread ~120 km on the over-riding side of subduction zones, ~200 km across collisions, ~35 km at ridges and transforms), the rest anywhere; sizes follow a Gutenberg–Richter law (b = 1) from magnitude 5. Volcanoes: approximate positions of well-known volcanoes. Distances: great-circle, Earth radius 6371 km. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "地震发生在哪里", eyebrow: "地理 · 阶段 4", h1: "把地震画上地图，板块就自己显出来",
+    intro: "把 20 年的地震撒到世界地图上，猜一猜板块的边在哪里，再拿你的线和真正的板块边界比一比。",
+    reset: "重置", play: "播放", pause: "暂停",
+    mapAria: "示意世界地图。第 3 步用方向键移动十字，按回车给你的线加一个点。第 2 步方向键改年份。",
+    mapCap: "示意地图，太平洋居中，南纬 62° 至北纬 80°。", simTag: "示意，不是真实地震目录 · 种子 {s}",
+    yearLabel: "年数", yearVal: "{y} / 20 年", cVol: "火山", cEven: "如果地震哪里都一样容易？", cReveal: "显示板块", reseed: "换一组随机数据",
+    newLine: "新的一条线", undo: "撤销一点", clear: "清除", drawHint: "点地图加点。",
+    distLabel: "距离", km: "{d} 千米",
+    s1: "先猜", s2: "撒点", s3: "画边界", s4: "规律",
+    k1: "先猜一猜", t1: "地震会发生在哪里？",
+    b1: "先选一个答案。下一步你会把 20 年的强震撒到地图上，亲眼看。",
+    k2: "动手", t2: "一年一年撒下地震",
+    b2: "拖动年数滑块，或按播放。每个点是一次模拟的强震，点越大震级越大。看它们堆在哪里。再勾选「如果地震哪里都一样容易？」跟均匀撒点比一比，也勾上「火山」。",
+    k3: "当一回地质学家", t3: "画出板块的边",
+    b3: "顺着点子排成的带：点地图，画一条穿过它们的线（键盘：方向键移动十字，回车加点）。每条带开一条新线。得分是你的线离真正板块边界的平均距离。最后勾选「显示板块」。",
+    k4: "规律", t4: "地震描出了板块的边",
+    b4: "地球的外壳裂成许多板块，每年移动几厘米。在板块边缘，它们或者张开（生长边界），或者相撞（消亡边界），或者错开滑动（转换边界）。岩石就在那里断裂——所以地震和大多数火山都在那里。地震分布图就是一张板块图。",
+    q: "把 20 年里每一次强震都标在世界地图上，这些点会是什么样子？",
+    o1: "差不多均匀地撒满：地震在哪里都一样容易发生", o2: "挤成又长又窄的带子", o3: "主要在大陆的中间",
+    right: "对。到第 2 步撒点，看带子怎么出现。",
+    wrong: "很多人这样猜。到第 2 步撒点检验一下。",
+    rYear: "显示的年数", rQuakes: "地图上的地震", rMean: "你的线：离真正边界的平均距离", rCover: "离你的线 250 千米内的地震",
+    rNear: "离板块边界 {d} 千米内的地震", rEven: "如果地震哪里都一样容易", rArea: "离边界 {d} 千米内的地图面积", rVol: "离边界 {d} 千米内的火山",
+    none: "—", pct: "{p}%", ofN: "{b} 座中 {a} 座",
+    vGood: "很好——你的线沿着一条真正的板块边界。", vOk: "接近了。勾选「显示板块」对照一下。", vFar: "差得远。找点子最密的那条带。", vStart: "点地图开始画线。",
+    evenOn: "现在显示的是均匀随机撒的点，用来对比。",
+    liveYear: "第 {y} 年：地图上有 {n} 次地震。",
+    tC: "消亡边界（相撞）", tD: "生长边界（张开）", tT: "转换边界（错开）", lQuake: "地震", lVol: "火山", lYou: "你的线",
+    e1: "冰岛", e1d: "生长边界——大西洋中脊露出海面，这个岛每年变宽约 2 厘米。",
+    e2: "日本", e2d: "消亡边界——太平洋板块俯冲到日本下面（2011 年东日本大地震，9.0 级）。",
+    e3: "安第斯山脉", e3d: "消亡边界——纳斯卡板块俯冲到南美洲下面（1960 年智利大地震，9.5 级，有记录以来最大）。",
+    e4: "圣安德烈亚斯断层", e4d: "转换边界——太平洋板块和北美板块互相错开滑动。",
+    e5: "喜马拉雅山", e5d: "消亡边界——两块大陆相撞：印度挤进亚洲，把山抬高。",
+    e6: "东非大裂谷", e6d: "生长边界——一块大陆正在慢慢裂开。",
+    hot: "俯冲板块上方的火山离边界线约 100–350 千米，把距离调大试试。夏威夷和黄石是有名的例外：位于板块中间的「热点」火山。",
+    pPac: "太平洋板块", pNA: "北美板块", pEu: "亚欧板块", pAf: "非洲板块", pSA: "南美板块", pNz: "纳斯卡板块", pIA: "印度洋板块", pAn: "南极洲板块",
+    resultTitle: "我们发现",
+    resultMain: "{p}% 的模拟地震离板块边界不到 {d} 千米——而这条带只占地图面积的 {s}%。",
+    resultNote: "这个百分比是本模拟的性质，因为模拟是按板块边界造的。真实世界（科学界共识）：大多数地震发生在板块边界，少数发生在板块内部。",
+    explainK: "说一说", explainQ: "朋友说地震在哪里都一样容易发生。用这张地震点图向他解释：为什么日本和智利常有大地震，澳大利亚中部却几乎没有？",
+    homeK: "家里做一做", homeQ: "把两块饼干并排放在盘子里。把它们推到一起、拉开、再错开滑动。碎屑和裂缝出现在哪里——中间还是边上？",
+    foot: "地图：手绘示意轮廓，等距圆柱投影，以西经 120° 为中心让太平洋完整（左边缘为东经 60°）。板块边界：参照已发表的全球板块边界图（如 Bird 2003、美国地质调查局《This Dynamic Planet》）手工简化。地震：用固定随机种子模拟 300 个点——约 94% 放在边界附近（俯冲带在上覆板块一侧散开约 120 千米，大陆碰撞带约 200 千米，洋脊和转换断层约 35 千米），其余随处都可能；震级从 5 级起按古登堡–里克特定律（b = 1）。火山：知名火山的大致位置。距离：大圆距离，地球半径 6371 千米。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ===== MODEL START (pure; tested in node) ===== */
+const R = 6371, D2R = Math.PI / 180, YEARS = 20, NQ = 300;
+const LON0 = 60, LATT = 80, LATB = -62, MW = 360, MH = LATT - LATB;
+const clampN = (x, a, b) => Math.min(b, Math.max(a, x));
+const vec = (lon, lat) => { const a = lat * D2R, b = lon * D2R, c = Math.cos(a); return [c * Math.cos(b), c * Math.sin(b), Math.sin(a)]; };
+const gcKm = (u, v) => R * Math.acos(clampN(u[0] * v[0] + u[1] * v[1] + u[2] * v[2], -1, 1));
+const wrapLon = (l) => ((l + 180) % 360 + 360) % 360 - 180;
+// Plate edges, simplified by hand: [type, side, [[lon, lat], ...]]. Types: c subduction, k collision, d divergent, t transform.
+// side: +1 = quakes spread to the left of the line's direction, −1 = right, 0 = both.
+const EDGES = [
+  ["c", 1, [[162, 56], [168, 53.5], [175, 51.5], [185, 51.5], [195, 53], [205, 55.5], [212, 58.5], [215, 60]]],
+  ["c", -1, [[162, 56], [159, 51], [153, 46], [147, 42], [144, 38], [142, 34], [142, 29], [143, 24], [146, 18], [146, 13], [143, 11], [139, 10]]],
+  ["c", -1, [[139, 34.5], [135, 33], [132, 31], [129, 28], [125, 25], [122, 23], [121, 20], [119.5, 16], [119.5, 13]]],
+  ["c", -1, [[125, 14], [127, 10], [127, 6], [126, 3]]],
+  ["c", 1, [[94, 16], [93, 10], [94, 5], [97, 1], [101, -4], [106, -8], [112, -10], [118, -11], [123, -11], [128, -9], [131, -7], [133, -4]]],
+  ["c", 1, [[141, -4], [146, -5], [151, -6.5], [156, -8], [161, -11], [166, -13], [169, -18], [171, -22]]],
+  ["c", -1, [[187, -15], [186, -20], [184, -25], [182, -31], [181, -36], [179, -39], [177, -40.5]]],
+  ["t", 0, [[177, -40.5], [173, -42], [170, -43.5], [167, -46], [165, -50]]],
+  ["t", 0, [[-145, 60], [-138, 58.5], [-134, 55], [-131, 52], [-128, 50]]],
+  ["c", 1, [[-128, 50], [-126, 47], [-125, 44], [-124.5, 40.5]]],
+  ["t", 0, [[-124.5, 40.5], [-123, 38], [-121, 36], [-118.5, 34.6], [-116, 33], [-114.7, 31.5]]],
+  ["d", 0, [[-114.7, 31.5], [-112, 28], [-109, 24], [-107.5, 21]]],
+  ["c", 1, [[-105.5, 19.5], [-102, 17], [-98, 15.8], [-94, 14.8], [-91, 13.4], [-88, 12], [-85, 10], [-83, 7.5]]],
+  ["c", 1, [[-79, 6], [-80, 2], [-81, -3], [-81, -7], [-78, -12], [-75, -15.5], [-71.5, -19], [-71, -24], [-71.5, -30], [-73, -36], [-74.5, -42], [-75.5, -47], [-76, -52]]],
+  ["c", 0, [[-66, 19], [-62, 18], [-60.5, 15], [-61, 12]]],
+  ["t", 0, [[-87, 15.5], [-80, 19], [-72, 19.5], [-66, 19]]],
+  ["d", 0, [[-107.5, 21], [-106, 15], [-104, 9], [-103, 2], [-105, -8], [-110, -18], [-112, -28], [-113, -37], [-115, -45], [-118, -53], [-125, -56], [-140, -57.5], [-155, -59.5]]],
+  ["d", 0, [[-6, 72], [-10, 71], [-15, 68], [-18, 66], [-20, 64], [-24, 61], [-30, 57], [-33, 52], [-29, 47], [-29, 42], [-33, 37], [-38, 32], [-43, 27], [-45, 22], [-46, 16], [-44, 10], [-36, 5], [-28, 1], [-18, -1], [-13, -6], [-13, -14], [-14, -22], [-13, -30], [-15, -38], [-15, -45], [-9, -52], [0, -54]]],
+  ["t", 0, [[-29, 39], [-20, 37], [-12, 36]]],
+  ["d", 0, [[0, -54], [15, -52], [30, -45], [45, -38], [57, -31], [66, -26], [69, -25]]],
+  ["d", 0, [[69, -25], [67, -18], [66, -10], [68, -2], [63, 6], [58, 13], [52, 14], [46, 12.5], [43, 12.5]]],
+  ["d", 0, [[69, -25], [78, -32], [88, -40], [100, -47], [115, -50], [130, -51], [145, -54], [155, -60]]],
+  ["d", 0, [[43, 12.5], [40, 17], [37, 22], [34.5, 28]]],
+  ["t", 0, [[34.5, 28], [35.5, 33], [36.5, 37]]],
+  ["d", 0, [[42, 11.5], [40, 9], [38.5, 6], [37, 3], [36, 0], [35.5, -4], [34.8, -8], [34.5, -12], [35, -16]]],
+  ["d", 0, [[30.5, 2], [29.2, -2], [29.2, -6], [30.5, -8.5], [33.5, -10]]],
+  ["k", 1, [[-12, 36], [-6, 36], [0, 36.5], [6, 37], [10, 38], [15, 39], [20, 39], [23, 35.5], [28, 35.5], [32, 35], [36.5, 37], [42, 38], [45, 37], [48, 34], [51, 30.5], [56, 27.5], [61, 26], [65, 26], [67, 28], [69, 32], [71, 34.5], [74, 35.5], [77, 34], [80, 30.5], [85, 28], [89, 27.5], [94, 28.5], [96.5, 26], [95, 21], [94, 16]]],
+];
+const TYPE = { c: { w: 3, s: 120 }, k: { w: 2, s: 200 }, t: { w: 1.5, s: 35 }, d: { w: 0.6, s: 35 } };
+const unwrapLon = (l, ref) => { while (l - ref > 180) l -= 360; while (ref - l > 180) l += 360; return l; };
+function densify(pts, stepKm) { // lon/lat straight segments (as drawn on the map) → points every ≤ stepKm
+  const out = [];
+  for (let i = 0; i < pts.length; i++) {
+    const A = pts[i];
+    if (i === pts.length - 1) { out.push([A[0], A[1]]); break; }
+    const B = [unwrapLon(pts[i + 1][0], A[0]), pts[i + 1][1]];
+    const n = Math.max(1, Math.ceil(gcKm(vec(A[0], A[1]), vec(B[0], B[1])) / stepKm));
+    for (let k = 0; k < n; k++) out.push([A[0] + (B[0] - A[0]) * k / n, A[1] + (B[1] - A[1]) * k / n]);
+  }
+  return out;
+}
+const DENSE = []; // flat xyz of all edge points
+EDGES.forEach((e) => densify(e[2], 20).forEach(([lo, la]) => DENSE.push(...vec(lo, la))));
+function edgeDist(v, dense) { // km to the nearest point of the set
+  const D = dense || DENSE;
+  if (!D.length) return Infinity;
+  let best = -2;
+  for (let i = 0; i < D.length; i += 3) { const d = v[0] * D[i] + v[1] * D[i + 1] + v[2] * D[i + 2]; if (d > best) best = d; }
+  return R * Math.acos(clampN(best, -1, 1));
+}
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const gauss = (r) => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+function randomSpot(r) { // uniform on the sphere within the map's latitude band
+  const s1 = Math.sin(LATB * D2R), s2 = Math.sin(LATT * D2R);
+  return [r() * 360 - 180, Math.asin(s1 + (s2 - s1) * r()) / D2R];
+}
+function segLens() {
+  const segs = [];
+  let total = 0;
+  EDGES.forEach(([ty, side, pts], li) => {
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const A = pts[i], B = [unwrapLon(pts[i + 1][0], A[0]), pts[i + 1][1]];
+      const w = gcKm(vec(A[0], A[1]), vec(B[0], B[1])) * TYPE[ty].w;
+      total += w; segs.push({ A, B, ty, side, li, cum: total });
+    }
+  });
+  return { segs, total };
+}
+const SEGS = segLens();
+function makeQuakes(seed, n, intraShare) {
+  const r = rng(seed), out = [];
+  for (let q = 0; q < n; q++) {
+    let lon, lat, near = true;
+    if (r() < intraShare) { [lon, lat] = randomSpot(r); near = false; }
+    else {
+      const x = r() * SEGS.total;
+      const sg = SEGS.segs.find((s) => s.cum >= x) || SEGS.segs[SEGS.segs.length - 1];
+      const f = r(), la0 = sg.A[1] + (sg.B[1] - sg.A[1]) * f, lo0 = sg.A[0] + (sg.B[0] - sg.A[0]) * f;
+      const c = Math.max(0.15, Math.cos(la0 * D2R));
+      let dx = (sg.B[0] - sg.A[0]) * c, dy = sg.B[1] - sg.A[1];
+      const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+      const T = TYPE[sg.ty], g = gauss(r);
+      let off = sg.side ? sg.side * Math.abs(g) * T.s : g * T.s;
+      if (sg.ty === "k") off = g * T.s * 0.7 + 0.5 * T.s; // collision belts spread wide, more on the north side
+      const along = gauss(r) * 15;
+      const nx = -dy, ny = dx; // left normal
+      lat = clampN(la0 + (ny * off + dy * along) / 111.2, LATB + 1, LATT - 2);
+      lon = wrapLon(lo0 + (nx * off + dx * along) / (111.2 * Math.max(0.15, Math.cos(lat * D2R))));
+    }
+    const mag = 5 + Math.min(3.8, -Math.log10(1 - r()));
+    out.push({ lon, lat, mag, year: 1 + Math.floor(r() * YEARS), near });
+  }
+  out.forEach((p) => (p.d = edgeDist(vec(p.lon, p.lat))));
+  return out;
+}
+function makeEven(seed, n) {
+  const r = rng(seed ^ 0x5bd1e995), out = [];
+  for (let i = 0; i < n; i++) { const [lon, lat] = randomSpot(r); out.push({ lon, lat, mag: 5 + Math.min(3.8, -Math.log10(1 - r())), year: 1 + Math.floor(r() * YEARS) }); }
+  out.forEach((p) => (p.d = edgeDist(vec(p.lon, p.lat))));
+  return out;
+}
+const AREA = (() => { // Fibonacci points on the sphere, kept inside the map band → area fractions
+  const out = [], N = 6000, g = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < N; i++) {
+    const z = 1 - 2 * (i + 0.5) / N, lat = Math.asin(z) / D2R;
+    if (lat < LATB || lat > LATT) continue;
+    out.push(edgeDist(vec(wrapLon((i * g) / D2R), lat)));
+  }
+  return out;
+})();
+const share = (arr, D) => (arr.length ? 100 * arr.filter((x) => x <= D).length / arr.length : NaN);
+function lineScore(lines, quakes) { // user lines → mean distance (km) to true edges; % of quakes within 250 km
+  const pts = [];
+  lines.forEach((l) => { if (l.length) densify(l, 50).forEach((p) => pts.push(p)); });
+  if (!pts.length) return { mean: NaN, cover: NaN, n: 0 };
+  const mean = pts.reduce((s, p) => s + edgeDist(vec(p[0], p[1])), 0) / pts.length;
+  const dense = [];
+  pts.forEach(([lo, la]) => dense.push(...vec(lo, la)));
+  const cover = quakes.length ? 100 * quakes.filter((q) => edgeDist(vec(q.lon, q.lat), dense) <= 250).length / quakes.length : NaN;
+  return { mean, cover, n: pts.length };
+}
+/* ===== MODEL END ===== */
+
+const VOLC = [ // approximate positions [lon, lat, en, zh]
+  [138.73, 35.36, "Fuji", "富士山"], [130.66, 31.58, "Sakurajima", "樱岛"], [160.64, 56.06, "Klyuchevskoy", "克柳切夫火山"],
+  [120.35, 15.13, "Pinatubo", "皮纳图博火山"], [123.69, 13.26, "Mayon", "马荣火山"], [105.42, -6.1, "Krakatau", "喀拉喀托火山"],
+  [110.45, -7.54, "Merapi", "默拉皮火山"], [118.0, -8.25, "Tambora", "坦博拉火山"], [175.57, -39.28, "Ruapehu", "鲁阿佩胡火山"],
+  [-152.74, 60.49, "Redoubt", "雷道特火山"], [-122.18, 46.2, "Mount St. Helens", "圣海伦斯火山"], [-98.62, 19.02, "Popocatépetl", "波波卡特佩特火山"],
+  [-78.44, -0.68, "Cotopaxi", "科托帕希火山"], [-71.93, -39.42, "Villarrica", "比亚里卡火山"], [-62.18, 16.72, "Soufrière Hills", "苏弗里耶尔山"],
+  [-19.67, 63.98, "Hekla", "海克拉火山"], [14.99, 37.75, "Etna", "埃特纳火山"], [14.43, 40.82, "Vesuvius", "维苏威火山"],
+  [40.67, 13.6, "Erta Ale", "尔塔阿雷火山"], [37.36, -3.07, "Kilimanjaro", "乞力马扎罗山"], [29.25, -1.52, "Nyiragongo", "尼拉贡戈火山"],
+  [-155.61, 19.48, "Mauna Loa (Hawaii)", "冒纳罗亚火山（夏威夷）"], [-110.67, 44.43, "Yellowstone", "黄石"], [128.08, 41.99, "Changbai / Paektu", "长白山"],
+].map(([lon, lat, en, zh]) => ({ lon, lat, name: P.lang === "zh" ? zh : en, d: edgeDist(vec(lon, lat)) }));
+const EXAMPLES = [[1, -19, 64.8, "d"], [2, 141, 38, "c"], [3, -70, -22, "c"], [4, -120.5, 35.8, "t"], [5, 85, 28, "k"], [6, 37, 1, "d"]];
+const PLATES = [["pPac", -150, -8], ["pNA", -100, 56], ["pEu", 92, 58], ["pAf", 12, 18], ["pSA", -45, -10], ["pNz", -108, -38], ["pIA", 90, -16], ["pAn", 45, -57]];
+const LAND = [
+  [[-165, 68], [-140, 70], [-110, 72], [-85, 72], [-80, 63], [-95, 58], [-78, 52], [-65, 60], [-55, 52], [-66, 44], [-76, 35], [-81, 30], [-80, 25], [-90, 29], [-97, 26], [-97, 20], [-87, 21], [-84, 15], [-78, 8], [-82, 8], [-92, 15], [-105, 20], [-112, 30], [-117, 32], [-124, 40], [-124, 48], [-135, 58], [-150, 60], [-165, 60]],
+  [[-60, 80], [-20, 80], [-20, 70], [-42, 60], [-52, 64], [-58, 76]],
+  [[-80, 9], [-72, 12], [-60, 10], [-50, 0], [-35, -5], [-39, -15], [-48, -26], [-58, -38], [-65, -42], [-68, -52], [-74, -52], [-73, -40], [-71, -30], [-70, -18], [-76, -14], [-81, -5], [-80, 1], [-77, 8]],
+  [[-9, 37], [-9, 44], [0, 46], [-4, 48], [2, 51], [8, 54], [10, 58], [5, 62], [15, 69], [28, 71], [40, 67], [60, 70], [80, 73], [100, 77], [115, 74], [140, 72], [160, 70], [180, 66], [190, 66], [180, 62], [163, 60], [155, 52], [143, 59], [137, 54], [140, 48], [132, 43], [127, 39], [126, 35], [121, 31], [122, 25], [110, 21], [108, 16], [109, 12], [105, 9], [100, 13], [100, 7], [104, 1], [98, 8], [97, 17], [92, 22], [86, 20], [80, 15], [77, 8], [73, 18], [67, 24], [57, 26], [56, 23], [59, 22], [52, 16], [43, 12], [39, 20], [35, 28], [34, 31], [36, 36], [30, 36], [27, 37], [26, 40], [23, 36], [20, 40], [19, 42], [13, 45], [17, 40], [16, 38], [12, 42], [8, 44], [3, 43], [0, 38], [-6, 36]],
+  [[-17, 21], [-16, 28], [-10, 30], [-6, 36], [10, 37], [11, 33], [20, 31], [32, 31], [34, 28], [38, 18], [43, 12], [51, 11], [48, 4], [40, -3], [40, -15], [35, -24], [32, -29], [26, -34], [19, -35], [16, -28], [12, -17], [13, -6], [9, -1], [9, 4], [4, 6], [-8, 4], [-13, 8], [-17, 15]],
+  [[114, -22], [122, -18], [130, -12], [137, -12], [142, -11], [146, -19], [153, -25], [151, -34], [146, -39], [140, -38], [135, -34], [131, -31], [115, -34], [113, -26]],
+  [[130, 31], [135, 34], [140, 36], [142, 40], [141, 45], [145, 44], [141, 38], [140, 35], [131, 33]],
+  [[95, 5], [104, -6], [106, -6], [98, 2]], [[109, 1], [117, 7], [119, 1], [116, -4], [110, -3]], [[131, -1], [141, -3], [150, -10], [141, -9]],
+  [[106, -6], [114, -8], [114, -8.8], [106, -7]], [[120, 18], [122, 18], [126, 7], [122, 7]],
+  [[172, -34], [178, -38], [174, -41], [167, -46], [171, -44]], [[-5, 50], [2, 51], [-2, 57], [-6, 58], [-5, 54]],
+  [[-24, 65], [-14, 66], [-14, 64], [-22, 63]], [[44, -25], [49, -12], [50, -16], [47, -25]],
+];
+
+/* ---------- state ---------- */
+const $ = (id) => document.getElementById(id);
+const map = $("map"), yearEl = $("year"), distEl = $("dist");
+const SEED0 = 20261019;
+const S = { step: 0, year: 0, D: 200, vol: false, even: false, reveal: false, seed: SEED0, lines: [[]], cur: [150, 0], kb: false };
+let QUAKES = makeQuakes(S.seed, NQ, 0.06), EVEN = makeEven(S.seed, NQ);
+
+const mx = (lon) => ((lon - LON0) % 360 + 360) % 360;
+const my = (lat) => LATT - lat;
+function toXY(pts) {
+  let prev;
+  return pts.map(([lon, lat]) => { let x = mx(lon); if (prev !== undefined) x = unwrapLon(x, prev); prev = x; return [x, my(lat)]; });
+}
+function wrapped(parent, pts, attrs, close) {
+  const xy = toXY(pts), xs = xy.map((p) => p[0]);
+  const lo = Math.min(...xs), hi = Math.max(...xs);
+  const d = xy.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("") + (close ? "Z" : "");
+  [-360, 0, 360].forEach((o) => { if (hi + o >= -5 && lo + o <= MW + 5) Play.svg("path", Object.assign({ d, transform: o ? `translate(${o} 0)` : "" }, attrs), parent); });
+}
+function txt(parent, x, y, s, cls, anchor) {
+  const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "middle" }, parent);
+  t.textContent = s;
+  return t;
+}
+const TCOL = { c: "var(--no)", k: "var(--no)", d: "var(--c)", t: "var(--h)" };
+let K = 1; // viewBox units per CSS pixel
+function measure() { const w = map.getBoundingClientRect().width; K = w > 0 ? MW / w : 1; map.style.setProperty("--k", Play.fmt(K, 3)); }
+
+function shownSet() { return (S.even && S.step === 1 ? EVEN : QUAKES).filter((q) => q.year <= S.year); }
+
+function drawMap() {
+  map.innerHTML = "";
+  Play.svg("rect", { x: 0, y: 0, width: MW, height: MH, fill: "var(--c)", opacity: 0.13 }, map);
+  for (let lon = -180; lon < 180; lon += 30) { const x = mx(lon); Play.svg("line", { x1: x, x2: x, y1: 0, y2: MH, stroke: "var(--line)", "stroke-width": 0.5 * K }, map); }
+  for (let lat = -60; lat <= 60; lat += 30) Play.svg("line", { x1: 0, x2: MW, y1: my(lat), y2: my(lat), stroke: "var(--line)", "stroke-width": (lat ? 0.5 : 1) * K }, map);
+  const land = Play.svg("g", {}, map);
+  LAND.forEach((poly) => wrapped(land, poly, { fill: "var(--soft)", stroke: "var(--muted)", "stroke-width": 0.8 * K, "stroke-linejoin": "round", opacity: 0.95 }, true));
+  const showDots = S.step > 0;
+  const rule = S.step === 3;
+  if (rule) { // the band within D km (≈ on this projection: drawn as a constant-width stroke)
+    const band = Play.svg("g", { opacity: 0.25 }, map);
+    EDGES.forEach((e) => wrapped(band, e[2], { fill: "none", stroke: "var(--a)", "stroke-width": 2 * S.D / 111.2, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+  }
+  if (S.reveal || rule) {
+    const g = Play.svg("g", {}, map);
+    EDGES.forEach(([ty, , pts]) => wrapped(g, pts, { fill: "none", stroke: TCOL[ty], "stroke-width": 2.2 * K, "stroke-linejoin": "round", "stroke-linecap": "round", "stroke-dasharray": ty === "t" ? `${4 * K} ${2 * K}` : "" }));
+    PLATES.forEach(([k, lon, lat]) => { const t = txt(map, mx(lon), my(lat), P.t(k), "lb halo"); let w = 0; try { w = t.getComputedTextLength(); } catch (e) { w = 0; } if (w > 0) t.setAttribute("x", Play.clamp(mx(lon), w / 2 + 2, MW - w / 2 - 2).toFixed(1)); });
+  }
+  if (showDots) {
+    const g = Play.svg("g", {}, map), set = shownSet();
+    set.forEach((q) => {
+      const inside = q.d <= S.D;
+      const r = (1.6 + 1.3 * (q.mag - 5)) * K;
+      const recent = q.year === S.year && S.year > 0 && !rule;
+      Play.svg("circle", { cx: mx(q.lon), cy: my(q.lat), r, fill: rule ? (inside ? "var(--a)" : "var(--no)") : recent ? "var(--hl)" : "var(--fg)", "fill-opacity": rule ? 0.85 : 0.6, stroke: "var(--surface)", "stroke-width": 0.5 * K }, g);
+    });
+  }
+  if (S.vol && showDots) {
+    const g = Play.svg("g", {}, map), s = 4.5 * K;
+    VOLC.forEach((v) => {
+      const x = mx(v.lon), y = my(v.lat);
+      const t = Play.svg("path", { d: `M${x} ${y - s}L${x + s * 0.85} ${y + s * 0.6}L${x - s * 0.85} ${y + s * 0.6}Z`, fill: "var(--b)", stroke: "var(--surface)", "stroke-width": 0.7 * K }, g);
+      Play.svg("title", {}, t).textContent = v.name;
+    });
+  }
+  if (S.step >= 2) { // user lines
+    const g = Play.svg("g", {}, map);
+    S.lines.forEach((l) => {
+      if (l.length > 1) wrapped(g, l, { fill: "none", stroke: "var(--a)", "stroke-width": 2.6 * K, "stroke-linecap": "round", "stroke-linejoin": "round" });
+      l.forEach(([lo, la]) => Play.svg("circle", { cx: mx(lo), cy: my(la), r: 2.8 * K, fill: "var(--a)", stroke: "var(--surface)", "stroke-width": 0.8 * K }, g));
+    });
+    if (S.kb && S.step === 2) {
+      const x = mx(S.cur[0]), y = my(S.cur[1]), a = 7 * K;
+      Play.svg("path", { d: `M${x - a} ${y}H${x + a}M${x} ${y - a}V${y + a}`, stroke: "var(--fg)", "stroke-width": 1.5 * K }, map);
+    }
+  }
+  if (S.reveal || rule) {
+    EXAMPLES.forEach(([n, lon, lat, ty]) => {
+      const x = mx(lon), y = my(lat);
+      Play.svg("circle", { cx: x, cy: y, r: 8 * K, fill: TCOL[ty], stroke: "var(--surface)", "stroke-width": 1.2 * K }, map);
+      const t = txt(map, x, y + 4.4 * K, String(n), "num-t", "middle");
+      t.setAttribute("style", `fill:var(--surface);font-size:${(12 * K).toFixed(2)}px;font-weight:750`);
+    });
+  }
+}
+
+function legendHTML() {
+  const L = [];
+  if (S.step > 0) L.push(`<span><span class="dot" style="background:var(--fg);opacity:.6"></span>${P.t("lQuake")}</span>`);
+  if (S.vol && S.step > 0) L.push(`<span><span class="tri"></span>${P.t("lVol")}</span>`);
+  if (S.step >= 2) L.push(`<span><span class="line" style="background:var(--a)"></span>${P.t("lYou")}</span>`);
+  if (S.reveal || S.step === 3) [["c", "tC"], ["d", "tD"], ["t", "tT"]].forEach(([k, s]) => L.push(`<span><span class="line" style="background:${TCOL[k]}"></span>${P.t(s)}</span>`));
+  $("legend").innerHTML = L.join("");
+}
+
+function row(dt, dd) { return `<dt>${dt}</dt><dd>${dd}</dd>`; }
+const pct = (x) => (Number.isFinite(x) ? P.t("pct", { p: Play.fmt(x, 0) }) : P.t("none"));
+function render() {
+  measure();
+  yearEl.value = S.year; distEl.value = S.D;
+  $("yearVal").textContent = P.t("yearVal", { y: S.year });
+  $("distVal").textContent = P.t("km", { d: S.D });
+  $("simTag").textContent = S.step > 0 ? P.t("simTag", { s: S.seed }) : "";
+  $("rowYear").hidden = S.step === 0;
+  $("rowChecks").hidden = S.step === 0;
+  $("cEven").parentElement.hidden = S.step !== 1;
+  $("lReveal").hidden = S.step !== 2;
+  $("rowDraw").hidden = S.step !== 2;
+  $("rowDist").hidden = S.step !== 3;
+  map.classList.toggle("drawing", S.step === 2);
+  $("cVol").checked = S.vol; $("cEven").checked = S.even; $("cReveal").checked = S.reveal;
+  drawMap(); legendHTML();
+
+  const shown = shownSet(), real = QUAKES.filter((q) => q.year <= S.year);
+  let html = "", live = "";
+  if (S.step === 1 || S.step === 2) {
+    html += row(P.t("rYear"), P.t("yearVal", { y: S.year })) + row(P.t("rQuakes"), String(shown.length));
+    live = P.t("liveYear", { y: S.year, n: shown.length }) + (S.even && S.step === 1 ? " " + P.t("evenOn") : "");
+  }
+  if (S.step === 2) {
+    const sc = lineScore(S.lines, real);
+    html += row(P.t("rMean"), Number.isFinite(sc.mean) ? P.t("km", { d: Play.fmt(sc.mean, 0) }) : P.t("none"));
+    html += row(P.t("rCover"), pct(sc.cover));
+    live = !sc.n ? P.t("vStart") : sc.mean < 200 ? P.t("vGood") : sc.mean < 500 ? P.t("vOk") : P.t("vFar");
+  }
+  const pNear = share(QUAKES.map((q) => q.d), S.D), pEven = share(EVEN.map((q) => q.d), S.D), pArea = share(AREA, S.D);
+  if (S.step === 3) {
+    const vN = VOLC.filter((v) => v.d <= S.D).length;
+    html += row(P.t("rNear", { d: S.D }), pct(pNear)) + row(P.t("rEven"), pct(pEven)) + row(P.t("rArea", { d: S.D }), pct(pArea)) + row(P.t("rVol", { d: S.D }), P.t("ofN", { a: vN, b: VOLC.length }));
+    live = P.t("hot");
+  }
+  $("read").innerHTML = html;
+  $("read").hidden = !html;
+  const ex = $("examples");
+  if (S.reveal || S.step === 3) ex.innerHTML = EXAMPLES.map(([n, , , ty]) => `<li><span class="num" style="background:${TCOL[ty]}">${n}</span><b>${P.t("e" + n)}</b>${P.lang === "zh" ? "：" : ": "}${P.t("e" + n + "d")}</li>`).join("");
+  else ex.innerHTML = "";
+  ex.hidden = !ex.innerHTML;
+  Play.live($("live"), live);
+  $("resultMain").textContent = P.t("resultMain", { p: Play.fmt(pNear, 0), d: S.D, s: Play.fmt(pArea, 0) });
+  map.setAttribute("aria-valuetext", live);
+}
+
+/* ---------- interaction ---------- */
+let timer = 0;
+const playBtn = $("playBtn");
+function stop() { clearTimeout(timer); timer = 0; playBtn.textContent = P.t("play"); }
+function tick() { if (S.year >= YEARS) { stop(); return; } S.year++; render(); timer = setTimeout(tick, 450); }
+playBtn.addEventListener("click", () => {
+  if (timer) { stop(); return; }
+  if (S.year >= YEARS) S.year = 0;
+  playBtn.textContent = P.t("pause");
+  if (Play.reduced) { S.year = YEARS; render(); stop(); return; } // no animation: show all years at once
+  tick();
+});
+yearEl.addEventListener("input", () => { stop(); S.year = Play.clamp(Math.round(+yearEl.value), 0, YEARS); render(); });
+distEl.addEventListener("input", () => { S.D = Play.clamp(Math.round(+distEl.value), 50, 500); render(); });
+$("cVol").addEventListener("change", (e) => { S.vol = e.target.checked; render(); });
+$("cEven").addEventListener("change", (e) => { S.even = e.target.checked; render(); });
+$("cReveal").addEventListener("change", (e) => { S.reveal = e.target.checked; render(); });
+$("reseed").addEventListener("click", () => {
+  S.seed = (S.seed * 1103515245 + 12345) % 2147483647 || SEED0;
+  QUAKES = makeQuakes(S.seed, NQ, 0.06); EVEN = makeEven(S.seed, NQ); render();
+});
+const curLine = () => S.lines[S.lines.length - 1];
+function addPoint(lon, lat) {
+  const l = curLine(), lo = wrapLon(lon), la = Play.clamp(lat, LATB, LATT);
+  l.push([l.length ? unwrapLon(lo, l[l.length - 1][0]) : lo, la]);
+  render();
+}
+$("newLine").addEventListener("click", () => { if (curLine().length) S.lines.push([]); render(); });
+$("undo").addEventListener("click", () => { const l = curLine(); if (l.length) l.pop(); else if (S.lines.length > 1) { S.lines.pop(); curLine().pop(); } render(); });
+$("clear").addEventListener("click", () => { S.lines = [[]]; render(); });
+map.addEventListener("pointerdown", (e) => {
+  if (S.step !== 2) return;
+  const p = Play.pointer(map, e);
+  if (p.x < 0 || p.x > MW || p.y < 0 || p.y > MH) return;
+  S.kb = false;
+  S.cur = [wrapLon(p.x + LON0), LATT - p.y];
+  addPoint(S.cur[0], S.cur[1]);
+});
+map.addEventListener("keydown", (e) => {
+  const big = e.shiftKey ? 10 : 3;
+  const dir = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+  if (S.step === 2) {
+    if (dir) { S.kb = true; S.cur = [wrapLon(S.cur[0] + dir[0] * big), Play.clamp(S.cur[1] + dir[1] * big, LATB, LATT)]; render(); e.preventDefault(); }
+    else if (e.key === "Enter" || e.key === " ") { S.kb = true; addPoint(S.cur[0], S.cur[1]); e.preventDefault(); }
+  } else if (S.step === 1 && dir && dir[0]) { stop(); S.year = Play.clamp(S.year + dir[0], 0, YEARS); render(); e.preventDefault(); }
+  else if (S.step === 3 && dir && dir[0]) { S.D = Play.clamp(S.D + 25 * dir[0], 50, 500); render(); e.preventDefault(); }
+});
+map.addEventListener("focus", () => { if (S.step === 2) { S.kb = true; render(); } });
+map.addEventListener("blur", () => { if (S.kb) { S.kb = false; render(); } });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  const k = i + 1;
+  S.step = i;
+  if (i !== 1) { S.even = false; }
+  if (i >= 2) { stop(); S.year = YEARS; }
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  stop();
+  Object.assign(S, { year: 0, D: 200, vol: false, even: false, reveal: false, seed: SEED0, lines: [[]], cur: [150, 0], kb: false });
+  QUAKES = makeQuakes(S.seed, NQ, 0.06); EVEN = makeEven(S.seed, NQ);
+  pr.reset(); st.go(0);
+});
+if ("ResizeObserver" in window) new ResizeObserver(() => { const old = K; measure(); if (Math.abs(old - K) > 0.01) render(); }).observe(map);
+stop();
+render();
+</script>
+</body>
+</html>

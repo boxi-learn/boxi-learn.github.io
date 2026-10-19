@@ -376,7 +376,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Reorder and cut: writing is choosing",
       "zh": "段落重排"
@@ -389,7 +389,15 @@
       "en": "The longer the essay, the better.",
       "zh": "作文越长越好。"
      },
-     "play": null
+     "play": "paragraph-reorder.html",
+     "explain": {
+      "en": "Take an essay you wrote. Find one paragraph that could go without hurting the feeling, and say what the reader would feel first and remember last once it is cut.",
+      "zh": "拿出自己写过的一篇作文，找一段「删了也不影响心情」的话，说说删掉以后，读者会先感到什么、最后记住什么。"
+     },
+     "home": {
+      "en": "Write a small event from your week on four or five slips of paper, one paragraph each. Read it aloud to your family in different orders, then take one slip away. Which order makes them want to hear more?",
+      "zh": "把这周的一件小事写在四五张纸条上，一张一段。换几种顺序读给家人听，再抽掉一张：哪种排法最让人想往下听？"
+     }
     },
     {
      "slug": "word-meaning-timeline",
@@ -476,7 +484,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Two texts side by side",
       "zh": "互文对照阅读器"
@@ -489,7 +497,15 @@
       "en": "A text means only what it says on its own.",
       "zh": "一篇文章只看它自己就能读懂全部。"
      },
-     "play": null
+     "play": "intertext-reader.html",
+     "explain": {
+      "en": "A friend says, 'Li Bai's Phoenix Terrace just copies Cui Hao.' Answer with evidence: what did Li keep, what did he change, and what do the changes tell you?",
+      "zh": "同学说：「李白的《登金陵凤凰台》就是抄崔颢的。」用今天找到的证据回应他：李白保留了什么、改了什么，改动说明了什么？"
+     },
+     "home": {
+      "en": "Take a song, nursery rhyme or slogan your family knows and find a version that rewrites it (a parody, a cover, an advert). Write both out side by side, mark 同 / 改 / 弃, and say what the rewriter wanted to say.",
+      "zh": "找一首家里人都熟悉的歌、童谣或广告语，再找一个改编它的版本（仿写、翻唱、段子都行）。并排写下来，标出同、改、弃，说说改编的人想说什么。"
+     }
     }
    ]
   },
@@ -552,8 +568,8 @@
       "zh": "听懂大意就够了"
      },
      "what": {
-      "en": "Comprehensible input: if you follow about 80%, keep listening instead of stopping for every word.",
-      "zh": "可理解输入：听懂约 80% 就继续听，不停下来查每个词。"
+      "en": "Comprehensible input: when you know almost all the words and can follow the story, keep listening instead of stopping for every unknown word.",
+      "zh": "可理解输入：绝大多数词认识、能跟上情节，就继续听，不为每个生词停下来。"
      }
     },
     {
@@ -726,20 +742,28 @@
       "us": "3",
       "uk": "4"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Tenses on a timeline",
       "zh": "时态放到时间轴上"
      },
      "insight": {
-      "en": "A tense marks where an action sits in time relative to now; the verb form changes, not extra words.",
-      "zh": "时态标出动作相对「现在」在时间上的位置；变的是动词形式，不是多加一个词。"
+      "en": "A tense marks where an action sits in time relative to now; English changes the verb (its form or its helping verb), while Chinese keeps the verb and adds words like 了, 正在 or 会.",
+      "zh": "时态标出动作相对「现在」在时间上的位置；英语改动词（词形或助动词），中文动词不变，靠加「了」「正在」「会」这样的词。"
      },
      "misconception": {
       "en": "Time is shown only by words like yesterday, just as in Chinese.",
       "zh": "时间只靠 yesterday 这类词表示，跟中文一样。"
      },
-     "play": null
+     "play": "tense-timeline.html",
+     "explain": {
+      "en": "A friend writes “Yesterday I go to the park.” Draw a timeline with now on it and use it to explain why the verb has to change, even though “yesterday” is already there.",
+      "zh": "同学写了 Yesterday I go to the park. 画一条标着「现在」的时间轴，用它给他讲清楚：句子里已经有 yesterday 了，为什么动词还要变。"
+     },
+     "home": {
+      "en": "Stretch a string across the room and clip a card saying NOW in the middle. Clip action cards on it (eat breakfast, see a film…) and say each one aloud with the right verb form. Move a card and say it again.",
+      "zh": "在屋里拉一根绳子，中间夹一张写着 NOW 的卡片。把动作卡（eat breakfast、see a film……）夹到绳子上，用对的动词形式大声说出来。挪一挪卡片，再说一遍。"
+     }
     },
     {
      "slug": "gist-listening",
@@ -753,7 +777,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "You don't need every word",
       "zh": "不必听懂每一个词"
@@ -766,7 +790,15 @@
       "en": "If you miss one word, you have not understood.",
       "zh": "漏掉一个词就等于没听懂。"
      },
-     "play": null
+     "play": "gist-listening.html",
+     "explain": {
+      "en": "Tell someone about a time you understood an English story, song or video without knowing every word. Which words did you skip, and what helped you guess them?",
+      "zh": "跟别人讲一次你没认全每个词、却看懂了一个英文故事、一首歌或一段视频的经历。你跳过了哪些词？是什么帮你猜出了它们？"
+     },
+     "home": {
+      "en": "Listen to a short English story or cartoon once without stopping. Write down 3 words you didn't know and a guess for each from context. Then check them in a dictionary: how many guesses were close?",
+      "zh": "找一个英文短故事或动画，从头到尾听一遍，中间不停。写下 3 个不认识的词，各写一个你从上下文猜的意思。再查词典：猜得接近的有几个？"
+     }
     },
     {
      "slug": "sentence-tree",
@@ -816,20 +848,28 @@
       "us": "11",
       "uk": "12"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Same message, different tone",
       "zh": "同一句话，不同的语气"
      },
      "insight": {
-      "en": "The same meaning can be said formally or casually; the right choice depends on who you are talking to.",
-      "zh": "同一个意思可以说得正式或随意，怎么选看你在跟谁说话。"
+      "en": "The same meaning can be said formally or casually; the right choice depends on who you are talking to and why.",
+      "zh": "同一个意思可以说得正式或随意，怎么选看你在跟谁说话、为了什么。"
      },
      "misconception": {
-      "en": "There is one correct way to say each thing.",
-      "zh": "每件事只有一种正确说法。"
+      "en": "There is one correct way to say each thing — and the more formal, the better.",
+      "zh": "每件事只有一种正确说法，而且越正式越好。"
      },
-     "play": null
+     "play": "register-rewriter.html",
+     "explain": {
+      "en": "Write the same short request (e.g. borrowing a book) three times: to a close friend, to a teacher, to a library. Explain what you changed each time and why the most formal version is not the “best” one.",
+      "zh": "把同一个小请求（比如借一本书）用英语写三遍：给好朋友、给老师、给图书馆。讲讲每次改了什么，为什么最正式的那版不是「最好」的。"
+     },
+     "home": {
+      "en": "Collect three real English messages you received this week (a text, a school notice, an advert email). Underline contractions, phrasal verbs and passives, and guess who wrote each one for whom.",
+      "zh": "找三条这周收到的英文消息（短信、学校通知、广告邮件），划出缩写、短语动词和被动语态，猜猜每条是谁写给谁的。"
+     }
     }
    ]
   },
@@ -1387,7 +1427,7 @@
       "us": "11",
       "uk": "12"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "A ball dropped on a moving train",
       "zh": "在行驶的火车上放手一个球"
@@ -1400,7 +1440,15 @@
       "en": "A ball dropped in a moving train lands behind you.",
       "zh": "在行驶的火车里放手，球会落到身后。"
      },
-     "play": null
+     "play": "frames-projectile.html",
+     "explain": {
+      "en": "A friend says a ball dropped in a fast train must fly to the back of the carriage. Use two views, the passenger's and the platform's, to explain where it lands, and say when it really would land behind.",
+      "zh": "朋友说：在飞快的火车里松手，球一定会飞到车厢后面。用乘客和站台上的人两个视角，讲讲球落在哪里；再说说什么时候它才真的会落在后面。"
+     },
+     "home": {
+      "en": "Walk at a steady pace and toss a soft ball straight up, a little above your head. It comes back down into your hand. Now toss it and stop suddenly: where does it come down?",
+      "zh": "匀速走路，把一个软球竖直向上抛，比头高一点。它会落回你手里。再抛一次，然后突然停下：它落在哪里？"
+     }
     },
     {
      "slug": "pendulum-energy",
@@ -1415,7 +1463,7 @@
       "us": "11",
       "uk": "12"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "What sets a pendulum's beat?",
       "zh": "单摆的节拍由什么决定？"
@@ -1428,7 +1476,15 @@
       "en": "A heavier bob swings slower.",
       "zh": "摆锤越重，摆得越慢。"
      },
-     "play": null
+     "play": "pendulum-energy.html",
+     "explain": {
+      "en": "A grandfather clock runs slow. Should you move the bob up or down the rod, and would a heavier bob help? Explain using T = 2π√(L/g).",
+      "zh": "一台落地摆钟走慢了。应该把摆锤沿摆杆往上调还是往下调？换一个更重的摆锤有没有用？用 T = 2π√(L/g) 解释。"
+     },
+     "home": {
+      "en": "Tie a key to a 1 m string and time 10 swings; repeat with two keys, then with the string 25 cm long. Which change matters, and by how much?",
+      "zh": "把一把钥匙拴在 1 米长的绳子上，量摆 10 次的时间；换成两把钥匙再量；再把绳子缩短到 25 厘米量一次。哪个改变有影响，影响多大？"
+     }
     },
     {
      "slug": "collision-carts",
@@ -1443,7 +1499,7 @@
       "us": "11",
       "uk": "12"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Who pushes harder in a crash?",
       "zh": "相撞时谁推得更用力？"
@@ -1456,7 +1512,15 @@
       "en": "In a crash the bigger object pushes harder.",
       "zh": "相撞时大的那个推得更用力。"
      },
-     "play": null
+     "play": "collision-carts.html",
+     "explain": {
+      "en": "A friend says “the truck hit the car harder than the car hit the truck”. Using the words “force”, “time” and “momentum”, explain what is true and why the car’s passengers still feel more.",
+      "zh": "朋友说「卡车撞小车的力比小车撞卡车的力大」。用上「力」「时间」「动量」三个词，讲讲哪里说得不对，以及为什么小车里的人还是感觉更猛。"
+     },
+     "home": {
+      "en": "Hold two equal bathroom scales face to face and push them together with a friend: compare the two readings while you push gently, then hard. Then roll a heavy ball into a light one on a smooth floor and watch which one changes speed more.",
+      "zh": "拿两台一样的体重秤面对面贴着，和朋友一起往中间推：轻推、重推，各比一次两边的读数。再在光滑地板上让一个重球去撞一个轻球，看哪个的速度变得多。"
+     }
     },
     {
      "slug": "electric-field-lines",
@@ -1470,7 +1534,7 @@
       "us": "12",
       "uk": "12"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Drawing a force you cannot see",
       "zh": "画出看不见的力"
@@ -1483,7 +1547,15 @@
       "en": "Charges only feel a force when they touch.",
       "zh": "电荷碰到一起才会有力。"
      },
-     "play": null
+     "play": "electric-field-lines.html",
+     "explain": {
+      "en": "A friend says a charged balloon can only move a scrap of paper if they touch. Using the words “field”, “line” and “distance”, explain what you would see as the balloon comes closer, and why.",
+      "zh": "朋友说：带电的气球只有碰到小纸屑才能让它动。用上「电场」「电场线」「距离」三个词，讲讲气球慢慢靠近时你会看到什么，为什么。"
+     },
+     "home": {
+      "en": "Rub a balloon on wool or dry hair, then bring it slowly toward tiny bits of tissue paper, or toward a thin stream of tap water. Notice how far away it starts to act, and how much faster the effect grows as it gets closer. Works best on a dry day.",
+      "zh": "把气球在毛衣或干头发上蹭一蹭，再慢慢靠近一些小纸屑，或者靠近一股细细的自来水流。留意它在多远的地方就开始起作用，越靠近效果涨得有多快。天气干燥时效果最好。"
+     }
     }
    ]
   },
@@ -1748,7 +1820,7 @@
       "us": "11",
       "uk": "12"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Where reaction heat comes from",
       "zh": "反应热从哪里来"
@@ -1761,7 +1833,15 @@
       "en": "Breaking a chemical bond releases energy.",
       "zh": "断开化学键会放出能量。"
      },
-     "play": null
+     "play": "bond-energy.html",
+     "explain": {
+      "en": "A friend says: “Food gives you energy because the bonds in sugar break and release it.” Use bond energies to explain what really happens.",
+      "zh": "朋友说：「食物给你能量，是因为糖里的化学键断开，把能量放了出来。」用键能讲讲真正发生了什么。"
+     },
+     "home": {
+      "en": "With an adult: measure the temperature of some vinegar, stir in a spoon of baking soda and measure again (it gets a little colder). Then open a disposable hand warmer and feel it heat up. Which reaction makes stronger bonds than it breaks?",
+      "zh": "请大人一起：量一下白醋的温度，加一勺小苏打搅一搅，再量一次（会稍微变凉）。再拆开一片暖宝宝，摸摸它变热。哪个反应形成的键比断开的更牢？"
+     }
     },
     {
      "slug": "collision-rate",
@@ -1775,7 +1855,7 @@
       "us": "11",
       "uk": "12"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Hotter means harder hits",
       "zh": "温度高，撞得更猛"
@@ -1788,7 +1868,15 @@
       "en": "Heating speeds a reaction only because particles collide more often.",
       "zh": "升温变快只是因为颗粒碰得更频繁。"
      },
-     "play": null
+     "play": "collision-rate.html",
+     "explain": {
+      "en": "A friend says heat makes particles bump into each other more, and that's why reactions go faster. Using the words “activation energy” and “fraction”, tell them what they are missing.",
+      "zh": "朋友说：加热让颗粒撞得更多，所以反应变快。用上「活化能」和「比例」两个词，告诉他漏掉了什么。"
+     },
+     "home": {
+      "en": "Drop a fizzing tablet (vitamin C or antacid) into cold water and another into warm water, and time how long each fizzes. Then crush one and drop it into cold water: that is surface area at work.",
+      "zh": "一片泡腾片（维生素 C 或胃药）放进冷水，另一片放进温水，计时看各冒泡多久。再把一片压碎放进冷水：这就是表面积的作用。"
+     }
     },
     {
      "slug": "equilibrium-shift",
@@ -1802,7 +1890,7 @@
       "us": "11",
       "uk": "12"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Equilibrium is busy, not stopped",
       "zh": "平衡不是停了，是两边一样快"
@@ -1815,7 +1903,15 @@
       "en": "At equilibrium the reaction has stopped.",
       "zh": "达到平衡时反应就停止了。"
      },
-     "play": null
+     "play": "equilibrium-shift.html",
+     "explain": {
+      "en": "A friend says: “At equilibrium nothing is happening any more.” Use the tagged particles and the two event counts to explain why that is wrong.",
+      "zh": "朋友说：「到了平衡，就什么也不发生了。」用标记的颗粒和两条变化数曲线说明他错在哪里。"
+     },
+     "home": {
+      "en": "Fill one glass with water and leave a second empty. Each round, move water from glass 1 to glass 2 with a wide straw (finger over the top) while a helper moves water back with a thin straw. After a dozen rounds the levels stop changing, yet water still moves both ways every round.",
+      "zh": "一个杯子装满水，另一个空着。每一轮你用粗吸管（手指堵住上口）把 1 号杯的水移到 2 号杯，同伴同时用细吸管往回移。十几轮后水位不再变化，可每一轮水都还在两边来回流。"
+     }
     },
     {
      "slug": "periodic-patterns",
@@ -1829,7 +1925,7 @@
       "us": "10",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why the table has rows and columns",
       "zh": "周期表为什么有行有列"
@@ -1842,7 +1938,15 @@
       "en": "The periodic table is ordered by atomic mass.",
       "zh": "元素周期表是按原子质量排的。"
      },
-     "play": null
+     "play": "periodic-patterns.html",
+     "explain": {
+      "en": "Sodium and potassium react fiercely with water, but magnesium barely does, even though magnesium sits between them by mass. Explain why using outer electrons and shells, not mass.",
+      "zh": "钠和钾遇水反应都很剧烈，镁却几乎不反应，虽然按质量镁就夹在它们中间。用最外层电子和电子层（而不是质量）解释为什么。"
+     },
+     "home": {
+      "en": "Write the first 20 element symbols on 20 cards with their mass. Lay them in a line by mass, then by atomic number. Which two cards change place? Now deal them into rows of 2, 8, 8, 2.",
+      "zh": "在 20 张卡片上写前 20 种元素的符号和相对原子质量。先按质量排成一行，再按原子序数排。哪两张换了位置？再按 2、8、8、2 分成几行。"
+     }
     }
    ]
   },
@@ -2139,7 +2243,7 @@
       "us": "10",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Who leaves more offspring?",
       "zh": "谁留下的后代多？"
@@ -2152,7 +2256,15 @@
       "en": "Animals change because they need to: giraffes stretched their necks.",
       "zh": "动物因为需要才改变：长颈鹿是伸脖子伸长的。"
      },
-     "play": null
+     "play": "natural-selection.html",
+     "explain": {
+      "en": "A friend says giraffes got long necks by stretching to reach leaves, and passed the stretch on. Use the tagged moth to explain what is wrong with that, and what happens instead.",
+      "zh": "朋友说长颈鹿的脖子是为了够树叶伸长的，再把伸长传给了孩子。用被标记的蛾子给他讲讲这种说法错在哪里，真正发生的是什么。"
+     },
+     "home": {
+      "en": "Punch 20 dots from white paper and 20 from newspaper and scatter them on a sheet of newspaper. A \"bird\" picks up as many as possible in 10 s; each dot left gets one copy of its own kind added. Repeat three rounds: which kind takes over?",
+      "zh": "用白纸和报纸各剪 20 个小圆片，撒在一张报纸上。一个人当「鸟」，10 秒内尽量多捡；剩下的每片再加一片同样的。做三轮：哪种圆片越来越多？"
+     }
     },
     {
      "slug": "dna-to-protein",
@@ -2166,20 +2278,28 @@
       "us": "10",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "From DNA letters to a protein",
       "zh": "从 DNA 字母到蛋白质"
      },
      "insight": {
-      "en": "Every cell holds the same DNA; cells differ by which genes they read, three letters per amino acid.",
-      "zh": "每个细胞的 DNA 都一样；细胞不同，是因为读的基因不同，三个字母对应一个氨基酸。"
+      "en": "Almost every cell in your body holds the same DNA; cells differ by which genes they read, three letters (a codon) per amino acid.",
+      "zh": "身体里几乎每个细胞的 DNA 都一样；细胞不同，是因为读的基因不同，三个字母（一个密码子）对应一个氨基酸。"
      },
      "misconception": {
       "en": "Different cells in the body have different DNA.",
       "zh": "身体里不同的细胞有不同的 DNA。"
      },
-     "play": null
+     "play": "dna-to-protein.html",
+     "explain": {
+      "en": "A friend says a nerve cell has \"nerve DNA\" and a skin cell has \"skin DNA\". Use the idea of genes being switched on and off to explain why that is wrong, and name one exception.",
+      "zh": "朋友说神经细胞里是「神经 DNA」，皮肤细胞里是「皮肤 DNA」。用「基因的开和关」给他讲讲为什么不对，再说出一个例外。"
+     },
+     "home": {
+      "en": "Write a sentence of three-letter words: THE CAT ATE THE RAT. Change one letter: how much of the meaning survives? Now delete one letter near the start and regroup into threes. Which mistake does more damage, and why?",
+      "zh": "用三个字母的英文单词写一句话：THE CAT ATE THE RAT。改一个字母，意思还剩多少？再在开头附近删掉一个字母，重新三个一组地读。哪种错误破坏更大？为什么？"
+     }
     }
    ]
   },
@@ -2405,7 +2525,7 @@
       "us": "?",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why is it cold on a mountain top?",
       "zh": "山顶为什么冷？"
@@ -2418,7 +2538,15 @@
       "en": "A mountain top should be warmer, because it is closer to the Sun.",
       "zh": "山顶离太阳更近，应该更暖和。"
      },
-     "play": null
+     "play": "mountain-cooling.html",
+     "explain": {
+      "en": "A friend says mountain tops should be warm because they are closer to the Sun. Use the 6.5 °C-per-kilometre rule and the \"closer to the Sun\" numbers to explain why Kilimanjaro has ice although it is almost on the equator.",
+      "zh": "朋友说山顶离太阳更近，应该更暖和。用「每千米降 6.5 °C」和「离太阳近了多少」的数字，解释为什么几乎在赤道上的乞力马扎罗山顶也有冰。"
+     },
+     "home": {
+      "en": "In a weather app, find two places near each other at different heights (a town and a nearby mountain or hill station). Compare their temperatures at the same time, and work out how many °C colder it is per 1,000 m.",
+      "zh": "在天气 App 里找两个离得近、但高度不同的地方（比如一座城市和附近的山顶或山区小镇）。比较同一时刻的气温，算一算每升高 1000 米冷了多少度。"
+     }
     },
     {
      "slug": "climate-graph",
@@ -2502,7 +2630,7 @@
       "us": "?",
       "uk": "12"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why deserts sit at 30°",
       "zh": "为什么沙漠多在 30° 附近"
@@ -2515,7 +2643,15 @@
       "en": "Deserts are where it is hottest.",
       "zh": "沙漠就是最热的地方。"
      },
-     "play": null
+     "play": "atmospheric-circulation.html",
+     "explain": {
+      "en": "A friend says the Sahara is a desert because it is so hot. Explain, using rising and sinking air, why the even hotter equator is rainy and the Sahara is dry.",
+      "zh": "朋友说撒哈拉是沙漠，因为它太热了。用空气的上升和下沉解释：为什么更热的赤道多雨，撒哈拉却干？"
+     },
+     "home": {
+      "en": "Hold a glass of iced water near the steam from a hot drink (or breathe on a cold mirror): cooling air drops its water as drops. Then warm the misted mirror with a hair-dryer — warming air takes the water back.",
+      "zh": "把装冰水的杯子靠近热饮冒出的水汽（或对着冷镜子哈气）：空气变冷，水汽变成水珠。再用吹风机吹热这块雾面——空气变暖，水又被带走。"
+     }
     },
     {
      "slug": "plate-boundaries",
@@ -2530,7 +2666,7 @@
       "us": "?",
       "uk": "9"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Where earthquakes happen",
       "zh": "地震发生在哪里"
@@ -2543,7 +2679,15 @@
       "en": "Earthquakes can happen anywhere equally.",
       "zh": "地震在哪里都一样容易发生。"
      },
-     "play": null
+     "play": "plate-boundaries.html",
+     "explain": {
+      "en": "A friend says an earthquake is just as likely anywhere. Use the dot map to explain why Japan and Chile get big quakes but central Australia almost never does.",
+      "zh": "朋友说地震在哪里都一样容易发生。用这张地震点图向他解释：为什么日本和智利常有大地震，澳大利亚中部却几乎没有？"
+     },
+     "home": {
+      "en": "Put two crackers side by side on a plate. Push them together, pull them apart, slide them past each other. Where do the crumbs and cracks appear — in the middle or at the edges?",
+      "zh": "把两块饼干并排放在盘子里。把它们推到一起、拉开、再错开滑动。碎屑和裂缝出现在哪里——中间还是边上？"
+     }
     }
    ]
   },
@@ -2725,7 +2869,7 @@
       "us": "6",
       "uk": "5"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why was writing invented?",
       "zh": "文字为什么会被发明？"
@@ -2738,7 +2882,15 @@
       "en": "Writing was invented to record stories and poems.",
       "zh": "文字是为了写故事和诗歌才发明的。"
      },
-     "play": null
+     "play": "why-writing.html",
+     "explain": {
+      "en": "A friend says “writing was invented so people could write down stories and poems.” Use what you found on this page, with one number, to explain what the earliest writing was for and why it was needed.",
+      "zh": "朋友说「文字是为了写故事和诗歌才发明的」。用本页的发现和一个数字给他讲清楚：最早的文字是干什么用的，为什么需要它。"
+     },
+     "home": {
+      "en": "Ask someone to read you 10 shopping items with amounts (3 apples, 2 loaves…) without you writing. Write down what you remember. Then do it again with tally marks and a little picture for each item. Which list is right?",
+      "zh": "请家人念 10 样要买的东西和数量（3 个苹果、2 个面包……），你不许写，念完把记得的写下来。再来一遍，这次边听边画记号和小图。哪一张单子对？"
+     }
     },
     {
      "slug": "dating-the-past",
@@ -2860,7 +3012,7 @@
       "us": "10",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why did printing spread so fast?",
       "zh": "印刷术为什么传得那么快？"
@@ -2873,7 +3025,15 @@
       "en": "Every event has one single cause.",
       "zh": "每件事都只有一个原因。"
      },
-     "play": null
+     "play": "causes-web.html",
+     "explain": {
+      "en": "A friend says: “Gutenberg invented printing, end of story.” Use two other causes from this page — and what you learned about Bi Sheng and the Jikji — to give a fuller answer.",
+      "zh": "朋友说：「古腾堡发明了印刷术，就这么简单。」用本页另外两个原因，再加上毕昇和《直指》的事，给他一个更完整的回答。"
+     },
+     "home": {
+      "en": "Pick a change in your family or school (a new shop nearby, a new club, a new habit). Draw a causes web with at least one long-term condition, one trigger and one choice. Ask someone who was there: which one, taken away, would have changed the most?",
+      "zh": "挑一件家里或学校发生的变化（附近开了新店、新办了一个社团、养成一个新习惯），画一张原因网：至少一个长期条件、一个诱因、一个人的选择。问问当时在场的人：拿掉哪一个，结果会变得最多？"
+     }
     }
    ]
   },
@@ -3062,7 +3222,7 @@
       "us": "2",
       "uk": "2"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Find the bug",
       "zh": "找到那个错"
@@ -3075,7 +3235,15 @@
       "en": "If the program is wrong you have to start again from scratch.",
       "zh": "程序错了只能全部重写。"
      },
-     "play": null
+     "play": "find-the-bug.html",
+     "explain": {
+      "en": "A friend's robot program stops one square from the star, and they want to delete it all. Explain how they can find the wrong command instead.",
+      "zh": "朋友的机器人程序停在离星星一格的地方，他想全部删掉重写。跟他说说怎样找到错的那一条。"
+     },
+     "home": {
+      "en": "Write directions from your bed to the kitchen. Ask someone to follow them, one line at a time, while you watch. Where do they first go wrong? Change only that line.",
+      "zh": "写一份从床边走到厨房的路线。请家人一行一行照着走，你在旁边看。他第一次走错是在哪一行？只改那一行。"
+     }
     },
     {
      "slug": "loop-drawing",
@@ -3229,7 +3397,7 @@
       "us": "9",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Halve it: how search gets fast",
       "zh": "对半找：搜索为什么能这么快"
@@ -3242,7 +3410,15 @@
       "en": "A faster computer always beats a better algorithm.",
       "zh": "电脑够快，算法好不好无所谓。"
      },
-     "play": null
+     "play": "halving-search.html",
+     "explain": {
+      "en": "A friend says “just buy a faster computer, the method doesn’t matter.” Use the numbers for a list of a million to explain why halving still wins, and say when your friend is right.",
+      "zh": "朋友说：「买台更快的电脑就行，方法无所谓。」用一百万个数的例子跟他解释为什么对半找还是赢；再说说什么时候他说得对。"
+     },
+     "home": {
+      "en": "Ask someone to think of a number from 1 to 100 and answer only “higher” or “lower”. Play once guessing freely and once always guessing the middle; count the guesses. Then find a word in a paper dictionary by opening it in the middle and halving.",
+      "zh": "请家人想一个 1 到 100 的数，只回答「大了」或「小了」。玩两次：一次随便猜，一次每次都猜中间，数一数各猜了几次。再用纸质字典查一个字：从中间翻开，每次扔掉一半。"
+     }
     }
    ]
   }

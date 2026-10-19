@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why was writing invented?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main#fig { height: 440px; user-select: none; -webkit-user-select: none; }
+  @media (max-width: 560px) { .stage svg.main#fig { height: 450px; } }
+  #fig.drag { cursor: ew-resize; }
+  #fig text { font-size: 13px; fill: var(--fg); }
+  #fig .mut { fill: var(--muted); }
+  #fig .acc { fill: var(--a); font-weight: 700; }
+  #fig .bold { font-weight: 700; }
+  #fig .big { font-size: 15px; font-weight: 700; }
+  #fig .huge { font-size: 26px; font-weight: 750; }
+  #fig .bad { fill: var(--no); font-weight: 700; }
+  #fig .stk { fill: none; stroke: var(--fg); stroke-linecap: round; stroke-linejoin: round; }
+  #fig .wdg { fill: var(--fg); }
+  #fig .wl { stroke: var(--fg); stroke-linecap: round; }
+  #fig .imp { fill: var(--fg); opacity: .85; }
+  #fig .clay { fill: var(--soft); stroke: var(--b); stroke-width: 2px; }
+  #fig .case { fill: none; stroke: var(--b); stroke-width: 1.2px; }
+  #fig .caseE { fill: none; stroke: var(--line); stroke-width: 1px; stroke-dasharray: 4 4; }
+  #fig .caseD { fill: var(--hl); fill-opacity: .18; stroke: var(--hl); stroke-width: 2px; }
+  #fig .card { fill: var(--surface); stroke: var(--line); stroke-width: 1.5px; }
+  #fig .pdot { fill: var(--soft); stroke: var(--line); }
+  #fig .pdotOn { fill: var(--a); }
+  #fig .row { stroke: var(--line); stroke-width: 1px; }
+  #fig .ax { stroke: var(--muted); stroke-width: 1px; fill: none; }
+  #fig .barOn { fill: var(--a); }
+  #fig .barOff { fill: var(--line); }
+  #fig .fuzzy { fill: var(--a); opacity: .3; }
+  #fig .dim { opacity: .45; }
+  #fig .cur { stroke: var(--hl); stroke-width: 2.5px; }
+  #fig .curDot { fill: var(--hl); stroke: var(--surface); stroke-width: 2px; }
+  #fig .colHl { fill: var(--hl); opacity: .2; }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .controls .val { font-family: var(--font); font-size: 13px; color: var(--fg); min-width: 0; }
+  .controls .grp { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; width: 100%; }
+  .controls .grp + .grp { margin-top: 2px; }
+  .controls .lbl { min-width: 5.5em; color: var(--fg); }
+  .controls .num { min-width: 2.2em; text-align: center; font-weight: 700; color: var(--fg); font-size: 15px; }
+  .controls button { min-height: 36px; }
+  .controls button.primary { background: var(--a); border-color: var(--a); color: var(--surface); font-weight: 650; }
+  .controls button:disabled { opacity: .45; cursor: default; }
+  .controls button svg { width: 22px; height: 22px; vertical-align: -6px; margin-right: 4px; }
+  .controls button svg .stk { fill: none; stroke: currentColor; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+  .controls button svg .imp { fill: currentColor; }
+  .info { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 0 0 10px; }
+  .info div + div { margin-top: 4px; }
+  .info .gp { font-weight: 750; color: var(--a); font-size: 16px; }
+  .info .warn { color: var(--no); font-weight: 650; }
+  .info .dt { color: var(--muted); font-size: 13px; }
+  #resMain { white-space: normal; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 440" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlScribe" hidden>
+        <div class="grp" id="gMem">
+          <button type="button" class="primary" id="bStart"></button>
+          <button type="button" id="bNext" data-t="next"></button>
+        </div>
+        <div class="grp" id="gRecall"></div>
+        <div class="grp" id="gCheck"><button type="button" class="primary" id="bCheck" data-t="check"></button></div>
+        <div class="grp" id="gToClay"><button type="button" class="primary" id="bToClay" data-t="toClay"></button></div>
+        <div class="grp" id="gNum">
+          <button type="button" id="b1" data-t-aria="b1A"></button>
+          <button type="button" id="b10" data-t-aria="b10A"></button>
+          <button type="button" id="bUndo" data-t="undo"></button>
+        </div>
+        <div class="grp" id="gSign"></div>
+        <div class="grp" id="gPress">
+          <button type="button" class="primary" id="bPress" data-t="press"></button>
+          <button type="button" class="small" id="bAuto" data-t="auto"></button>
+        </div>
+        <div class="grp" id="gDone"><button type="button" id="bAgain" data-t="again"></button></div>
+      </div>
+      <div class="controls" id="ctlSigns" hidden>
+        <label for="cent" data-t="centLabel"></label>
+        <input type="range" id="cent" min="0" max="300" step="1" value="0">
+        <span class="val" id="centVal"></span>
+      </div>
+      <div class="controls" id="ctlYear" hidden>
+        <label for="yr" data-t="yrLabel"></label>
+        <input type="range" id="yr" min="-3500" max="-100" step="50" value="-3300">
+        <span class="val" id="yrVal"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="info" id="info" hidden></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" id="resNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+const P = Play.setup({
+  en: {
+    title: "Why was writing invented?", eyebrow: "History · Stage 2",
+    h1: "Why was writing invented? To keep track of things",
+    intro: "Guess what the first writing was for, then be a temple scribe: try to remember a day of deliveries, then press them into clay.",
+    reset: "Reset",
+    figAria: "Interactive figure. In the scribe step, use the buttons below; in the signs step, drag sideways or use the arrow keys to move through the centuries; in the rule step, drag the year line or use the arrow keys.",
+    s1: "Guess", s2: "Be a scribe", s3: "Signs change", s4: "The rule",
+    k1: "Predict first", t1: "What did the first writing record?",
+    b1: "Around 3300 BCE, in the city of Uruk in Mesopotamia (today's Iraq), people began pressing signs into small tablets of wet clay. Thousands of these early tablets have been dug up. What do you think most of them say?",
+    q: "What did most of the earliest tablets record?", o1: "Stories and poems", o2: "Laws", o3: "Accounts: grain, beer, sheep and workers", o4: "Letters to friends",
+    right: "Yes. Most of the earliest tablets are lists of goods, rations and workers: who gave or received how much of what.",
+    wrong: "That is a common guess, but most of the earliest tablets are accounts: grain, beer, sheep, rations and workers. Laws, letters and stories came centuries later.",
+    gTab: "An early-style tablet (our own schematic signs)", gHidden: "What is written here? Pick an answer.",
+    gRead: "Read as: {a} · {b} · {c}",
+    k2: "Hands on", t2: "Be a temple scribe",
+    b2: "A temple stores sheep, grain and beer and hands them out as rations. Deliveries arrive all day. First try to keep track with memory alone, then with clay.",
+    start: "▶ Start deliveries", pause: "❚❚ Pause", resume: "▶ Resume", next: "Next delivery", check: "Check my memory", toClay: "Now write it on clay →",
+    b1A: "Press a 1 sign", b10A: "Press a 10 sign", undo: "Undo", press: "Press into clay ✓", auto: "Fill in for me", again: "New day of deliveries",
+    minus: "One less {g}", plus: "One more {g}",
+    iReady: "{n} deliveries will arrive, one at a time. Don't write anything down. Just remember how many of each.",
+    iReduced: "Press Next delivery to see each one.",
+    iShow: "Delivery {i} of {n}. Each one disappears when the next arrives.",
+    iRecall: "Every delivery is gone. How many of each came in today? Set your totals, then check.",
+    iChecked: "Memory was off by {e} in total ({p} of the {t} items).",
+    iCheckedOk: "Perfect memory! Now imagine this every day for a year, with dozens of workers. Clay does not forget.",
+    iWrite: "Delivery {i} of {n}: {d}. Press number signs (● = 10, ▮ = 1) and a picture sign, then press into the clay.",
+    iDraft: "Your case so far: {v}", iNeed: "Add a number and a picture sign.", iTooMany: "Nine 1-signs at most. Use a 10 sign.",
+    iDone: "The tablet is full. On the back, the scribe adds up the totals. Clay: off by {e}. Memory: off by {m}.",
+    iDoneNoMem: "The tablet is full. On the back, the scribe adds up the totals. Clay: off by {e}.",
+    liveShow: "Delivery {i}: {d}", livePress: "Pressed: {d}",
+    readyT: "{n} deliveries are coming", deliv: "Delivery {i} of {n}", howMany: "How many in total?", untouched: "?",
+    thGood: "Goods", thMem: "You said", thTrue: "Real total", thOff: "Off by",
+    tabFront: "Tablet: front", tabBack: "Back: totals", tabNow: "Delivery to write",
+    k3: "Hands on", t3: "Watch the signs change",
+    b3: "Drag through the centuries. Drawing curved pictures in wet clay is slow and smudgy. Scribes began pressing the corner of a cut reed into the clay instead, which leaves wedge-shaped marks. Signs became simpler and less like pictures, until only trained readers knew what they meant.",
+    centLabel: "Centuries pass", cent0: "c. 3200 BCE: picture signs", centN: "about {c} centuries later",
+    stg0: "pictures", stg1: "straight lines", stg2: "wedges", stg3: "fewer wedges",
+    marks: "{n} marks", marksAll: "Marks for all three signs: {a} → {b}",
+    iSigns: "Stage: {s}. Marks for the three signs: {n} (at the start: {n0}).",
+    iSignsNote: "Signs inspired by, not copied from, proto-cuneiform and cuneiform. Real signs changed at different speeds; our four stages are a schematic.",
+    liveSigns: "{s}, {n} marks",
+    k4: "The rule", t4: "Writing began as bookkeeping",
+    b4: "Writing was first a tool for keeping track: how much, of what, to whom. Literature came centuries later. Writing was also invented separately in other places, including China and Mesoamerica. Drag the year line to see what existed when.",
+    yrLabel: "Year",
+    hMes: "What Mesopotamian writing was used for", hWorld: "Where writing was invented separately",
+    rAcc: "Accounts: goods, rations, workers", rLex: "Word lists for training scribes", rLit: "Literature: myths, hymns, stories", rLaw: "Written law collections",
+    wMes: "Mesopotamia: clay tablets", wChi: "China: oracle bones (divination records)", wMeso: "Mesoamerica (1st millennium BCE)",
+    iYear: "Year: {y}", iUses: "In use: {l}", iWhere: "Writing exists in: {l}", iNone: "nothing yet",
+    iGap: "Accounts c. {a} → first literature c. {b}: about {g} years later.",
+    iHow: "How we know: archaeologists have found thousands of the earliest tablets. Most are accounts, and most of the rest are word lists. Stories and poems appear only centuries later.",
+    liveYear: "{y}: {n} uses, {w} places",
+    resultTitle: "What we found",
+    resMain: "Accounts c. {a} → stories c. {b}: {g} years later",
+    resNoteDef: "The first writing kept track of goods and rations. Stories came later.",
+    resNoteMem: "Your memory was off by {m}; your clay tablet was off by {e}.",
+    explainK: "Explain it", explainQ: "A friend says “writing was invented so people could write down stories and poems.” Use what you found on this page, with one number, to explain what the earliest writing was for and why it was needed.",
+    homeK: "Try at home", homeQ: "Ask someone to read you 10 shopping items with amounts (3 apples, 2 loaves…) without you writing. Write down what you remember. Then do it again with tally marks and a little picture for each item. Which list is right?",
+    foot: "Dates are approximate, as commonly given by historians: proto-cuneiform tablets from Uruk c. 3300–3000 BCE; word lists for scribes from about 3200 BCE; the earliest literary texts c. 2600 BCE; the earliest known law collection (Ur-Namma) c. 2100 BCE; Shang oracle-bone inscriptions from c. 1250 BCE; Mesoamerican writing (Zapotec, later Maya) in the 1st millennium BCE. Egyptian hieroglyphs also appear around 3200 BCE; whether that was a separate invention is still discussed, so it is not shown. All signs on this page are our own schematic designs, inspired by, not copied from, proto-cuneiform; the deliveries are random numbers generated in code. Sources: H. J. Nissen, P. Damerow and R. K. Englund, Archaic Bookkeeping (1993); R. K. Englund, Texts from the Late Uruk Period (1998); D. N. Keightley, Sources of Shang History (1978). CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "文字为什么会被发明？", eyebrow: "历史 · 阶段 2",
+    h1: "文字为什么会被发明？为了记账",
+    intro: "先猜最早的文字是干什么用的，再当一回神庙书吏：先用脑子记一天的进货，再把它们压在泥板上。",
+    reset: "重置",
+    figAria: "互动图。书吏一步用下方按钮；符号一步横向拖动或用方向键穿过几百年；规律一步拖动年份线或用方向键。",
+    s1: "先猜", s2: "当书吏", s3: "符号在变", s4: "规律",
+    k1: "先猜一猜", t1: "最早的文字记了什么？",
+    b1: "大约公元前 3300 年，美索不达米亚（今天的伊拉克）的乌鲁克城里，人们开始把符号压在湿泥做的小板上。这样的早期泥板已经出土了好几千块。你觉得上面大多写的是什么？",
+    q: "最早的泥板大多记的是什么？", o1: "故事和诗歌", o2: "法律", o3: "账目：粮食、啤酒、羊和工人", o4: "给朋友的信",
+    right: "对。最早的泥板大多是货物、口粮和工人的清单：谁交来或领走了多少什么东西。",
+    wrong: "很多人这么猜，但最早的泥板大多是账目：粮食、啤酒、羊、口粮和工人。法律、书信和故事是几百年后才有的。",
+    gTab: "一块早期风格的泥板（符号是本页自己画的示意）", gHidden: "上面写了什么？先选一个答案。",
+    gRead: "读作：{a} · {b} · {c}",
+    k2: "动手", t2: "当一回神庙书吏",
+    b2: "神庙里存着羊、粮食和啤酒，再作为口粮分出去。一整天都有货送来。先只靠脑子记，再用泥板记。",
+    start: "▶ 开始送货", pause: "❚❚ 暂停", resume: "▶ 继续", next: "下一批", check: "检查我的记忆", toClay: "现在写到泥板上 →",
+    b1A: "压一个「1」", b10A: "压一个「10」", undo: "撤销", press: "压进泥里 ✓", auto: "帮我填", again: "换一天的货",
+    minus: "{g}少一", plus: "{g}多一",
+    iReady: "会有 {n} 批货一批一批送来。什么都不许写，只用脑子记住每样各来了多少。",
+    iReduced: "点「下一批」看每一批。",
+    iShow: "第 {i} 批，共 {n} 批。下一批来了，这一批就看不见了。",
+    iRecall: "货都看不见了。今天每样一共来了多少？设好你的总数，再检查。",
+    iChecked: "记忆一共差了 {e}（{t} 件里差的占 {p}）。",
+    iCheckedOk: "全记对了！可要是一年天天这样，还有几十个工人呢？泥板不会忘。",
+    iWrite: "第 {i} 批，共 {n} 批：{d}。压数字符号（● = 10，▮ = 1）和一个图形符号，再压进泥里。",
+    iDraft: "这一格现在是：{v}", iNeed: "要有数字，也要有图形符号。", iTooMany: "「1」最多压 9 个，该用「10」了。",
+    iDone: "泥板写满了。书吏在背面把总数加出来。泥板：差 {e}。记忆：差 {m}。",
+    iDoneNoMem: "泥板写满了。书吏在背面把总数加出来。泥板：差 {e}。",
+    liveShow: "第 {i} 批：{d}", livePress: "压好了：{d}",
+    readyT: "要来 {n} 批货", deliv: "第 {i} 批 / 共 {n} 批", howMany: "一共多少？", untouched: "?",
+    thGood: "货物", thMem: "你记的", thTrue: "真实总数", thOff: "差",
+    tabFront: "泥板正面", tabBack: "背面：总数", tabNow: "要记的这一批",
+    k3: "动手", t3: "看符号怎么变",
+    b3: "拖着穿过几百年。在湿泥上画弯弯的图又慢又容易糊。书吏改用削尖的芦苇秆一角往泥里压，留下楔子形的印。符号越来越简单、越来越不像画，最后只有学过的人才认得。",
+    centLabel: "几百年过去", cent0: "约公元前 3200 年：图画符号", centN: "约 {c} 个世纪后",
+    stg0: "图画", stg1: "直线", stg2: "楔形", stg3: "更少的楔形",
+    marks: "{n} 笔", marksAll: "三个符号一共：{a} → {b} 笔",
+    iSigns: "阶段：{s}。三个符号一共 {n} 笔（一开始 {n0} 笔）。",
+    iSignsNote: "符号受原始楔形文字和楔形文字启发，不是照抄。真实的符号各自变化的快慢不同；这里的四个阶段是示意。",
+    liveSigns: "{s}，{n} 笔",
+    k4: "规律", t4: "文字从记账开始",
+    b4: "文字最初是记账的工具：多少、什么、给谁。文学是几百年后才有的。别的地方也各自独立发明了文字，包括中国和中美洲。拖动年份线，看看什么时候有了什么。",
+    yrLabel: "年份",
+    hMes: "美索不达米亚的文字用来做什么", hWorld: "各自独立发明文字的地方",
+    rAcc: "账目：货物、口粮、工人", rLex: "训练书吏的词表", rLit: "文学：神话、颂歌、故事", rLaw: "成文的法典",
+    wMes: "美索不达米亚：泥板", wChi: "中国：甲骨文（占卜记录）", wMeso: "中美洲（公元前 1 千纪）",
+    iYear: "年份：{y}", iUses: "已有的用途：{l}", iWhere: "已有文字的地方：{l}", iNone: "还没有",
+    iGap: "账目约 {a} → 最早的文学约 {b}：晚了大约 {g} 年。",
+    iHow: "我们怎么知道：考古学家挖出了好几千块最早的泥板，大多是账目，剩下的大多是词表。故事和诗歌要到几百年后才出现。",
+    liveYear: "{y}：{n} 种用途，{w} 个地方",
+    resultTitle: "我们发现",
+    resMain: "账目约 {a} → 故事约 {b}：晚了 {g} 年",
+    resNoteDef: "最早的文字记的是货物和口粮。故事是后来才有的。",
+    resNoteMem: "你的记忆差了 {m}；你的泥板差了 {e}。",
+    explainK: "说一说", explainQ: "朋友说「文字是为了写故事和诗歌才发明的」。用本页的发现和一个数字给他讲清楚：最早的文字是干什么用的，为什么需要它。",
+    homeK: "家里做一做", homeQ: "请家人念 10 样要买的东西和数量（3 个苹果、2 个面包……），你不许写，念完把记得的写下来。再来一遍，这次边听边画记号和小图。哪一张单子对？",
+    foot: "年代都是史学界通行的大约数：乌鲁克的原始楔形文字泥板约公元前 3300—前 3000 年；训练书吏的词表约公元前 3200 年起；最早的文学作品约公元前 2600 年；已知最早的法典（乌尔纳姆法典）约公元前 2100 年；商代甲骨文约公元前 1250 年起；中美洲文字（萨波特克，后来的玛雅）在公元前 1 千纪。埃及象形文字也在约公元前 3200 年出现，是否独立发明学界还在讨论，这里没画。本页所有符号都是自己设计的示意，受原始楔形文字启发，不是照抄；送货数量由代码随机生成。资料：Nissen、Damerow、Englund《Archaic Bookkeeping》（1993）；Englund《Texts from the Late Uruk Period》（1998）；吉德炜《商代史料》（Sources of Shang History，1978）。CC BY 4.0 · Boxi Yu",
+  },
+});
+const ZHL = P.lang === "zh";
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent || fig);
+const T = (x, y, s, cls, anchor, parent) => { const t = S("text", { x, y, class: cls || "", "text-anchor": anchor || "start" }, parent); t.textContent = s; return t; };
+const num = (n) => (ZHL ? String(n) : n.toLocaleString("en-US"));
+
+/* ---------- signs: our own schematic designs (100 × 100 box) ----------
+   A string is a drawn stroke; [x1, y1, x2, y2] is a wedge with its head at (x1, y1). Four stages per sign. */
+const SIGNS = [
+  [ // sheep
+    ["M22 56C22 38 68 36 74 50C77 62 60 70 40 68C30 67 22 64 22 56", "M74 49C80 40 92 43 91 52C89 59 80 59 75 55", "M82 44C77 36 87 31 90 39", "M32 67L30 85", "M44 68L44 86", "M58 67L59 85", "M68 63L71 82", "M22 56C15 57 13 62 16 66"],
+    ["M24 50L72 44L74 64L26 66Z", "M72 44L90 47L86 57L74 56", "M34 66L34 84", "M64 64L64 82", "M24 52L14 62"],
+    [[24, 48, 72, 44], [26, 66, 74, 64], [74, 46, 90, 50], [34, 66, 34, 84], [64, 64, 64, 82]],
+    [[18, 44, 78, 44], [18, 66, 78, 66], [48, 34, 48, 78]],
+  ],
+  [ // barley (grain)
+    ["M50 94C50 70 49 40 52 14", "M50 34C40 33 35 25 38 18C45 20 50 26 50 34", "M52 34C62 33 67 25 64 18C57 20 52 26 52 34", "M50 54C40 53 35 45 38 38C45 40 50 46 50 54", "M52 54C62 53 67 45 64 38C57 40 52 46 52 54", "M50 74C40 73 35 65 38 58C45 60 50 66 50 74", "M52 74C62 73 67 65 64 58C57 60 52 66 52 74", "M52 14L55 4"],
+    ["M50 92L50 10", "M50 32L34 18", "M50 32L66 18", "M50 56L34 42", "M50 56L66 42"],
+    [[50, 10, 50, 92], [34, 18, 50, 32], [66, 18, 50, 32], [34, 42, 50, 56], [66, 42, 50, 56]],
+    [[50, 12, 50, 90], [30, 24, 50, 44], [70, 24, 50, 44]],
+  ],
+  [ // beer jar with a drinking straw
+    ["M36 26C20 40 22 68 50 92C78 68 80 40 64 26Z", "M38 26L40 16L60 16L62 26", "M58 16L82 4", "M30 46C40 42 60 50 72 45", "M40 60L46 70", "M54 60L60 70"],
+    ["M36 24L28 50L50 90L72 50L64 24Z", "M40 24L40 14L60 14L60 24", "M58 14L80 4", "M30 46L70 46", "M44 62L56 62"],
+    [[36, 24, 50, 90], [64, 24, 50, 90], [34, 24, 66, 24], [58, 14, 80, 4], [30, 46, 70, 46]],
+    [[34, 30, 50, 84], [66, 30, 50, 84], [28, 30, 72, 30]],
+  ],
+];
+const NG = SIGNS.length, NSTG = 4, ND = 8;
+const marksAt = (stage) => SIGNS.reduce((s, g) => s + g[stage].length, 0);
+const GNAME = {
+  en: [["sheep", "sheep"], ["measure of barley", "measures of barley"], ["jar of beer", "jars of beer"]],
+  zh: [["只羊", "只羊"], ["份大麦", "份大麦"], ["罐啤酒", "罐啤酒"]],
+};
+const GSHORT = { en: ["Sheep", "Barley", "Beer"], zh: ["羊", "大麦", "啤酒"] };
+const goodText = (g, n) => (ZHL ? n + " " + GNAME.zh[g][0] : num(n) + " " + GNAME.en[g][n === 1 ? 0 : 1]);
+
+/* ---------- pure logic ---------- */
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function makeDay(seed) {
+  const r = mulberry32(seed), gs = [0, 0, 1, 1, 2, 2];
+  while (gs.length < ND) gs.push(Math.floor(r() * NG));
+  for (let i = gs.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [gs[i], gs[j]] = [gs[j], gs[i]]; }
+  return gs.map((g) => ({ g, n: 2 + Math.floor(r() * 12) }));   // 2..13 of each delivery
+}
+function totals(list) {
+  const t = new Array(NG).fill(0);
+  list.forEach((d) => { if (d && d.g >= 0 && d.g < NG && Number.isFinite(d.n)) t[d.g] += d.n; });
+  return t;
+}
+const offBy = (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
+const caseN = (c) => c.t * 10 + c.o;
+const yrText = (y) => (ZHL ? "公元前 " + (-y) + " 年" : num(-y) + " BCE");
+const MES = [{ k: "rAcc", y: -3300 }, { k: "rLex", y: -3200 }, { k: "rLit", y: -2600 }, { k: "rLaw", y: -2100 }];
+const WORLD = [{ k: "wMes", y: -3300 }, { k: "wChi", y: -1250 }, { k: "wMeso", y: -500, from: -1000, noDate: true }];
+const Y0 = -3500, Y1 = -100, GAP = MES[2].y - MES[0].y;
+const usesAt = (y) => MES.filter((m) => m.y <= y);
+const whereAt = (y) => WORLD.filter((w) => w.y <= y);
+
+/* ---------- state ---------- */
+let step = 0, guessed = false, seed = 5, day = makeDay(seed), ph = "ready", si = -1, timer = 0, paused = false;
+let recall = [0, 0, 0], touched = [false, false, false], memErr = null, cases = [], draft = { t: 0, o: 0, g: -1 }, warn = "";
+let cent = 0, yr = -3300, W = 600, H = 440;
+
+/* ---------- drawing helpers ---------- */
+function sign(g, stage, cx, cy, size, parent, op) {
+  const grp = S("g", { transform: `translate(${(cx - size / 2).toFixed(1)} ${(cy - size / 2).toFixed(1)}) scale(${(size / 100).toFixed(4)})` }, parent);
+  if (op !== undefined) grp.setAttribute("opacity", op.toFixed(3));
+  const sw = (Math.max(1.3, size * 0.03) * 100) / size;
+  SIGNS[g][stage].forEach((it) => {
+    if (typeof it === "string") { S("path", { d: it, class: "stk", "stroke-width": sw.toFixed(2) }, grp); return; }
+    const [x1, y1, x2, y2] = it, L = Math.hypot(x2 - x1, y2 - y1) || 1, dx = (x2 - x1) / L, dy = (y2 - y1) / L, w = 11;
+    S("path", { class: "wdg", d: `M${x1 - dy * w / 2} ${y1 + dx * w / 2}L${x1 + dy * w / 2} ${y1 - dx * w / 2}L${x1 + dx * w * 1.3} ${y1 + dy * w * 1.3}Z` }, grp);
+    S("line", { class: "wl", x1: x1 + dx * w, y1: y1 + dy * w, x2, y2, "stroke-width": (sw * 1.1).toFixed(2) }, grp);
+  });
+  return grp;
+}
+function numbers(t, o, x, y, w, h, parent) {          // 10-signs (circles) then 1-signs (notches)
+  const rows = (t ? 1 : 0) + Math.ceil(o / 5);
+  if (!rows) return;
+  const wu = Math.max(t * 1.05, Math.min(o, 5) * 0.62) + 0.4;
+  const u = Math.min(h / (rows + 0.4), w / wu, h / 2.2);
+  let yy = y + (h - rows * u) / 2 + u / 2;
+  for (let i = 0; i < t; i++) S("circle", { class: "imp", cx: x + u * 0.62 + i * u * 1.05, cy: yy, r: u * 0.4 }, parent);
+  if (t) yy += u;
+  for (let i = 0; i < o; i++) S("ellipse", { class: "imp", cx: x + u * 0.42 + (i % 5) * u * 0.62, cy: yy + Math.floor(i / 5) * u, rx: u * 0.19, ry: u * 0.4 }, parent);
+}
+function drawCase(x, y, w, h, c, cls) {
+  S("rect", { class: cls || "case", x, y, width: w, height: h, rx: 4 });
+  if (!c) return;
+  numbers(c.t, c.o, x + 4, y + 4, w * 0.56 - 6, h - 8);
+  if (c.g >= 0) { const s = Math.min(h * 0.82, w * 0.4); sign(c.g, 0, x + w * 0.77, y + h / 2, s); }
+}
+function drawTablet(x, y, w, h, list, withDraft) {
+  S("rect", { class: "clay", x, y, width: w, height: h, rx: 18 });
+  const pad = 10, cw = (w - pad * 3) / 2, ch = (h - pad * 5) / 4;
+  for (let i = 0; i < ND; i++) {
+    const cx = x + pad + (i % 2) * (cw + pad), cy = y + pad + Math.floor(i / 2) * (ch + pad);
+    if (list[i]) drawCase(cx, cy, cw, ch, list[i]);
+    else if (withDraft && i === list.length) drawCase(cx, cy, cw, ch, draft, "caseD");
+    else drawCase(cx, cy, cw, ch, null, "caseE");
+  }
+}
+function iconGrid(g, n, x, y, w, h) {
+  let s = 64, cols = 1;
+  for (; s >= 14; s -= 2) { cols = Math.max(1, Math.floor(w / (s * 1.12))); if (Math.ceil(n / cols) * s * 1.12 <= h) break; }
+  cols = Math.min(cols, n);
+  const rows = Math.ceil(n / cols), gw = cols * s * 1.12, gh = rows * s * 1.12;
+  for (let i = 0; i < n; i++) sign(g, 0, x + (w - gw) / 2 + (i % cols + 0.5) * s * 1.12, y + (h - gh) / 2 + (Math.floor(i / cols) + 0.5) * s * 1.12, s);
+}
+function drawCard(x, y, w, h, d, i) {
+  S("rect", { class: "card", x, y, width: w, height: h, rx: 12 });
+  T(x + w / 2, y + 24, P.t("deliv", { i: i + 1, n: ND }), "mut", "middle");
+  iconGrid(d.g, d.n, x + 10, y + 34, w - 20, h - 80);
+  T(x + w / 2, y + h - 18, goodText(d.g, d.n), "huge", "middle");
+}
+function progress(y, done) {
+  const gap = 18, x0 = W / 2 - ((ND - 1) * gap) / 2;
+  for (let i = 0; i < ND; i++) S("circle", { class: i < done ? "pdotOn" : "pdot", cx: x0 + i * gap, cy: y, r: 6 });
+}
+
+/* ---------- step drawings ---------- */
+function drawGuess() {
+  const tw = Math.min(W - 32, 380), th = Math.min(220, H - 150), tx = (W - tw) / 2, ty = 44;
+  T(W / 2, 26, P.t("gTab"), "mut", "middle");
+  S("rect", { class: "clay", x: tx, y: ty, width: tw, height: th, rx: 22 });
+  const ex = [{ g: 0, t: 0, o: 5 }, { g: 1, t: 1, o: 2 }, { g: 2, t: 0, o: 3 }];
+  const pad = 12, ch = (th - pad * 4) / 3;
+  ex.forEach((c, i) => {
+    const cy = ty + pad + i * (ch + pad);
+    if (guessed) drawCase(tx + pad, cy, tw - 2 * pad, ch, c);
+    else { drawCase(tx + pad, cy, tw - 2 * pad, ch, null); T(W / 2, cy + ch / 2 + 9, "?", "huge", "middle"); }
+  });
+  const yb = ty + th + 34;
+  if (!guessed) { T(W / 2, yb, P.t("gHidden"), "mut", "middle"); return; }
+  const parts = ex.map((c) => goodText(c.g, caseN(c)));
+  if (W >= 470) T(W / 2, yb, P.t("gRead", { a: parts[0], b: parts[1], c: parts[2] }), "acc", "middle");
+  else parts.forEach((p, i) => T(W / 2, yb + i * 20, (i ? "" : (ZHL ? "读作：" : "Read as: ")) + p, "acc", "middle"));
+}
+
+function drawScribe() {
+  const tr = totals(day);
+  if (ph === "ready") {
+    T(W / 2, 60, P.t("readyT", { n: ND }), "big", "middle");
+    const s = Math.min(90, (W - 60) / 3.4);
+    for (let g = 0; g < NG; g++) {
+      const cx = W / 2 + (g - 1) * (s * 1.25);
+      sign(g, 0, cx, 160, s);
+      T(cx, 160 + s / 2 + 22, GSHORT[P.lang][g], "bold", "middle");
+    }
+    progress(H - 40, 0);
+  } else if (ph === "show") {
+    const w = Math.min(W - 32, 420);
+    drawCard((W - w) / 2, 16, w, H - 76, day[si], si);
+    progress(H - 30, si + 1);
+  } else if (ph === "recall") {
+    T(W / 2, 40, P.t("howMany"), "big", "middle");
+    const s = Math.min(80, (W - 60) / 3.6);
+    for (let g = 0; g < NG; g++) {
+      const cx = W / 2 + (g - 1) * Math.min(170, (W - 20) / 3);
+      sign(g, 0, cx, 120, s);
+      T(cx, 120 + s / 2 + 22, GSHORT[P.lang][g], "bold", "middle");
+      T(cx, 120 + s / 2 + 70, touched[g] ? num(recall[g]) : P.t("untouched"), "huge", "middle");
+    }
+    progress(H - 30, ND);
+  } else if (ph === "checked") {
+    const L = 14, R = W - 14, cols = [L + 4, L + (R - L) * 0.36, L + (R - L) * 0.62, L + (R - L) * 0.86];
+    const top = 40, rh = Math.min(80, (H - 120) / 3.4);
+    [P.t("thGood"), P.t("thMem"), P.t("thTrue"), P.t("thOff")].forEach((s, i) => T(cols[i], top, s, "mut", i ? "middle" : "start"));
+    for (let g = 0; g < NG; g++) {
+      const yc = top + 18 + rh * (g + 0.5);
+      S("line", { class: "row", x1: L, x2: R, y1: yc - rh / 2, y2: yc - rh / 2 });
+      sign(g, 0, cols[0] + rh * 0.4, yc, rh * 0.75);
+      T(cols[1], yc + 9, num(recall[g]), "huge", "middle");
+      T(cols[2], yc + 9, num(tr[g]), "huge", "middle");
+      const e = recall[g] - tr[g];
+      T(cols[3], yc + 9, e === 0 ? "0" : (e > 0 ? "+" : "−") + num(Math.abs(e)), e ? "huge bad" : "huge acc", "middle");
+    }
+    const e = offBy(recall, tr);
+    if (W >= 480) T(W / 2, top + 18 + rh * 3 + 40, P.t("iChecked", { e: num(e), t: num(tr.reduce((a, b) => a + b, 0)), p: pct(e, tr) }), e ? "bad" : "acc", "middle");
+  } else {
+    const done = ph === "done", wide = W >= 560;
+    let cx, cy, cw, chh, tx, ty, tw, th;
+    if (wide) { cx = 14; cy = 30; cw = W * 0.38; chh = H - 46; tx = cx + cw + 16; ty = 30; tw = W - tx - 14; th = H - 46; }
+    else { cx = 14; cy = 24; cw = W - 28; chh = 128; tx = 14; ty = cy + chh + 30; tw = W - 28; th = H - ty - 10; }
+    T(tx, ty - 10, P.t("tabFront"), "mut");
+    drawTablet(tx, ty, tw, th, cases, !done);
+    if (!done) {
+      T(cx, cy - 10, P.t("tabNow"), "mut");
+      const d = day[cases.length];
+      S("rect", { class: "card", x: cx, y: cy, width: cw, height: chh, rx: 12 });
+      if (wide) { iconGrid(d.g, d.n, cx + 8, cy + 8, cw - 16, chh - 60); T(cx + cw / 2, cy + chh - 18, goodText(d.g, d.n), "huge", "middle"); }
+      else { iconGrid(d.g, d.n, cx + 8, cy + 6, cw * 0.6, chh - 12); T(cx + cw * 0.8, cy + chh / 2 + 9, goodText(d.g, d.n), "big", "middle"); }
+    } else {
+      T(cx, cy - 10, P.t("tabBack"), "mut");
+      S("rect", { class: "clay", x: cx, y: cy, width: cw, height: chh, rx: 18 });
+      const tc = totals(cases.map((c) => ({ g: c.g, n: caseN(c) }))), rh = (chh - 16) / NG;
+      for (let g = 0; g < NG; g++) {
+        const y = cy + 8 + g * rh, t = Math.floor(tc[g] / 10), o = tc[g] % 10;
+        S("rect", { class: "case", x: cx + 8, y: y + 2, width: cw - 16, height: rh - 4, rx: 4 });
+        numbers(Math.min(t, 9), o, cx + 12, y + 6, (cw - 16) * 0.5, rh - 12);
+        sign(g, 0, cx + 8 + (cw - 16) * 0.66, y + rh / 2, Math.min(rh * 0.7, cw * 0.22));
+        T(cx + cw - 14, y + rh / 2 + 6, "= " + num(tc[g]), tc[g] === tr[g] ? "acc" : "bad", "end");
+      }
+    }
+  }
+}
+function pct(e, tr) { const t = tr.reduce((a, b) => a + b, 0); return t > 0 ? Play.fmt((100 * e) / t, 0) + "%" : "0%"; }
+
+const TPOS = () => cent / 100;
+function drawSigns() {
+  const t = TPOS(), a = Math.floor(Math.min(t, NSTG - 1 - 1e-9)), f = Math.min(1, t - a), b = Math.min(NSTG - 1, a + 1), near = Math.round(t);
+  T(W / 2, 28, cent === 0 ? P.t("cent0") : P.t("centN", { c: num(Math.max(1, Math.round(cent * 4 / 100))) }), "big", "middle");
+  const colW = (W - 20) / 3, s = Math.min(130, colW - 16), yc = 50 + s / 2;
+  for (let g = 0; g < NG; g++) {
+    const cx = 10 + colW * (g + 0.5);
+    if (f < 0.999) sign(g, a, cx, yc, s, undefined, 1 - f);
+    if (f > 0.001) sign(g, b, cx, yc, s, undefined, f);
+    T(cx, yc + s / 2 + 22, GSHORT[P.lang][g], "bold", "middle");
+    T(cx, yc + s / 2 + 40, P.t("marks", { n: SIGNS[g][near].length }), "mut", "middle");
+  }
+  // thumbnail table of all four stages
+  const ty = yc + s / 2 + 62, avail = H - ty - 28, ts = Math.min(44, avail / NG - 6, (W - 30) / NSTG - 14), cw = (W - 20) / NSTG;
+  S("rect", { class: "colHl", x: 10 + near * cw + 2, y: ty - 4, width: cw - 4, height: NG * (ts + 6) + 28, rx: 8 });
+  for (let k = 0; k < NSTG; k++) {
+    const cx = 10 + cw * (k + 0.5);
+    for (let g = 0; g < NG; g++) sign(g, k, cx, ty + g * (ts + 6) + ts / 2, ts);
+    T(cx, ty + NG * (ts + 6) + 14, P.t("stg" + k), k === near ? "acc" : "mut", "middle");
+  }
+  fig.dataset.sx = "10," + (W - 10);
+}
+
+function drawRule() {
+  const L = 14, R = W - 14, X = (y) => L + ((y - Y0) / (Y1 - Y0)) * (R - L);
+  const rh = Math.min(36, (H - 110) / 9.2);
+  let y = 22;
+  const head = (k) => { T(L, y, P.t(k), "big"); y += rh * 0.75; };
+  const bar = (it) => {
+    const on = it.y <= yr, k = P.t(it.k) + (it.noDate ? "" : " · " + (ZHL ? "约" : "c. ") + yrText(it.y));
+    const est = k.length * (ZHL ? 13 : 7.2) + 4;
+    T(Play.clamp(X(it.from || it.y), L, Math.max(L, R - est)), y, k, on ? "bold" : "mut");
+    if (it.from) S("rect", { class: "fuzzy", x: X(it.from), y: y + 6, width: X(it.y) - X(it.from), height: 9, rx: 4 });
+    S("rect", { class: on ? "barOn" : "barOff", x: X(it.y), y: y + 6, width: R - X(it.y), height: 9, rx: 4 });
+    y += rh;
+  };
+  head("hMes"); MES.forEach(bar); y += rh * 0.35;
+  head("hWorld"); WORLD.forEach(bar);
+  const axY = y + 4;
+  S("line", { class: "ax", x1: L, x2: R, y1: axY, y2: axY });
+  const stepY = R - L < 420 ? 1000 : 500;
+  for (let v = -3000; v <= Y1; v += stepY) {
+    S("line", { class: "ax", x1: X(v), x2: X(v), y1: axY - 4, y2: axY + 4 });
+    T(X(v), axY + 18, ZHL ? "前" + -v : num(-v), "mut", "middle");
+  }
+  T(R, axY + 36, ZHL ? "公元前（年）" : "years BCE", "mut", "end");
+  S("line", { class: "cur", x1: X(yr), x2: X(yr), y1: 30, y2: axY });
+  S("circle", { class: "curDot", cx: X(yr), cy: axY, r: 6 });
+  fig.dataset.rx = [L, R].join(",");
+}
+
+function draw() {
+  fig.innerHTML = "";
+  fig.classList.toggle("drag", step >= 2);
+  [drawGuess, drawScribe, drawSigns, drawRule][step]();
+}
+
+/* ---------- panel, controls, result ---------- */
+function line(cls, text) { const d = document.createElement("div"); d.className = cls; d.textContent = text; $("info").appendChild(d); }
+function show(id, on) { $(id).hidden = !on; }
+function scribeControls() {
+  show("gMem", ph === "ready" || ph === "show");
+  show("gRecall", ph === "recall"); show("gCheck", ph === "recall");
+  show("gToClay", ph === "checked");
+  ["gNum", "gSign", "gPress"].forEach((g) => show(g, ph === "write"));
+  show("gDone", ph === "done");
+  $("bStart").textContent = ph === "ready" ? P.t("start") : timer ? P.t("pause") : P.t("resume");
+  $("bStart").hidden = Play.reduced && ph !== "ready";
+  $("bNext").hidden = ph === "ready";
+  for (let g = 0; g < NG; g++) $("rv" + g).textContent = touched[g] ? num(recall[g]) : "?";
+  document.querySelectorAll("#gSign button").forEach((b, g) => b.classList.toggle("on", draft.g === g));
+  $("bPress").disabled = !(caseN(draft) > 0 && draft.g >= 0);
+  $("bUndo").disabled = caseN(draft) === 0 && draft.g < 0;
+}
+function info() {
+  const box = $("info");
+  box.innerHTML = "";
+  const tr = totals(day);
+  if (step === 1) {
+    scribeControls();
+    if (ph === "ready") { line("", P.t("iReady", { n: ND })); if (Play.reduced) line("dt", P.t("iReduced")); }
+    else if (ph === "show") line("", P.t("iShow", { i: si + 1, n: ND }));
+    else if (ph === "recall") line("", P.t("iRecall"));
+    else if (ph === "checked") {
+      const e = offBy(recall, tr);
+      line(e ? "warn" : "gp", e ? P.t("iChecked", { e: num(e), t: num(tr.reduce((a, b) => a + b, 0)), p: pct(e, tr) }) : P.t("iCheckedOk"));
+    } else if (ph === "write") {
+      const d = day[cases.length];
+      line("", P.t("iWrite", { i: cases.length + 1, n: ND, d: goodText(d.g, d.n) }));
+      const v = caseN(draft);
+      line("gp", P.t("iDraft", { v: (v ? num(v) : "—") + " " + (draft.g >= 0 ? GSHORT[P.lang][draft.g] : "?") }));
+      if (warn) line("warn", warn); else if (!(v > 0 && draft.g >= 0)) line("dt", P.t("iNeed"));
+    } else if (ph === "done") {
+      const e = offBy(totals(cases.map((c) => ({ g: c.g, n: caseN(c) }))), tr);
+      line(e ? "warn" : "gp", memErr === null ? P.t("iDoneNoMem", { e: num(e) }) : P.t("iDone", { e: num(e), m: num(memErr) }));
+    }
+  } else if (step === 2) {
+    const near = Math.round(TPOS()), stg = P.t("stg" + near);
+    $("centVal").textContent = cent === 0 ? (ZHL ? "约公元前 3200 年" : "c. 3200 BCE") : "+" + num(Math.max(1, Math.round(cent * 4 / 100))) + (ZHL ? " 个世纪" : " centuries");
+    line("gp", P.t("iSigns", { s: stg, n: marksAt(near), n0: marksAt(0) }));
+    line("", P.t("marksAll", { a: marksAt(0), b: marksAt(NSTG - 1) }));
+    line("dt", P.t("iSignsNote"));
+    Play.live($("live"), P.t("liveSigns", { s: stg, n: marksAt(near) }));
+  } else if (step === 3) {
+    const u = usesAt(yr), w = whereAt(yr), sep = ZHL ? "、" : ", ";
+    $("yrVal").textContent = yrText(yr);
+    line("gp", P.t("iYear", { y: (ZHL ? "约" : "c. ") + yrText(yr) }));
+    line("", P.t("iUses", { l: u.length ? u.map((m) => P.t(m.k)).join(sep) : P.t("iNone") }));
+    line("", P.t("iWhere", { l: w.length ? w.map((m) => P.t(m.k).split(/[:：(（]/)[0].trim()).join(sep) : P.t("iNone") }));
+    line("", P.t("iGap", { a: yrText(MES[0].y), b: yrText(MES[2].y), g: num(GAP) }));
+    line("dt", P.t("iHow"));
+    Play.live($("live"), P.t("liveYear", { y: yrText(yr), n: u.length, w: w.length }));
+  }
+  $("resMain").textContent = P.t("resMain", { a: yrText(MES[0].y), b: yrText(MES[2].y), g: num(GAP) });
+  if (ph === "done" && memErr !== null) {
+    const e = offBy(totals(cases.map((c) => ({ g: c.g, n: caseN(c) }))), tr);
+    $("resNote").textContent = P.t("resNoteMem", { m: num(memErr), e: num(e) });
+  } else $("resNote").textContent = P.t("resNoteDef");
+}
+function update() { draw(); info(); }
+
+/* scribe: memory phase */
+function stopTimer() { clearTimeout(timer); timer = 0; }
+function advance() {
+  if (ph === "ready") { ph = "show"; si = 0; }
+  else if (ph === "show") { if (si < ND - 1) si++; else { stopTimer(); ph = "recall"; } }
+  Play.live($("live"), ph === "show" ? P.t("liveShow", { i: si + 1, d: goodText(day[si].g, day[si].n) }) : "");
+}
+function tick() { timer = 0; advance(); if (ph === "show") timer = setTimeout(tick, 1500); update(); }
+$("bStart").addEventListener("click", () => {
+  if (ph === "ready") { advance(); if (!Play.reduced) timer = setTimeout(tick, 1500); }
+  else if (timer) stopTimer();
+  else if (ph === "show" && !Play.reduced) timer = setTimeout(tick, 400);
+  update();
+});
+$("bNext").addEventListener("click", () => { stopTimer(); advance(); update(); });
+const gR = $("gRecall");
+for (let g = 0; g < NG; g++) {
+  const wrap = document.createElement("span");
+  wrap.className = "grp"; wrap.style.width = "auto"; wrap.style.marginRight = "10px";
+  const lb = document.createElement("span"); lb.className = "lbl"; lb.textContent = GSHORT[P.lang][g];
+  const mk = (txt, d) => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = txt;
+    b.setAttribute("aria-label", P.t(d < 0 ? "minus" : "plus", { g: GSHORT[P.lang][g] }));
+    b.addEventListener("click", () => { touched[g] = true; recall[g] = Play.clamp(recall[g] + d, 0, 200); update(); });
+    return b;
+  };
+  const v = document.createElement("span"); v.className = "num"; v.id = "rv" + g; v.setAttribute("aria-live", "polite");
+  wrap.append(lb, mk("−", -1), v, mk("+", 1));
+  gR.appendChild(wrap);
+}
+$("bCheck").addEventListener("click", () => { memErr = offBy(recall, totals(day)); ph = "checked"; update(); });
+$("bToClay").addEventListener("click", () => { ph = "write"; draft = { t: 0, o: 0, g: -1 }; update(); });
+
+/* scribe: clay phase */
+const icon = (inner) => `<svg viewBox="0 0 100 100" aria-hidden="true">${inner}</svg>`;
+$("b1").innerHTML = icon('<ellipse class="imp" cx="50" cy="50" rx="16" ry="34"/>') + "1";
+$("b10").innerHTML = icon('<circle class="imp" cx="50" cy="50" r="36"/>') + "10";
+const gS = $("gSign");
+for (let g = 0; g < NG; g++) {
+  const b = document.createElement("button"); b.type = "button";
+  b.innerHTML = icon(SIGNS[g][0].map((d) => `<path class="stk" d="${d}"/>`).join(""));
+  b.appendChild(document.createTextNode(GSHORT[P.lang][g]));
+  b.addEventListener("click", () => { draft.g = g; warn = ""; update(); });
+  gS.appendChild(b);
+}
+$("b1").addEventListener("click", () => { if (draft.o >= 9) warn = P.t("iTooMany"); else { draft.o++; warn = ""; } update(); });
+$("b10").addEventListener("click", () => { if (draft.t < 9) draft.t++; warn = ""; update(); });
+$("bUndo").addEventListener("click", () => {
+  if (draft.g >= 0) draft.g = -1; else if (draft.o > 0) draft.o--; else if (draft.t > 0) draft.t--;
+  warn = ""; update();
+});
+function press() {
+  if (!(caseN(draft) > 0 && draft.g >= 0) || ph !== "write") return;
+  cases.push({ ...draft });
+  Play.live($("live"), P.t("livePress", { d: goodText(draft.g, caseN(draft)) }));
+  draft = { t: 0, o: 0, g: -1 }; warn = "";
+  if (cases.length >= ND) ph = "done";
+  update();
+}
+$("bPress").addEventListener("click", press);
+$("bAuto").addEventListener("click", () => { const d = day[cases.length]; if (!d) return; draft = { t: Math.floor(d.n / 10), o: d.n % 10, g: d.g }; press(); });
+function newDay(s) {
+  stopTimer(); seed = s; day = makeDay(seed); ph = "ready"; si = -1;
+  recall = [0, 0, 0]; touched = [false, false, false]; memErr = null; cases = []; draft = { t: 0, o: 0, g: -1 }; warn = "";
+}
+$("bAgain").addEventListener("click", () => { newDay((seed * 31 + 17) % 100000); update(); });
+
+/* signs + timeline */
+function setCent(v) { cent = Play.clamp(Math.round(v), 0, 300); $("cent").value = cent; update(); }
+function setYr(v) { yr = Play.clamp(Math.round(v / 50) * 50, -3500, Y1); $("yr").value = yr; update(); }
+$("cent").addEventListener("input", (e) => setCent(+e.target.value));
+$("yr").addEventListener("input", (e) => setYr(+e.target.value));
+let drag = null;
+function dragTo(p) {
+  if (step === 2) { const [a, b] = (fig.dataset.sx || "0,1").split(",").map(Number); if (b > a) setCent(((Play.clamp(p.x, a, b) - a) / (b - a)) * 300); }
+  else if (step === 3) { const [a, b] = (fig.dataset.rx || "0,1").split(",").map(Number); if (b > a) setYr(Y0 + ((Play.clamp(p.x, a, b) - a) / (b - a)) * (Y1 - Y0)); }
+}
+fig.addEventListener("pointerdown", (ev) => {
+  if (step < 2) return;
+  drag = true;
+  try { fig.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+  dragTo(Play.pointer(fig, ev));
+});
+fig.addEventListener("pointermove", (ev) => { if (drag) dragTo(Play.pointer(fig, ev)); });
+const endDrag = () => { drag = null; };
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", endDrag);
+fig.addEventListener("keydown", (ev) => {
+  let d = 0;
+  if (ev.key === "ArrowLeft" || ev.key === "ArrowDown") d = -1;
+  else if (ev.key === "ArrowRight" || ev.key === "ArrowUp") d = 1;
+  else return;
+  if (step === 2) setCent(cent + d * (ev.shiftKey ? 100 : 10));
+  else if (step === 3) setYr(yr + d * (ev.shiftKey ? 500 : 50));
+  else return;
+  ev.preventDefault();
+});
+
+/* ---------- predict + steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }, { label: P.t("o4") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { guessed = true; showResult(); if (step === 0) draw(); });
+function showResult() { document.querySelector(".result").hidden = step === 0 && !guessed; }
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  if (i !== 1) stopTimer();
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("info").hidden = i === 0;
+  $("ctlScribe").hidden = i !== 1;
+  $("ctlSigns").hidden = i !== 2;
+  $("ctlYear").hidden = i !== 3;
+  Play.live($("live"), "");
+  showResult();
+  resize();
+});
+
+function resize() {
+  const r = fig.getBoundingClientRect();
+  if (r.width < 10 || r.height < 10) { info(); return; }
+  W = Math.round(r.width); H = Math.round(r.height);
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  update();
+}
+if (window.ResizeObserver) new ResizeObserver(resize).observe(fig); else window.addEventListener("resize", resize);
+
+$("reset").addEventListener("click", () => {
+  newDay(5); guessed = false; cent = 0; yr = -3300;
+  $("cent").value = 0; $("yr").value = yr;
+  pr.reset(); st.go(0);
+});
+resize();
+</script>
+</body>
+</html>

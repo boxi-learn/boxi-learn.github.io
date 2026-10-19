@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who leaves more offspring?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .lbl { fill: var(--fg); font-size: 14px; }
+  .lbl.m { fill: var(--muted); font-size: 13px; }
+  .lbl.b { font-weight: 650; }
+  .lbl.big { font-size: 18px; font-weight: 700; }
+  .lbl.q { fill: var(--a); font-size: 40px; font-weight: 750; }
+  .lbl.on-bark { fill: var(--fg); font-size: 13px; font-weight: 650; }
+  .tagbg { fill: var(--surface); opacity: .9; }
+  .panel { fill: var(--soft); }
+  .axis { stroke: var(--muted); stroke-width: 1; }
+  .grid { stroke: var(--line); stroke-width: 1; }
+  .meanL { stroke: var(--a); stroke-width: 2.5; fill: none; }
+  .randL { stroke: var(--muted); stroke-width: 2; fill: none; stroke-dasharray: 6 4; }
+  .barkL { stroke: var(--hl); stroke-width: 2; fill: none; stroke-dasharray: 2 3; }
+  .eatenBar { fill: none; stroke: var(--no); stroke-width: 1.2; stroke-dasharray: 3 2; }
+  .binBar { stroke: var(--line); stroke-width: 1; }
+  .mark { fill: var(--hl); }
+  .ring { fill: none; stroke: var(--hl); stroke-width: 2.5; }
+  .cross { fill: none; stroke: var(--hl); stroke-width: 2; }
+  .x { stroke: var(--no); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .ah { fill: var(--muted); }
+  .frame { fill: none; stroke: var(--line); stroke-width: 1; }
+  #extra { font-size: 14px; }
+  #fig { cursor: pointer; }
+  .stage svg.main { height: 420px; }
+  @media (max-width: 560px) { .stage svg.main { height: 480px; } }
+  .tracker { padding: 0 14px 14px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .tracker b { color: var(--fg); }
+  .sw { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--line); border-radius: 3px; vertical-align: -2px; margin: 0 2px; }
+  .line { display: inline-flex; flex-wrap: wrap; gap: 2px; vertical-align: middle; }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 420" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlBark">
+        <label for="bark" data-t="barkLabel"></label>
+        <input type="range" id="bark" min="0" max="100" step="1" value="20">
+        <span class="val" id="barkVal"></span>
+      </div>
+      <div class="controls" id="ctlSim">
+        <button type="button" class="small" id="next"></button>
+        <button type="button" class="small" id="play" aria-pressed="false"></button>
+        <button type="button" class="small" id="bird"></button>
+        <button type="button" class="small" id="fresh" data-t="fresh"></button>
+        <label class="check"><input type="checkbox" id="sight" checked> <span data-t="sight"></span></label>
+      </div>
+      <div class="tracker" id="tracker" aria-live="polite"></div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="extra"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Who leaves more offspring?", eyebrow: "Biology · Stage 4", h1: "Who leaves more offspring?",
+    intro: "Tree bark turns dark. Guess how a moth population ends up dark, then run the birds, the moths and the generations yourself.",
+    reset: "Reset", figAria: "Moths on tree bark, a histogram of moth colours, and the mean colour over generations",
+    barkLabel: "Bark: light ↔ dark", fresh: "New population", sight: "Birds hunt by sight",
+    hunt: "Birds hunt ▸", breed: "Survivors breed ▸", play: "Play", pause: "Pause", resume: "Resume",
+    bird: "Be the bird (10 s)", birdStop: "Finish now",
+    s1: "Guess", s2: "Run it", s3: "Rule",
+    k1: "Predict first", t1: "Soot darkens the bark. Generations later, most moths are dark. How?",
+    b1: "Pale moths rest on pale, lichen-covered bark, where birds have trouble seeing them. Then factory soot blackens the trees. Pick an answer.",
+    q: "The moth population turns dark because…",
+    o1: "each moth turns darker to match the bark", o2: "darker moths get eaten less and leave more young", o3: "all the moths die out",
+    right: "Right. Now test it in step 2.", wrong: "Not quite. See why below, then test it in step 2.",
+    fb1: "That is the idea that animals change because they need to, like giraffes stretching their necks. A moth's wing colour is set as it develops and stays the same for life, whatever the bark does. In step 2 a tagged moth keeps its colour from birth to death.",
+    fb2: "Yes. Some moths were already a little darker before the soot came. On dark bark the birds miss them more often, so they leave more young, and the young inherit their colour. No moth changed; the mix of the population did.",
+    fb3: "Birds don't find every moth: the ones that happen to match the bark are hard to see. They survive and breed, so the population usually goes on. It can die out if the change is too fast or too few moths match.",
+    f1Hint: "Pick an answer to see what our model gives.",
+    fBefore: "lichen bark", fAfter: "sooty bark", fNow: "same moths", fLater: "after {g} generations (model)",
+    k2: "Hands on · you are the environment", t2: "Darken the bark, let the birds hunt, let the survivors breed",
+    b2: "Every moth keeps its colour from birth. Birds catch the moths that stand out from the bark more often. Survivors are the parents, sharing the next 100 young evenly; each child gets its parent's colour plus a small random change. Drag the bark darker and press Play. Turn off \"by sight\" to compare: the same number die, but at random.",
+    x2: "Catch chance this generation: {lo}% for a moth that matches the bark, up to {hi}% for the one that stands out most. Tap a moth to tag it (or use ←/→ on the picture). Or be the bird: tap as many moths as you can in 10 s (keyboard: arrows move, Enter pecks).",
+    fGen: "Generation {g} · {n} moths · mean {m}", fGenEx: "Generation {g} · extinct",
+    fPale: "0 pale", fDark: "1 dark", fBarkM: "bark", fEaten: "eaten",
+    fMean: "Mean colour", fBarkLine: "bark", fGens: "generation {g}",
+    fBirdT: "{s} s · caught {k}", fExtinct: "No moths left. Press New population.",
+    liveHunt: "Generation {g}: birds caught {k} of {n}. Mean colour of the caught moths {mc}; of the survivors {ms} (bark {b}).",
+    liveBreed: "Generation {g} is born: {n} moths, mean colour {m}. Their parents' mean was {mp}: children look like their parents.",
+    liveBird: "You caught {k}. Mean colour of your catch {mc}; of the moths you missed {ms}; bark {b}. Now let the survivors breed.",
+    liveExt: "Every moth was eaten: this population is extinct.",
+    trNone: "Tap a moth to tag it and follow its family.",
+    trMoth: "<b>Tagged moth #{id}</b>, generation {g}: colour {c} at birth, {c} now.",
+    trAlive: "Waiting for the birds.", trSurv: "It survived the hunt. Its colour did not change.",
+    trEaten: "A bird ate it, so its family line ends here. Tap another moth.",
+    trNoKids: "It survived, but by chance none of its young were picked. Tap another moth.",
+    trKids: "Its parent #{pid} (colour {pc}) left {k} young; we follow one of them.",
+    trLine: "Family line:",
+    k3: "The rule · and the real moth", t3: "No moth changed. The mix did.",
+    b3: "When a trait varies, is inherited, and changes how many young an animal leaves, the population's mix shifts toward the variants that do better in that environment. That is natural selection. Change the environment back, and the mix shifts back.",
+    x3: "The peppered moth (Biston betularia) in Britain is the classic case. Before industry most were pale and speckled, hidden on lichen-covered bark. A dark form was first recorded near Manchester in 1848; as soot killed the lichens and blackened trees, it became the common form in industrial areas by the late 1800s. After clean-air laws (the UK Clean Air Act of 1956) the bark got cleaner and the dark form became rare again. The chart replays this with our model: mean colour {a} on lichen bark, {b} after the soot, {c} after the air was cleaned. With the same deaths at random: {a2}, {b2}, {c2}.",
+    fPh1: "lichen", fPh2: "soot", fPh3: "clean air", fSel: "birds hunt by sight", fRand: "deaths at random",
+    fStory: "Model · {n} generations", fBarkBar: "bark",
+    resultTitle: "What we found", resultMain: "variation + inheritance + unequal survival → the mix shifts",
+    rnStory: "In the model, mean colour went {a} → {b} on sooty bark with birds hunting by sight, but only {a2} → {b2} with deaths at random. No moth ever changed colour.",
+    rnRun: "Your run: mean colour {m0} → {m1} over {g} generations (bark now {b}). No moth changed colour during its life.",
+    explainK: "Explain it", explainQ: "A friend says giraffes got long necks by stretching to reach leaves, and passed the stretch on. Use the tagged moth to explain what is wrong with that, and what happens instead.",
+    homeK: "Try at home", homeQ: "Punch 20 dots from white paper and 20 from newspaper. Scatter them on a sheet of newspaper. A \"bird\" picks up as many as possible in 10 s. Each dot left gets one copy of its own kind added. Repeat three rounds: which kind takes over?",
+    foot: "Model (not survey data): 100 moths per generation, colour on a 0–1 scale (0 pale, 1 black). Chance a bird catches a moth = 5% + 75% × |moth colour − bark colour|; with \"by sight\" off, every moth gets the population's average chance instead. The survivors share the next 100 young evenly, one parent per child (kept simple: real moths have two), and a child's colour = parent's + a random change with standard deviation 0.025. Start: mean 0.2, spread 0.15. Random numbers come from a seeded mulberry32 generator, so each run is reproducible; the step 3 chart is seed 60, whose random-death line wobbles about as much as the median of seeds 1–200. In real peppered moths the dark form (carbonaria) is mainly one gene variant, not a smooth scale; it has been traced to a transposable-element insertion in the gene cortex (van't Hof et al., Nature 2016). Evidence that birds did the selecting: Kettlewell's release experiments in the 1950s and Majerus's 2001–2007 study (Cook et al., Biology Letters 2012). · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "谁留下的后代多？", eyebrow: "生物 · 阶段 4", h1: "谁留下的后代多？",
+    intro: "树皮变黑了。先猜蛾子种群是怎么变黑的，再亲手安排鸟、蛾子和一代代繁衍。",
+    reset: "重置", figAria: "树皮上的蛾子、蛾子颜色的直方图、以及每代平均颜色的折线",
+    barkLabel: "树皮：浅 ↔ 深", fresh: "新种群", sight: "鸟靠眼睛捕食",
+    hunt: "鸟来捕食 ▸", breed: "幸存者繁殖 ▸", play: "播放", pause: "暂停", resume: "继续",
+    bird: "你来当鸟（10 秒）", birdStop: "提前结束",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "煤烟把树皮熏黑。许多代以后，大多数蛾子是黑的。怎么回事？",
+    b1: "浅色蛾子停在长满地衣的浅色树皮上，鸟很难看见它们。后来工厂的煤烟把树熏黑了。选一个答案。",
+    q: "蛾子种群变黑，是因为……",
+    o1: "每只蛾子自己变黑去配合树皮", o2: "深色蛾子被吃得少，留下的后代多", o3: "蛾子全死光了",
+    right: "对。到第 2 步验证一下。", wrong: "不太对。看下面的解释，再到第 2 步试试。",
+    fb1: "这就是「动物因为需要才改变」的想法，像长颈鹿伸脖子。蛾子的翅膀颜色在发育时就定了，一辈子不变，树皮怎么变都一样。第 2 步里被标记的蛾子从生到死颜色都不变。",
+    fb2: "对。煤烟来之前，就有一些蛾子颜色稍深。在黑树皮上鸟更容易漏掉它们，它们留下的后代就多，后代又继承了它们的颜色。没有哪只蛾子变了，变的是种群的组成。",
+    fb3: "鸟不会把每只蛾子都找到：碰巧和树皮颜色接近的很难看见。它们活下来繁殖，种群通常还在。只有环境变得太快、或者太少蛾子能配上颜色时，种群才可能灭绝。",
+    f1Hint: "先选一个答案，再看模型的结果。",
+    fBefore: "地衣树皮", fAfter: "煤烟树皮", fNow: "同一批蛾子", fLater: "{g} 代以后（模型）",
+    k2: "动手 · 你就是环境", t2: "把树皮调黑，让鸟捕食，让幸存者繁殖",
+    b2: "每只蛾子的颜色从出生起就不变。和树皮反差大的蛾子更容易被鸟抓到。幸存者当父母，平分下一代的 100 个孩子；每个孩子的颜色 = 父母的颜色 + 一点随机变化。把树皮拖黑，按播放。关掉「靠眼睛」对比一下：死掉的数目一样，但死谁是随机的。",
+    x2: "这一代被抓的概率：和树皮同色的蛾子 {lo}%，反差最大的那只 {hi}%。点一只蛾子给它做标记（或在图上用 ←/→）。也可以自己当鸟：10 秒内尽量多点蛾子（键盘：方向键移动，回车啄）。",
+    fGen: "第 {g} 代 · {n} 只 · 平均 {m}", fGenEx: "第 {g} 代 · 已灭绝",
+    fPale: "0 浅", fDark: "1 深", fBarkM: "树皮", fEaten: "被吃",
+    fMean: "平均颜色", fBarkLine: "树皮", fGens: "第 {g} 代",
+    fBirdT: "{s} 秒 · 抓到 {k}", fExtinct: "一只蛾子都不剩了。按「新种群」。",
+    liveHunt: "第 {g} 代：鸟抓走 {n} 只里的 {k} 只。被抓的平均颜色 {mc}，幸存者 {ms}（树皮 {b}）。",
+    liveBreed: "第 {g} 代出生：{n} 只，平均颜色 {m}。父母的平均是 {mp}：孩子像父母。",
+    liveBird: "你抓到 {k} 只。你抓到的平均颜色 {mc}，没被你发现的 {ms}，树皮 {b}。现在让幸存者繁殖。",
+    liveExt: "蛾子全被吃光：这个种群灭绝了。",
+    trNone: "点一只蛾子做标记，跟踪它的家族。",
+    trMoth: "<b>标记蛾 #{id}</b>，第 {g} 代：出生时颜色 {c}，现在 {c}。",
+    trAlive: "等鸟来。", trSurv: "它躲过了捕食。颜色没有变。",
+    trEaten: "它被鸟吃了，家族到此为止。再点一只蛾子。",
+    trNoKids: "它活下来了，但碰巧一个孩子也没被选中。再点一只蛾子。",
+    trKids: "它的父母 #{pid}（颜色 {pc}）留下 {k} 个孩子，我们跟踪其中一个。",
+    trLine: "家族颜色：",
+    k3: "规律 · 再看真实的蛾子", t3: "没有哪只蛾子变了，变的是组成",
+    b3: "一个性状有差异、能遗传、又影响留下多少后代时，种群的组成就会一代代偏向在这个环境里更占便宜的变异。这就是自然选择。环境变回去，组成也会偏回去。",
+    x3: "英国的桦尺蛾（Biston betularia）是经典例子。工业化以前，它们大多是浅色带斑点的，躲在长满地衣的树皮上。1848 年在曼彻斯特附近首次记录到黑色型；煤烟杀死地衣、熏黑树干后，到 19 世纪末黑色型在工业区成了常见型。清洁空气法（英国 1956 年《清洁空气法》）之后树皮变干净，黑色型又变得少见。图里用同一个模型重演这段历史：平均颜色在地衣树皮上 {a}，煤烟之后 {b}，空气变净之后 {c}。死亡改成随机时：{a2}、{b2}、{c2}。",
+    fPh1: "地衣", fPh2: "煤烟", fPh3: "空气变净", fSel: "鸟靠眼睛捕食", fRand: "随机死亡",
+    fStory: "模型 · {n} 代", fBarkBar: "树皮",
+    resultTitle: "我们发现", resultMain: "有变异 + 能遗传 + 存活不均 → 组成偏移",
+    rnStory: "模型里，鸟靠眼睛捕食时，平均颜色在煤烟树皮上从 {a} 变到 {b}；随机死亡时只从 {a2} 变到 {b2}。没有一只蛾子改变过自己的颜色。",
+    rnRun: "你的这一轮：{g} 代里平均颜色从 {m0} 变到 {m1}（树皮现在 {b}）。没有一只蛾子在一生中变过颜色。",
+    explainK: "说一说", explainQ: "朋友说长颈鹿的脖子是为了够树叶伸长的，再把伸长传给了孩子。用被标记的蛾子给他讲讲这种说法错在哪里，真正发生的是什么。",
+    homeK: "家里做一做", homeQ: "用白纸剪 20 个小圆片，用报纸剪 20 个。撒在一张报纸上。一个人当「鸟」，10 秒内尽量多捡。剩下的每片再加一片同样的。做三轮：哪种圆片越来越多？",
+    foot: "模型（不是野外数据）：每代 100 只蛾子，颜色用 0–1 表示（0 浅，1 黑）。鸟抓到一只蛾子的概率 = 5% + 75% × |蛾子颜色 − 树皮颜色|；关掉「靠眼睛」时，每只蛾子都用种群的平均概率。下一代的 100 个孩子平均分给幸存者，每个孩子一个亲本（为简单起见；真实的蛾子有父母两个），孩子颜色 = 亲本颜色 + 标准差 0.025 的随机变化。起始：平均 0.2，离散 0.15。随机数来自带种子的 mulberry32 生成器，每一轮都可复现；第 3 步的图用种子 60，它的随机死亡曲线波动幅度约等于种子 1–200 的中位数。真实的桦尺蛾黑色型（carbonaria）主要由一个基因变异决定，不是连续的颜色；它已被追溯到 cortex 基因里插入的一段转座子（van't Hof 等，Nature 2016）。鸟是选择者的证据：Kettlewell 1950 年代的释放实验，以及 Majerus 2001–2007 年的研究（Cook 等，Biology Letters 2012）。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- pure logic ----------
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gauss(rnd) {
+  const u = Math.max(rnd(), 1e-12);
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd());
+}
+const N = 100, MUT = 0.025, BASE = 0.05, SLOPE = 0.75, C0 = 0.2, SD0 = 0.15;
+// keep colours in [0, 1] by bouncing off the ends (no pile-up at 0 or 1)
+function reflect01(x) {
+  if (x < 0) x = -x;
+  if (x > 1) x = 2 - x;
+  return x < 0 ? 0 : x > 1 ? 1 : x;
+}
+const catchP = (c, b) => BASE + SLOPE * Math.abs(c - b);
+function stats(list) {
+  const n = list.length;
+  if (!n) return { n: 0, mean: NaN, sd: NaN };
+  let s = 0;
+  for (const m of list) s += m.c;
+  const mean = s / n;
+  let v = 0;
+  for (const m of list) v += (m.c - mean) * (m.c - mean);
+  return { n, mean, sd: Math.sqrt(v / n) };
+}
+function makeMoth(s, c, parent) {
+  return { id: s.nextId++, c, gen: s.gen, parent, x: s.rnd(), y: s.rnd(), eaten: false };
+}
+function createSim(seed, b) {
+  const s = { rnd: mulberry32(seed), gen: 1, phase: "hunt", nextId: 1, pop: [], history: [], extinct: false };
+  for (let i = 0; i < N; i++) s.pop.push(makeMoth(s, reflect01(C0 + SD0 * gauss(s.rnd)), 0));
+  s.history.push({ gen: 1, mean: stats(s.pop).mean, bark: b });
+  return s;
+}
+// Birds: with sight, catch chance grows with contrast; without, everyone gets the average chance.
+function simHunt(s, b, sight) {
+  const ps = s.pop.map((m) => catchP(m.c, b));
+  const avg = ps.length ? ps.reduce((a, x) => a + x, 0) / ps.length : 0;
+  s.pop.forEach((m, i) => { m.eaten = s.rnd() < (sight ? ps[i] : avg); });
+  if (s.history.length) s.history[s.history.length - 1].bark = b;
+  s.phase = "breed";
+}
+// Survivors breed: N children shared out evenly among survivors, colour = parent's + small mutation.
+function simBreed(s, b) {
+  const alive = s.pop.filter((m) => !m.eaten);
+  s.phase = "hunt";
+  if (!alive.length) { s.pop = []; s.extinct = true; return; }
+  s.gen++;
+  // shuffle survivors, then deal the N children round-robin: every survivor leaves about N / survivors young
+  for (let i = alive.length - 1; i > 0; i--) { const j = Math.floor(s.rnd() * (i + 1)); [alive[i], alive[j]] = [alive[j], alive[i]]; }
+  const next = [];
+  for (let i = 0; i < N; i++) {
+    const p = alive[i % alive.length];
+    next.push(makeMoth(s, reflect01(p.c + MUT * gauss(s.rnd)), p.id));
+  }
+  s.pop = next;
+  s.history.push({ gen: s.gen, mean: stats(next).mean, bark: b });
+}
+function runSchedule(seed, schedule, sight) {
+  const s = createSim(seed, schedule[0].b), out = [];
+  for (const ph of schedule) for (let g = 0; g < ph.g; g++) {
+    out.push({ mean: stats(s.pop).mean, bark: ph.b });
+    simHunt(s, ph.b, sight);
+    simBreed(s, ph.b);
+  }
+  out.push({ mean: stats(s.pop).mean, bark: schedule[schedule.length - 1].b });
+  return { out, sim: s };
+}
+// ---------- end pure logic ----------
+
+// ---------- precomputed figures ----------
+const DEMO_G = 30, DEMO_B = 0.85;
+const demoStart = createSim(7, 0.2).pop;
+const demoEnd = runSchedule(7, [{ b: DEMO_B, g: DEMO_G }], true).sim.pop;
+const STORY_SEED = 60; // its random-death line wobbles about as much as the median of seeds 1–200
+const STORY = [{ b: 0.2, g: 20 }, { b: 0.85, g: 45 }, { b: 0.25, g: 45 }];
+const storySel = runSchedule(STORY_SEED, STORY, true).out, storyRand = runSchedule(STORY_SEED, STORY, false).out;
+const at = (arr, g) => arr[Math.min(arr.length - 1, g)].mean;
+const E1 = STORY[0].g, E2 = E1 + STORY[1].g, E3 = E2 + STORY[2].g;
+const f = Play.fmt;
+const SN = { a: f(at(storySel, E1), 2), b: f(at(storySel, E2), 2), c: f(at(storySel, E3), 2),
+  a2: f(at(storyRand, E1), 2), b2: f(at(storyRand, E2), 2), c2: f(at(storyRand, E3), 2) };
+
+// ---------- state ----------
+let seed = 1, step = 0, answered = -1, playing = false, timer = 0, bird = null, raf = 0;
+const barkIn = document.getElementById("bark"), sightIn = document.getElementById("sight");
+let sim = createSim(seed, +barkIn.value / 100);
+let tag = null, lineage = [], tagMsg = "trAlive", tagVars = {};
+const B = () => Play.clamp(+barkIn.value / 100, 0, 1);
+function tagMoth(m) { tag = m.id; lineage = [{ c: m.c }]; tagMsg = m.eaten ? "trEaten" : sim.phase === "breed" ? "trSurv" : "trAlive"; tagVars = {}; }
+tagMoth(sim.pop[0]);
+
+// ---------- drawing ----------
+const fig = document.getElementById("fig");
+const extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+const S = (tag_, a, p) => Play.svg(tag_, a, p || fig);
+function text(x, y, s, cls, anchor) {
+  const t = S("text", { x, y, class: "lbl " + (cls || ""), "text-anchor": anchor || "start" });
+  t.textContent = s;
+  return t;
+}
+const LIGHT = [234, 228, 214], DARK = [34, 31, 28];
+function shade(v) {
+  const t = Play.clamp(Number.isFinite(v) ? v : 0, 0, 1);
+  return "rgb(" + LIGHT.map((l, i) => Math.round(l + (DARK[i] - l) * t)).join(",") + ")";
+}
+function size() {
+  const r = fig.getBoundingClientRect();
+  const W = Math.max(280, Math.round(r.width || 600)), H = Math.max(260, Math.round(r.height || 420));
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  return { W, H };
+}
+function barkRect(R, b) {
+  S("rect", { x: R.x, y: R.y, width: R.w, height: R.h, rx: 8, fill: shade(b) });
+  const rr = mulberry32(99), st = shade(b > 0.5 ? b - 0.12 : b + 0.12);
+  for (let i = 0; i < 16; i++) {
+    const x0 = R.x + 6 + rr() * (R.w - 12);
+    let d = `M${x0.toFixed(1)} ${R.y + 4}`;
+    for (let k = 1; k <= 6; k++) d += ` L${Play.clamp(x0 + (rr() - 0.5) * 16, R.x + 3, R.x + R.w - 3).toFixed(1)} ${(R.y + 4 + (k * (R.h - 8)) / 6).toFixed(1)}`;
+    S("path", { d, fill: "none", stroke: st, "stroke-width": (1.2 + rr() * 2.2).toFixed(1), opacity: 0.55 });
+  }
+  S("rect", { x: R.x, y: R.y, width: R.w, height: R.h, rx: 8, class: "frame" });
+}
+function mothR(R) { return Play.clamp(Math.min(R.w, R.h) / 30, 4.5, 8); }
+function mothXY(R, m) {
+  const pad = mothR(R) * 1.4;
+  return [R.x + pad + m.x * (R.w - 2 * pad), R.y + pad + 16 + m.y * (R.h - 2 * pad - 16)];
+}
+function moth(cx, cy, r, c) {
+  const fl = shade(c);
+  S("ellipse", { cx: cx - r * 0.5, cy, rx: r * 0.62, ry: r * 0.42, fill: fl, transform: `rotate(-22 ${cx - r * 0.5} ${cy})` });
+  S("ellipse", { cx: cx + r * 0.5, cy, rx: r * 0.62, ry: r * 0.42, fill: fl, transform: `rotate(22 ${cx + r * 0.5} ${cy})` });
+  S("ellipse", { cx, cy, rx: r * 0.16, ry: r * 0.5, fill: shade(Math.min(1, c + 0.2)) });
+}
+function label(x, y, s, anchor) {
+  const t = text(x, y, s, "on-bark", anchor);
+  try {
+    const bb = t.getBBox();
+    const bg = S("rect", { x: bb.x - 4, y: bb.y - 1, width: bb.width + 8, height: bb.height + 2, rx: 4, class: "tagbg" });
+    fig.insertBefore(bg, t);
+  } catch (e) { /* no layout: label still shows */ }
+  return t;
+}
+function popOnBark(R, pop, b, opts) {
+  barkRect(R, b);
+  const r = mothR(R);
+  for (const m of pop) {
+    if (m.eaten) continue;
+    const [x, y] = mothXY(R, m);
+    moth(x, y, r, m.c);
+  }
+  if (opts && opts.showEaten) for (const m of pop) {
+    if (!m.eaten) continue;
+    const [x, y] = mothXY(R, m), k = r * 0.45;
+    S("line", { x1: x - k, y1: y - k, x2: x + k, y2: y + k, class: "x", opacity: 0.7 });
+    S("line", { x1: x - k, y1: y + k, x2: x + k, y2: y - k, class: "x", opacity: 0.7 });
+  }
+}
+
+function drawGuess(W, H) {
+  const wide = W >= 520, g = 10;
+  const R1 = wide ? { x: 8, y: 8, w: (W - 16 - g) / 2, h: H - 16 } : { x: 6, y: 6, w: W - 12, h: (H - 12 - g) / 2 };
+  const R2 = wide ? { x: R1.x + R1.w + g, y: 8, w: R1.w, h: R1.h } : { x: 6, y: R1.y + R1.h + g, w: W - 12, h: R1.h };
+  popOnBark(R1, demoStart, 0.2);
+  label(R1.x + 8, R1.y + 18, P.t("fBefore"));
+  if (answered < 0) {
+    popOnBark(R2, demoStart, DEMO_B);
+    label(R2.x + 8, R2.y + 18, P.t("fAfter") + " · " + P.t("fNow"));
+    label(R2.x + R2.w / 2, R2.y + R2.h - 12, P.t("f1Hint"), "middle");
+  } else {
+    popOnBark(R2, demoEnd, DEMO_B);
+    label(R2.x + 8, R2.y + 18, P.t("fAfter") + " · " + P.t("fLater", { g: DEMO_G }));
+  }
+}
+
+function layoutSim(W, H) {
+  if (W >= 560) {
+    const bw = Math.round(W * 0.5), cw = W - bw - 14, ch = (H - 24) / 2;
+    return { bark: { x: 8, y: 8, w: bw - 8, h: H - 16 }, hist: { x: bw + 8, y: 8, w: cw, h: ch }, mean: { x: bw + 8, y: 16 + ch, w: cw, h: ch } };
+  }
+  const bh = Math.round(H * 0.46), rest = H - bh - 22;
+  return { bark: { x: 6, y: 6, w: W - 12, h: bh }, hist: { x: 6, y: bh + 14, w: W - 12, h: rest / 2 }, mean: { x: 6, y: bh + 20 + rest / 2, w: W - 12, h: rest / 2 } };
+}
+function drawHist(R, pop, b) {
+  const all = stats(pop);
+  text(R.x + 2, R.y + 13, sim.extinct ? P.t("fGenEx", { g: sim.gen }) : P.t("fGen", { g: sim.gen, n: all.n, m: f(all.mean, 2) }), "m b");
+  const px = R.x + 4, py = R.y + 22, pw = R.w - 8, ph = Math.max(20, R.h - 22 - 20);
+  const bins = 10, live = new Array(bins).fill(0), dead = new Array(bins).fill(0);
+  for (const m of pop) { const k = Math.min(bins - 1, Math.floor(m.c * bins)); (m.eaten ? dead : live)[k]++; }
+  const top = Math.max(25, ...live.map((v, i) => v + dead[i]));
+  const bw = pw / bins;
+  for (let i = 0; i < bins; i++) {
+    const hl = (live[i] / top) * ph, hd = (dead[i] / top) * ph;
+    if (live[i]) S("rect", { x: px + i * bw + 1, y: py + ph - hl, width: bw - 2, height: hl, fill: shade((i + 0.5) / bins), class: "binBar" });
+    if (dead[i]) S("rect", { x: px + i * bw + 1.5, y: py + ph - hl - hd, width: bw - 3, height: hd, class: "eatenBar" });
+  }
+  S("line", { x1: px, y1: py + ph, x2: px + pw, y2: py + ph, class: "axis" });
+  text(px, py + ph + 14, P.t("fPale"), "m");
+  text(px + pw, py + ph + 14, P.t("fDark"), "m", "end");
+  const bx = px + b * pw;
+  S("line", { x1: bx, y1: py - 2, x2: bx, y2: py + ph + 4, class: "barkL" });
+  label(b < 0.6 ? bx + 6 : bx - 6, py + 12, P.t("fBarkM") + " " + f(b, 2), b < 0.6 ? "start" : "end");
+  if (dead.some((v) => v)) text(px + pw / 2, py + ph + 14, "┅ " + P.t("fEaten"), "m", "middle").style.fill = "var(--no)";
+}
+function lineChart(R, series, opts) {
+  const top = opts.bands ? 52 : 22;
+  const px = R.x + 22, py = R.y + top, pw = R.w - 30, ph = Math.max(20, R.h - top - 22);
+  const n = Math.max(opts.minX || 20, ...series.map((s) => s.pts.length - 1));
+  const X = (i) => px + (i / n) * pw, Y = (v) => py + ph - Play.clamp(v, 0, 1) * ph;
+  if (opts.bands) opts.bands.forEach((bd) => {
+    S("rect", { x: X(bd.from), y: R.y + 20, width: Math.max(1, X(bd.to) - X(bd.from)), height: 10, fill: shade(bd.b) });
+    if (bd.label) text((X(bd.from) + X(bd.to)) / 2, R.y + 45, bd.label, "m", "middle");
+  });
+  [0, 0.5, 1].forEach((v) => S("line", { x1: px, y1: Y(v), x2: px + pw, y2: Y(v), class: "grid" }));
+  text(px - 4, Y(1) + 5, "1", "m", "end");
+  text(px - 4, Y(0) + 4, "0", "m", "end");
+  series.forEach((s) => {
+    if (s.pts.length < 1) return;
+    let d = "";
+    s.pts.forEach((v, i) => {
+      if (!Number.isFinite(v)) return;
+      if (s.step && i > 0) d += ` L${X(i).toFixed(1)} ${Y(s.pts[i - 1]).toFixed(1)}`;
+      d += (d ? " L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1);
+    });
+    if (s.pts.length === 1) d += ` L${(X(0) + 2).toFixed(1)} ${Y(s.pts[0]).toFixed(1)}`;
+    S("path", { d, class: s.cls });
+  });
+  // legend under the plot
+  let lx = R.x + 2;
+  const ly = py + ph + 16;
+  opts.legend.forEach(([cls, s]) => {
+    S("line", { x1: lx, y1: ly - 4, x2: lx + 18, y2: ly - 4, class: cls });
+    const t = text(lx + 22, ly, s, "m");
+    let w = s.length * 7.5;
+    try { w = t.getComputedTextLength(); } catch (e) { /* keep estimate */ }
+    lx += 22 + w + 12;
+  });
+  text(R.x + 2, R.y + 13, opts.title, "m b");
+  if (opts.right) text(R.x + R.w - 2, R.y + 13, opts.right, "m", "end");
+}
+function drawSim(W, H) {
+  const L = layoutSim(W, H), b = B();
+  popOnBark(L.bark, sim.pop, b, { showEaten: sim.phase === "breed" || !!bird });
+  const r = mothR(L.bark);
+  const tm = sim.pop.find((m) => m.id === tag && !m.eaten);
+  if (tm) { const [x, y] = mothXY(L.bark, tm); S("circle", { cx: x, cy: y, r: r * 1.6, class: "ring" }); }
+  if (bird) {
+    label(L.bark.x + 8, L.bark.y + 18, P.t("fBirdT", { s: f(Math.max(0, bird.left) / 1000, 1), k: bird.caught.length })).id = "birdT";
+    if (bird.kbd) {
+      const cx = L.bark.x + bird.cx * L.bark.w, cy = L.bark.y + bird.cy * L.bark.h;
+      S("circle", { cx, cy, r: r * 2.2, class: "cross" });
+      S("line", { x1: cx - r * 3, y1: cy, x2: cx + r * 3, y2: cy, class: "cross" });
+      S("line", { x1: cx, y1: cy - r * 3, x2: cx, y2: cy + r * 3, class: "cross" });
+    }
+  } else label(L.bark.x + 8, L.bark.y + 18, P.t("fBarkM") + " " + f(b, 2));
+  if (sim.extinct) label(L.bark.x + L.bark.w / 2, L.bark.y + L.bark.h / 2, P.t("fExtinct"), "middle");
+  drawHist(L.hist, sim.pop, b);
+  const hs = sim.history, last = hs.length - 1;
+  lineChart(L.mean, [
+    { pts: hs.map((h, i) => (i === last && sim.phase === "hunt" ? b : h.bark)), cls: "barkL", step: true },
+    { pts: hs.map((h) => h.mean), cls: "meanL" },
+  ], { title: P.t("fMean"), right: P.t("fGens", { g: sim.gen }), legend: [["meanL", P.t("fMean")], ["barkL", P.t("fBarkLine")]] });
+  return L;
+}
+
+function drawRule(W, H) {
+  const R = { x: 8, y: 8, w: W - 16, h: H - 16 };
+  const bands = [];
+  let g0 = 0;
+  STORY.forEach((ph, i) => { bands.push({ from: g0, to: g0 + ph.g, b: ph.b, label: P.t("fPh" + (i + 1)) }); g0 += ph.g; });
+  lineChart(R, [
+    { pts: storySel.map((o) => o.bark), cls: "barkL", step: true },
+    { pts: storyRand.map((o) => o.mean), cls: "randL" },
+    { pts: storySel.map((o) => o.mean), cls: "meanL" },
+  ], { title: P.t("fMean"), right: P.t("fStory", { n: E3 }), bands, minX: E3,
+    legend: [["meanL", P.t("fSel")], ["randL", P.t("fRand")], ["barkL", P.t("fBarkLine")]] });
+}
+
+let layout = null;
+function swatch(c) { return `<span class="sw" style="background:${shade(c)}" title="${f(c, 2)}"></span>`; }
+function renderTracker() {
+  const el = document.getElementById("tracker");
+  const tm = sim.pop.find((m) => m.id === tag);
+  let h = "";
+  if (tm) h += P.t("trMoth", { id: tm.id, g: tm.gen, c: f(tm.c, 2) }) + " ";
+  if (tagVars.pid) h += P.t("trKids", tagVars) + " ";
+  h += tm || tagMsg !== "trAlive" ? P.t(tagMsg) : P.t("trNone");
+  if (lineage.length) h += `<br>${P.t("trLine")} <span class="line">${lineage.slice(-16).map((o) => swatch(o.c)).join("")}</span>`;
+  el.innerHTML = h;
+}
+function draw() {
+  const { W, H } = size();
+  fig.innerHTML = "";
+  layout = null;
+  const b = B();
+  document.getElementById("barkVal").textContent = f(b, 2);
+  if (step === 0) { drawGuess(W, H); extra.textContent = answered >= 0 ? P.t("fb" + (answered + 1)) : ""; }
+  if (step === 1) {
+    layout = drawSim(W, H);
+    extra.textContent = P.t("x2", { lo: f(catchP(b, b) * 100, 0), hi: f(catchP(b < 0.5 ? 1 : 0, b) * 100, 0) });
+    renderTracker();
+  }
+  if (step === 2) { drawRule(W, H); extra.textContent = P.t("x3", SN); }
+  const nb = document.getElementById("next");
+  nb.textContent = P.t(sim.phase === "hunt" ? "hunt" : "breed");
+  nb.disabled = sim.extinct || !!bird;
+  const pb = document.getElementById("play");
+  pb.textContent = bird ? P.t(bird.paused ? "resume" : "pause") : P.t(playing ? "pause" : "play");
+  pb.setAttribute("aria-pressed", bird ? String(!bird.paused) : String(playing));
+  pb.disabled = sim.extinct;
+  const bb = document.getElementById("bird");
+  bb.textContent = P.t(bird ? "birdStop" : "bird");
+  bb.disabled = sim.extinct;
+  resultNote();
+}
+function resultNote() {
+  const hs = sim.history, el = document.getElementById("resultNote");
+  if (hs.length > 1) el.textContent = P.t("rnRun", { m0: f(hs[0].mean, 2), m1: f(hs[hs.length - 1].mean, 2), g: hs.length - 1, b: f(B(), 2) });
+  else el.textContent = P.t("rnStory", SN);
+}
+
+// ---------- actions ----------
+function doHunt(quiet) {
+  const b = B();
+  simHunt(sim, b, sightIn.checked);
+  const dead = sim.pop.filter((m) => m.eaten), alive = sim.pop.filter((m) => !m.eaten);
+  const tm = sim.pop.find((m) => m.id === tag);
+  if (tm) { tagMsg = tm.eaten ? "trEaten" : "trSurv"; tagVars = {}; }
+  if (!quiet) Play.live(liveEl, P.t("liveHunt", { g: sim.gen, k: dead.length, n: sim.pop.length, mc: f(stats(dead).mean, 2), ms: f(stats(alive).mean, 2), b: f(b, 2) }));
+}
+function doBreed() {
+  const parents = sim.pop.filter((m) => !m.eaten), mp = stats(parents).mean;
+  const tm = sim.pop.find((m) => m.id === tag);
+  simBreed(sim, B());
+  if (sim.extinct) { stopPlay(); Play.live(liveEl, P.t("liveExt")); return; }
+  if (tm && !tm.eaten) {
+    const kids = sim.pop.filter((m) => m.parent === tm.id);
+    if (kids.length) { tag = kids[0].id; lineage.push({ c: kids[0].c }); tagMsg = "trAlive"; tagVars = { pid: tm.id, pc: f(tm.c, 2), k: kids.length }; }
+    else { tag = null; tagMsg = "trNoKids"; tagVars = {}; }
+  } else if (tm) { tag = null; tagMsg = "trEaten"; tagVars = {}; }
+  Play.live(liveEl, P.t("liveBreed", { g: sim.gen, n: sim.pop.length, m: f(stats(sim.pop).mean, 2), mp: f(mp, 2) }));
+}
+function advance(quiet) {
+  if (sim.extinct) return;
+  if (sim.phase === "hunt") doHunt(quiet); else doBreed();
+  draw();
+}
+function tick() {
+  timer = 0;
+  if (!playing || step !== 1) return;
+  advance(true);
+  if (playing) timer = setTimeout(tick, 450);
+}
+function stopPlay() { playing = false; clearTimeout(timer); timer = 0; }
+function startPlay() { if (sim.extinct) return; playing = true; clearTimeout(timer); timer = setTimeout(tick, 120); }
+
+function startBird() {
+  stopPlay();
+  if (sim.extinct) return;
+  if (sim.phase === "breed") doBreed();
+  if (sim.extinct) return;
+  bird = { left: 10000, last: performance.now(), paused: false, caught: [], cx: 0.5, cy: 0.5, kbd: false };
+  sim.pop.forEach((m) => { m.eaten = false; });
+  draw();
+  raf = setInterval(birdTick, 100);
+}
+function birdTick() {
+  if (!bird) return;
+  const ts = performance.now();
+  if (!bird.paused) bird.left -= Math.max(0, ts - bird.last);
+  bird.last = ts;
+  if (bird.left <= 0) { endBird(); return; }
+  const t = document.getElementById("birdT");
+  if (t) t.textContent = P.t("fBirdT", { s: f(bird.left / 1000, 1), k: bird.caught.length });
+}
+function endBird() {
+  if (!bird) return;
+  clearInterval(raf);
+  const caught = bird.caught;
+  bird = null;
+  sim.phase = "breed";
+  if (sim.history.length) sim.history[sim.history.length - 1].bark = B();
+  const alive = sim.pop.filter((m) => !m.eaten);
+  const tm = sim.pop.find((m) => m.id === tag);
+  if (tm) { tagMsg = tm.eaten ? "trEaten" : "trSurv"; tagVars = {}; }
+  Play.live(liveEl, P.t("liveBird", { k: caught.length, mc: caught.length ? f(stats(caught).mean, 2) : "—", ms: f(stats(alive).mean, 2), b: f(B(), 2) }));
+  draw();
+}
+function nearest(px, py, maxD) {
+  if (!layout) return null;
+  let best = null, bd = maxD * maxD;
+  for (const m of sim.pop) {
+    if (m.eaten) continue;
+    const [x, y] = mothXY(layout.bark, m), d = (x - px) * (x - px) + (y - py) * (y - py);
+    if (d <= bd) { bd = d; best = m; }
+  }
+  return best;
+}
+function peck(px, py) {
+  if (!bird || bird.paused) return;
+  const m = nearest(px, py, mothR(layout.bark) * 1.8);
+  if (m) { m.eaten = true; bird.caught.push(m); if (m.id === tag) tagMsg = "trEaten"; }
+  draw();
+}
+
+fig.addEventListener("pointerdown", (e) => {
+  if (step !== 1 || !layout) return;
+  const p = Play.pointer(fig, e);
+  if (bird) { e.preventDefault(); bird.kbd = false; peck(p.x, p.y); return; }
+  const m = nearest(p.x, p.y, mothR(layout.bark) * 3);
+  if (m) { tagMoth(m); draw(); }
+});
+fig.addEventListener("keydown", (e) => {
+  if (step !== 1 || !layout) return;
+  const k = e.key;
+  if (bird) {
+    const d = 0.03, mv = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[k];
+    if (mv) { bird.kbd = true; bird.cx = Play.clamp(bird.cx + mv[0], 0.02, 0.98); bird.cy = Play.clamp(bird.cy + mv[1], 0.02, 0.98); draw(); e.preventDefault(); }
+    if (k === "Enter" || k === " ") { bird.kbd = true; peck(layout.bark.x + bird.cx * layout.bark.w, layout.bark.y + bird.cy * layout.bark.h); e.preventDefault(); }
+    return;
+  }
+  if (k === "ArrowLeft" || k === "ArrowRight") {
+    const alive = sim.pop.filter((m) => !m.eaten);
+    if (!alive.length) return;
+    const i = alive.findIndex((m) => m.id === tag);
+    const j = i < 0 ? 0 : (i + (k === "ArrowRight" ? 1 : alive.length - 1)) % alive.length;
+    tagMoth(alive[j]);
+    draw();
+    e.preventDefault();
+  }
+});
+
+// ---------- steps & controls ----------
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { answered = i; if (step === 0) draw(); });
+
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  if (i !== 1) { stopPlay(); if (bird) endBird(); }
+  step = i;
+  const k = i + 1;
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  document.getElementById("predict").hidden = i !== 0;
+  ["ctlBark", "ctlSim", "tracker"].forEach((id) => { document.getElementById(id).hidden = i !== 1; });
+  if (i !== 1) Play.live(liveEl, "");
+  draw();
+});
+
+barkIn.addEventListener("input", draw);
+document.getElementById("next").addEventListener("click", () => { stopPlay(); advance(false); });
+document.getElementById("play").addEventListener("click", () => {
+  if (bird) { bird.paused = !bird.paused; draw(); return; }
+  if (playing) stopPlay(); else startPlay();
+  draw();
+});
+document.getElementById("bird").addEventListener("click", () => { if (bird) endBird(); else startBird(); });
+function fresh(newSeed) {
+  stopPlay();
+  if (bird) { clearInterval(raf); bird = null; }
+  seed = newSeed;
+  sim = createSim(seed, B());
+  tagMoth(sim.pop[0]);
+  Play.live(liveEl, "");
+}
+document.getElementById("fresh").addEventListener("click", () => { fresh(seed + 1); draw(); });
+document.getElementById("reset").addEventListener("click", () => {
+  barkIn.value = 20; sightIn.checked = true; answered = -1;
+  fresh(1); pr.reset(); st.go(0);
+});
+if ("ResizeObserver" in window) new ResizeObserver(() => draw()).observe(fig);
+else window.addEventListener("resize", draw);
+</script>
+</body>
+</html>

@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Same message, different tone</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .board { padding: 16px 14px 14px; display: flex; flex-direction: column; gap: 12px; min-height: 360px; }
+  .pickrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .pickrow .lab { min-width: 4.5em; }
+  .pickrow button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .slider { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); }
+  .slider input { width: 100%; }
+  .slider .val { color: var(--fg); font-weight: 650; min-width: 5.5em; text-align: right; }
+  .msg { background: var(--soft); border-radius: 14px; padding: 12px 14px; font-family: var(--serif); font-size: 17px; line-height: 1.75; overflow-wrap: anywhere; }
+  .msg .ln { display: block; }
+  .msg .body { display: block; margin: 6px 0; }
+  .sg { border-radius: 5px; padding: 0 1px; }
+  .sg.cur { background: color-mix(in srgb, var(--hl) 28%, transparent); }
+  .ft { text-decoration-line: underline; text-decoration-thickness: 2.5px; text-underline-offset: 4px; }
+  .ft.ct { text-decoration-color: var(--a); }
+  .ft.pv { text-decoration-color: var(--b); }
+  .ft.tx { text-decoration-color: var(--h); text-decoration-style: wavy; }
+  .ft.lv { text-decoration-color: var(--c); text-decoration-style: double; }
+  .ft.ps { text-decoration-color: var(--no); text-decoration-style: dashed; }
+  .ft.hg { text-decoration-color: var(--hl); text-decoration-style: dotted; text-decoration-thickness: 3px; }
+  .nohl .ft { text-decoration: none; }
+  .slots { display: flex; flex-direction: column; gap: 6px; }
+  .slot { display: grid; grid-template-columns: 6.2em auto minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13px; }
+  .slot .nm { color: var(--muted); font-weight: 650; }
+  .slot .lv3 { display: inline-flex; gap: 3px; }
+  .slot .lv3 button { padding: 2px 8px; font-size: 13px; min-width: 2.3em; }
+  .slot .lv3 button[aria-pressed=true] { background: var(--a); color: var(--surface); border-color: var(--a); }
+  .slot .tx2 { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  svg.meter { width: 100%; max-width: 480px; height: auto; display: block; margin: 0 auto; }
+  .meter .band { fill: var(--a); opacity: .22; }
+  .meter .axis { stroke: var(--line); stroke-width: 3; }
+  .meter .tick { fill: var(--muted); font-size: 14px; }
+  .meter .spread { stroke: var(--fg); stroke-width: 3; opacity: .5; }
+  .meter .dotm { fill: var(--fg); }
+  .meter .rng { fill: var(--a); font-size: 14px; font-weight: 700; }
+  .meter .big { fill: var(--fg); font-size: 18px; font-weight: 750; }
+  .legend .sw { display: inline-block; width: 18px; height: 0; border-bottom: 3px solid; margin-right: 5px; vertical-align: 3px; }
+  .feat { margin: 4px 0 10px; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+  .feat li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding: 3px 0; }
+  .feat li b { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .fitline { font-size: 14px !important; color: var(--fg) !important; }
+  .lnote { background: var(--soft); border-radius: 10px; padding: 8px 10px; font-size: 13px !important; }
+  .cards3 { display: flex; flex-direction: column; gap: 8px; }
+  .c3 { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .c3 .s { font-family: var(--serif); font-size: 17px; }
+  .c3 .sc { font-size: 13px; color: var(--muted); margin-top: 4px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .c3 .sc b { color: var(--fg); }
+  .barw { display: inline-block; width: 70px; height: 8px; background: var(--line); border-radius: 4px; vertical-align: 1px; margin-left: 4px; overflow: hidden; }
+  .barw i { display: block; height: 100%; background: var(--a); }
+  .grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .grid th, .grid td { border-bottom: 1px solid var(--line); padding: 5px 4px; text-align: left; }
+  .grid th { color: var(--muted); font-weight: 650; }
+  .grid td.best { font-weight: 700; }
+  .ttl { font-size: 13px; font-weight: 650; color: var(--muted); }
+  .pairs { margin: 4px 0 10px; padding: 0; list-style: none; font-size: 14px; color: var(--muted); }
+  .pairs li { margin: 3px 0; }
+  .pairs b { font-family: var(--serif); color: var(--fg); font-weight: 600; }
+  .result .math { font-family: var(--serif); white-space: normal; }
+  #v3 { display: flex; flex-direction: column; gap: 8px; }
+  #v3 p { margin: 4px 0 0; }
+  #v3 .ttl { margin-top: 6px; }
+  @media (max-width: 560px) {
+    .msg { font-size: 16px; }
+    .slot { grid-template-columns: 5.4em auto; }
+    .slot .tx2 { grid-column: 1 / -1; white-space: normal; }
+  }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <label class="check"><input type="checkbox" id="hl" checked> <span data-t="hlLabel"></span></label>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="board" id="board" role="group" data-t-aria="boardAria">
+        <div id="v1" class="cards3"></div>
+        <div id="v2">
+          <div class="pickrow" id="pickMsg"><span class="lab" data-t="msgLabel"></span></div>
+          <div class="pickrow" id="pickAud" style="margin-top:6px"><span class="lab" data-t="audLabel"></span></div>
+        </div>
+        <div class="slider" id="sliderRow">
+          <label for="reg" data-t="regLabel"></label>
+          <input type="range" id="reg" min="0" max="2" step="1" value="1">
+          <span class="val" id="regVal"></span>
+        </div>
+        <div class="msg" id="msg" lang="en"></div>
+        <div class="slots" id="slots"></div>
+        <svg class="meter" id="meter" viewBox="0 0 340 112" role="img" data-t-aria="meterAria"></svg>
+        <div id="v3"></div>
+        <div class="legend" id="legend"></div>
+        <div class="pickrow"><button type="button" class="small" id="say" data-t="say"></button></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="fitline" id="fitline"></p>
+      <ul class="feat" id="feat"></ul>
+      <p class="lnote" id="lnote"></p>
+      <ul class="pairs" id="pairs"></ul>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// All messages are original, written for this page. The English stays English in both UI languages.
+// Levels: 0 casual, 1 neutral, 2 formal. Each message has 5 slots x 3 variants.
+// Markup {tag|text} marks a register feature: ct contraction, pv phrasal verb, tx texting / slang,
+// lv Latinate (single, formal-sounding) verb, ps passive, hg hedge. "\n" is a line break.
+const SLOTS = ["greet", "reason", "request", "soft", "close"];
+const CASUAL = ["ct", "pv", "tx"], FORMAL = ["lv", "ps", "hg"], TAGS = CASUAL.concat(FORMAL);
+const MSGS = [
+  { id: "teacher", aud: "teacher", v: {
+    greet: ["Hey Ms Lin!", "Hi Ms Lin,", "Dear Ms Lin,"],
+    reason: ["{ct|I've} been super sick all week so {ct|I'm} way behind on the essay.",
+      "{ct|I've} been ill for most of this week, so {ct|I'm} behind on the history essay.",
+      "Unfortunately, I was unwell for most of this week, and my history essay {ps|has been delayed} as a result."],
+    request: ["Can I {pv|hand it in} Monday?",
+      "Could I {pv|hand it in} on Monday instead of Friday?",
+      "{hg|I was wondering whether it might be possible} to {lv|submit} it on Monday rather than Friday."],
+    soft: ["No worries if not {tx|lol}", "I understand if {ct|that's} not possible.", "I fully understand if this cannot {ps|be arranged}."],
+    close: ["{tx|thx}\nSam", "Thanks,\nSam", "Kind regards,\nSam Chen"] } },
+  { id: "friend", aud: "friend", v: {
+    greet: ["{tx|heyy} Jo", "Hi Jo,", "Dear Jo,"],
+    reason: ["my mum just {pv|signed me up} for extra maths on {tx|sat} {tx|ugh}",
+      "My mum has {pv|signed me up} for an extra maths class on Saturday.",
+      "My mother has {lv|enrolled} me in an additional mathematics class on Saturday."],
+    request: ["can we do the cinema {tx|sun} instead?", "Could we {pv|put off} the cinema until Sunday?",
+      "{hg|Would it be possible} to {lv|postpone} our cinema trip until Sunday?"],
+    soft: ["{tx|sooo} sorry", "{ct|I'm} really sorry about this!", "I {lv|apologise} for any inconvenience this may cause."],
+    close: ["{tx|ttyl}", "See you soon,\nAlex", "With best wishes,\nAlex"] } },
+  { id: "shop", aud: "company", v: {
+    greet: ["Hi there,", "Hello,", "Dear Sir or Madam,"],
+    reason: ["the headphones I got off {tx|u} last week have already {pv|packed up}",
+      "The left side of the headphones I bought from your shop last week has {pv|cut out}.",
+      "The headphones I {lv|purchased} from your store last week {ps|were found} to be faulty: the left speaker no longer {lv|functions}."],
+    request: ["can {tx|u} {pv|sort out} a refund?", "Could you replace them or {pv|pay me back}?",
+      "{hg|I would be grateful if} you could {lv|arrange} a replacement or a full refund."],
+    soft: ["{tx|cheers}, got the receipt if {tx|u} need it", "Thanks for your help. {ct|I've} kept the receipt.",
+      "Thank you in advance for your assistance. A copy of the receipt {ps|is attached}."],
+    close: ["Priya", "Thanks,\nPriya Shah", "Yours faithfully,\nPriya Shah"] } },
+  { id: "host", aud: "grandparent", v: {
+    greet: ["Hi {tx|guys}!!", "Hi Anna and Tom,", "Dear Mr and Mrs Baker,"],
+    reason: ["Just wanted to say thanks {tx|sooo} much for {pv|putting me up} last week!",
+      "Thank you so much for having me to stay last week. I had a wonderful time.",
+      "I am writing to {lv|express} my sincere gratitude for your hospitality during my stay."],
+    request: ["{tx|u} have to come and visit me next summer!", "I hope you can {pv|come over} and visit me next summer.",
+      "It would be a great pleasure to {lv|receive} you in my home city next summer."],
+    soft: ["{ct|I'll} miss Biscuit loads {tx|lol}", "{ct|I'll} really miss the walks with Biscuit.",
+      "Please {lv|convey} my warmest regards to Biscuit as well."],
+    close: ["Love, Mei {tx|xx}", "Best wishes,\nMei", "Yours sincerely,\nMei Wong"] } },
+];
+// Expected register range for each reader, on the 0 (casual) – 2 (formal) scale. A teaching heuristic.
+const AUD = { friend: [0, 0.6], grandparent: [0.6, 1.4], teacher: [1, 1.8], company: [1.4, 2] };
+const AUDS = ["friend", "grandparent", "teacher", "company"];
+const K_DIST = 75, K_SPREAD = 20; // fit = 100 − 75 × distance outside the range − 20 × spread
+// Predict step: three ways to ask a close friend for a charger.
+const PRED = [
+  { s: "I would be grateful if you could lend me your phone charger.", lv: 2 },
+  { s: "Could you lend me your phone charger?", lv: 1 },
+  { s: "Can u lend me ur charger?", lv: 0 },
+];
+
+// ---- pure logic (also tested in node) ----
+function parse(s) { // → [{t, tag|null}]
+  const out = [], re = /\{(\w+)\|([^{}]*)\}/g;
+  let last = 0, m;
+  while ((m = re.exec(s))) {
+    if (m.index > last) out.push({ t: s.slice(last, m.index), tag: null });
+    out.push({ t: m[2], tag: m[1] });
+    last = re.lastIndex;
+  }
+  if (last < s.length) out.push({ t: s.slice(last), tag: null });
+  return out;
+}
+const plain = (s) => parse(s).map((p) => p.t).join("");
+function stats(levels) {
+  const n = levels.length;
+  if (!n) return { mean: 1, spread: 0, lo: 1, hi: 1 };
+  const lv = levels.map((x) => Play2.clamp(+x || 0, 0, 2));
+  const mean = lv.reduce((a, b) => a + b, 0) / n;
+  return { mean, lo: Math.min(...lv), hi: Math.max(...lv), spread: Math.max(...lv) - Math.min(...lv) };
+}
+function distance(mean, range) { return mean < range[0] ? range[0] - mean : mean > range[1] ? mean - range[1] : 0; }
+function fit(levels, aud) {
+  const st = stats(levels), r = AUD[aud] || AUD.teacher;
+  const d = distance(st.mean, r);
+  return { score: Play2.clamp(Math.round(100 - K_DIST * d - K_SPREAD * st.spread), 0, 100), d, mean: st.mean, spread: st.spread, min: st.lo, max: st.hi };
+}
+function features(msg, levels) {
+  const c = {};
+  TAGS.forEach((t) => (c[t] = 0));
+  SLOTS.forEach((k, i) => parse(msg.v[k][levels[i]]).forEach((p) => { if (p.tag) c[p.tag]++; }));
+  return c;
+}
+// Best uniform level (all slots the same) for a message and reader; ties → all of them.
+function bestUniform(aud) {
+  const sc = [0, 1, 2].map((l) => fit([l, l, l, l, l], aud).score), top = Math.max(...sc);
+  return { sc, best: [0, 1, 2].filter((l) => sc[l] === top) };
+}
+function validate() {
+  const errs = [];
+  MSGS.forEach((m) => {
+    if (!AUD[m.aud]) errs.push(m.id + ": bad audience");
+    SLOTS.forEach((k) => {
+      const v = m.v[k];
+      if (!v || v.length !== 3) { errs.push(m.id + "." + k + ": needs 3 variants"); return; }
+      v.forEach((s) => {
+        if (/[{}|]/.test(s.replace(/\{(\w+)\|([^{}]*)\}/g, ""))) errs.push(m.id + "." + k + ": bad markup " + s);
+        parse(s).forEach((p) => { if (p.tag && !TAGS.includes(p.tag)) errs.push("unknown tag " + p.tag); });
+        if (!plain(s).trim()) errs.push(m.id + "." + k + ": empty");
+      });
+    });
+    const f0 = features(m, [0, 0, 0, 0, 0]), f2 = features(m, [2, 2, 2, 2, 2]);
+    const cas = (f) => CASUAL.reduce((a, t) => a + f[t], 0), frm = (f) => FORMAL.reduce((a, t) => a + f[t], 0);
+    if (!(cas(f0) > cas(f2))) errs.push(m.id + ": casual version should have more casual features");
+    if (!(frm(f2) > frm(f0))) errs.push(m.id + ": formal version should have more formal features");
+  });
+  return errs;
+}
+const Play2 = typeof Play !== "undefined" ? Play : { clamp: (x, a, b) => Math.min(b, Math.max(a, x)) };
+if (typeof module !== "undefined") module.exports = { MSGS, AUD, AUDS, PRED, parse, plain, stats, fit, features, bestUniform, validate, distance };
+
+if (typeof document !== "undefined") (function () {
+const P = Play.setup({
+  en: {
+    title: "Same message, different tone", eyebrow: "English · Stage 4", h1: "One message, many right versions: it depends on who reads it",
+    intro: "The same request can be said casually, neutrally or formally. Build a message from five parts, slide its register, and see how well it fits each reader.",
+    reset: "Reset", hlLabel: "Highlight features", boardAria: "Message builder", meterAria: "Register scale with the reader's expected range",
+    msgLabel: "Message", audLabel: "Reader", regLabel: "Register", say: "▶ Read aloud",
+    m_teacher: "Essay extension", m_friend: "Cancel plans", m_shop: "Complaint", m_host: "Thank host family",
+    a_friend: "close friend", a_grandparent: "grandparent", a_teacher: "teacher", a_company: "company",
+    L0: "casual", L1: "neutral", L2: "formal", mixed: "mixed", Ls0: "Cas", Ls1: "Neu", Ls2: "For",
+    greet: "Greeting", reason: "Reason", request: "Request", soft: "Softener", close: "Closing",
+    s1: "Guess", s2: "Rewrite", s3: "Rule",
+    k1: "Predict first", t1: "Which is best in a text to a close friend?",
+    b1: "Three ways to ask the same thing. Pick the one you would send.",
+    k2: "Hands on", t2: "Slide the register, change the reader",
+    b2: "The slider sets all five parts at once; the small Cas / Neu / For buttons change one part. Then switch the reader and watch the fit score.",
+    k3: "The rule", t3: "Match the reader, and stay consistent",
+    b3: "There is no single correct version. The right register is the one your reader expects for this purpose, and the whole message should stay at that level. Formal is not automatically “better”.",
+    q: "You are texting a close friend to borrow a charger. Which is best?",
+    p0: "This is the “formal = polite = better” trap. To a close friend it sounds cold, or even sarcastic, as if you were annoyed. See the scores under each sentence.",
+    p1: "Good, and safe almost everywhere. To a close friend it is a little stiff but fine.",
+    p2: "Yes, for a close friend this is natural. But “it depends”: send the same words to a company and it fits badly. Compare the two scores under it.",
+    forAud: "for a {a}", fitWord: "fit",
+    fitLine: "Fit for a {a}: {s} / 100. Average register {m} (0 casual – 2 formal), expected {lo}–{hi}; distance {d}; spread {sp}.",
+    featT: "Features in this message", ftotal: "{n}",
+    f_ct: "contractions (I'm, I've)", f_pv: "phrasal verbs (hand in, put off)", f_tx: "texting / slang (u, thx, lol)",
+    f_lv: "Latinate verbs (submit, postpone)", f_ps: "passive (be arranged)", f_hg: "hedges (I was wondering whether…)",
+    n0: "Casual: contractions, phrasal verbs, texting short forms, short sentences. For people you know well. In a casual note, leaving words out (“Can I hand it in Monday?”) is normal.",
+    n1: "Neutral: full sentences, polite “Could you…?”, some contractions. Safe with most people you know a little.",
+    n2: "Formal: single Latin-based verbs (submit, postpone, purchase), passive voice, hedges like “I was wondering whether…”, fixed openings and closings (Dear… / Yours faithfully). For organisations and strangers.",
+    nmix: "Mixed: the parts are at different levels. A formal request with “lol” at the end sounds odd, which is why the spread costs points.",
+    liveSet: "{a}: fit {s}.",
+    tooT: "Too formal is also wrong: cancelling plans with a close friend",
+    tooF: "Formal version, fit for a close friend: {s} / 100",
+    tooC: "Casual version, fit for a close friend: {s} / 100",
+    gridT: "Best level for each reader (all five parts at one level), computed by the rule",
+    pairsT: "Same meaning, two registers",
+    resultTitle: "What we found", resultMain: "right register = what this reader expects, kept consistent",
+    resultNote: "No version is correct everywhere. The same words can fit one reader and misfire with another, in both directions: too casual sounds rude, too formal sounds cold.",
+    explainK: "Explain it", explainQ: "Write the same short request (e.g. borrowing a book) three times: to a close friend, to a teacher, to a library. Explain to someone what you changed each time and why the formal one is not the “best” one.",
+    homeK: "Try at home", homeQ: "Collect three real messages you received this week (a text, a school notice, an advert email). Underline contractions, phrasal verbs and passives. Can you guess who wrote each one for whom?",
+    foot: "The fit score is a teaching heuristic, not a measurement: fit = 100 − 75 × (distance of the average register outside the reader's expected range) − 20 × (spread between the most casual and most formal part), kept between 0 and 100. Expected ranges (0 casual – 2 formal): close friend 0–0.6, grandparent 0.6–1.4, teacher 1–1.8, company 1.4–2; real expectations vary by person, culture and medium. “Latinate verbs” are formal single verbs mostly from Latin or French (submit, postpone); their phrasal-verb partners (hand in, put off) are more everyday. “Dear Sir or Madam … Yours faithfully” follows the common British letter convention. All messages and names are original. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "同一句话，不同的语气", eyebrow: "英语 · 阶段 4", h1: "同一条消息有很多种对的说法，看是谁在读",
+    intro: "同一个请求可以说得随意、中性或正式。用五个部分拼一条消息，拖动语域滑块，看它对不同读者合不合适。",
+    reset: "重置", hlLabel: "标出语言特征", boardAria: "消息拼装台", meterAria: "语域刻度和读者期望的范围",
+    msgLabel: "消息", audLabel: "读者", regLabel: "语域", say: "▶ 读一读",
+    m_teacher: "申请延期交作文", m_friend: "跟朋友改约", m_shop: "向商店投诉", m_host: "感谢寄宿家庭",
+    a_friend: "好朋友", a_grandparent: "爷爷奶奶", a_teacher: "老师", a_company: "公司",
+    L0: "随意", L1: "中性", L2: "正式", mixed: "混搭", Ls0: "随", Ls1: "中", Ls2: "正",
+    greet: "称呼", reason: "原因", request: "请求", soft: "缓和语", close: "结尾",
+    s1: "先猜", s2: "改写", s3: "规律",
+    k1: "先猜一猜", t1: "给好朋友发消息，哪句最合适？",
+    b1: "同一件事的三种问法。选你会发出去的那一句。",
+    k2: "动手", t2: "拖语域，换读者",
+    b2: "滑块一次改五个部分；每行的「随 / 中 / 正」小按钮只改一个部分。再换个读者，看合适度怎么变。",
+    k3: "规律", t3: "对准读者，前后一致",
+    b3: "没有唯一正确的版本。合适的语域，是这个读者在这个场合期待的那一档，而且整条消息要保持在同一档。正式不等于「更好」。",
+    q: "你给好朋友发消息借充电器，哪句最合适？",
+    p0: "这就是「正式 = 礼貌 = 更好」的陷阱。对好朋友这么说显得冷淡，甚至像在说反话、生气了。看每句下面的分数。",
+    p1: "可以，而且几乎在哪儿都安全。对好朋友稍微有点拘谨，但没问题。",
+    p2: "对，对好朋友这样很自然。但「看对象」：同样的话发给公司就很不合适。比较它下面的两个分数。",
+    forAud: "给{a}", fitWord: "合适度",
+    fitLine: "给{a}的合适度：{s} / 100。平均语域 {m}（0 随意 – 2 正式），期望 {lo}–{hi}；偏离 {d}；前后落差 {sp}。",
+    featT: "这条消息里的语言特征", ftotal: "{n}",
+    f_ct: "缩写（I'm, I've）", f_pv: "短语动词（hand in, put off）", f_tx: "网络用语（u, thx, lol）",
+    f_lv: "拉丁来源动词（submit, postpone）", f_ps: "被动语态（be arranged）", f_hg: "委婉语（I was wondering whether…）",
+    n0: "随意：用缩写、短语动词、网络缩写，句子短。只对很熟的人用。随手的消息里省掉词（Can I hand it in Monday?）很常见。",
+    n1: "中性：句子完整，礼貌地说 Could you…?，可以有少量缩写。对稍微认识的人大多都安全。",
+    n2: "正式：用单个的拉丁来源动词（submit, postpone, purchase）、被动语态、I was wondering whether… 这样的委婉说法，以及固定的开头结尾（Dear… / Yours faithfully）。用于机构和陌生人。",
+    nmix: "混搭：各部分不在同一档。前面很正式、结尾来个 lol，读起来就别扭，所以前后落差要扣分。",
+    liveSet: "{a}：合适度 {s}。",
+    tooT: "太正式也不对：跟好朋友改约",
+    tooF: "正式版，对好朋友的合适度：{s} / 100",
+    tooC: "随意版，对好朋友的合适度：{s} / 100",
+    gridT: "每类读者最合适的一档（五个部分同一档），按规则算出",
+    pairsT: "同一个意思，两种语域",
+    resultTitle: "我们发现", resultMain: "合适的语域 = 这位读者期待的那一档，并且前后一致",
+    resultNote: "没有哪个版本处处都对。同一句话对一个人合适，对另一个人就会出错，两个方向都会：太随意显得没礼貌，太正式显得冷淡。",
+    explainK: "说一说", explainQ: "把同一个小请求（比如借一本书）用英语写三遍：给好朋友、给老师、给图书馆。跟别人讲讲每次改了什么，为什么最正式的那版不是「最好」的。",
+    homeK: "家里做一做", homeQ: "找三条这周收到的英文消息（朋友的短信、学校通知、广告邮件），划出缩写、短语动词和被动语态。猜猜每条是谁写给谁的？",
+    foot: "合适度是教学用的简化规则，不是测量：合适度 = 100 − 75 ×（平均语域超出读者期望范围的距离）− 20 ×（最随意和最正式部分之间的落差），限制在 0–100。期望范围（0 随意 – 2 正式）：好朋友 0–0.6，爷爷奶奶 0.6–1.4，老师 1–1.8，公司 1.4–2；真实的期待因人、文化和媒介而不同。「拉丁来源动词」指多来自拉丁语或法语的正式单个动词（submit, postpone），对应的短语动词（hand in, put off）更日常。Dear Sir or Madam … Yours faithfully 是英式书信的常见惯例。所有消息和人名均为原创。CC BY 4.0 · Boxi Yu",
+  },
+});
+const $ = (id) => document.getElementById(id);
+const msgEl = $("msg"), slotsEl = $("slots"), meter = $("meter"), reg = $("reg"), liveEl = $("live");
+let step = 0, mi = 0, aud = MSGS[0].aud, levels = [1, 1, 1, 1, 1], guess = -1, focusSlot = -1;
+const f1 = (x) => Play.fmt(x, 1);
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function renderText(box, s) {
+  parse(s).forEach((p) => {
+    p.t.split("\n").forEach((part, j) => {
+      if (j) box.appendChild(document.createElement("br"));
+      if (!part) return;
+      if (p.tag) { const sp = el("span", "ft " + p.tag, part); sp.title = P.t("f_" + p.tag); box.appendChild(sp); }
+      else box.appendChild(document.createTextNode(part));
+    });
+  });
+}
+function messageText(m, lv) { return SLOTS.map((k, i) => plain(m.v[k][lv[i]]).replace(/\n/g, " ")).join(" "); }
+function drawMessage(box, m, lv, cur) {
+  box.innerHTML = "";
+  const parts = SLOTS.map((k, i) => { const s = el("span", "sg" + (i === cur ? " cur" : "")); renderText(s, m.v[k][lv[i]]); return s; });
+  const g = el("span", "ln"); g.appendChild(parts[0]);
+  const b = el("span", "body"); [1, 2, 3].forEach((i, j) => { if (j) b.appendChild(document.createTextNode(" ")); b.appendChild(parts[i]); });
+  const c = el("span", "ln"); c.appendChild(parts[4]);
+  box.append(g, b, c);
+}
+
+// ---- meter ----
+const X = (v) => 20 + v * 150;
+function drawMeter(f, a) {
+  meter.innerHTML = "";
+  const r = AUD[a];
+  Play.svg("rect", { class: "band", x: X(r[0]), y: 30, width: Math.max(4, X(r[1]) - X(r[0])), height: 34, rx: 6 }, meter);
+  Play.svg("text", { class: "rng", x: Play.clamp((X(r[0]) + X(r[1])) / 2, 80, 260), y: 22, "text-anchor": "middle" }, meter).textContent = P.t("forAud", { a: P.t("a_" + a) });
+  Play.svg("line", { class: "axis", x1: X(0), y1: 47, x2: X(2), y2: 47 }, meter);
+  [0, 1, 2].forEach((l) => {
+    Play.svg("line", { class: "axis", x1: X(l), y1: 40, x2: X(l), y2: 54 }, meter);
+    Play.svg("text", { class: "tick", x: X(l), y: 78, "text-anchor": l === 0 ? "start" : l === 2 ? "end" : "middle" }, meter).textContent = l + " " + P.t("L" + l);
+  });
+  if (f.spread > 0) Play.svg("line", { class: "spread", x1: X(f.min), y1: 47, x2: X(f.max), y2: 47 }, meter);
+  Play.svg("circle", { class: "dotm", cx: X(f.mean), cy: 47, r: 9 }, meter);
+  Play.svg("text", { class: "big", x: 170, y: 106, "text-anchor": "middle" }, meter).textContent = P.t("fitWord") + " " + f.score + " / 100";
+}
+
+// ---- pickers ----
+function pickRow(box, keys, label, cur, on) {
+  box.querySelectorAll("button").forEach((b) => b.remove());
+  keys.forEach((k) => {
+    const b = el("button", "small", P.t(label + k));
+    b.type = "button";
+    b.setAttribute("aria-pressed", k === cur ? "true" : "false");
+    b.addEventListener("click", () => on(k));
+    box.appendChild(b);
+  });
+}
+function setAll(l) { levels = levels.map(() => l); }
+function drawSlots(m) {
+  slotsEl.innerHTML = "";
+  SLOTS.forEach((k, i) => {
+    const row = el("div", "slot");
+    row.appendChild(el("span", "nm", P.t(k)));
+    const g = el("span", "lv3");
+    g.setAttribute("role", "group");
+    g.setAttribute("aria-label", P.t(k));
+    [0, 1, 2].forEach((l) => {
+      const b = el("button", "", P.t("Ls" + l));
+      b.type = "button";
+      b.dataset.slot = i; b.dataset.l = l;
+      b.setAttribute("aria-pressed", levels[i] === l ? "true" : "false");
+      b.setAttribute("aria-label", P.t(k) + ": " + P.t("L" + l));
+      g.appendChild(b);
+    });
+    row.appendChild(g);
+    const t = el("span", "tx2", plain(m.v[k][levels[i]]).replace(/\n/g, " "));
+    t.lang = "en";
+    row.appendChild(t);
+    slotsEl.appendChild(row);
+  });
+}
+slotsEl.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-slot]");
+  if (!b) return;
+  setSlot(+b.dataset.slot, +b.dataset.l);
+});
+slotsEl.addEventListener("keydown", (e) => {
+  const b = e.target.closest("button[data-slot]");
+  if (!b || (e.key !== "ArrowRight" && e.key !== "ArrowLeft")) return;
+  const i = +b.dataset.slot, l = Play.clamp(levels[i] + (e.key === "ArrowRight" ? 1 : -1), 0, 2);
+  e.preventDefault();
+  setSlot(i, l);
+});
+function setSlot(i, l) {
+  levels[i] = l; focusSlot = i;
+  render();
+  Play.live(liveEl, P.t("liveSet", { a: P.t("a_" + aud), s: fit(levels, aud).score }));
+  const nb = slotsEl.querySelector('button[data-slot="' + i + '"][data-l="' + l + '"]');
+  if (nb) nb.focus();
+}
+
+function regLabel() {
+  const st = stats(levels);
+  if (st.spread === 0) { reg.value = st.lo; return P.t("L" + st.lo); }
+  reg.value = Math.round(st.mean);
+  return P.t("mixed") + " " + f1(st.mean);
+}
+function drawFeatures(m) {
+  const f = features(m, levels), ul = $("feat");
+  ul.innerHTML = "";
+  const h = el("li"); h.appendChild(el("b", "", P.t("featT"))); ul.appendChild(h);
+  ["ct", "pv", "tx", "lv", "ps", "hg"].forEach((t) => {
+    const li = el("li");
+    const s = el("span"); const sw = el("span", "sw"); sw.style.borderColor = swColor(t); sw.style.borderBottomStyle = swStyle(t);
+    s.append(sw, document.createTextNode(P.t("f_" + t)));
+    li.append(s, el("b", "", P.t("ftotal", { n: f[t] })));
+    ul.appendChild(li);
+  });
+}
+const swColor = (t) => ({ ct: "var(--a)", pv: "var(--b)", tx: "var(--h)", lv: "var(--c)", ps: "var(--no)", hg: "var(--hl)" })[t];
+const swStyle = (t) => ({ tx: "dotted", lv: "double", ps: "dashed", hg: "dotted" })[t] || "solid";
+
+function renderEdit() {
+  const m = MSGS[mi];
+  pickRow($("pickMsg"), MSGS.map((x) => x.id), "m_", m.id, (k) => { mi = MSGS.findIndex((x) => x.id === k); aud = MSGS[mi].aud; focusSlot = -1; render(); });
+  pickRow($("pickAud"), AUDS, "a_", aud, (k) => { aud = k; render(); Play.live(liveEl, P.t("liveSet", { a: P.t("a_" + aud), s: fit(levels, aud).score })); });
+  $("regVal").textContent = regLabel();
+  drawMessage(msgEl, m, levels, focusSlot);
+  drawSlots(m);
+  const f = fit(levels, aud), r = AUD[aud];
+  drawMeter(f, aud);
+  $("fitline").textContent = P.t("fitLine", { a: P.t("a_" + aud), s: f.score, m: f1(f.mean), lo: f1(r[0]), hi: f1(r[1]), d: f1(f.d), sp: f1(f.spread) });
+  drawFeatures(m);
+  const st = stats(levels);
+  $("lnote").textContent = st.spread ? P.t("nmix") : P.t("n" + st.lo);
+}
+
+function renderGuess() {
+  const box = $("v1");
+  box.innerHTML = "";
+  PRED.forEach((p, i) => {
+    const c = el("div", "c3");
+    const s = el("div", "s", p.s); s.lang = "en";
+    c.appendChild(s);
+    if (guess >= 0) {
+      const sc = el("div", "sc");
+      ["friend", "company"].forEach((a) => {
+        const v = fit([p.lv], a).score;
+        const sp = el("span");
+        sp.append(document.createTextNode(P.t("forAud", { a: P.t("a_" + a) }) + ": "), el("b", "", String(v)));
+        const bw = el("span", "barw"); const bi = el("i"); bi.style.width = v + "%"; bw.appendChild(bi);
+        sp.appendChild(bw);
+        sc.appendChild(sp);
+      });
+      c.appendChild(sc);
+    }
+    if (i === guess) c.style.borderColor = "var(--a)";
+    box.appendChild(c);
+  });
+}
+
+function renderRule() {
+  const box = $("v3"), m = MSGS[1];
+  box.innerHTML = "";
+  box.appendChild(el("div", "ttl", P.t("tooT")));
+  const all2 = [2, 2, 2, 2, 2], all0 = [0, 0, 0, 0, 0];
+  const m2 = el("div", "msg"); m2.lang = "en"; drawMessage(m2, m, all2, -1);
+  box.append(el("p", "fitline", P.t("tooF", { s: fit(all2, "friend").score })), m2);
+  const m0 = el("div", "msg"); m0.lang = "en"; drawMessage(m0, m, all0, -1);
+  box.append(el("p", "fitline", P.t("tooC", { s: fit(all0, "friend").score })), m0);
+  box.appendChild(el("div", "ttl", P.t("gridT")));
+  const tb = el("table", "grid"), tr = el("tr");
+  ["", "L0", "L1", "L2"].forEach((k) => tr.appendChild(el("th", "", k ? P.t(k) : P.t("audLabel"))));
+  tb.appendChild(tr);
+  AUDS.forEach((a) => {
+    const row = el("tr"), b = bestUniform(a);
+    row.appendChild(el("td", "", P.t("a_" + a)));
+    b.sc.forEach((v, l) => row.appendChild(el("td", b.best.includes(l) ? "best" : "", (b.best.includes(l) ? "✓ " : "") + v)));
+    tb.appendChild(row);
+  });
+  box.appendChild(tb);
+  const pl = $("pairs");
+  pl.innerHTML = "";
+  pl.appendChild(el("li", "ttl", P.t("pairsT")));
+  [["find out", "ascertain"], ["hand in", "submit"], ["put off", "postpone"], ["sign up", "enrol"], ["sort out", "resolve"], ["Can you…?", "I was wondering whether you could…"]].forEach(([a, b]) => {
+    const li = el("li");
+    const x = el("b", "", a), y = el("b", "", b); x.lang = y.lang = "en";
+    li.append(x, document.createTextNode(" → "), y);
+    pl.appendChild(li);
+  });
+}
+
+function legend() {
+  const lg = $("legend");
+  lg.innerHTML = "";
+  ["ct", "pv", "tx", "lv", "ps", "hg"].forEach((t) => {
+    const s = el("span"), sw = el("span", "sw");
+    sw.style.borderColor = swColor(t); sw.style.borderBottomStyle = swStyle(t);
+    s.append(sw, document.createTextNode(P.t("f_" + t).replace(/\s*[（(].*$/, "")));
+    lg.appendChild(s);
+  });
+}
+
+function render() {
+  const s2 = step === 1;
+  $("v1").hidden = step !== 0;
+  $("v2").hidden = !s2;
+  $("sliderRow").hidden = !s2;
+  msgEl.hidden = !s2; slotsEl.hidden = !s2; meter.toggleAttribute("hidden", !s2); // SVG has no .hidden property
+  $("say").parentNode.hidden = !s2;
+  $("v3").hidden = step !== 2;
+  $("legend").hidden = step === 0;
+  ["fitline", "feat", "lnote"].forEach((id) => ($(id).hidden = !s2));
+  $("pairs").hidden = step !== 2;
+  if (step === 0) renderGuess();
+  else if (s2) renderEdit();
+  else renderRule();
+}
+
+reg.addEventListener("input", () => { setAll(Play.clamp(Math.round(+reg.value), 0, 2)); focusSlot = -1; render(); Play.live(liveEl, P.t("liveSet", { a: P.t("a_" + aud), s: fit(levels, aud).score })); });
+$("hl").addEventListener("change", (e) => $("board").classList.toggle("nohl", !e.target.checked));
+$("say").addEventListener("click", () => Play.speak(messageText(MSGS[mi], levels), "en-GB"));
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: PRED.map((p) => ({ label: p.s, right: p.lv < 2 })), right: "", wrong: "",
+}, (i) => { guess = i; $("predict").querySelector(".fb").textContent = P.t("p" + i); render(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  mi = 0; aud = MSGS[0].aud; levels = [1, 1, 1, 1, 1]; guess = -1; focusSlot = -1;
+  $("hl").checked = true; $("board").classList.remove("nohl");
+  pr.reset(); liveEl.textContent = ""; st.go(0);
+});
+legend();
+const errs = validate();
+if (errs.length) console.error(errs);
+render();
+})();
+</script>
+</body>
+</html>

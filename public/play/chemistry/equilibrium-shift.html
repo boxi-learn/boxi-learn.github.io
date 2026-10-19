@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Equilibrium is busy, not stopped</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 560 / 660; max-height: 640px; }
+  .result .math { white-space: normal; }
+  .pA { fill: var(--c); } .pB { fill: var(--b); }
+  .hit { stroke: var(--fg); stroke-width: 2; }
+  .tagged { stroke: var(--fg); stroke-width: 3; }
+  .lbl { fill: var(--fg); font: 600 21px var(--font); }
+  .lbl-m { fill: var(--muted); font: 21px var(--font); }
+  .num { fill: var(--fg); font: 600 21px var(--math); }
+  .axis { stroke: var(--line); stroke-width: 1.5; }
+  .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
+  .mark { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 4; }
+  .lA, .lB, .lF, .lR, .dA, .dB, .rawF, .rawR { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .lA { stroke: var(--c); stroke-width: 2.5; } .lB { stroke: var(--b); stroke-width: 2.5; }
+  .dA { stroke: var(--c); stroke-width: 1.8; stroke-dasharray: 7 5; opacity: .8; }
+  .dB { stroke: var(--b); stroke-width: 1.8; stroke-dasharray: 7 5; opacity: .8; }
+  .lF { stroke: var(--a); stroke-width: 3; } .lR { stroke: var(--h); stroke-width: 3; }
+  .rawF { stroke: var(--a); stroke-width: 1.2; opacity: .35; } .rawR { stroke: var(--h); stroke-width: 1.2; opacity: .35; }
+  .cellA { fill: var(--c); } .cellB { fill: var(--b); }
+  .ctl { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; min-width: 0; }
+  .ctl label { white-space: nowrap; color: var(--fg); }
+  .ctl input[type=range] { flex: 1 1 100px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; }
+  .legend { font-size: 13px; width: 100%; }
+  .legend .ln { display: inline-block; width: 16px; height: 0; border-top: 3px solid; vertical-align: 4px; margin-right: 5px; }
+  .legend .ln.dash { border-top-style: dashed; border-top-width: 2px; }
+  table.stats { border-collapse: collapse; width: 100%; font-size: 14px; margin: 2px 0 10px; }
+  table.stats th, table.stats td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  table.stats th:first-child, table.stats td:first-child { text-align: left; }
+  .status { font-size: 14px; color: var(--fg); margin: 0 0 8px; min-height: 1.4em; }
+  .status.eq { color: var(--a); font-weight: 700; }
+  .livebox { font-size: 14px !important; }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 560 660" role="img" data-t-aria="figAria"></svg>
+      <div class="controls">
+        <div class="row">
+          <button type="button" id="play"></button>
+          <button type="button" class="small" id="one" data-t="oneBtn"></button>
+          <label class="check" id="tagBox"><input type="checkbox" id="tag"> <span data-t="tagLabel"></span></label>
+        </div>
+        <div class="row" id="kRow">
+          <div class="ctl"><label for="kf" data-t="kfLabel"></label><input type="range" id="kf" min="0" max="0.2" step="0.01" value="0.06"><span class="val" id="kfVal"></span></div>
+          <div class="ctl"><label for="kr" data-t="krLabel"></label><input type="range" id="kr" min="0" max="0.2" step="0.01" value="0.03"><span class="val" id="krVal"></span></div>
+        </div>
+        <div class="row" id="dRow">
+          <button type="button" class="small" id="addA" data-t="addA"></button>
+          <button type="button" class="small" id="cutB" data-t="cutB"></button>
+        </div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--c)"></span><span data-t="legA"></span></span>
+          <span><span class="dot" style="background:var(--b)"></span><span data-t="legB"></span></span>
+          <span><span class="ln" style="border-color:var(--a)"></span><span data-t="legF"></span></span>
+          <span><span class="ln" style="border-color:var(--h)"></span><span data-t="legR"></span></span>
+          <span><span class="ln dash" style="border-color:var(--muted)"></span><span data-t="legD"></span></span>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="stepBody2"></p>
+      <div id="statsBox"></div>
+      <p class="status" id="status"></p>
+      <p class="livebox" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t-html="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — pure model, no DOM (checked in node)
+const N0 = 200, MAXN = 360, COLS = 30, SEED = 20261019;
+const TAGS = [21, 74, 128, 177];        // slots of the tagged particles
+const AVG = 25, KEEP = 400, WIN = 150;  // averaging window, history kept, steps shown
+function rng(seed) {                    // mulberry32
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const k01 = (k) => (Number.isFinite(k) ? Math.min(1, Math.max(0, k)) : 0);
+function counts(sim) {
+  let a = 0, b = 0;
+  for (const p of sim.slots) if (p) { if (p.s) b++; else a++; }
+  return { a, b };
+}
+function record(sim, f, r, mark) {
+  const c = counts(sim), tags = TAGS.map(() => 0);
+  sim.slots.forEach((p) => { if (p && p.tag >= 0) tags[p.tag] = p.s; });
+  sim.hist.push({ t: sim.t, a: c.a, b: c.b, da: sim.det.a, db: sim.det.b, f, r, mark: !!mark, tags });
+  if (sim.hist.length > KEEP) sim.hist.shift();
+}
+function makeSim(seed) {
+  const sim = { rnd: rng(seed), slots: new Array(MAXN).fill(null), det: { a: N0, b: 0 }, hist: [], t: 0, flips: TAGS.map(() => 0) };
+  for (let i = 0; i < N0; i++) sim.slots[i] = { s: 0, tag: -1, hit: false };
+  TAGS.forEach((k, j) => (sim.slots[k].tag = j));
+  record(sim, null, null);
+  return sim;
+}
+// One time step: every A turns to B with probability kf, every B to A with probability kr.
+function step(sim, kf, kr) {
+  kf = k01(kf); kr = k01(kr);
+  let f = 0, r = 0;
+  for (const p of sim.slots) {
+    if (!p) continue;
+    const u = sim.rnd();
+    p.hit = false;
+    if (p.s === 0) { if (u < kf) { p.s = 1; f++; p.hit = true; } }
+    else if (u < kr) { p.s = 0; r++; p.hit = true; }
+    if (p.hit && p.tag >= 0) sim.flips[p.tag]++;
+  }
+  const a = sim.det.a, b = sim.det.b;           // expected values
+  sim.det.a = a - kf * a + kr * b;
+  sim.det.b = b + kf * a - kr * b;
+  sim.t++;
+  record(sim, f, r);
+  return { f, r };
+}
+function addA(sim, n) {
+  let added = 0;
+  for (let i = 0; i < MAXN && added < n; i++) if (!sim.slots[i]) { sim.slots[i] = { s: 0, tag: -1, hit: false }; added++; }
+  sim.slots.forEach((p) => p && (p.hit = false));
+  sim.det.a += added;
+  record(sim, null, null, true);
+  return added;
+}
+function removeHalfB(sim) {
+  const nB = counts(sim).b, want = Math.floor(nB / 2);
+  const pool = [];
+  sim.slots.forEach((p, i) => { if (p && p.s === 1 && p.tag < 0) pool.push(i); });   // tagged ones stay
+  const n = Math.min(want, pool.length);
+  for (let i = 0; i < n; i++) {                   // partial Fisher–Yates with the same seeded RNG
+    const j = i + Math.floor(sim.rnd() * (pool.length - i));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+    sim.slots[pool[i]] = null;
+  }
+  sim.slots.forEach((p) => p && (p.hit = false));
+  sim.det.b = Math.max(0, sim.det.b - n);
+  record(sim, null, null, true);
+  return n;
+}
+function stats(sim) {
+  const steps = sim.hist.filter((e) => e.f !== null).slice(-AVG);
+  const last = sim.hist[sim.hist.length - 1];
+  const out = { a: last.a, b: last.b, f: null, r: null, avgF: null, avgR: null, ratio: null, n: steps.length };
+  if (!steps.length) return out;
+  const L = steps[steps.length - 1];
+  out.f = L.f; out.r = L.r;
+  const mean = (k) => steps.reduce((s, e) => s + e[k], 0) / steps.length;
+  out.avgF = mean("f"); out.avgR = mean("r");
+  const ma = mean("a"), mb = mean("b");
+  out.ratio = ma > 0 ? mb / ma : (mb > 0 ? Infinity : null);
+  return out;
+}
+// Equilibrium ratio B/A predicted by equal rates kf·A = kr·B.
+function eqRatio(kf, kr) {
+  kf = k01(kf); kr = k01(kr);
+  if (kf === 0 && kr === 0) return null;
+  return kr === 0 ? Infinity : kf / kr;
+}
+function eqB(N, kf, kr) {
+  kf = k01(kf); kr = k01(kr);
+  return kf + kr > 0 ? N * kf / (kf + kr) : null;
+}
+// Where the system is heading, judged from the expected (smooth) amounts.
+function trend(sim, kf, kr) {
+  kf = k01(kf); kr = k01(kr);
+  if (kf === 0 && kr === 0) return "none";
+  const fx = kf * sim.det.a, rx = kr * sim.det.b, d = fx - rx;
+  if (Math.abs(d) <= 0.06 * (fx + rx) + 0.05) return kr === 0 ? "allB" : kf === 0 ? "allA" : "eq";
+  return d > 0 ? "toB" : "toA";
+}
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "Equilibrium is busy, not stopped", eyebrow: "Chemistry · Stage 4", h1: "Equilibrium is busy, not stopped",
+    intro: "Watch 200 particles flip between A and B. The counts go flat, but the particles never stop changing.",
+    reset: "Reset", figAria: "A grid of particles coloured A or B, tracks of four tagged particles, a graph of the amounts of A and B over time, and a graph of how many particles change each way per step",
+    s1: "Guess", s2: "Tag & disturb", s3: "Rule",
+    k1: "Predict first", t1: "When the amounts stop changing, has the reaction stopped?",
+    b1: "Particles of A (blue) can turn into B (amber), and B can turn back into A. Pick an answer, then press Play and wait until the two counts level off.",
+    q: "In a closed flask, A ⇌ B reaches the point where the amounts of A and B no longer change. What are the particles doing?",
+    o1: "Nothing: the reaction has stopped", o2: "A still turns into B, but B no longer turns back", o3: "A turns into B and B turns into A, equally often",
+    right: "Yes. Press Play to see it, then in step 2 tag a few particles and count the changes in each direction.",
+    wrong: "Many people think so. Press Play: the counts go flat, but do the particles stop? Step 2 lets you tag some and count every change.",
+    k2: "Hands on", t2: "Tag particles, count the changes, then disturb",
+    b2: "Turn on Tag to follow 4 particles: their tracks keep switching colour even when the counts are flat. The purple line counts A→B changes per step, the pink line B→A. Then press “Add 50 A” or “Remove half of B”, or move kf and kr, and watch the system settle again.",
+    k3: "The rule", t3: "Equal rates, not zero rates",
+    b3: "Each step about kf × A particles turn into B and about kr × B turn back. The amounts stop changing when kf·A = kr·B, that is when B/A = kf/kr. Add A or take B away and one direction runs faster until the rates match again, at the same ratio as before.",
+    b3b: "Think of two rooms joined by doors: people keep walking both ways, but when as many leave each room as come in, the head counts stay put. Le Chatelier’s principle: disturb an equilibrium and it shifts to partly undo the change. The Haber process, N₂ + 3H₂ ⇌ 2NH₃, makes ammonia for fertiliser this way: high pressure favours the side with fewer gas molecules, and ammonia is cooled to a liquid and taken out, so the mixture keeps shifting to make more.",
+    playBtn: "▶ Play", pauseBtn: "❚❚ Pause", oneBtn: "+1 step", tagLabel: "Tag 4 particles",
+    kfLabel: "kf (A→B)", krLabel: "kr (B→A)", addA: "Add 50 A", cutB: "Remove half of B", full: "Flask full",
+    legA: "A", legB: "B", legF: "A→B per step", legR: "B→A per step", legD: "expected",
+    hStep: "step {t}", hAmounts: "Amounts", hEvents: "Changes per step (thick: average of {n})", hTags: "Tagged particles", tagOff: "Turn on “Tag 4 particles” to follow them",
+    flips: "{n}×",
+    thNow: "This step", thAvg: "Avg of last {n}", rowF: "A→B", rowR: "B→A",
+    ratioLine: "A = {a}, B = {b}. Measured B/A = {m} (last {n} steps); kf/kr = {p}.",
+    expLine: "With {N} particles, equal rates give about {eb} B and {ea} A.",
+    stEq: "Balanced: as many particles change A→B as B→A, so the amounts hold steady.",
+    stToB: "Shifting toward B: A→B is running faster than B→A.",
+    stToA: "Shifting toward A: B→A is running faster than A→B.",
+    stNone: "kf = kr = 0: nothing changes because nothing reacts. This is a stopped reaction, not an equilibrium.",
+    stAllB: "kr = 0: B never turns back, so the reaction runs one way until everything is B.",
+    stAllA: "kf = 0: A never turns into B, so everything ends up as A.",
+    inf: "∞", none: "—",
+    live1: "Step {t}: A = {a}, B = {b}. This step {f} particles went A→B and {r} went B→A.",
+    live0: "Step 0: all {a} particles are A. Press Play.",
+    resultTitle: "What we found", resultMain: "at equilibrium: rate A→B = rate B→A, kf·A = kr·B ⇒ B / A = kf / kr",
+    resultNote: "Constant amounts do not mean nothing happens. Disturb the mixture and it shifts until the two rates match again.",
+    explainK: "Explain it", explainQ: "A friend says: “At equilibrium nothing is happening any more.” Use the tagged particles and the two event counts to explain why that is wrong.",
+    homeK: "Try at home", homeQ: "Fill one glass with water and leave a second glass empty. Each round, dip a wide straw to the bottom of glass 1, cover the top with a finger and move that water to glass 2; at the same time a helper does the same from glass 2 to glass 1 with a thin straw. After a dozen rounds the levels stop changing, yet water still moves both ways every round.",
+    foot: "Model: each step every A particle becomes B with probability kf and every B becomes A with probability kr, using a seeded random generator (mulberry32, seed 20261019), so Reset replays the same run. Dashed curves are the expected amounts, A ← A − kf·A + kr·B. “Remove half of B” leaves the tagged particles in place. Real reactions such as N₂ + 3H₂ ⇌ 2NH₃ need collisions between several molecules, so their rate laws are more complicated, but equilibrium still means equal forward and backward rates. Haber process, typical conditions: about 150–300 atm, 400–450 °C, iron catalyst. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "平衡不是停了，是两边一样快", eyebrow: "化学 · 阶段 4", h1: "平衡不是停了，是两边一样快",
+    intro: "看 200 个颗粒在 A 和 B 之间来回变。数量曲线平了，颗粒却一直没停。",
+    reset: "重置", figAria: "按 A、B 着色的颗粒方阵、四个标记颗粒的轨迹、A 和 B 数量随时间的曲线，以及每一步两个方向各变了多少个的曲线",
+    s1: "先猜", s2: "标记与扰动", s3: "规律",
+    k1: "先猜一猜", t1: "数量不再变了，反应是不是停了？",
+    b1: "A（蓝）可以变成 B（橙），B 也可以变回 A。先选一个答案，再按「播放」，等两条数量曲线变平。",
+    q: "密闭烧瓶里的 A ⇌ B 进行到 A 和 B 的量都不再变化。这时颗粒在做什么？",
+    o1: "什么也不做：反应停止了", o2: "A 还在变成 B，但 B 不再变回 A", o3: "A 变成 B、B 变成 A，两边一样多",
+    right: "对。按「播放」看一看，第 2 步再标记几个颗粒，数一数两个方向各变了多少。",
+    wrong: "很多人都这么想。按「播放」：曲线平了，颗粒停了吗？第 2 步可以标记几个颗粒，把每次变化都数出来。",
+    k2: "动手", t2: "标记颗粒，数变化，再扰动",
+    b2: "勾选「标记」跟踪 4 个颗粒：数量曲线平了，它们的轨迹还在不停换颜色。紫线是每一步 A→B 的个数，粉线是 B→A。然后按「加 50 个 A」或「拿走一半 B」，或者拖 kf、kr，看系统怎样重新稳定。",
+    k3: "规律", t3: "两边一样快，不是两边都停",
+    b3: "每一步大约有 kf × A 个颗粒变成 B，kr × B 个变回 A。kf·A = kr·B 时数量不再变化，也就是 B/A = kf/kr。加入 A 或拿走 B，平衡被打破，一个方向跑得更快，直到两边速率重新相等，比值回到原来那样。",
+    b3b: "想象两个房间之间有门：人一直在两边走，但每个房间走出去的和走进来的一样多，人数就不变。勒夏特列原理：平衡被扰动后，会朝着部分抵消这个变化的方向移动。哈伯法合成氨 N₂ + 3H₂ ⇌ 2NH₃ 就是这样做化肥原料的：高压有利于气体分子数少的一边，生成的氨冷却成液体取走，反应就不断向生成氨的方向移动。",
+    playBtn: "▶ 播放", pauseBtn: "❚❚ 暂停", oneBtn: "+1 步", tagLabel: "标记 4 个颗粒",
+    kfLabel: "kf（A→B）", krLabel: "kr（B→A）", addA: "加 50 个 A", cutB: "拿走一半 B", full: "瓶子满了",
+    legA: "A", legB: "B", legF: "每步 A→B", legR: "每步 B→A", legD: "期望值",
+    hStep: "第 {t} 步", hAmounts: "数量", hEvents: "每步变化数（粗线：{n} 步平均）", hTags: "标记的颗粒", tagOff: "勾选「标记 4 个颗粒」来跟踪它们",
+    flips: "{n} 次",
+    thNow: "这一步", thAvg: "最近 {n} 步平均", rowF: "A→B", rowR: "B→A",
+    ratioLine: "A = {a}，B = {b}。测得 B/A = {m}（最近 {n} 步）；kf/kr = {p}。",
+    expLine: "共 {N} 个颗粒，两边速率相等时约有 {eb} 个 B、{ea} 个 A。",
+    stEq: "平衡：A→B 和 B→A 一样多，所以数量稳定。",
+    stToB: "向 B 移动：A→B 比 B→A 快。",
+    stToA: "向 A 移动：B→A 比 A→B 快。",
+    stNone: "kf = kr = 0：什么都不变，因为根本不反应。这是反应停了，不是平衡。",
+    stAllB: "kr = 0：B 不会变回去，反应单向进行，直到全变成 B。",
+    stAllA: "kf = 0：A 不会变成 B，最后全是 A。",
+    inf: "∞", none: "—",
+    live1: "第 {t} 步：A = {a}，B = {b}。这一步有 {f} 个 A→B，{r} 个 B→A。",
+    live0: "第 0 步：{a} 个颗粒全是 A。按「播放」。",
+    resultTitle: "我们发现", resultMain: "平衡时：A→B 的速率 = B→A 的速率，kf·A = kr·B ⇒ B / A = kf / kr",
+    resultNote: "数量不变不等于什么都没发生。扰动它，它就会移动，直到两边速率重新相等。",
+    explainK: "说一说", explainQ: "朋友说：「到了平衡，就什么也不发生了。」用标记的颗粒和两条变化数曲线说明他错在哪里。",
+    homeK: "家里做一做", homeQ: "一个杯子装满水，另一个空着。每一轮，你把粗吸管插到 1 号杯底，用手指堵住上口，把水移到 2 号杯；同时同伴用细吸管从 2 号杯往 1 号杯移水。十几轮后两杯水位不再变化，可每一轮水都还在两边来回流。",
+    foot: "模型：每一步每个 A 以概率 kf 变成 B，每个 B 以概率 kr 变成 A；用带种子的随机数（mulberry32，种子 20261019），所以「重置」会重放同一次实验。虚线是期望值，A ← A − kf·A + kr·B。「拿走一半 B」不拿标记的颗粒。真实反应如 N₂ + 3H₂ ⇌ 2NH₃ 要几个分子相撞，速率规律更复杂，但平衡仍然意味着正、逆反应速率相等。哈伯法典型条件：约 150–300 个大气压、400–450 °C、铁催化剂。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent);
+const kfEl = $("kf"), krEl = $("kr");
+const state = { playing: false, tag: false, stepIdx: 0 };
+let sim = makeSim(SEED);
+const kf = () => k01(+kfEl.value), kr = () => k01(+krEl.value);
+const f2 = (x) => (x === Infinity ? P.t("inf") : x === null ? P.t("none") : Play.fmt(x, 2));
+const f1 = (x) => (x === null ? P.t("none") : Play.fmt(x, 1));
+
+/* ---------- static SVG skeleton ---------- */
+const SP = 17.6, GX = 280 - (COLS - 1) * SP / 2, GY = 50;
+const CH = { x0: 52, x1: 545, top: 424, bot: 522 }, EV = { x0: 52, x1: 545, top: 572, bot: 646 };
+const TG = { y: 282, h: 22, x0: 46, x1: 488 };
+const gHead = S("g", {}, fig), gDots = S("g", {}, fig), gTags = S("g", {}, fig), gCh = S("g", {}, fig), gEv = S("g", {}, fig);
+const dots = [];
+for (let i = 0; i < MAXN; i++) {
+  const c = S("circle", { cx: GX + (i % COLS) * SP, cy: GY + Math.floor(i / COLS) * SP, r: 6.2 }, gDots);
+  dots.push(c);
+}
+
+function txt(cls, x, y, s, anchor, parent) {
+  const t = S("text", { class: cls, x, y, "text-anchor": anchor || "start" }, parent);
+  t.textContent = s;
+  return t;
+}
+
+function drawHead(st) {
+  gHead.innerHTML = "";
+  const t1 = S("text", { class: "num", x: 12, y: 28 }, gHead);
+  const a = S("tspan", { style: "fill:var(--c)" }, t1); a.textContent = "A " + st.a;
+  const sp = S("tspan", {}, t1); sp.textContent = "   ";
+  const b = S("tspan", { style: "fill:var(--b)" }, t1); b.textContent = "B " + st.b;
+  txt("lbl-m", 548, 28, P.t("hStep", { t: sim.t }), "end", gHead);
+}
+
+function drawDots() {
+  sim.slots.forEach((p, i) => {
+    const c = dots[i];
+    if (!p) { c.setAttribute("visibility", "hidden"); return; }
+    c.setAttribute("visibility", "visible");
+    const tagged = state.tag && p.tag >= 0;
+    c.setAttribute("class", (p.s ? "pB" : "pA") + (tagged ? " tagged" : p.hit ? " hit" : ""));
+    c.setAttribute("r", tagged ? 8.2 : 6.2);
+  });
+  // tagged particles on top
+  if (state.tag) TAGS.forEach((k) => gDots.appendChild(dots[k]));
+}
+
+function drawTags() {
+  gTags.innerHTML = "";
+  if (state.stepIdx === 0) return;               // the tag switch appears in step 2
+  txt("lbl", 12, TG.y - 8, P.t("hTags"), "start", gTags);
+  if (!state.tag) { txt("lbl-m", 12, TG.y + 46, P.t("tagOff"), "start", gTags); return; }
+  const H = sim.hist.filter((e) => !e.mark).slice(-60);
+  const cw = (TG.x1 - TG.x0) / 60;
+  TAGS.forEach((k, j) => {
+    const y = TG.y + j * TG.h;
+    txt("num", 12, y + 17, String(j + 1), "start", gTags);
+    H.forEach((e, i) => S("rect", { class: e.tags[j] ? "cellB" : "cellA", x: TG.x0 + i * cw, y: y + 2, width: cw + 0.3, height: TG.h - 6 }, gTags));
+    txt("num", 548, y + 17, P.t("flips", { n: sim.flips[j] }), "end", gTags);
+  });
+}
+
+function lineD(pts) {
+  return pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join("");
+}
+
+function drawCharts() {
+  gCh.innerHTML = ""; gEv.innerHTML = "";
+  const H = sim.hist, tmax = H[H.length - 1].t, tmin = Math.max(0, tmax - WIN);
+  const win = H.filter((e) => e.t >= tmin);
+  const X = (t, R) => R.x0 + (t - tmin) / WIN * (R.x1 - R.x0);
+  // amounts
+  let ym = 200;
+  win.forEach((e) => (ym = Math.max(ym, e.a, e.b, e.da, e.db)));
+  ym = Math.ceil(ym / 50) * 50;
+  const Y = (v) => CH.bot - v / ym * (CH.bot - CH.top);
+  txt("lbl", 12, CH.top - 26, P.t("hAmounts"), "start", gCh);
+  S("line", { class: "axis", x1: CH.x0, x2: CH.x1, y1: CH.bot, y2: CH.bot }, gCh);
+  S("line", { class: "grid", x1: CH.x0, x2: CH.x1, y1: CH.top, y2: CH.top }, gCh);
+  txt("lbl-m", CH.x0 - 6, CH.bot + 6, "0", "end", gCh);
+  txt("lbl-m", CH.x0 - 6, CH.top + 6, String(ym), "end", gCh);
+  win.forEach((e) => { if (e.mark) S("line", { class: "mark", x1: X(e.t, CH), x2: X(e.t, CH), y1: CH.top, y2: EV.bot }, gCh); });
+  [["dA", "da"], ["dB", "db"], ["lA", "a"], ["lB", "b"]].forEach(([cls, k]) =>
+    S("path", { class: cls, d: lineD(win.map((e) => [X(e.t, CH), Y(e[k])])) }, gCh));
+  // events per step
+  const ev = win.filter((e) => e.f !== null);
+  const allSteps = H.filter((e) => e.f !== null);
+  const avg = (e, k) => {
+    const i = allSteps.indexOf(e), w = allSteps.slice(Math.max(0, i - AVG + 1), i + 1);
+    return w.reduce((s, q) => s + q[k], 0) / w.length;
+  };
+  let em = 10;
+  ev.forEach((e) => (em = Math.max(em, e.f, e.r)));
+  em = Math.ceil(em / 5) * 5;
+  const YE = (v) => EV.bot - v / em * (EV.bot - EV.top);
+  txt("lbl", 12, EV.top - 26, P.t("hEvents", { n: AVG }), "start", gEv);
+  S("line", { class: "axis", x1: EV.x0, x2: EV.x1, y1: EV.bot, y2: EV.bot }, gEv);
+  S("line", { class: "grid", x1: EV.x0, x2: EV.x1, y1: EV.top, y2: EV.top }, gEv);
+  txt("lbl-m", EV.x0 - 6, EV.bot + 6, "0", "end", gEv);
+  txt("lbl-m", EV.x0 - 6, EV.top + 6, String(em), "end", gEv);
+  if (ev.length > 1) {
+    S("path", { class: "rawF", d: lineD(ev.map((e) => [X(e.t, EV), YE(e.f)])) }, gEv);
+    S("path", { class: "rawR", d: lineD(ev.map((e) => [X(e.t, EV), YE(e.r)])) }, gEv);
+    S("path", { class: "lF", d: lineD(ev.map((e) => [X(e.t, EV), YE(avg(e, "f"))])) }, gEv);
+    S("path", { class: "lR", d: lineD(ev.map((e) => [X(e.t, EV), YE(avg(e, "r"))])) }, gEv);
+  }
+}
+
+function renderStats(st) {
+  const box = $("statsBox");
+  box.innerHTML = "";
+  if (state.stepIdx === 0) return;
+  const tb = document.createElement("table");
+  tb.className = "stats";
+  const row = (cells, tag) => {
+    const tr = document.createElement("tr");
+    cells.forEach((c) => { const td = document.createElement(tag); td.textContent = c; tr.appendChild(td); });
+    tb.appendChild(tr);
+  };
+  row(["", P.t("thNow"), P.t("thAvg", { n: st.n })], "th");
+  row([P.t("rowF"), st.f === null ? P.t("none") : st.f, f1(st.avgF)], "td");
+  row([P.t("rowR"), st.r === null ? P.t("none") : st.r, f1(st.avgR)], "td");
+  box.appendChild(tb);
+  const p1 = document.createElement("p");
+  p1.textContent = P.t("ratioLine", { a: st.a, b: st.b, m: f2(st.ratio), n: st.n, p: f2(eqRatio(kf(), kr())) });
+  box.appendChild(p1);
+  const N = st.a + st.b, eb = eqB(N, kf(), kr());
+  if (eb !== null) {
+    const p2 = document.createElement("p");
+    p2.textContent = P.t("expLine", { N, eb: Math.round(eb), ea: N - Math.round(eb) });
+    box.appendChild(p2);
+  }
+}
+
+function render() {
+  const st = stats(sim);
+  drawHead(st); drawDots(); drawTags(); drawCharts();
+  $("kfVal").textContent = Play.fmt(kf(), 2);
+  $("krVal").textContent = Play.fmt(kr(), 2);
+  $("play").textContent = P.t(state.playing ? "pauseBtn" : "playBtn");
+  $("play").setAttribute("aria-pressed", String(state.playing));
+  const full = sim.slots.every((p) => p);
+  $("addA").disabled = full;
+  $("addA").textContent = P.t(full ? "full" : "addA");
+  $("cutB").disabled = st.b < 2;
+  renderStats(st);
+  const tr = state.stepIdx === 0 ? null : trend(sim, kf(), kr());
+  const sEl = $("status");
+  sEl.textContent = tr ? P.t({ eq: "stEq", toB: "stToB", toA: "stToA", none: "stNone", allB: "stAllB", allA: "stAllA" }[tr]) : "";
+  sEl.classList.toggle("eq", tr === "eq");
+  Play.live($("live"), st.f === null && sim.t === 0
+    ? P.t("live0", { a: st.a })
+    : P.t("live1", { t: sim.t, a: st.a, b: st.b, f: st.f === null ? 0 : st.f, r: st.r === null ? 0 : st.r }));
+}
+
+/* ---------- animation: never autoplays; Play/Pause and +1 step ---------- */
+const STEP_MS = 120;
+let raf = 0, last = 0, acc = 0;
+function tick(t) {
+  if (!state.playing) return;
+  acc += last ? Math.min(250, t - last) : 0;
+  last = t;
+  let n = 0;
+  while (acc >= STEP_MS && n < 3) { step(sim, kf(), kr()); acc -= STEP_MS; n++; }
+  if (n) render();
+  raf = requestAnimationFrame(tick);
+}
+function stop() { state.playing = false; cancelAnimationFrame(raf); last = 0; acc = 0; }
+function start() { state.playing = true; last = 0; acc = STEP_MS; raf = requestAnimationFrame(tick); }
+$("play").addEventListener("click", () => { if (state.playing) stop(); else start(); render(); });
+$("one").addEventListener("click", () => { step(sim, kf(), kr()); render(); });
+$("tag").addEventListener("change", (e) => { state.tag = e.target.checked; render(); });
+kfEl.addEventListener("input", render);
+krEl.addEventListener("input", render);
+$("addA").addEventListener("click", () => { addA(sim, 50); render(); });
+$("cutB").addEventListener("click", () => { removeHalfB(sim); render(); });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+const stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  state.stepIdx = i;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("stepBody2").textContent = i === 2 ? P.t("b3b") : "";
+  $("stepBody2").hidden = i !== 2;
+  $("predict").hidden = i !== 0;
+  $("kRow").hidden = $("dRow").hidden = $("tagBox").hidden = i === 0;
+  if (i === 2 && !state.tag) { state.tag = true; $("tag").checked = true; }
+  render();
+});
+$("reset").addEventListener("click", () => {
+  stop();
+  sim = makeSim(SEED);
+  kfEl.value = 0.06; krEl.value = 0.03;
+  state.tag = false; $("tag").checked = false;
+  pr.reset(); stp.go(0);
+});
+render();
+</script>
+</body>
+</html>

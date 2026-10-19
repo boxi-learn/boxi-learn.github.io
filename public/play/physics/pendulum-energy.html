@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What sets a pendulum's beat?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.fig { width: 100%; height: auto; display: block; }
+  #scene { touch-action: none; }
+  .ax { stroke: var(--line); stroke-width: 2; fill: none; }
+  .grid { stroke: var(--line); stroke-width: 1; }
+  .support { stroke: var(--fg); stroke-width: 4; stroke-linecap: round; }
+  .rod { stroke: var(--fg); stroke-width: 2.5; }
+  .vert { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 5; }
+  .ghost { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .bob { stroke: var(--fg); stroke-width: 1.5; cursor: grab; }
+  .lbl { fill: var(--muted); font-size: 23px; font-family: var(--font); }
+  .lblF { fill: var(--fg); font-size: 23px; font-weight: 700; font-family: var(--font); }
+  #scene text, #trace text { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
+  .eOut { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .tr { fill: none; stroke-width: 3; }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .controls select { font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .pend { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; border-top: 1px solid var(--line); padding-top: 8px; }
+  .pend .ph { font-weight: 700; color: var(--fg); flex: 0 0 100%; display: flex; align-items: center; gap: 6px; }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--fg); }
+  .pair { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 0; }
+  .pair label { min-width: 4.2em; }
+  .pair input[type=range] { flex: 1 1 80px; min-width: 0; }
+  .controls .val { min-width: 4.4em; font-size: 14px; }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout th, .readout td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+  .readout th:first-child, .readout td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  .readout tr.key td { color: var(--fg); font-weight: 700; }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+  .cap { font-size: 13px; color: var(--muted); padding: 0 14px 6px; }
+  .charthead { font-size: 13px; color: var(--muted); padding: 10px 14px 0; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .charthead strong { color: var(--fg); }
+  .result .math { white-space: normal; }
+  .gal { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 8px; }
+  .gal h3 { font-size: 14px; margin: 0 0 4px; }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="fig" id="scene" viewBox="0 0 600 320" role="img" data-t-aria="figAria"></svg>
+      <div class="cap" data-t="cap"></div>
+      <div class="controls">
+        <div class="grp">
+          <button type="button" id="play"></button>
+          <button type="button" class="small" id="restart" data-t="restart"></button>
+          <label for="speed" data-t="speedLabel"></label>
+          <select id="speed"><option value="1" selected>1×</option><option value="0.5">½×</option><option value="0.25">¼×</option></select>
+          <label class="check"><input type="checkbox" id="damp"><span data-t="dampLabel"></span></label>
+        </div>
+        <div id="ctl" style="display:contents"></div>
+      </div>
+      <div class="charthead"><strong data-t="energyTitle"></strong><span id="clock"></span></div>
+      <svg class="fig" id="energy" viewBox="0 0 600 150" role="img" data-t-aria="energyAria"></svg>
+      <div class="charthead"><strong data-t="traceTitle"></strong></div>
+      <svg class="fig" id="trace" viewBox="0 0 600 210" role="img" data-t-aria="traceAria"></svg>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "What sets a pendulum's beat?", eyebrow: "Physics · Stage 4", h1: "What sets a pendulum's beat?",
+    intro: "Two pendulums hang side by side. Change the weight, the length and how far you pull each one back, release them together, and count their swings.",
+    reset: "Reset", figAria: "Two pendulums, A and B, each a bob on a light rod hanging from a support; the dashed circle marks where it was released",
+    energyAria: "Energy bars for A and B: height energy, speed energy and heat, inside a dashed outline for the starting energy",
+    traceAria: "Graph of the swing angle of A and B against time over the last 10 seconds",
+    cap: "Each bob hangs on a light, stiff rod (a string would go slack past 90°). Both are drawn to the same scale. Drag a bob to set where it starts, or use the sliders.",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Does a heavier bob keep a different beat?",
+    b1: "A and B have the same length (1.00 m) and start from the same angle (20°). B's bob is 4 times heavier. Pick an answer, then press Release.",
+    k2: "Hands on", t2: "Change one thing at a time",
+    b2: "Make B heavier or lighter: the traces stay on top of each other. Now change only B's length: the beat changes. Then pull both back further (60°, 120°, 179°) and compare the measured period with the small-swing formula. Last, turn on air friction and watch the total energy drain into heat.",
+    k3: "The rule", t3: "Only the length sets the beat",
+    b3: "For small swings T = 2π√(L/g). Mass is not in it: a heavier bob needs a bigger pull to speed up, and gravity pulls it exactly that much harder. While it swings, height energy turns into speed energy and back, and with no friction the sum never changes.",
+    q: "Same length, same starting angle, but B's bob is 4× heavier. Compared with A, B swings back and forth…",
+    o1: "more slowly: it is heavier", o2: "in the same time", o3: "faster: gravity pulls it harder",
+    right: "Yes. Press Release and watch the two traces lie on top of each other, then go to step 2 to find what does change the beat.",
+    wrong: "Many people expect that. Press Release and watch both traces: then go to step 2 and change the mass yourself.",
+    play: "▶ Release together", pause: "❚❚ Pause", resume: "▶ Resume", restart: "↺ Restart",
+    speedLabel: "Speed", dampLabel: "Air friction",
+    mass: "Mass", length: "Length", angle: "Start angle",
+    energyTitle: "Energy: height (PE = mgh) and speed (KE = ½mv²)", clock: "t = {t} s",
+    pe: "PE height", ke: "KE speed", heat: "heat", noEnergy: "Released at 0°: nothing to trade",
+    traceTitle: "Swing angle θ over time (last 10 s)", traceHint: "Press Release to draw the swings", tAxis: "t (s)",
+    colA: "A", colB: "B",
+    rM: "Mass", rL: "Length", rA: "Start angle", rTm: "Period, measured", rT0: "2π√(L/g)", rDiff: "Difference", rN: "Swings so far",
+    rPE: "PE now", rKE: "KE now", rH: "Heat", rE: "Total", noSwing: "no swing",
+    unitS: "s", unitJ: "J", unitKg: "kg", unitM: "m",
+    ruleMain: "<strong>For small swings, T = 2π√(L/g): the beat depends only on the length.</strong> Computed for g = 9.81 m/s²:",
+    thL: "Length L", thT0: "2π√(L/g)", thTm: "Measured at 10°",
+    ruleFour: "Length ×4 ({a} → {b} m): period {c} → {d} s, ×{r}. Length ×4 again ({b} → {e} m): ×{r2}. Four times the length, twice the period.",
+    demo4: "Try it: A 0.50 m, B 2.00 m",
+    demoSay: "Set: A is 0.50 m, B is 2.00 m, both 1.0 kg from 15°. Press Release: A should swing twice for every swing of B.",
+    ampH: "How small is “small”? (L = {L} m, the length of A)",
+    thA: "Start angle", thDiff: "Longer than 2π√(L/g) by",
+    ampNote: "Up to about 20° the formula is within 1%. Wide swings take longer, and a swing from 179° takes almost four times as long, because the bob crawls near the top.",
+    galH: "Galileo’s pendulum",
+    galNote: "Galileo studied pendulums in the late 16th and early 17th centuries. The story traditionally told is that, as a young man in Pisa, he timed a swinging lamp in the cathedral against his pulse and noticed that wide and narrow swings took about the same time. In Two New Sciences (1638) he wrote that the lengths of pendulums are as the squares of their times: our ×4 → ×2 rule. He thought the time did not depend on the width of the swing at all; the table above shows that is only nearly true, for small swings.",
+    liveGo: "Released together.", liveCount: "A has made {a} full swings, B has made {b}.",
+    liveDamp: "Air friction on: {p}% of the starting energy has turned into heat.",
+    resultTitle: "What we found", resultMain: "T ≈ 2π√(L/g) · PE + KE = constant",
+    resultNote: "No m in the formula: a heavier bob is pulled harder but is harder to speed up, by the same factor. Four times the length gives twice the period. Height energy and speed energy trade places; friction turns some into heat.",
+    explainK: "Explain it", explainQ: "A grandfather clock runs slow. Should you move the bob up or down the rod to fix it, and would a heavier bob help? Explain using T = 2π√(L/g).",
+    homeK: "Try at home", homeQ: "Tie a key to a string 1 m long and time 10 swings; do it again with two keys, then with the string 25 cm long. Which change makes a difference, and by how much?",
+    foot: "Model: point bob on a massless rigid rod, no friction at the pivot. θ″ = −(g/L)·sin θ (optional air friction: −c·θ′ with c = 0.12 s⁻¹, a drag force proportional to speed and to mass, so both bobs lose the same share per second), solved with fourth-order Runge–Kutta at a fixed step of 1 ms. Measured period: time between two zero crossings in the same direction (linear interpolation), for the swing without air friction. Check: the exact period 2π√(L/g)/AGM(1, cos(θ₀/2)) agrees with the simulation to better than 0.01%. PE measured from the lowest point. g = 9.81 m/s². · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "单摆的节拍由什么决定？", eyebrow: "物理 · 阶段 4", h1: "单摆的节拍由什么决定？",
+    intro: "两个单摆并排挂着。改一改摆锤的质量、摆长和拉开的角度，同时放手，数一数它们各摆了几次。",
+    reset: "重置", figAria: "两个单摆 A 和 B，摆锤挂在轻杆上，虚线圆圈是放手的位置",
+    energyAria: "A 和 B 的能量条：高度的能量、速度的能量和热，虚线框是开始时的总能量",
+    traceAria: "A 和 B 摆角随时间变化的图，显示最近 10 秒",
+    cap: "摆锤挂在又轻又硬的杆上（绳子过了 90° 会松掉）。两个摆按同一比例画。拖动摆锤设定起点，或者用滑块。",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "摆锤重一些，节拍会变吗？",
+    b1: "A 和 B 一样长（1.00 米），从同样的角度（20°）放手。B 的摆锤重 4 倍。先选一个答案，再按「同时放手」。",
+    k2: "动手", t2: "一次只改一样",
+    b2: "把 B 变重或变轻：两条曲线始终叠在一起。再只改 B 的摆长：节拍变了。然后把两个都拉得更开（60°、120°、179°），比较测出的周期和小角度公式。最后打开空气阻力，看总能量怎样变成热。",
+    k3: "规律", t3: "只有摆长决定节拍",
+    b3: "小角度时 T = 2π√(L/g)。里面没有质量：摆锤越重，要让它加速就需要越大的力，而重力恰好也按同样的比例拉得更用力。摆动时，高度的能量变成速度的能量，再变回来；没有摩擦时，两者之和不变。",
+    q: "摆长一样，放手角度一样，B 的摆锤重 4 倍。和 A 比，B 来回摆一次……",
+    o1: "更慢：它更重", o2: "用的时间一样", o3: "更快：重力拉它更用力",
+    right: "对。按「同时放手」，看两条曲线叠在一起；再到第 2 步，找找什么才会改变节拍。",
+    wrong: "很多人都这么想。按「同时放手」看两条曲线；再到第 2 步，自己改改质量试试。",
+    play: "▶ 同时放手", pause: "❚❚ 暂停", resume: "▶ 继续", restart: "↺ 重新放手",
+    speedLabel: "速度", dampLabel: "空气阻力",
+    mass: "质量", length: "摆长", angle: "放手角度",
+    energyTitle: "能量：高度（PE = mgh）和速度（KE = ½mv²）", clock: "t = {t} 秒",
+    pe: "PE 高度", ke: "KE 速度", heat: "热", noEnergy: "从 0° 放手：没有能量可以互换",
+    traceTitle: "摆角 θ 随时间变化（最近 10 秒）", traceHint: "按「同时放手」画出摆动", tAxis: "t（秒）",
+    colA: "A", colB: "B",
+    rM: "质量", rL: "摆长", rA: "放手角度", rTm: "周期（测得）", rT0: "2π√(L/g)", rDiff: "相差", rN: "已摆次数",
+    rPE: "现在 PE", rKE: "现在 KE", rH: "热", rE: "总和", noSwing: "不摆",
+    unitS: "秒", unitJ: "焦", unitKg: "千克", unitM: "米",
+    ruleMain: "<strong>小角度时 T = 2π√(L/g)：节拍只由摆长决定。</strong>按 g = 9.81 m/s² 计算：",
+    thL: "摆长 L", thT0: "2π√(L/g)", thTm: "10° 时测得",
+    ruleFour: "摆长 ×4（{a} → {b} 米）：周期 {c} → {d} 秒，×{r}。摆长再 ×4（{b} → {e} 米）：×{r2}。摆长变成 4 倍，周期变成 2 倍。",
+    demo4: "试一试：A 0.50 米，B 2.00 米",
+    demoSay: "已设好：A 长 0.50 米，B 长 2.00 米，都是 1.0 千克，从 15° 放手。按「同时放手」：B 摆一次，A 应该摆两次。",
+    ampH: "「小角度」要多小？（L = {L} 米，即 A 的摆长）",
+    thA: "放手角度", thDiff: "比 2π√(L/g) 长",
+    ampNote: "20° 以内，公式误差不到 1%。摆得越开用时越长；从 179° 放手几乎要用四倍的时间，因为摆锤在顶上附近走得极慢。",
+    galH: "伽利略的单摆",
+    galNote: "伽利略在 16 世纪后期到 17 世纪初研究过单摆。传统的说法是：他年轻时在比萨大教堂里，用自己的脉搏给一盏摆动的吊灯计时，发现摆幅大小不同，摆一次的时间却差不多。在《两门新科学》（1638 年）里，他写道：摆长之比等于摆动时间的平方之比，也就是上面「×4 → ×2」的规律。他认为摆动时间和摆幅完全无关；上面的表说明，这只在小角度时近似成立。",
+    liveGo: "同时放手。", liveCount: "A 已经来回摆了 {a} 次，B 摆了 {b} 次。",
+    liveDamp: "空气阻力开着：开始时的能量已有 {p}% 变成了热。",
+    resultTitle: "我们发现", resultMain: "T ≈ 2π√(L/g) · PE + KE = 常量",
+    resultNote: "公式里没有 m：摆锤越重，受的重力越大，但也越难加速，两者按同样的比例变。摆长 4 倍，周期 2 倍。高度的能量和速度的能量来回互换；摩擦会把一部分变成热。",
+    explainK: "说一说", explainQ: "一台落地摆钟走慢了。应该把摆锤沿摆杆往上调还是往下调？换一个更重的摆锤有没有用？用 T = 2π√(L/g) 解释。",
+    homeK: "家里做一做", homeQ: "把一把钥匙拴在 1 米长的绳子上，量摆 10 次的时间；换成两把钥匙再量一次；再把绳子缩短到 25 厘米量一次。哪个改变有影响，影响多大？",
+    foot: "模型：摆锤看成质点，挂在没有质量的硬杆上，支点无摩擦。θ″ = −(g/L)·sin θ（可选空气阻力：−c·θ′，c = 0.12 s⁻¹，即阻力与速度和质量成正比，两个摆锤每秒损失同样比例的能量），用四阶龙格–库塔法、固定步长 1 毫秒求解。测得的周期：同方向两次过零点之间的时间（线性插值），按没有空气阻力计算。校验：精确周期 2π√(L/g)/AGM(1, cos(θ₀/2)) 与模拟相差小于 0.01%。PE 以最低点为零。g = 9.81 m/s²。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure physics, no DOM (tests extract this block) */
+const G = 9.81, DT = 0.001, C_DAMP = 0.12, TMAX = 120;
+const rad = (d) => d * Math.PI / 180;
+// One RK4 step of θ'' = −(g/L)·sin θ − c·θ'
+function rk4(th, w, gL, c, dt) {
+  const f = (a, b) => -gL * Math.sin(a) - c * b;
+  const k1t = w, k1w = f(th, w);
+  const k2t = w + 0.5 * dt * k1w, k2w = f(th + 0.5 * dt * k1t, w + 0.5 * dt * k1w);
+  const k3t = w + 0.5 * dt * k2w, k3w = f(th + 0.5 * dt * k2t, w + 0.5 * dt * k2w);
+  const k4t = w + dt * k3w, k4w = f(th + dt * k3t, w + dt * k3w);
+  return [th + dt / 6 * (k1t + 2 * k2t + 2 * k3t + k4t), w + dt / 6 * (k1w + 2 * k2w + 2 * k3w + k4w)];
+}
+function energy(m, L, th, w) {
+  const pe = m * G * L * (1 - Math.cos(th)), ke = 0.5 * m * (L * w) ** 2;
+  return { pe, ke, e: pe + ke };
+}
+const Tsmall = (L) => 2 * Math.PI * Math.sqrt(L / G);
+function agm(a, b) { for (let i = 0; i < 40 && Math.abs(a - b) > 1e-15 * a; i++) [a, b] = [(a + b) / 2, Math.sqrt(a * b)]; return (a + b) / 2; }
+const Texact = (L, deg) => Tsmall(L) / agm(1, Math.cos(rad(Math.min(Math.abs(deg), 179.999)) / 2));
+// Release from rest at deg; period = time between the 1st and 3rd zero crossings (same direction).
+function measurePeriod(L, deg, c) {
+  if (!Number.isFinite(L) || !Number.isFinite(deg) || L <= 0 || Math.abs(deg) < 0.01) return null;
+  const gL = G / L;
+  let th = rad(deg), w = 0, t = 0;
+  const cross = [];
+  for (let i = 0; i < TMAX / DT && cross.length < 3; i++) {
+    const [t2, w2] = rk4(th, w, gL, c || 0, DT);
+    if ((th > 0 && t2 <= 0) || (th < 0 && t2 >= 0)) cross.push(t + DT * th / (th - t2));
+    th = t2; w = w2; t += DT;
+  }
+  return cross.length === 3 ? cross[2] - cross[0] : null;
+}
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const scene = $("scene"), eSvg = $("energy"), trace = $("trace");
+const KEYS = ["A", "B"], COL = { A: "var(--a)", B: "var(--b)" }, CXP = { A: 150, B: 450 }, PY = 160, RMAX = 128;   // the longer pendulum is always drawn RMAX px long
+const PEN = {}, RUN = {};
+let t = 0, playing = false, raf = 0, last = 0, speed = 1, damp = false, dragging = null, wasPlaying = false;
+let samples = [], lastCount = -1, lastLive = "";
+const per = { A: null, B: null }, perKey = { A: "", B: "" };
+
+const f2 = (x) => Play.fmt(x, 2), f3 = (x) => Play.fmt(x, 3);
+
+/* ---------- controls for A and B ---------- */
+function slider(k, id, lab, min, max, val) {
+  return `<span class="pair"><label for="${id}${k}">${P.t(lab)}</label><input type="range" id="${id}${k}" min="${min}" max="${max}" step="1" value="${val}"><span class="val" id="${id}${k}v"></span></span>`;
+}
+$("ctl").innerHTML = KEYS.map((k) => `<div class="pend"><div class="ph"><span class="sw" style="background:${COL[k]}"></span>${k}</div>` +
+  slider(k, "m", "mass", 1, 50, 10) + slider(k, "L", "length", 2, 40, 20) + slider(k, "a", "angle", 0, 179, 20) + "</div>").join("");
+KEYS.forEach((k) => {
+  $("m" + k).addEventListener("input", () => { PEN[k].m = Play.clamp(+$("m" + k).value, 1, 50) / 10; restart(); });
+  $("L" + k).addEventListener("input", () => { PEN[k].L = Play.clamp(+$("L" + k).value, 2, 40) / 20; restart(); });
+  $("a" + k).addEventListener("input", () => { PEN[k].a0 = Play.clamp(+$("a" + k).value, 0, 179); restart(); });
+});
+$("play").addEventListener("click", () => {
+  if (playing) { pause(); return; }
+  playing = true; last = 0;
+  if (t === 0) say(P.t("liveGo"));
+  raf = requestAnimationFrame(tick); syncPlay();
+});
+$("restart").addEventListener("click", () => restart());
+$("speed").addEventListener("change", () => { speed = +$("speed").value || 1; });
+$("damp").addEventListener("change", () => { damp = $("damp").checked; restart(); });
+function pause() { playing = false; cancelAnimationFrame(raf); syncPlay(); }
+function syncPlay() { $("play").textContent = P.t(playing ? "pause" : t > 0 ? "resume" : "play"); }
+function say(msg) { if (msg !== lastLive) { lastLive = msg; Play.live($("live"), msg); } }
+
+/* ---------- drag a bob to set the start angle ---------- */
+scene.addEventListener("pointerdown", (e) => {
+  const p = Play.pointer(scene, e);
+  dragging = p.x < 300 ? "A" : "B";
+  wasPlaying = playing; if (playing) pause();
+  scene.setPointerCapture && scene.setPointerCapture(e.pointerId);
+  dragTo(p); e.preventDefault();
+});
+scene.addEventListener("pointermove", (e) => { if (dragging) dragTo(Play.pointer(scene, e)); });
+["pointerup", "pointercancel"].forEach((ev) => scene.addEventListener(ev, () => {
+  if (!dragging) return;
+  dragging = null;
+  if (wasPlaying) $("play").click();
+}));
+function dragTo(p) {
+  const k = dragging, dx = p.x - CXP[k], dy = p.y - PY;
+  if (Math.hypot(dx, dy) < 6) return;
+  const deg = Math.round(Play.clamp(Math.abs(Math.atan2(dx, dy)) * 180 / Math.PI, 0, 179));
+  const side = dx < 0 ? -1 : 1;
+  if (deg !== PEN[k].a0 || side !== PEN[k].side) { PEN[k].a0 = deg; PEN[k].side = side; restart(); }
+}
+
+/* ---------- simulation ---------- */
+function restart() {
+  t = 0; samples = []; lastCount = -1;
+  KEYS.forEach((k) => {
+    const p = PEN[k], th = p.side * rad(p.a0);
+    RUN[k] = { th, w: 0, prevW: 0, swings: 0, e0: energy(p.m, p.L, th, 0).e };
+    const key = p.L + "|" + p.a0;   // period of the release itself, measured without air friction
+    if (key !== perKey[k]) { perKey[k] = key; per[k] = measurePeriod(p.L, p.a0, 0); }
+  });
+  samples.push([0, RUN.A.th, RUN.B.th]);
+  syncControls(); drawAll(); syncPlay(); drawRule();
+}
+function advance(dt) {
+  const n = Math.round(dt / DT), c = damp ? C_DAMP : 0;
+  for (let i = 0; i < n; i++) {
+    KEYS.forEach((k) => {
+      const r = RUN[k];
+      [r.th, r.w] = rk4(r.th, r.w, G / PEN[k].L, c, DT);
+      // one full swing = back at the starting side: θ' changes sign with the bob on the start side
+      if (r.prevW * PEN[k].side > 0 && r.w * PEN[k].side <= 0) r.swings++;
+      if (r.w !== 0) r.prevW = r.w;
+    });
+    t += DT;
+    if (Math.round(t / DT) % 20 === 0) samples.push([t, RUN.A.th, RUN.B.th]);
+  }
+  while (samples.length && samples[0][0] < t - 10) samples.shift();
+}
+function tick(ts) {
+  if (!playing) return;
+  if (last) advance(Math.min(0.1, (ts - last) / 1000) * speed);
+  last = ts;
+  drawAll();
+  const a = RUN.A.swings, b = RUN.B.swings;
+  if (a + b !== lastCount && (a + b) % 4 === 0 && a + b > 0) say(P.t("liveCount", { a, b }));
+  lastCount = a + b;
+  raf = requestAnimationFrame(tick);
+}
+
+/* ---------- drawing ---------- */
+function syncControls() {
+  KEYS.forEach((k) => {
+    const p = PEN[k];
+    $("m" + k).value = Math.round(p.m * 10); $("m" + k + "v").textContent = p.m.toFixed(1) + " " + P.t("unitKg");
+    $("L" + k).value = Math.round(p.L * 20); $("L" + k + "v").textContent = p.L.toFixed(2) + " " + P.t("unitM");
+    $("a" + k).value = p.a0; $("a" + k + "v").textContent = p.a0 + "°";
+  });
+}
+const bobR = (m) => 7 + 5 * Math.cbrt(m);
+function drawAll() { drawScene(); drawEnergy(); drawTrace(); drawReadout(); }
+function drawScene() {
+  const sv = Play.svg;
+  scene.innerHTML = "";
+  KEYS.forEach((k) => {
+    const p = PEN[k], cx = CXP[k], R = p.L * RMAX / Math.max(PEN.A.L, PEN.B.L), r = bobR(p.m);
+    sv("line", { class: "vert", x1: cx, y1: PY, x2: cx, y2: PY + R }, scene);
+    const th0 = p.side * rad(p.a0);
+    sv("circle", { class: "ghost", cx: (cx + R * Math.sin(th0)).toFixed(1), cy: (PY + R * Math.cos(th0)).toFixed(1), r }, scene);
+    const th = RUN[k].th, bx = cx + R * Math.sin(th), by = PY + R * Math.cos(th);
+    sv("line", { class: "rod", x1: cx, y1: PY, x2: bx.toFixed(1), y2: by.toFixed(1) }, scene);
+    sv("line", { class: "support", x1: cx - 34, y1: PY, x2: cx + 34, y2: PY }, scene);
+    sv("circle", { cx, cy: PY, r: 4, fill: "var(--fg)" }, scene);
+    sv("circle", { class: "bob", cx: bx.toFixed(1), cy: by.toFixed(1), r: r.toFixed(1), fill: COL[k] }, scene);
+    sv("text", { class: "lblF", x: cx - 140, y: 28 }, scene).textContent = k;
+    sv("text", { class: "lbl", x: cx - 112, y: 28 }, scene).textContent = p.m.toFixed(1) + " kg · " + p.L.toFixed(2) + " m";
+  });
+  sv("line", { class: "grid", x1: 300, y1: 40, x2: 300, y2: 312 }, scene);
+}
+function drawEnergy() {
+  const sv = Play.svg;
+  eSvg.innerHTML = "";
+  const X0 = 50, W = 540, items = [["pe", "var(--c)"], ["ke", "var(--hl)"]];
+  if (damp) items.push(["heat", "var(--no)"]);
+  let lx = X0;
+  items.forEach(([key, col]) => {
+    sv("rect", { x: lx, y: 10, width: 16, height: 16, rx: 3, fill: col }, eSvg);
+    const tx = sv("text", { class: "lbl", x: lx + 22, y: 27 }, eSvg); tx.textContent = P.t(key);
+    lx += 32 + P.t(key).length * (P.lang === "zh" ? 17 : 12) + 14;
+  });
+  const eMax = Math.max(RUN.A.e0, RUN.B.e0);
+  KEYS.forEach((k, i) => {
+    const y = 50 + i * 50, r = RUN[k], p = PEN[k];
+    sv("text", { class: "lblF", x: 14, y: y + 25 }, eSvg).textContent = k;
+    if (!(eMax > 1e-12) || !(r.e0 > 1e-12)) {
+      sv("text", { class: "lbl", x: X0, y: y + 25 }, eSvg).textContent = P.t("noEnergy");
+      return;
+    }
+    const s = W / eMax, en = energy(p.m, p.L, r.th, r.w), heat = Math.max(0, r.e0 - en.e);
+    let x = X0;
+    [[en.pe, "var(--c)"], [en.ke, "var(--hl)"], [damp ? heat : 0, "var(--no)"]].forEach(([v, col]) => {
+      const w = Math.max(0, Math.min(v * s, X0 + W - x));
+      if (w > 0.2) sv("rect", { x: x.toFixed(1), y, width: w.toFixed(1), height: 34, fill: col }, eSvg);
+      x += w;
+    });
+    sv("rect", { class: "eOut", x: X0, y, width: (r.e0 * s).toFixed(1), height: 34 }, eSvg);
+  });
+  $("clock").textContent = P.t("clock", { t: Play.fmt(t, 1) });
+}
+function drawTrace() {
+  const sv = Play.svg, X0 = 70, X1 = 585, YM = 100, H = 76;
+  trace.innerHTML = "";
+  const amax = Math.max(PEN.A.a0, PEN.B.a0, 5), t0 = Math.max(0, t - 10);
+  const px = (tt) => X0 + (tt - t0) / 10 * (X1 - X0), py = (th) => YM - (th * 180 / Math.PI) / amax * H;
+  sv("line", { class: "grid", x1: X0, y1: YM - H, x2: X1, y2: YM - H }, trace);
+  sv("line", { class: "grid", x1: X0, y1: YM + H, x2: X1, y2: YM + H }, trace);
+  sv("polyline", { class: "ax", points: `${X0},${YM - H - 8} ${X0},${YM + H + 8}` }, trace);
+  sv("line", { class: "ax", x1: X0, y1: YM, x2: X1, y2: YM }, trace);
+  sv("text", { class: "lbl", x: X0 - 8, y: YM - H + 8, "text-anchor": "end" }, trace).textContent = "+" + amax + "°";
+  sv("text", { class: "lbl", x: X0 - 8, y: YM + 8, "text-anchor": "end" }, trace).textContent = "0";
+  sv("text", { class: "lbl", x: X0 - 8, y: YM + H + 8, "text-anchor": "end" }, trace).textContent = "−" + amax + "°";
+  for (let s = Math.ceil(t0 / 2) * 2; s <= t0 + 10 + 1e-9; s += 2) {
+    sv("text", { class: "lbl", x: px(s).toFixed(1), y: YM + H + 32, "text-anchor": "middle" }, trace).textContent = s;
+  }
+  sv("text", { class: "lbl", x: X1, y: YM + H - 10, "text-anchor": "end" }, trace).textContent = P.t("tAxis");
+  if (t === 0) {
+    sv("text", { class: "lbl", x: (X0 + X1) / 2, y: YM - 14, "text-anchor": "middle" }, trace).textContent = P.t("traceHint");
+    return;
+  }
+  [["A", 1], ["B", 2]].forEach(([k, j]) => {
+    const pts = samples.map((q) => px(q[0]).toFixed(1) + "," + py(q[j]).toFixed(1)).join(" ");
+    sv("polyline", { class: "tr", points: pts, stroke: COL[k], "stroke-dasharray": k === "B" ? "9 6" : "none" }, trace);
+  });
+}
+function drawReadout() {
+  const row = (lab, fn, cls) => `<tr${cls ? ' class="key"' : ""}><td>${P.t(lab)}</td>` + KEYS.map((k) => `<td>${fn(k)}</td>`).join("") + "</tr>";
+  const s = " " + P.t("unitS"), J = " " + P.t("unitJ");
+  const en = (k) => energy(PEN[k].m, PEN[k].L, RUN[k].th, RUN[k].w);
+  let h = `<tr><th></th><th style="color:${COL.A}">${P.t("colA")}</th><th style="color:${COL.B}">${P.t("colB")}</th></tr>` +
+    row("rM", (k) => PEN[k].m.toFixed(1) + " " + P.t("unitKg")) +
+    row("rL", (k) => PEN[k].L.toFixed(2) + " " + P.t("unitM")) +
+    row("rA", (k) => PEN[k].a0 + "°") +
+    row("rTm", (k) => (per[k] === null ? P.t("noSwing") : f3(per[k]) + s), true) +
+    row("rT0", (k) => f3(Tsmall(PEN[k].L)) + s) +
+    row("rDiff", (k) => (per[k] === null ? "—" : "+" + Play.fmt((per[k] / Tsmall(PEN[k].L) - 1) * 100, 2) + "%")) +
+    row("rN", (k) => RUN[k].swings) +
+    row("rPE", (k) => f3(en(k).pe) + J) + row("rKE", (k) => f3(en(k).ke) + J);
+  if (damp) h += row("rH", (k) => f3(Math.max(0, RUN[k].e0 - en(k).e)) + J);
+  h += row("rE", (k) => f3(en(k).e) + J);
+  $("readout").innerHTML = h;
+  if (damp && playing && t > 0) {
+    const e0 = RUN.A.e0 + RUN.B.e0, lost = e0 > 1e-12 ? (1 - (en("A").e + en("B").e) / e0) * 100 : 0;
+    if (Math.round(t * 10) % 50 === 0) say(P.t("liveDamp", { p: Math.round(lost) }));
+  }
+}
+
+/* ---------- step 3: rule ---------- */
+function drawRule() {
+  const box = $("rule");
+  if (!stp || stp.i !== 2) { box.innerHTML = ""; return; }
+  const Ls = [0.25, 0.5, 1, 2, 4], s = " " + P.t("unitS");
+  const rows = Ls.map((L) => `<tr${L === 0.25 || L === 1 || L === 4 ? ' class="key"' : ""}><td>${L} ${P.t("unitM")}</td><td>${f3(Tsmall(L))}${s}</td><td>${f3(measurePeriod(L, 10, 0))}${s}</td></tr>`).join("");
+  const T = (L) => Tsmall(L);
+  const four = P.t("ruleFour", { a: 0.25, b: 1, e: 4, c: f3(T(0.25)), d: f3(T(1)), r: f2(T(1) / T(0.25)), r2: f2(T(4) / T(1)) });
+  const LA = PEN.A.L;
+  const amps = [5, 20, 45, 90, 179].map((a) => {
+    const m = measurePeriod(LA, a, 0);
+    return `<tr><td>${a}°</td><td>${f3(m)}${s}</td><td>+${Play.fmt((m / Tsmall(LA) - 1) * 100, 2)}%</td></tr>`;
+  }).join("");
+  box.innerHTML =
+    "<p>" + P.t("ruleMain") + "</p>" +
+    `<table class="readout"><tr><th>${P.t("thL")}</th><th>${P.t("thT0")}</th><th>${P.t("thTm")}</th></tr>${rows}</table>` +
+    "<p>" + four + "</p>" +
+    `<p><button type="button" class="small" id="demo4">${P.t("demo4")}</button></p>` +
+    `<p><strong>${P.t("ampH", { L: LA.toFixed(2) })}</strong></p>` +
+    `<table class="readout"><tr><th>${P.t("thA")}</th><th>${P.t("rTm")}</th><th>${P.t("thDiff")}</th></tr>${amps}</table>` +
+    "<p>" + P.t("ampNote") + "</p>" +
+    '<div class="gal"><h3>' + P.t("galH") + "</h3><p>" + P.t("galNote") + "</p></div>";
+  $("demo4").addEventListener("click", () => {
+    pause();
+    Object.assign(PEN.A, { m: 1, L: 0.5, a0: 15, side: 1 });
+    Object.assign(PEN.B, { m: 1, L: 2, a0: 15, side: 1 });
+    restart();
+    say(P.t("demoSay"));
+  });
+}
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+let stp = null;
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  if (RUN.A) drawRule();
+});
+function resetAll() {
+  pause();
+  PEN.A = { m: 1, L: 1, a0: 20, side: 1 };
+  PEN.B = { m: 4, L: 1, a0: 20, side: 1 };
+  speed = 1; $("speed").value = "1"; damp = false; $("damp").checked = false;
+  lastLive = ""; $("live").textContent = "";
+  pr.reset(); stp.go(0); restart();
+}
+$("reset").addEventListener("click", resetAll);
+resetAll();
+// No autoplay (with or without Play.reduced): the reader predicts first, then presses Release.
+</script>
+</body>
+</html>

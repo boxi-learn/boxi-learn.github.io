@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who pushes harder in a crash?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.fig { width: 100%; height: auto; display: block; }
+  #scene { touch-action: none; }
+  .ground { stroke: var(--fg); stroke-width: 3; }
+  .tick { stroke: var(--muted); stroke-width: 1.5; }
+  .wheel { fill: var(--fg); }
+  .c1 { fill: var(--b); } .c2 { fill: var(--c); }
+  .s1 { stroke: var(--b); } .s2 { stroke: var(--c); } .sT { stroke: var(--fg); }
+  .spring { fill: none; stroke: var(--fg); stroke-width: 2.5; stroke-linejoin: round; }
+  .arr { stroke-width: 4; fill: none; stroke-linecap: round; }
+  .lbl { fill: var(--muted); font-size: 23px; font-family: var(--font); }
+  .lb1 { fill: var(--b); font-size: 23px; font-weight: 700; font-family: var(--font); }
+  .lb2 { fill: var(--c); font-size: 23px; font-weight: 700; font-family: var(--font); }
+  .lbF { fill: var(--fg); font-size: 23px; font-weight: 700; font-family: var(--font); }
+  .lbH { fill: var(--no); font-size: 23px; font-weight: 700; font-family: var(--font); }
+  svg.fig text { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
+  .ax { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+  .grid { stroke: var(--line); stroke-width: 1; }
+  .area1 { fill: var(--b); opacity: .28; } .area2 { fill: var(--c); opacity: .28; }
+  .curve1 { fill: none; stroke: var(--b); stroke-width: 3; } .curve2 { fill: none; stroke: var(--c); stroke-width: 3; }
+  .cursor { stroke: var(--hl); stroke-width: 2.5; }
+  .heat { fill: var(--no); opacity: .75; }
+  .pale { opacity: .42; }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .controls .val { min-width: 4.4em; font-size: 14px; }
+  .controls select { font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .pair { display: flex; align-items: center; gap: 8px; flex: 1 1 210px; min-width: 0; }
+  .pair input[type=range] { flex: 1 1 80px; min-width: 0; }
+  .pair label { min-width: 4.6em; }
+  .pair.k1 label { color: var(--b); font-weight: 650; } .pair.k2 label { color: var(--c); font-weight: 650; }
+  .presets { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .cap.tagline { color: var(--a); font-weight: 650; padding-top: 2px; }
+  .cap { font-size: 13px; color: var(--muted); padding: 0 14px 6px; }
+  .charthead { font-size: 13px; color: var(--muted); padding: 10px 14px 0; border-top: 1px solid var(--line); }
+  .charthead strong { color: var(--fg); }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout th, .readout td { padding: 3px 5px; text-align: right; border-bottom: 1px solid var(--line); }
+  .readout th:first-child, .readout td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  .readout th.h1 { color: var(--b); } .readout th.h2 { color: var(--c); }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+  #rule .controls { padding: 4px 0 8px; }
+  .crumple { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 8px; }
+  .crumple h3 { font-size: 14px; margin: 0 0 4px; }
+  .result .math { white-space: normal; }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="fig" id="scene" viewBox="0 0 600 250" role="img" data-t-aria="figAria"></svg>
+      <div class="cap tagline" id="tag"></div>
+      <div class="cap" id="cap"></div>
+      <div class="controls">
+        <div class="grp">
+          <button type="button" id="play"></button>
+          <button type="button" class="small" id="skip" data-t="skip"></button>
+          <label for="speed" data-t="speedLabel"></label>
+          <select id="speed"><option value="0.25">¼×</option><option value="1" selected>1×</option></select>
+        </div>
+        <div class="grp"><span class="presets" id="presets" role="group" data-t-aria="presetLabel"></span></div>
+        <div class="grp">
+          <span class="pair k1"><label for="m1" data-t="m1Label"></label><input type="range" id="m1" min="5" max="50" step="1"><span class="val" id="m1Val"></span></span>
+          <span class="pair k1"><label for="u1" data-t="u1Label"></label><input type="range" id="u1" min="-30" max="30" step="1"><span class="val" id="u1Val"></span></span>
+        </div>
+        <div class="grp">
+          <span class="pair k2"><label for="m2" data-t="m2Label"></label><input type="range" id="m2" min="5" max="50" step="1"><span class="val" id="m2Val"></span></span>
+          <span class="pair k2"><label for="u2" data-t="u2Label"></label><input type="range" id="u2" min="-30" max="30" step="1"><span class="val" id="u2Val"></span></span>
+        </div>
+        <div class="grp">
+          <span class="pair"><label for="e" data-t="eLabel"></label><input type="range" id="e" min="0" max="20" step="1"><span class="val" id="eVal"></span></span>
+        </div>
+      </div>
+      <div class="charthead"><strong data-t="fTitle"></strong></div>
+      <svg class="fig" id="fchart" viewBox="0 0 600 270" role="img" data-t-aria="fAria"></svg>
+      <div class="charthead"><strong data-t="bTitle"></strong></div>
+      <svg class="fig" id="bars" viewBox="0 0 600 400" role="img" data-t-aria="bAria"></svg>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Who pushes harder in a crash?", eyebrow: "Physics · Stage 4", h1: "Who pushes harder in a crash?",
+    intro: "Two carts on a frictionless track run into each other. Measure the push each one feels, and count the momentum before and after.",
+    reset: "Reset", figAria: "A straight frictionless track with two carts; cart 1 has a spring bumper; arrows show velocities and, during contact, the two forces",
+    fAria: "Force against time during the contact: the force on cart 2 above the axis, the force on cart 1 below it, mirror images",
+    bAria: "Bars of momentum before and after for each cart and for the total, and of kinetic energy before and after with the part lost to heat",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Truck against small car",
+    b1: "A 5 kg toy truck rolling right at 2 m/s meets a 1 kg toy car rolling left at 2 m/s. While they are touching, each pushes on the other. Pick an answer, then press Play and look at the force arrows under the track.",
+    k2: "Hands on", t2: "Crash any two carts",
+    b2: "Change the masses, the speeds (or drag a cart sideways) and the bounciness. The force graph shows both pushes during the contact; the bars count momentum and energy. Try to find a crash where the two forces differ, or where the total momentum changes.",
+    k3: "The rule", t3: "Equal pushes, so momentum is kept",
+    q: "During the crash, who pushes harder?", o1: "The truck — it is bigger", o2: "The car — it is lighter and gets thrown back", o3: "The faster one", o4: "Both push exactly as hard",
+    right: "Yes. Go to step 2 and try to break it: any masses, any speeds.",
+    wrong: "That is what most people expect: the truck seems to win. Press Play and compare the two force arrows, then go to step 2.",
+    play: "▶ Play", pause: "❚❚ Pause", replay: "↺ Replay", skip: "⇥ Skip to end", speedLabel: "Speed",
+    presetLabel: "Examples", pTruck: "Truck vs car", pEqual: "Equal, bouncy", pRest: "Hit one at rest", pStick: "Stick together",
+    m1Label: "Mass 1", u1Label: "Speed 1", m2Label: "Mass 2", u2Label: "Speed 2", eLabel: "Bounciness e",
+    eStick: "sticks", eElastic: "elastic",
+    unitKg: "kg", unitMS: "m/s", unitN: "N", unitNs: "N·s", unitJ: "J", unitP: "kg·m/s", unitMs: "ms",
+    tagRun: "track: no friction · + = right", tagSlow: "slow motion: contact lasts {ms} ms", tagNo: "no collision",
+    cap: "Cart 1 carries a spring bumper ({k} N/m). Bounciness e = separating speed ÷ approaching speed. Drag a cart left or right to set its speed.",
+    fTitle: "Force during the contact (both carts)", bTitle: "Momentum and kinetic energy, before and after",
+    fOn1: "on cart 1", fOn2: "on cart 2", tAxis: "t (ms)", fAxis: "F (N)",
+    jLbl: "{j} N·s", noHit: "They never touch: cart 1 is not catching up with cart 2.",
+    before: "before", after: "after", tot: "total", ke: "KE", heat: "heat & sound {h} J", barsKey: "pale = before · solid = after",
+    colA: "Cart 1", colB: "Cart 2", colT: "Total",
+    rU: "Speed before (m/s)", rV: "Speed after (m/s)", rP0: "p before (kg·m/s)", rP1: "p after (kg·m/s)", rDP: "Δp (kg·m/s)", rJ: "Impulse ∫F dt (N·s)", rF: "Peak force",
+    liveHit: "Peak push {F} N on each cart for {ms} ms. Total momentum {p0} → {p1} kg·m/s. Kinetic energy {k0} → {k1} J ({h} J to heat).",
+    liveNo: "They never touch, so nothing changes: total momentum stays {p0} kg·m/s.",
+    ruleF: "<strong>At every instant of the contact, the force of 1 on 2 equals the force of 2 on 1, in the opposite direction</strong> (Newton’s third law). Here both peak at {F} N and both last {ms} ms, so the two areas match: impulse {J} N·s each way.",
+    ruleP: "Impulse = change of momentum: Δp₁ = {d1} and Δp₂ = {d2} kg·m/s. They cancel, so the total stays {p} kg·m/s — whatever the masses, speeds or bounciness.",
+    ruleE: "Energy is not kept as kinetic energy: {h} J of {k} J ({pct}%) went into heat, sound and a dented bumper. Momentum does not care.",
+    ruleA: "Then why does the small one come off worse? Same force, but a = F/m: cart 2’s speed changes by {dv2} m/s, cart 1’s by {dv1} m/s — {r}× as much, exactly m₁/m₂.",
+    ruleNo: "Set up a collision (speed 1 bigger than speed 2) to see the numbers.",
+    crH: "Why a crumple zone helps", crLbl: "Crumple time",
+    crNote: "A 1200 kg car at 15 m/s (54 km/h) hits a wall and stops. Its change of momentum is fixed: J = m·Δv = {J} N·s. Only the time is up to the designer.",
+    crRow: "Stops in {t} s → average force {F} kN, deceleration {g} g",
+    crSay: "Same area under both pulses; the longer one is {r}× lower.",
+    crAria: "Two force pulses with the same area: a short tall one for a stiff car and a long low one for a car with a crumple zone",
+    stiff: "stiff", crumple: "crumple zone",
+    resultTitle: "What we found", resultMain: "F₁₂ = −F₂₁ for the same Δt ⇒ m₁u₁ + m₂u₂ = m₁v₁ + m₂v₂",
+    resultNote: "Both carts always push each other equally hard. The lighter one changes speed more because a = F/m. Total momentum is kept in every collision; kinetic energy only in a perfectly elastic one.",
+    explainK: "Explain it", explainQ: "A friend says “the truck hit the car harder than the car hit the truck”. Using the words “force”, “time” and “momentum”, explain what is true and why the car’s passengers still feel more.",
+    homeK: "Try at home", homeQ: "Hold two equal bathroom scales face to face and push them together with a friend: compare the two readings while you push gently, then hard. Then roll a heavy ball into a light one on a smooth floor and watch which one changes speed more.",
+    foot: "Model: carts on a frictionless track; cart 1’s bumper is a spring, k = 4000 N/m while squashing and k/e² while springing back, so the push is a half sine (π/2·√(μ/k) long, μ = m₁m₂/(m₁+m₂)) and the rebound gives exactly separation speed e × approach speed. Final speeds v₁ = (m₁u₁ + m₂u₂ + m₂e(u₂ − u₁))/(m₁+m₂), v₂ = (m₁u₁ + m₂u₂ + m₁e(u₁ − u₂))/(m₁+m₂); impulses are the numerically integrated areas under the force curves. Heat = ½μ(u₁−u₂)²(1−e²). The contact is played in slow motion. Crumple-zone numbers are illustrative; real crash pulses last roughly 0.05–0.15 s. g = 9.81 m/s². · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "相撞时谁推得更用力？", eyebrow: "物理 · 阶段 4", h1: "相撞时谁推得更用力？",
+    intro: "两辆小车在没有摩擦的轨道上相撞。量一量每辆车受到的推力，再数一数碰撞前后的动量。",
+    reset: "重置", figAria: "一条没有摩擦的直轨道和两辆小车；车 1 前面装着弹簧缓冲器；箭头表示速度，接触时还表示两个力",
+    fAria: "接触期间力随时间的变化：车 2 受的力画在轴上方，车 1 受的力画在轴下方，两者镜像对称",
+    bAria: "碰撞前后每辆车和总的动量柱，以及碰撞前后的动能柱和变成热的部分",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "大卡车对小汽车",
+    b1: "一辆 5 千克的玩具卡车以 2 米/秒向右开，迎面撞上一辆 1 千克、以 2 米/秒向左开的玩具小车。接触的那一会儿，它们互相推。先选一个答案，再按「播放」，看轨道下面的两个力箭头。",
+    k2: "动手", t2: "随便撞两辆车",
+    b2: "改质量、改速度（也可以直接左右拖小车）、改弹性。力的图画出接触期间两边的推力；柱状图数动量和能量。试试能不能找到一次碰撞，让两个力不一样大，或者让总动量变了。",
+    k3: "规律", t3: "推力相等，所以动量守恒",
+    q: "相撞的时候，谁推得更用力？", o1: "卡车——它大", o2: "小车——它轻，被撞回去了", o3: "开得快的那辆", o4: "两边推得一样用力",
+    right: "对。到第 2 步想办法推翻它：任意质量、任意速度。",
+    wrong: "大多数人都这么想：看起来是卡车赢了。按「播放」比一比两个力箭头，再到第 2 步。",
+    play: "▶ 播放", pause: "❚❚ 暂停", replay: "↺ 重放", skip: "⇥ 跳到结尾", speedLabel: "速度",
+    presetLabel: "例子", pTruck: "卡车撞小车", pEqual: "一样重、有弹性", pRest: "撞静止的车", pStick: "撞上粘住",
+    m1Label: "质量 1", u1Label: "速度 1", m2Label: "质量 2", u2Label: "速度 2", eLabel: "弹性 e",
+    eStick: "粘住", eElastic: "完全弹性",
+    unitKg: "千克", unitMS: "米/秒", unitN: "牛", unitNs: "牛·秒", unitJ: "焦", unitP: "千克·米/秒", unitMs: "毫秒",
+    tagRun: "轨道：无摩擦 · 向右为正", tagSlow: "慢镜头：接触只有 {ms} 毫秒", tagNo: "没有相撞",
+    cap: "车 1 前面装着弹簧缓冲器（{k} 牛/米）。弹性 e = 分开的速度 ÷ 靠近的速度。左右拖小车可以设它的速度。",
+    fTitle: "接触期间的力（两辆车）", bTitle: "碰撞前后的动量和动能",
+    fOn1: "车 1 受的力", fOn2: "车 2 受的力", tAxis: "t（毫秒）", fAxis: "F（牛）",
+    jLbl: "{j} 牛·秒", noHit: "它们碰不到：车 1 追不上车 2。",
+    before: "前", after: "后", tot: "合计", ke: "动能", heat: "热和声 {h} 焦", barsKey: "浅色 = 碰撞前 · 深色 = 碰撞后",
+    colA: "车 1", colB: "车 2", colT: "合计",
+    rU: "碰前速度（米/秒）", rV: "碰后速度（米/秒）", rP0: "碰前 p（千克·米/秒）", rP1: "碰后 p（千克·米/秒）", rDP: "Δp（千克·米/秒）", rJ: "冲量 ∫F dt（牛·秒）", rF: "最大推力",
+    liveHit: "每辆车受到的最大推力都是 {F} 牛，持续 {ms} 毫秒。总动量 {p0} → {p1} 千克·米/秒。动能 {k0} → {k1} 焦（{h} 焦变成热）。",
+    liveNo: "它们碰不到，所以什么都不变：总动量一直是 {p0} 千克·米/秒。",
+    ruleF: "<strong>接触的每一瞬间，1 推 2 的力和 2 推 1 的力一样大、方向相反</strong>（牛顿第三定律）。这里两个力的最大值都是 {F} 牛，都持续 {ms} 毫秒，所以两块面积相等：两边的冲量都是 {J} 牛·秒。",
+    ruleP: "冲量 = 动量的变化：Δp₁ = {d1}，Δp₂ = {d2} 千克·米/秒。两者正好抵消，总动量保持 {p} 千克·米/秒——不管质量、速度、弹性怎么改。",
+    ruleE: "动能并不守恒：{k} 焦里有 {h} 焦（{pct}%）变成了热、声音和缓冲器上的凹痕。动量不受影响。",
+    ruleA: "那为什么小的那辆更惨？力一样大，但 a = F/m：车 2 的速度变了 {dv2} 米/秒，车 1 只变了 {dv1} 米/秒——是 {r} 倍，正好等于 m₁/m₂。",
+    ruleNo: "先设置一次真正的碰撞（速度 1 大于速度 2），才能看到这些数。",
+    crH: "汽车的吸能区为什么有用", crLbl: "压溃时间",
+    crNote: "一辆 1200 千克的汽车以 15 米/秒（54 千米/时）撞墙停下。它的动量变化是定的：J = m·Δv = {J} 牛·秒。设计师能改的只有时间。",
+    crRow: "{t} 秒内停下 → 平均力 {F} 千牛，减速度 {g} g",
+    crSay: "两个脉冲下的面积一样大；长的那个矮 {r} 倍。",
+    crAria: "两个面积相同的力脉冲：硬车头是又短又高的，有吸能区的是又长又矮的",
+    stiff: "硬车头", crumple: "吸能区",
+    resultTitle: "我们发现", resultMain: "F₁₂ = −F₂₁，Δt 相同 ⇒ m₁u₁ + m₂u₂ = m₁v₁ + m₂v₂",
+    resultNote: "两辆车互相推的力永远一样大。轻的那辆速度变得多，是因为 a = F/m。每一次碰撞总动量都守恒；动能只在完全弹性碰撞里守恒。",
+    explainK: "说一说", explainQ: "朋友说「卡车撞小车的力比小车撞卡车的力大」。用上「力」「时间」「动量」三个词，讲讲哪里说得不对，以及为什么小车里的人还是感觉更猛。",
+    homeK: "家里做一做", homeQ: "拿两台一样的体重秤面对面贴着，和朋友一起往中间推：轻推、重推，各比一次两边的读数。再在光滑地板上让一个重球去撞一个轻球，看哪个的速度变得多。",
+    foot: "模型：小车在无摩擦轨道上；车 1 的缓冲器是弹簧，压缩时 k = 4000 牛/米，回弹时 k/e²，所以推力是半个正弦波（时长 π/2·√(μ/k)，μ = m₁m₂/(m₁+m₂)），回弹后分开的速度正好是靠近速度的 e 倍。碰后速度 v₁ = (m₁u₁ + m₂u₂ + m₂e(u₂ − u₁))/(m₁+m₂)，v₂ = (m₁u₁ + m₂u₂ + m₁e(u₁ − u₂))/(m₁+m₂)；冲量是对力曲线下面积的数值积分。热 = ½μ(u₁−u₂)²(1−e²)。接触过程用慢镜头播放。吸能区的数是示意，真实碰撞的力脉冲大约持续 0.05–0.15 秒。g = 9.81 m/s²。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure physics, no DOM (tests extract this block) */
+const K = 4000, HW = 0.22, LB = 0.3, TAFTER = 1.2, G = 9.81;
+const fin = (x, d) => (Number.isFinite(x) ? x : d);
+// Final velocities for a 1-D collision with coefficient of restitution e (cart 1 on the left).
+function collide(m1, u1, m2, u2, e) {
+  m1 = Math.min(5, Math.max(0.5, fin(m1, 1))); m2 = Math.min(5, Math.max(0.5, fin(m2, 1)));
+  u1 = Math.min(3, Math.max(-3, fin(u1, 0))); u2 = Math.min(3, Math.max(-3, fin(u2, 0)));
+  e = Math.min(1, Math.max(0, fin(e, 0)));
+  const M = m1 + m2, P = m1 * u1 + m2 * u2, w = u1 - u2, hit = w > 1e-9, mu = m1 * m2 / M;
+  const v1 = hit ? (P + m2 * e * (u2 - u1)) / M : u1, v2 = hit ? (P + m1 * e * (u1 - u2)) / M : u2;
+  const ke0 = 0.5 * m1 * u1 * u1 + 0.5 * m2 * u2 * u2, ke1 = 0.5 * m1 * v1 * v1 + 0.5 * m2 * v2 * v2;
+  const heat = hit ? 0.5 * mu * w * w * (1 - e * e) : 0;
+  return { m1, u1, m2, u2, e, M, P, V: P / M, w, hit, mu, v1, v2, ke0, ke1, heat };
+}
+// Contact model: spring k while squashing, k/e² while springing back (e = 0: no spring-back).
+function contact(c) {
+  if (!c.hit) return null;
+  const w1 = Math.sqrt(K / c.mu), X = c.w / w1, Fmax = K * X, Tc = Math.PI / 2 / w1;
+  const el = c.e > 1e-6, w2 = el ? w1 / c.e : Infinity, Tr = el ? Math.PI / 2 / w2 : 0, k2 = el ? K / (c.e * c.e) : Infinity;
+  return { w1, X, Fmax, Tc, w2, Tr, k2, T: Tc + Tr, dent: X * (1 - c.e * c.e) };
+}
+// Push between the carts at time tau after first touch (≥ 0), and the squash x of the bumper.
+function forceAt(ct, tau) {
+  if (!ct || !(tau >= 0) || tau > ct.T) return 0;
+  return tau <= ct.Tc ? ct.Fmax * Math.sin(ct.w1 * tau) : ct.Fmax * Math.cos(ct.w2 * (tau - ct.Tc));
+}
+function squashAt(c, ct, tau) {
+  if (tau <= 0) return 0;
+  if (tau <= ct.Tc) return ct.X * Math.sin(ct.w1 * tau);
+  if (tau <= ct.T) return ct.X - (ct.Fmax / ct.k2) * (1 - Math.cos(ct.w2 * (tau - ct.Tc)));
+  return ct.dent - c.e * c.w * (tau - ct.T);           // negative = a gap opens (dent stays)
+}
+// Full scenario: contact happens at track position 0 at time tc (chosen so both carts start on screen).
+function scenario(m1, u1, m2, u2, e) {
+  const c = collide(m1, u1, m2, u2, e), ct = contact(c);
+  if (!c.hit) return { c, ct, tc: null, tEnd: 2.5 };
+  const tc = Math.min(1.5, 1.6 / Math.max(Math.abs(c.u1), Math.abs(c.u2), 1e-6));
+  return { c, ct, tc, tEnd: tc + ct.T + TAFTER };
+}
+function stateAt(s, t) {
+  const c = s.c;
+  t = Math.max(0, fin(t, 0));
+  if (!c.hit) return { x1: -1.2 + c.u1 * t, x2: 1.2 + c.u2 * t, v1: c.u1, v2: c.u2, F: 0, sq: 0, dent: 0, phase: "none" };
+  const r0 = 2 * HW + LB;
+  if (t <= s.tc) return { x1: -HW - LB + c.u1 * (t - s.tc), x2: HW + c.u2 * (t - s.tc), v1: c.u1, v2: c.u2, F: 0, sq: 0, dent: 0, phase: "before" };
+  const tau = t - s.tc, ct = s.ct, x = squashAt(c, ct, tau), r = r0 - x;
+  const Xcm = (c.m1 * (-HW - LB) + c.m2 * HW) / c.M + c.V * tau;
+  let rdot;                                           // rate of change of centre distance
+  if (tau <= ct.Tc) rdot = -ct.X * ct.w1 * Math.cos(ct.w1 * tau);
+  else if (tau <= ct.T) rdot = (ct.Fmax / ct.k2) * ct.w2 * Math.sin(ct.w2 * (tau - ct.Tc));
+  else rdot = c.e * c.w;
+  const inC = tau <= ct.T;
+  return {
+    x1: Xcm - (c.m2 / c.M) * r, x2: Xcm + (c.m1 / c.M) * r,
+    v1: c.V - (c.m2 / c.M) * rdot, v2: c.V + (c.m1 / c.M) * rdot,
+    F: forceAt(ct, tau), sq: inC ? Math.max(0, x) : 0, dent: inC ? 0 : ct.dent, phase: inC ? "contact" : "after",
+  };
+}
+// Area under the force curve (trapezoid, n steps): the impulse each cart receives.
+function impulse(ct, n) {
+  if (!ct) return 0;
+  n = n || 400;
+  let J = 0;
+  const parts = [[0, ct.Tc], [ct.Tc, ct.T]];
+  parts.forEach(([a, b]) => {
+    if (b - a <= 0) return;
+    const h = (b - a) / n;
+    for (let i = 0; i < n; i++) J += 0.5 * h * (forceAt(ct, a + i * h) + forceAt(ct, Math.min(b, a + (i + 1) * h)));
+  });
+  return J;
+}
+// Crumple zone: same impulse J over time T as a half-sine pulse.
+const CAR_M = 1200, CAR_V = 15;
+const crash = (T) => { T = Math.max(1e-3, fin(T, 0.1)); const J = CAR_M * CAR_V; return { J, T, Favg: J / T, Fpk: Math.PI / 2 * J / T, g: CAR_V / T / G }; };
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const scene = $("scene"), fch = $("fchart"), bars = $("bars");
+const S = { m1: 5, u1: 2, m2: 1, u2: -2, e: 0.2, t: 0, playing: false, speed: 1 };
+let sc = null, J = 0, raf = 0, last = 0, lastLive = "", stp = null, crT = 0.1;
+const f1 = (x) => Play.fmt(Math.abs(x) < 0.005 ? 0 : x, 2).replace("-", "−"), f1s = (x) => (x > 0.005 ? "+" : "") + f1(x);
+const fF = (x) => Play.fmt(x, x < 100 ? 1 : 0);
+const PRE = {
+  pTruck: [5, 2, 1, -2, 0.2], pEqual: [1, 2, 1, -2, 1], pRest: [1, 2, 1, 0, 1], pStick: [2, 1.5, 1, 0, 0],
+};
+
+/* ---------- controls ---------- */
+Object.keys(PRE).forEach((k) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(k);
+  b.addEventListener("click", () => { [S.m1, S.u1, S.m2, S.u2, S.e] = PRE[k]; recompute(); });
+  $("presets").appendChild(b);
+});
+const SL = { m1: 10, u1: 10, m2: 10, u2: 10, e: 20 };
+Object.keys(SL).forEach((id) => $(id).addEventListener("input", () => { S[id] = (+$(id).value || 0) / SL[id]; recompute(); }));
+$("speed").addEventListener("change", () => { S.speed = +$("speed").value || 1; });
+$("play").addEventListener("click", () => {
+  if (S.playing) { pause(); return; }
+  if (!sc) recompute();
+  if (S.t >= sc.tEnd - 1e-9) S.t = 0;
+  S.playing = true; last = 0; raf = requestAnimationFrame(tick); syncPlay();
+});
+$("skip").addEventListener("click", () => { pause(); if (!sc) recompute(); S.t = sc.tEnd; drawDyn(); say(summary()); syncPlay(); });
+function pause() { S.playing = false; cancelAnimationFrame(raf); syncPlay(); }
+function syncPlay() { if (!sc) return; $("play").textContent = P.t(S.playing ? "pause" : S.t >= sc.tEnd - 1e-9 ? "replay" : "play"); }
+// Sim seconds per real second: contact (a few ms) is stretched to about 2 s.
+function rate(t) {
+  if (!sc.c.hit) return 1;
+  const a = sc.tc - 0.004, b = sc.tc + sc.ct.T + 0.004;
+  return t >= a && t <= b ? (b - a) / 2 : 1;
+}
+function tick(ts) {
+  if (!S.playing || !sc) return;
+  if (last) S.t += Math.min(0.1, (ts - last) / 1000) * S.speed * rate(S.t);
+  last = ts;
+  if (S.t >= sc.tEnd) { S.t = sc.tEnd; S.playing = false; say(summary()); }
+  drawDyn(); syncPlay();
+  if (S.playing) raf = requestAnimationFrame(tick);
+}
+function say(msg) { if (msg !== lastLive) { lastLive = msg; Play.live($("live"), msg); } }
+function summary() {
+  const c = sc.c, P1 = c.m1 * c.v1 + c.m2 * c.v2;
+  return c.hit ? P.t("liveHit", { F: fF(sc.ct.Fmax), ms: Play.fmt(sc.ct.T * 1000, 1), p0: f1(c.P), p1: f1(P1), k0: f1(c.ke0), k1: f1(c.ke1), h: f1(c.heat) })
+    : P.t("liveNo", { p0: f1(c.P) });
+}
+
+/* ---------- drag a cart to set its speed ---------- */
+let drag = null;
+scene.addEventListener("pointerdown", (e) => {
+  const p = Play.pointer(scene, e), st = stateAt(sc, 0);
+  const d1 = Math.abs(p.x - px(st.x1)), d2 = Math.abs(p.x - px(st.x2));
+  if (Math.min(d1, d2) > 70 || p.y < 20) return;
+  pause(); S.t = 0;
+  drag = { k: d1 <= d2 ? 1 : 2, x0: p.x, u0: d1 <= d2 ? S.u1 : S.u2 };
+  scene.setPointerCapture && scene.setPointerCapture(e.pointerId); e.preventDefault();
+});
+scene.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = Play.pointer(scene, e), u = Math.round(Play.clamp(drag.u0 + (p.x - drag.x0) / 40, -3, 3) * 10) / 10;
+  if (u !== S["u" + drag.k]) { S["u" + drag.k] = u; recompute(); }
+});
+["pointerup", "pointercancel"].forEach((ev) => scene.addEventListener(ev, () => { drag = null; }));
+
+/* ---------- physics → everything ---------- */
+function recompute() {
+  pause();
+  sc = scenario(S.m1, S.u1, S.m2, S.u2, S.e);
+  Object.assign(S, { m1: sc.c.m1, u1: sc.c.u1, m2: sc.c.m2, u2: sc.c.u2, e: sc.c.e });
+  J = impulse(sc.ct);
+  S.t = 0;
+  Object.keys(SL).forEach((id) => { $(id).value = Math.round(S[id] * SL[id]); });
+  $("m1Val").textContent = S.m1.toFixed(1) + " " + P.t("unitKg");
+  $("m2Val").textContent = S.m2.toFixed(1) + " " + P.t("unitKg");
+  $("u1Val").textContent = f1s(S.u1) + " " + P.t("unitMS");
+  $("u2Val").textContent = f1s(S.u2) + " " + P.t("unitMS");
+  $("eVal").textContent = S.e.toFixed(2) + (S.e === 0 ? " · " + P.t("eStick") : S.e === 1 ? " · " + P.t("eElastic") : "");
+  $("cap").textContent = P.t("cap", { k: K });
+  drawBars(); drawReadout(); drawRule(); drawDyn(); syncPlay(); say(summary());
+}
+
+/* ---------- scene ---------- */
+const GY = 150, PXM = 110, px = (x) => 300 + x * PXM;
+function arrow(x0, x1, y, cls, parent) {
+  const sv = Play.svg, d = x1 - x0;
+  if (Math.abs(d) < 3) { sv("circle", { cx: x0, cy: y, r: 4, class: cls.replace("s", "c") }, parent); return; }
+  const s = Math.sign(d);
+  sv("line", { class: "arr " + cls, x1: x0, y1: y, x2: x1 - s * 6, y2: y }, parent);
+  sv("polygon", { class: cls.replace("s", "c"), points: `${x1},${y} ${x1 - s * 13},${y - 8} ${x1 - s * 13},${y + 8}` }, parent);
+}
+function textAt(x, y, cls, str, parent) {
+  const w = str.length * 12.5, xx = Play.clamp(x, 8 + w / 2, 592 - w / 2);
+  Play.svg("text", { class: cls, x: xx.toFixed(1), y, "text-anchor": "middle" }, parent).textContent = str;
+}
+function cart(xc, m, k, sq, dent, parent) {
+  const sv = Play.svg, hb = 18 + 7 * m, x = px(xc), hw = HW * PXM, top = GY - 12 - hb;
+  sv("rect", { class: "c" + k, x: (x - hw).toFixed(1), y: top.toFixed(1), width: 2 * hw, height: hb, rx: 4 }, parent);
+  sv("circle", { class: "wheel", cx: (x - hw * 0.55).toFixed(1), cy: GY - 6, r: 6 }, parent);
+  sv("circle", { class: "wheel", cx: (x + hw * 0.55).toFixed(1), cy: GY - 6, r: 6 }, parent);
+  if (k === 1) {                                     // spring bumper on the right face
+    const L = Math.max(0.03, LB - sq - dent) * PXM, x0 = x + hw, y = GY - 12 - Math.min(hb, 30) / 2, n = 6;
+    let d = `M${x0.toFixed(1)},${y}`;
+    for (let i = 1; i <= n; i++) d += ` L${(x0 + (L - 6) * (i - 0.5) / n).toFixed(1)},${y + (i % 2 ? -7 : 7)}`;
+    d += ` L${(x0 + L - 6).toFixed(1)},${y} L${(x0 + L).toFixed(1)},${y}`;
+    sv("path", { class: "spring", d }, parent);
+    sv("line", { class: "spring", x1: (x0 + L).toFixed(1), y1: y - 11, x2: (x0 + L).toFixed(1), y2: y + 11 }, parent);
+  }
+}
+function drawDyn() {
+  const sv = Play.svg, st = stateAt(sc, S.t), c = sc.c;
+  scene.innerHTML = "";
+  sv("line", { class: "ground", x1: 0, y1: GY, x2: 600, y2: GY }, scene);
+  for (let m = -2; m <= 2; m++) sv("line", { class: "tick", x1: px(m), y1: GY + 4, x2: px(m), y2: GY + 10 }, scene);
+  cart(st.x1, c.m1, 1, st.sq, st.dent, scene);
+  cart(st.x2, c.m2, 2, 0, 0, scene);
+  // velocity arrows: cart 1 on the top row, cart 2 on the second row
+  [[st.x1, st.v1, 1, 22, 38], [st.x2, st.v2, 2, 60, 76]].forEach(([x, v, k, ty, ay]) => {
+    arrow(px(x), px(x) + v * 35, ay, "s" + k, scene);
+    textAt(px(x) + v * 17, ty, "lb" + k, f1s(v) + " " + P.t("unitMS"), scene);
+  });
+  textAt(px(st.x1), GY + 32, "lb1", +c.m1.toFixed(1) + " " + P.t("unitKg"), scene);
+  textAt(px(st.x2), GY + 32, "lb2", +c.m2.toFixed(1) + " " + P.t("unitKg"), scene);
+  if (st.phase === "contact" && st.F > 0.5) {         // the two pushes: same length, opposite ways
+    const xc = px(st.x2 - HW), L = 18 + 110 * st.F / sc.ct.Fmax, y = 202, lab = fF(st.F) + " " + P.t("unitN");
+    arrow(xc - 4, xc - 4 - L, y, "s1", scene);
+    arrow(xc + 4, xc + 4 + L, y, "s2", scene);
+    sv("text", { class: "lb1", x: (xc - 10).toFixed(1), y: 238, "text-anchor": "end" }, scene).textContent = lab;
+    sv("text", { class: "lb2", x: (xc + 10).toFixed(1), y: 238 }, scene).textContent = lab;
+  }
+  $("tag").textContent = !c.hit ? P.t("tagNo") : st.phase === "contact" ? P.t("tagSlow", { ms: Play.fmt(sc.ct.T * 1000, 1) }) : P.t("tagRun");
+  drawForce(st);
+}
+
+/* ---------- force–time graph ---------- */
+const FX0 = 80, FX1 = 410, FY0 = 132, FA = 92;
+function drawForce() {
+  const sv = Play.svg, ct = sc.ct;
+  fch.innerHTML = "";
+  sv("line", { class: "ax", x1: FX0, y1: FY0, x2: FX1, y2: FY0 }, fch);
+  sv("line", { class: "ax", x1: FX0, y1: FY0 - FA - 14, x2: FX0, y2: FY0 + FA + 14 }, fch);
+  if (!ct) { sv("text", { class: "lbl", x: 330, y: FY0 - 16, "text-anchor": "middle" }, fch).textContent = P.t("tagNo"); return; }
+  const span = ct.T * 1.25 + 1e-6, t0 = -ct.T * 0.1, tx = (t) => FX0 + (t - t0) / span * (FX1 - FX0);
+  const ty = (f) => FY0 - f / ct.Fmax * FA;
+  const up = [], dn = [], N = 160;
+  for (let i = 0; i <= N; i++) { const t = t0 + span * i / N, f = forceAt(ct, t); up.push(tx(t).toFixed(1) + "," + ty(f).toFixed(1)); dn.push(tx(t).toFixed(1) + "," + ty(-f).toFixed(1)); }
+  const base = `${tx(t0 + span).toFixed(1)},${FY0} ${tx(t0).toFixed(1)},${FY0}`;
+  sv("polygon", { class: "area2", points: up.join(" ") + " " + base }, fch);
+  sv("polygon", { class: "area1", points: dn.join(" ") + " " + base }, fch);
+  sv("polyline", { class: "curve2", points: up.join(" ") }, fch);
+  sv("polyline", { class: "curve1", points: dn.join(" ") }, fch);
+  sv("line", { class: "grid", x1: FX0, y1: ty(ct.Fmax), x2: FX1, y2: ty(ct.Fmax) }, fch);
+  sv("line", { class: "grid", x1: FX0, y1: ty(-ct.Fmax), x2: FX1, y2: ty(-ct.Fmax) }, fch);
+  const fl = fF(ct.Fmax);
+  sv("text", { class: "lbl", x: FX0 - 6, y: ty(ct.Fmax) + 8, "text-anchor": "end" }, fch).textContent = fl;
+  sv("text", { class: "lbl", x: FX0 - 6, y: ty(-ct.Fmax) + 8, "text-anchor": "end" }, fch).textContent = "−" + fl;
+  const LX = FX1 + 14;
+  sv("text", { class: "lb2", x: LX, y: FY0 - 56 }, fch).textContent = P.t("fOn2");
+  sv("text", { class: "lb2", x: LX, y: FY0 - 26 }, fch).textContent = P.t("jLbl", { j: "+" + f1(J) });
+  sv("text", { class: "lb1", x: LX, y: FY0 + 44 }, fch).textContent = P.t("fOn1");
+  sv("text", { class: "lb1", x: LX, y: FY0 + 74 }, fch).textContent = P.t("jLbl", { j: "−" + f1(J) });
+  [[0, "0"], [ct.T, Play.fmt(ct.T * 1000, 1)]].forEach(([t, s]) => {
+    sv("line", { class: "ax", x1: tx(t), y1: FY0 + FA + 6, x2: tx(t), y2: FY0 + FA + 14 }, fch);
+    sv("text", { class: "lbl", x: tx(t), y: 264, "text-anchor": "middle" }, fch).textContent = s;
+  });
+  sv("text", { class: "lbl", x: 590, y: 264, "text-anchor": "end" }, fch).textContent = P.t("tAxis");
+  sv("text", { class: "lbl", x: FX0 + 8, y: 24 }, fch).textContent = P.t("fAxis");
+  const tau = S.t - sc.tc;
+  if (tau >= t0 && tau <= t0 + span) sv("line", { class: "cursor", x1: tx(tau), y1: FY0 - FA - 10, x2: tx(tau), y2: FY0 + FA + 10 }, fch);
+}
+
+/* ---------- momentum + energy bars ---------- */
+function drawBars() {
+  const sv = Play.svg, c = sc.c;
+  bars.innerHTML = "";
+  const p = [[c.m1 * c.u1, c.m1 * c.v1, 1], [c.m2 * c.u2, c.m2 * c.v2, 2], [c.P, c.m1 * c.v1 + c.m2 * c.v2, 0]];
+  const mx = Math.max(1e-9, ...p.map((r) => Math.max(Math.abs(r[0]), Math.abs(r[1])))), Z = 340, SC = 140 / mx;
+  sv("line", { class: "ax", x1: Z, y1: 8, x2: Z, y2: 226 }, bars);
+  const names = ["p₁", "p₂", "p₁+p₂"];
+  p.forEach((r, i) => {
+    const y = 14 + i * 72, cls = r[2] ? "c" + r[2] : "wheel", lc = r[2] ? "lb" + r[2] : "lbF";
+    sv("text", { class: lc, x: 8, y: y + 38 }, bars).textContent = names[i];
+    [r[0], r[1]].forEach((v, j) => {
+      const yy = y + j * 30, w = v * SC;
+      sv("rect", { class: cls + (j ? "" : " pale"), x: Math.min(Z, Z + w).toFixed(1), y: yy, width: Math.abs(w).toFixed(1), height: 24, rx: 3 }, bars);
+      const tx = v >= 0 ? Z + Math.abs(w) + 6 : Z - Math.abs(w) - 6;
+      sv("text", { class: "lbl", x: tx.toFixed(1), y: yy + 20, "text-anchor": v >= 0 ? "start" : "end" }, bars).textContent = f1s(v);
+    });
+  });
+  sv("text", { class: "lbl", x: 590, y: 248, "text-anchor": "end" }, bars).textContent = P.t("barsKey") + " · " + P.t("unitP");
+  // kinetic energy
+  const E0 = 110, ES = 330 / Math.max(1e-9, c.ke0), y0 = 272;
+  sv("text", { class: "lbF", x: 8, y: y0 + 38 }, bars).textContent = P.t("ke");
+  const k = [[0.5 * c.m1 * c.u1 * c.u1, 0.5 * c.m2 * c.u2 * c.u2, 0], [0.5 * c.m1 * c.v1 * c.v1, 0.5 * c.m2 * c.v2 * c.v2, c.heat]];
+  k.forEach((r, j) => {
+    let x = E0;
+    const yy = y0 + j * 30;
+    [["c1", r[0]], ["c2", r[1]], ["heat", r[2]]].forEach(([cl, v]) => {
+      const w = Math.max(0, v) * ES;
+      if (w > 0.2) sv("rect", { class: cl + (j ? "" : " pale"), x: x.toFixed(1), y: yy, width: w.toFixed(1), height: 24 }, bars);
+      x += w;
+    });
+    const kin = r[0] + r[1];
+    sv("text", { class: "lbl", x: (Math.max(x, E0) + 6).toFixed(1), y: yy + 20 }, bars).textContent = f1(kin) + (j && r[2] > 0.005 ? " + " + f1(r[2]) : "") + " " + P.t("unitJ");
+  });
+  sv("text", { class: "lbH", x: E0, y: y0 + 86 }, bars).textContent = c.heat > 0.005 ? P.t("heat", { h: f1(c.heat) }) : "";
+  sv("text", { class: "lbl", x: 590, y: y0 + 116, "text-anchor": "end" }, bars).textContent = P.t("before") + " / " + P.t("after") + " · " + P.t("unitJ");
+}
+
+/* ---------- readout table ---------- */
+function drawReadout() {
+  const c = sc.c, u = " ";
+  const row = (k, a, b, t) => `<tr><td>${P.t(k)}</td><td>${a}</td><td>${b}</td><td>${t}</td></tr>`;
+  const d1 = c.m1 * (c.v1 - c.u1), d2 = c.m2 * (c.v2 - c.u2);
+  $("readout").innerHTML =
+    `<tr><th></th><th class="h1">${P.t("colA")}</th><th class="h2">${P.t("colB")}</th><th>${P.t("colT")}</th></tr>` +
+    row("rU", f1s(c.u1), f1s(c.u2), "") + row("rV", f1s(c.v1), f1s(c.v2), "") +
+    row("rP0", f1s(c.m1 * c.u1), f1s(c.m2 * c.u2), f1s(c.P)) +
+    row("rP1", f1s(c.m1 * c.v1), f1s(c.m2 * c.v2), f1s(c.m1 * c.v1 + c.m2 * c.v2)) +
+    row("rDP", f1s(d1), f1s(d2), f1s(d1 + d2)) +
+    row("rJ", f1s(-J), f1s(J), f1s(0)) +
+    row("rF", sc.ct ? fF(sc.ct.Fmax) + u + P.t("unitN") : "0", sc.ct ? fF(sc.ct.Fmax) + u + P.t("unitN") : "0", "");
+}
+
+/* ---------- step 3: rule + crumple zone ---------- */
+function drawRule() {
+  const box = $("rule");
+  if (!stp || stp.i !== 2) { box.innerHTML = ""; return; }
+  const c = sc.c;
+  let h = "";
+  if (c.hit) {
+    const dv1 = Math.abs(c.v1 - c.u1), dv2 = Math.abs(c.v2 - c.u2);
+    h += "<p>" + P.t("ruleF", { F: fF(sc.ct.Fmax), ms: Play.fmt(sc.ct.T * 1000, 1), J: f1(J) }) + "</p>";
+    h += "<p>" + P.t("ruleP", { d1: f1s(c.m1 * (c.v1 - c.u1)), d2: f1s(c.m2 * (c.v2 - c.u2)), p: f1s(c.P) }) + "</p>";
+    h += "<p>" + P.t("ruleE", { h: f1(c.heat), k: f1(c.ke0), pct: Play.fmt(100 * c.heat / Math.max(1e-9, c.ke0), 0) }) + "</p>";
+    h += "<p>" + P.t("ruleA", { dv1: f1(dv1), dv2: f1(dv2), r: Play.fmt(dv2 / Math.max(1e-9, dv1), 2) }) + "</p>";
+  } else h += "<p>" + P.t("ruleNo") + "</p>";
+  h += '<div class="crumple"><h3>' + P.t("crH") + '</h3><p id="crNote"></p>' +
+    '<svg class="fig" id="crSvg" viewBox="0 0 360 200" role="img" aria-label="' + P.t("crAria") + '"></svg>' +
+    '<div class="controls"><label for="crT">' + P.t("crLbl") + '</label><input type="range" id="crT" min="3" max="20" step="1" value="' + Math.round(crT * 100) + '"><span class="val" id="crVal"></span></div>' +
+    '<p id="crRows"></p></div>';
+  box.innerHTML = h;
+  $("crT").addEventListener("input", () => { crT = Play.clamp(+$("crT").value || 10, 3, 20) / 100; drawCrumple(); });
+  drawCrumple();
+}
+function drawCrumple() {
+  const g = $("crSvg"), sv = Play.svg;
+  if (!g) return;
+  const a = crash(0.01), b = crash(crT);
+  $("crNote").textContent = P.t("crNote", { J: Play.fmt(a.J, 0) });
+  $("crVal").textContent = crT.toFixed(2) + " s";
+  const row = (r) => P.t("crRow", { t: r.T.toFixed(2), F: Play.fmt(r.Favg / 1000, 0), g: Play.fmt(r.g, 0) });
+  $("crRows").innerHTML = row(a) + "<br>" + row(b) + "<br>" + P.t("crSay", { r: Play.fmt(b.T / a.T, 1) });
+  g.innerHTML = "";
+  const X0 = 20, X1 = 350, Y0 = 170, TM = 0.2, H = 140, tx = (t) => X0 + t / TM * (X1 - X0), fy = (f) => Y0 - f / a.Fpk * H;
+  sv("line", { class: "ax", x1: X0, y1: Y0, x2: X1, y2: Y0 }, g);
+  [[b, "area2", "curve2"], [a, "area1", "curve1"]].forEach(([r, ac, cc]) => {
+    const pts = [];
+    for (let i = 0; i <= 60; i++) { const t = r.T * i / 60; pts.push(tx(t).toFixed(1) + "," + fy(r.Fpk * Math.sin(Math.PI * t / r.T)).toFixed(1)); }
+    sv("polygon", { class: ac, points: pts.join(" ") + ` ${tx(r.T).toFixed(1)},${Y0} ${X0},${Y0}` }, g);
+    sv("polyline", { class: cc, points: pts.join(" ") }, g);
+  });
+  sv("text", { class: "lb1", x: tx(0.01) + 8, y: 40 }, g).textContent = P.t("stiff");
+  sv("text", { class: "lb2", x: Math.max(tx(crT) + 8, tx(0.01) + 70), y: Math.max(80, fy(b.Fpk * 0.6)) }, g).textContent = P.t("crumple");
+  sv("text", { class: "lbl", x: X1, y: Y0 + 26, "text-anchor": "end" }, g).textContent = "t → " + TM + " s";
+}
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3") }, { label: P.t("o4"), right: true }], right: P.t("right"), wrong: P.t("wrong"),
+});
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = i === 2 ? "" : P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  if (sc) drawRule();
+});
+function resetAll() {
+  [S.m1, S.u1, S.m2, S.u2, S.e] = PRE.pTruck;
+  S.speed = 1; $("speed").value = "1"; crT = 0.1; lastLive = ""; $("live").textContent = "";
+  pr.reset(); stp.go(0); recompute();
+}
+$("reset").addEventListener("click", resetAll);
+resetAll();
+</script>
+</body>
+</html>

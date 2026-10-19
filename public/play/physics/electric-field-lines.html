@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drawing a force you cannot see</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage canvas.main { height: auto; aspect-ratio: 5 / 3; }
+  .controls .grp { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; flex-wrap: wrap; }
+  .controls .glab { color: var(--muted); font-size: 13px; margin-right: 2px; }
+  .controls .val { min-width: 4.5em; font-size: 14px; }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout th, .readout td { padding: 3px 6px; white-space: nowrap; text-align: right; border-bottom: 1px solid var(--line); }
+  .readout th:first-child, .readout td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  .readout tr.tot td { color: var(--fg); font-weight: 700; }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; overflow-wrap: anywhere; }
+  #rule .math { white-space: normal; }
+  .cap { font-size: 13px; color: var(--muted); padding: 6px 14px 6px; }
+  .ok { color: var(--a); font-weight: 700; }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <canvas class="main" id="cv" tabindex="0" role="img" data-t-aria="figAria"></canvas>
+      <div class="vtag" id="tag"></div>
+      <div class="cap" id="cap"></div>
+      <div class="controls" id="ctl2">
+        <div class="grp"><span class="glab" data-t="presetLabel"></span><span id="presets" class="grp" style="flex:0 1 auto"></span></div>
+        <div class="grp" id="editRow">
+          <button type="button" class="small" id="addP" data-t="addP"></button>
+          <button type="button" class="small" id="addN" data-t="addN"></button>
+          <span class="glab" id="selLab"></span>
+          <button type="button" class="small" id="qDn" data-t-aria="qDnAria">−</button>
+          <button type="button" class="small" id="qUp" data-t-aria="qUpAria">+</button>
+          <button type="button" class="small" id="del" data-t="del"></button>
+        </div>
+        <div class="grp">
+          <label class="check"><input type="checkbox" id="cLines" checked> <span data-t="cLines"></span></label>
+          <label class="check"><input type="checkbox" id="cGrid"> <span data-t="cGrid"></span></label>
+          <label class="check"><input type="checkbox" id="cTest" checked> <span data-t="cTest"></span></label>
+        </div>
+      </div>
+      <div class="controls" id="ctl3">
+        <div class="grp">
+          <button type="button" class="small" id="setR0" data-t="setR0"></button>
+          <button type="button" class="small" id="goR0" data-t="goR0"></button>
+          <button type="button" class="small" id="go2R0" data-t="go2R0"></button>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Drawing a force you cannot see", eyebrow: "Physics · Stage 4", h1: "Drawing a force you cannot see",
+    intro: "Place electric charges, watch the field lines they make, and drag a small test charge around to feel the force at each spot.",
+    reset: "Reset", figAria: "Electric field picture: point charges, field lines and a draggable test charge with its force arrow",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "10 cm apart, not touching",
+    b1: "A +10 nC charge and a −10 nC charge sit 10 cm apart in air. Nothing connects them.",
+    k2: "Hands on", t2: "Place charges, read the field",
+    b2: "Drag the charges and the yellow test charge (+1 nC). Lines start on + and end on −. Where they crowd together, the force arrow gets longer. Try the presets — between the plates the arrow hardly changes.",
+    k3: "The rule", t3: "Twice as far, a quarter of the force",
+    b3: "One +10 nC charge. Drag the test charge, press “Mark r₀ here”, then drag it to the outer dashed circle (2r₀) and compare the forces.",
+    q: "Is there any force between them?", o1: "No — they are not touching", o2: "Yes — they pull together", o3: "Yes — they push apart",
+    right: "Yes. Opposite charges attract across the gap: F = kq₁q₂/r² = {F} N each way, about the weight of a {m} mg speck. Now look at the lines joining them.",
+    wrong: "Not quite. Charges act on each other through the field around them, with no contact: here each one pulls the other with {F} N. Opposite charges attract.",
+    presetLabel: "Presets", pSingle: "Single +", pDipole: "+ and −", pLike: "Two +", pPlates: "Plates",
+    addP: "Add +", addN: "Add −", del: "Remove", qDnAria: "Make the selected charge smaller or more negative", qUpAria: "Make the selected charge bigger or more positive",
+    cLines: "Field lines", cGrid: "Field arrows", cTest: "Test charge",
+    selCharge: "Selected: Q{k} = {q} nC", selTest: "Selected: test charge +1 nC", selNone: "Tap a charge to select it",
+    full: "Up to 4 charges", platesLocked: "The plates are fixed; drag the test charge between and around them.",
+    setR0: "Mark r₀ here", goR0: "Test charge to r₀", go2R0: "Test charge to 2r₀",
+    cap2: "Drag on the picture. Keyboard: Enter picks the next object, arrows move it (Shift = faster), + / − change a charge, Delete removes it. Force arrow length: log scale.",
+    cap1: "Two fixed charges. Pick an answer to see the field lines and forces.",
+    cap3: "Drag the test charge. Force arrow length is to scale here: twice as long = twice the force.",
+    tag2: "{w} cm wide · grid 2 cm",
+    hTest: "Test charge q = +1 nC at ({x}, {y}) cm", hFrom: "From", hR: "r", hF: "Force",
+    rowQ: "Q{k} ({q} nC)", rowPlate: "Plate ({q} nC)", rowTot: "Total (vector sum)",
+    rowE: "Field E = F / q", dirLab: "{a}°",
+    r3r0: "Marked r₀", r3r: "Now r", r3F: "Force F", r3ratio: "F ÷ F₀", r3pred: "(r₀ ÷ r)²",
+    ruleMain: "<strong>Coulomb's law:</strong> <span class=\"math\">F = kQq / r²</span>. Here <span class=\"math\">F = 8.99×10⁹ × {Q}×10⁻⁹ × 1×10⁻⁹ ÷ ({r} cm)² = {F} N</span>.",
+    ruleCheck: "From r₀ = {r0} cm to r = {r} cm the distance grew {k}×, so the force should drop to <span class=\"math\">1/{k}² = {pred}</span>. Measured: <span class=\"math\">({F}) ÷ ({F0}) = {ratio}</span>.",
+    ruleHit: "<span class=\"ok\">At 2r₀ the force is ¼ of F₀ — inverse square.</span>",
+    ruleLines: "Lines start on + and end on −, so their number is fixed by the charge. In space they spread over a sphere of area 4πr², which is why the force falls as 1/r².",
+    liveForce: "Test charge at ({x}, {y}) cm: force {F} N, direction {a} degrees.",
+    live3: "r = {r} cm, F = {F} N, F ÷ F₀ = {ratio}.",
+    resultTitle: "What we found", resultMain: "lines: + → − · F = kQq / r²",
+    resultNote: "Charges push and pull through the field, without touching. Where field lines crowd together the force on a test charge is strongest; twice as far from a point charge, the force is a quarter.",
+    explainK: "Explain it", explainQ: "A friend says a charged balloon can only move a scrap of paper if they touch. Using the words “field”, “line” and “distance”, explain what you would see as the balloon comes closer, and why.",
+    homeK: "Try at home", homeQ: "Rub a balloon on wool or dry hair, then bring it slowly toward tiny bits of tissue paper, or toward a thin stream of tap water. Notice how far away it starts to act, and how much faster the effect grows as it gets closer. Works best on a dry day.",
+    foot: "Model: point charges held fixed in air (k = 8.99 × 10⁹ N·m²/C², ε ≈ ε₀). Charges are in nanocoulombs (1 nC = 10⁻⁹ C; one unit on the buttons = 10 nC), distances in centimetres converted to metres. The test charge is +1 nC and is small enough to leave the other charges where they are. The force is the vector sum of every charge's Coulomb force (superposition). The plates preset is two square sheets, 28 cm × 28 cm, 6 cm apart, ±100 nC each, seen edge-on; their field uses the exact formula for a uniformly charged rectangle. Field lines are traced with 4th-order Runge–Kutta steps of 0.08–0.8 cm, 8 lines per 10 nC on point charges (24 per plate, spaced so each carries equal flux), stopped on a − charge or far off-screen; − charges whose lines leave the picture get the missing lines drawn back from them. Distances closer than 0.5 cm to a point charge are treated as 0.5 cm. A flat picture is a slice of 3D space: on the page, line spacing grows like r, while in space the density falls like 1/r². “Weight of a speck” uses g = 9.81 m/s². Coulomb's law: C.-A. de Coulomb, 1785; lines of force: M. Faraday, 1830s–1850s. The “charges must touch” idea and confusion about fields are documented in physics-education research (e.g. Maloney et al. 2001, Conceptual Survey of Electricity and Magnetism). · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "画出看不见的力", eyebrow: "物理 · 阶段 4", h1: "画出看不见的力",
+    intro: "摆放电荷，看它们画出的电场线；拖着一个小小的试探电荷到处走，感受每个地方的力。",
+    reset: "重置", figAria: "电场图：点电荷、电场线和一个可拖动的试探电荷及其受力箭头",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "相距 10 厘米，没有碰到",
+    b1: "空气中，一个 +10 nC 的电荷和一个 −10 nC 的电荷相距 10 厘米，中间什么也没连。",
+    k2: "动手", t2: "摆电荷，读电场",
+    b2: "拖动电荷和黄色的试探电荷（+1 nC）。电场线从正电荷出发，到负电荷结束。线越密的地方，力的箭头越长。试试几个预设——两块板之间，箭头几乎不变。",
+    k3: "规律", t3: "远一倍，力变成四分之一",
+    b3: "一个 +10 nC 的电荷。拖动试探电荷，按「在这里标 r₀」，再拖到外面那个虚线圆（2r₀）上，比一比两次的力。",
+    q: "它们之间有没有力？", o1: "没有——它们没碰到", o2: "有——互相吸引", o3: "有——互相排斥",
+    right: "对。异种电荷隔着空隙互相吸引：F = kq₁q₂/r² = {F} N，两边一样大，约等于一粒 {m} 毫克的小颗粒受的重力。现在看连接它们的电场线。",
+    wrong: "不太对。电荷通过周围的电场互相作用，不用接触：这里每个电荷都以 {F} N 的力拉着对方。异种电荷相互吸引。",
+    presetLabel: "预设", pSingle: "单个 +", pDipole: "+ 和 −", pLike: "两个 +", pPlates: "平行板",
+    addP: "加 +", addN: "加 −", del: "拿走", qDnAria: "把选中的电荷调小或调得更负", qUpAria: "把选中的电荷调大或调得更正",
+    cLines: "电场线", cGrid: "电场箭头", cTest: "试探电荷",
+    selCharge: "选中：Q{k} = {q} nC", selTest: "选中：试探电荷 +1 nC", selNone: "点一个电荷选中它",
+    full: "最多 4 个电荷", platesLocked: "两块板固定不动；把试探电荷拖到板间和板外看看。",
+    setR0: "在这里标 r₀", goR0: "试探电荷到 r₀", go2R0: "试探电荷到 2r₀",
+    cap2: "在图上拖动。键盘：Enter 选下一个，方向键移动（按住 Shift 更快），+ / − 改电荷，Delete 拿走。力的箭头长度按对数画。",
+    cap1: "两个固定的电荷。选好答案后显示电场线和受力。",
+    cap3: "拖动试探电荷。这一步力的箭头按比例画：长一倍 = 力大一倍。",
+    tag2: "图宽 {w} 厘米 · 格子 2 厘米",
+    hTest: "试探电荷 q = +1 nC，位置 ({x}, {y}) 厘米", hFrom: "来自", hR: "r", hF: "力",
+    rowQ: "Q{k}（{q} nC）", rowPlate: "极板（{q} nC）", rowTot: "合力（矢量和）",
+    rowE: "场强 E = F / q", dirLab: "{a}°",
+    r3r0: "标记的 r₀", r3r: "现在的 r", r3F: "力 F", r3ratio: "F ÷ F₀", r3pred: "(r₀ ÷ r)²",
+    ruleMain: "<strong>库仑定律：</strong><span class=\"math\">F = kQq / r²</span>。这里 <span class=\"math\">F = 8.99×10⁹ × {Q}×10⁻⁹ × 1×10⁻⁹ ÷ ({r} cm)² = {F} N</span>。",
+    ruleCheck: "从 r₀ = {r0} 厘米到 r = {r} 厘米，距离变成 {k} 倍，力应该变成 <span class=\"math\">1/{k}² = {pred}</span>。实际算出：<span class=\"math\">({F}) ÷ ({F0}) = {ratio}</span>。",
+    ruleHit: "<span class=\"ok\">到 2r₀ 时，力正好是 F₀ 的 ¼——平方反比。</span>",
+    ruleLines: "电场线从正电荷出发、到负电荷结束，条数由电荷量决定。在空间里，它们摊在面积 4πr² 的球面上，所以力按 1/r² 变小。",
+    liveForce: "试探电荷在 ({x}, {y}) 厘米：受力 {F} N，方向 {a} 度。",
+    live3: "r = {r} 厘米，F = {F} N，F ÷ F₀ = {ratio}。",
+    resultTitle: "我们发现", resultMain: "电场线：+ → − · F = kQq / r²",
+    resultNote: "电荷不用接触，就能通过电场推和拉。电场线越密，试探电荷受的力越大；离点电荷远一倍，力变成四分之一。",
+    explainK: "说一说", explainQ: "朋友说：带电的气球只有碰到小纸屑才能让它动。用上「电场」「电场线」「距离」三个词，讲讲气球慢慢靠近时你会看到什么，为什么。",
+    homeK: "家里做一做", homeQ: "把气球在毛衣或干头发上蹭一蹭，再慢慢靠近一些小纸屑，或者靠近一股细细的自来水流。留意它在多远的地方就开始起作用，越靠近效果涨得有多快。天气干燥时效果最好。",
+    foot: "模型：空气中固定不动的点电荷（k = 8.99 × 10⁹ N·m²/C²，介电常数取真空值 ε₀）。电荷单位是纳库（1 nC = 10⁻⁹ C；按钮上的一级 = 10 nC），距离用厘米，计算时换成米。试探电荷 +1 nC，小到不会推动其他电荷。合力是每个电荷库仑力的矢量和（叠加原理）。「平行板」预设是两块 28 厘米 × 28 厘米的正方形带电板，相距 6 厘米，各带 ±100 nC，图中看到的是侧面；它们的电场用均匀带电矩形的精确公式计算。电场线用四阶龙格–库塔法逐步描出，步长 0.08–0.8 厘米，点电荷每 10 nC 画 8 条（每块板 24 条，按通量等分起点），走到负电荷上或远离画面时停止；线跑出画面的负电荷，由它反向补画缺少的线。离点电荷不到 0.5 厘米的距离按 0.5 厘米算。平面图只是三维空间的一个切面：在纸上，线间距按 r 变大；在空间里，线密度按 1/r² 变小。「小颗粒的重力」取 g = 9.81 m/s²。库仑定律：库仑，1785 年；力线概念：法拉第，19 世纪 30–50 年代。「电荷要接触才有力」以及对电场的混淆，在物理教育研究中有记录（如 Maloney 等 2001，《电磁学概念测评》CSEM）。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure physics, no DOM (tests extract this block) */
+const K = 8.99e9, UNIT_NC = 10, QT_NC = 1, RMIN = 0.5;   // N·m²/C², nC per unit, test charge nC, clamp cm
+const KC = K * 1e-9 * 1e4;                               // E (N/C) = KC · Q[nC] / r[cm]²
+const WX = 20, WY = 12;                                  // world: x ∈ [−20, 20], y ∈ [−12, 12] cm
+// Point charge: {x, y, q} with q in units (±1…±3, 1 unit = 10 nC).
+// Plate (seen edge-on): {plate: true, y, a, b, q} — uniform square sheet x ∈ [−a, a], depth z ∈ [−b, b] (cm), q in units.
+function plateField(x, y, p) {
+  const sig = p.q * UNIT_NC * 1e-9 / (4 * p.a * p.b * 1e-4);   // C/m²
+  const h0 = y - p.y, h = Math.max(Math.abs(h0), 0.03), sg = h0 > 0 ? 1 : h0 < 0 ? -1 : 0, b = p.b;
+  const s1 = -p.a - x, s2 = p.a - x;
+  const R1 = Math.sqrt(s1 * s1 + b * b + h * h), R2 = Math.sqrt(s2 * s2 + b * b + h * h);
+  const ey = 2 * K * sig * sg * (Math.atan(s2 * b / (h * R2)) - Math.atan(s1 * b / (h * R1)));
+  const ex = 2 * K * sig * (Math.asinh(b / Math.sqrt(s2 * s2 + h * h)) - Math.asinh(b / Math.sqrt(s1 * s1 + h * h)));
+  return [ex, ey];
+}
+function fieldRaw(x, y, ch, rmin) {
+  let ex = 0, ey = 0;
+  for (const c of ch) {
+    if (c.plate) { const f = plateField(x, y, c); ex += f[0]; ey += f[1]; continue; }
+    const dx = x - c.x, dy = y - c.y;
+    const r2 = Math.max(dx * dx + dy * dy, rmin * rmin), r = Math.sqrt(r2);
+    const s = KC * c.q * UNIT_NC / (r2 * r);
+    ex += s * dx; ey += s * dy;
+  }
+  return { x: ex, y: ey, m: Math.hypot(ex, ey) };
+}
+const fieldAt = (x, y, ch) => fieldRaw(x, y, ch, RMIN);        // N/C, distances < 0.5 cm count as 0.5 cm
+const distTo = (x, y, c) => (c.plate ? (Math.abs(x) <= c.a ? Math.abs(y - c.y) : Math.hypot(Math.abs(x) - c.a, y - c.y)) : Math.hypot(x - c.x, y - c.y));
+// per-charge contributions and total force (N) on the +1 nC test charge
+function forceOn(tx, ty, ch) {
+  const parts = ch.map((c) => { const f = fieldAt(tx, ty, [c]); return { r: distTo(tx, ty, c), F: f.m * QT_NC * 1e-9 }; });
+  const E = fieldAt(tx, ty, ch);
+  const fx = E.x * QT_NC * 1e-9, fy = E.y * QT_NC * 1e-9, F = Math.hypot(fx, fy);
+  return { parts, E: E.m, fx, fy, F, ang: F > 0 ? Math.atan2(fy, fx) * 180 / Math.PI : 0 };
+}
+// force between two point charges (nC) at distance r (cm), in N
+const coulomb = (q1, q2, r) => K * q1 * 1e-9 * q2 * 1e-9 / Math.pow(Math.max(r, RMIN) * 0.01, 2);
+
+const BOX = 60, ENDR = 0.45, MAXSTEP = 1400;
+function dirAt(x, y, ch, sgn) {
+  const E = fieldRaw(x, y, ch, 0.2);
+  return E.m > 1e-6 ? [sgn * E.x / E.m, sgn * E.y / E.m] : null;
+}
+function crossPlate(x, y, nx, ny, ch, src, i) {
+  for (let j = 0; j < ch.length; j++) {
+    const c = ch[j];
+    if (!c.plate || (j === src && i < 2) || ny === y || (y - c.y) * (ny - c.y) > 0) continue;
+    const f = (c.y - y) / (ny - y);
+    if (Math.abs(x + f * (nx - x)) <= c.a) return j;
+  }
+  return -1;
+}
+// trace one line from (x0,y0); sgn = +1 follows E (from +), −1 goes against E (from −); src = index to ignore
+function trace(x0, y0, ch, sgn, src) {
+  const pts = [x0, y0];
+  let x = x0, y = y0, end = -1;
+  for (let i = 0; i < MAXSTEP; i++) {
+    let dmin = 1e9;
+    for (const c of ch) dmin = Math.min(dmin, distTo(x, y, c));
+    const h = Math.min(0.8, Math.max(0.08, 0.2 * dmin));
+    const k1 = dirAt(x, y, ch, sgn); if (!k1) break;
+    // a plate stops the line where the straight step would cross it (RK would otherwise creep along it)
+    let pc = crossPlate(x, y, x + h * k1[0], y + h * k1[1], ch, src, i);
+    let nx = 0, ny = 0;
+    if (pc < 0) {
+      const k2 = dirAt(x + h / 2 * k1[0], y + h / 2 * k1[1], ch, sgn); if (!k2) break;
+      const k3 = dirAt(x + h / 2 * k2[0], y + h / 2 * k2[1], ch, sgn); if (!k3) break;
+      const k4 = dirAt(x + h * k3[0], y + h * k3[1], ch, sgn); if (!k4) break;
+      nx = x + h / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]);
+      ny = y + h / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]);
+      if (!Number.isFinite(nx) || !Number.isFinite(ny)) break;
+      pc = crossPlate(x, y, nx, ny, ch, src, i);
+    } else { nx = x + h * k1[0]; ny = y + h * k1[1]; }
+    let stop = false;
+    if (pc >= 0) {
+      const c = ch[pc], f = (c.y - y) / (ny - y);
+      pts.push(x + f * (nx - x), c.y);
+      if (c.q * sgn < 0) end = pc;
+      stop = true;
+    }
+    for (let j = 0; j < ch.length && !stop; j++) {
+      const c = ch[j];
+      if (!c.plate && j !== src && Math.hypot(nx - c.x, ny - c.y) < ENDR) {
+        if (c.q * sgn < 0) { pts.push(nx, ny); end = j; }
+        pts.push(c.x, c.y); stop = true;
+      }
+    }
+    if (stop) break;
+    x = nx; y = ny;
+    pts.push(x, y);
+    if (Math.abs(x) > BOX || Math.abs(y) > BOX) break;
+  }
+  return { pts, end };
+}
+const LPU = 8, PLATE_LINES = 24;   // lines per point-charge unit (10 nC); lines per plate
+// start points on a plate, spaced so that each line carries the same flux (both faces)
+function plateStarts(p, ch, n) {
+  const N = 160, faces = [-1, 1].map((side) => {
+    const cand = [];
+    let tot = 0;
+    for (let j = 0; j < N; j++) {
+      const x = -p.a + (j + 0.5) * 2 * p.a / N, y = p.y + side * 0.06;
+      tot += Math.max(0, side * fieldAt(x, y, ch).y * Math.sign(p.q));
+      cand.push({ x, y, c: tot });
+    }
+    return { cand, tot };
+  });
+  const all = faces[0].tot + faces[1].tot, out = [];
+  if (!(all > 0)) return out;
+  const n0 = Math.round(n * faces[0].tot / all);
+  faces.forEach((f, fi) => {
+    const m = fi ? n - n0 : n0;
+    let j = 0;
+    for (let k = 0; k < m; k++) {
+      const goal = f.tot * (k + 0.5) / m;
+      while (j < f.cand.length - 1 && f.cand[j].c < goal) j++;
+      out.push([f.cand[j].x, f.cand[j].y]);
+    }
+  });
+  return out;
+}
+// all field lines: [{pts: [x0,y0,x1,y1,…], fwd}] in world cm; fwd = drawn from the + end
+function fieldLines(ch) {
+  const out = [], arrive = ch.map(() => []), r0 = 0.35;
+  ch.forEach((c, i) => {
+    if (c.q <= 0) return;
+    if (c.plate) {
+      plateStarts(c, ch, PLATE_LINES).forEach(([x, y]) => out.push({ pts: trace(x, y, ch, 1, i).pts, fwd: true }));
+      return;
+    }
+    const n = Math.round(LPU * c.q), off = (i * 0.37) % 1;
+    for (let k = 0; k < n; k++) {
+      const a = 2 * Math.PI * (k + 0.5 + off * 0.5) / n;
+      const t = trace(c.x + r0 * Math.cos(a), c.y + r0 * Math.sin(a), ch, 1, i);
+      t.pts.unshift(c.x, c.y);
+      out.push({ pts: t.pts, fwd: true });
+      if (t.end >= 0 && !ch[t.end].plate) {
+        const L = t.pts.length, e = ch[t.end];
+        arrive[t.end].push(Math.atan2(t.pts[L - 5] - e.y, t.pts[L - 6] - e.x));
+      }
+    }
+  });
+  ch.forEach((c, i) => {
+    if (c.q >= 0 || c.plate) return;
+    const need = Math.round(LPU * -c.q) - arrive[i].length, angs = arrive[i].slice();
+    for (let k = 0; k < need; k++) {
+      let a;
+      if (!angs.length) a = 2 * Math.PI * (k + 0.5) / need;
+      else {
+        angs.sort((p, q) => p - q);
+        let best = -1, bi = 0;
+        for (let j = 0; j < angs.length; j++) {
+          const g = (j + 1 < angs.length ? angs[j + 1] : angs[0] + 2 * Math.PI) - angs[j];
+          if (g > best) { best = g; bi = j; }
+        }
+        a = angs[bi] + best / 2;
+      }
+      angs.push(Math.atan2(Math.sin(a), Math.cos(a)));
+      const t = trace(c.x + r0 * Math.cos(a), c.y + r0 * Math.sin(a), ch, -1, i);
+      t.pts.unshift(c.x, c.y);
+      out.push({ pts: t.pts, fwd: false });
+    }
+  });
+  return out;
+}
+function presetCharges(name) {
+  if (name === "single") return [{ x: 0, y: 0, q: 1 }];
+  if (name === "dipole") return [{ x: -5, y: 0, q: 1 }, { x: 5, y: 0, q: -1 }];
+  if (name === "like") return [{ x: -5, y: 0, q: 1 }, { x: 5, y: 0, q: 1 }];
+  if (name === "plates") return [{ plate: true, x: 0, y: 3, a: 14, b: 14, q: 10 }, { plate: true, x: 0, y: -3, a: 14, b: 14, q: -10 }];
+  return [];
+}
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+function fmtSci(x) {
+  if (!Number.isFinite(x)) return "—";
+  if (x === 0) return "0";
+  let e = Math.floor(Math.log10(Math.abs(x))), m = x / Math.pow(10, e);
+  if (Math.abs(+m.toFixed(2)) >= 10) { m /= 10; e += 1; }
+  if (e >= -2 && e <= 3) return (+x.toPrecision(3)).toString();
+  return m.toFixed(2) + " × 10" + String(e).split("").map((d) => SUP[d]).join("");
+}
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+const S = { ch: [], tx: 6, ty: 4, sel: "t", lines: true, grid: false, test: true, preset: "dipole", answered: false, r0: 6, F0: 0 };
+let lines = [], stp = null, col = {}, lastLive = "", liveTimer = 0, rafId = 0, drag = null;
+const plates = () => S.ch.some((c) => c.plate);
+
+function readColors() {
+  const cs = getComputedStyle(document.body), g = (v) => cs.getPropertyValue(v).trim();
+  col = { fg: g("--fg"), muted: g("--muted"), line: g("--line"), a: g("--a"), pos: g("--no"), neg: g("--c"), hl: g("--hl"), h: g("--h"), surface: g("--surface"), font: g("--font") };
+}
+function retrace() { lines = fieldLines(S.ch); }
+
+/* ---------- geometry ---------- */
+let W = 600, H = 360, sc = 15, dpr = 1;
+function resize() {
+  const r = cv.getBoundingClientRect();
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  W = Math.max(1, r.width); H = Math.max(1, r.height);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  sc = W / (2 * WX);
+  render();
+}
+const px = (x) => (x + WX) * sc, py = (y) => (WY - y) * sc;
+function toWorld(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: ((e.clientX - r.left) / r.width) * 2 * WX - WX, y: WY - ((e.clientY - r.top) / r.height) * 2 * WY };
+}
+
+/* ---------- drawing ---------- */
+function arrow(x1, y1, x2, y2, color, w) {
+  const L = Math.hypot(x2 - x1, y2 - y1);
+  if (!(L > 1)) return;
+  const ux = (x2 - x1) / L, uy = (y2 - y1) / L, hd = Math.min(10, 3 + w * 2.2, L * 0.6);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = w;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - ux * hd * 0.8, y2 - uy * hd * 0.8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - ux * hd - uy * hd * 0.5, y2 - uy * hd + ux * hd * 0.5);
+  ctx.lineTo(x2 - ux * hd + uy * hd * 0.5, y2 - uy * hd - ux * hd * 0.5); ctx.closePath(); ctx.fill();
+}
+function label(t, x, y) {
+  ctx.lineJoin = "round"; ctx.strokeStyle = col.surface; ctx.lineWidth = 4;
+  ctx.strokeText(t, x, y); ctx.fillText(t, x, y);
+}
+function lineArrow(pts, fwd) {
+  // one arrowhead along the visible part, ~40% of the way, pointing along E
+  let total = 0;
+  const seg = [];
+  for (let i = 2; i < pts.length; i += 2) {
+    const inside = Math.abs(pts[i]) < WX && Math.abs(pts[i + 1]) < WY;
+    const l = Math.hypot(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]);
+    seg.push(inside ? l : 0); total += inside ? l : 0;
+  }
+  if (total < 2) return;
+  let goal = total * (fwd ? 0.4 : 0.6), acc = 0;
+  for (let i = 0; i < seg.length; i++) {
+    acc += seg[i];
+    if (acc >= goal && seg[i] > 0) {
+      const j = (i + 1) * 2, x1 = px(pts[j - 2]), y1 = py(pts[j - 1]), x2 = px(pts[j]), y2 = py(pts[j + 1]);
+      const L = Math.hypot(x2 - x1, y2 - y1) || 1, ux = (x2 - x1) / L * (fwd ? 1 : -1), uy = (y2 - y1) / L * (fwd ? 1 : -1), hd = 6;
+      ctx.beginPath(); ctx.moveTo(x2 + ux * hd * 0.5, y2 + uy * hd * 0.5);
+      ctx.lineTo(x2 - ux * hd - uy * hd * 0.55, y2 - uy * hd + ux * hd * 0.55);
+      ctx.lineTo(x2 - ux * hd + uy * hd * 0.55, y2 - uy * hd - ux * hd * 0.55); ctx.closePath(); ctx.fill();
+      return;
+    }
+  }
+}
+function render() {
+  rafId = 0;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const step = stp ? stp.i : 0;
+  // 1 cm grid, faint
+  ctx.strokeStyle = col.line; ctx.lineWidth = 1; ctx.beginPath();
+  for (let x = -WX + 2; x < WX; x += 2) { ctx.moveTo(px(x), 0); ctx.lineTo(px(x), H); }
+  for (let y = -WY + 2; y < WY; y += 2) { ctx.moveTo(0, py(y)); ctx.lineTo(W, py(y)); }
+  ctx.stroke();
+  const showLines = step === 0 ? S.answered : step === 1 ? S.lines : true;
+  if (showLines) {
+    ctx.strokeStyle = col.a; ctx.fillStyle = col.a; ctx.globalAlpha = 0.75; ctx.lineWidth = 1.4;
+    for (const l of lines) {
+      const p = l.pts;
+      ctx.beginPath(); ctx.moveTo(px(p[0]), py(p[1]));
+      for (let i = 2; i < p.length; i += 2) ctx.lineTo(px(p[i]), py(p[i + 1]));
+      ctx.stroke();
+      lineArrow(p, l.fwd);
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (step === 1 && S.grid) {
+    const sp = W < 500 ? 4 : 2.5;
+    for (let x = -WX + sp / 2; x < WX; x += sp) for (let y = -WY + sp / 2; y < WY; y += sp) {
+      const E = fieldAt(x, y, S.ch);
+      if (!(E.m > 0)) continue;
+      const lg = Play.clamp((Math.log10(E.m) - 2) / 4, 0.1, 1), L = sp * sc * 0.42;
+      ctx.globalAlpha = 0.25 + 0.6 * lg;
+      const cx = px(x), cy = py(y), ux = E.x / E.m, uy = -E.y / E.m;
+      arrow(cx - ux * L, cy - uy * L, cx + ux * L, cy + uy * L, col.muted, 1.3);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // step 3 guide circles
+  if (step === 2 && S.ch.length) {
+    const c = S.ch[0];
+    [S.r0, 2 * S.r0].forEach((r, k) => {
+      ctx.setLineDash([5, 5]); ctx.strokeStyle = col.muted; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(px(c.x), py(c.y), r * sc, 0, 2 * Math.PI); ctx.stroke();
+      ctx.setLineDash([]); ctx.fillStyle = col.muted; ctx.font = "13px " + col.font; ctx.textAlign = "center";
+      label(k ? "2r₀" : "r₀", px(c.x) + r * sc * 0.77 + 14, py(c.y) + r * sc * 0.64 + 6);
+    });
+    ctx.setLineDash([]);
+  }
+  // step 1 distance bracket + forces
+  if (step === 0 && S.ch.length === 2) {
+    const a = S.ch[0], b = S.ch[1], y = py(a.y) + 50;
+    ctx.strokeStyle = col.muted; ctx.lineWidth = 1.2; ctx.beginPath();
+    ctx.moveTo(px(a.x), y - 6); ctx.lineTo(px(a.x), y); ctx.lineTo(px(b.x), y); ctx.lineTo(px(b.x), y - 6); ctx.stroke();
+    ctx.fillStyle = col.fg; ctx.font = "14px " + col.font; ctx.textAlign = "center";
+    label(Play.fmt(Math.hypot(b.x - a.x, b.y - a.y), 0) + " cm", (px(a.x) + px(b.x)) / 2, y + 18);
+    if (S.answered) {
+      const L = Math.min(60, (px(b.x) - px(a.x) - 32) * 0.4);
+      arrow(px(a.x) + 16, py(a.y), px(a.x) + 16 + L, py(a.y), col.h, 3.5);
+      arrow(px(b.x) - 16, py(b.y), px(b.x) - 16 - L, py(b.y), col.h, 3.5);
+      ctx.fillStyle = col.h; ctx.font = "bold 13px " + col.font;
+      label("F = " + fmtSci(coulomb(a.q * UNIT_NC, -b.q * UNIT_NC, Math.hypot(b.x - a.x, b.y - a.y))) + " N", (px(a.x) + px(b.x)) / 2, py(a.y) - 30);
+    }
+  }
+  // charges
+  S.ch.forEach((c, i) => {
+    if (c.plate) {
+      const x0 = px(-c.a), x1 = px(c.a), y = py(c.y);
+      ctx.fillStyle = c.q > 0 ? col.pos : col.neg; ctx.fillRect(x0, y - 4, x1 - x0, 8);
+      ctx.strokeStyle = col.surface; ctx.lineWidth = 1.6; ctx.beginPath();
+      for (let xx = -c.a + 1; xx < c.a; xx += 2) {
+        const X = px(xx); ctx.moveTo(X - 3, y); ctx.lineTo(X + 3, y);
+        if (c.q > 0) { ctx.moveTo(X, y - 3); ctx.lineTo(X, y + 3); }
+      }
+      ctx.stroke();
+      ctx.fillStyle = col.fg; ctx.font = "13px " + col.font; ctx.textAlign = "left";
+      label((c.q > 0 ? "+" : "−") + Math.abs(c.q * UNIT_NC) + " nC", x0, c.q > 0 ? y - 9 : y + 20);
+      return;
+    }
+    const r = 11 + 2 * Math.abs(c.q), x = px(c.x), y = py(c.y);
+    if (step === 1 && S.sel === i) { ctx.strokeStyle = col.hl; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, r + 5, 0, 2 * Math.PI); ctx.stroke(); }
+    ctx.fillStyle = c.q > 0 ? col.pos : col.neg; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = col.surface; ctx.lineWidth = 2.4; ctx.beginPath();
+    const s = r * 0.5; ctx.moveTo(x - s, y); ctx.lineTo(x + s, y);
+    if (c.q > 0) { ctx.moveTo(x, y - s); ctx.lineTo(x, y + s); }
+    ctx.stroke();
+    {
+      ctx.fillStyle = col.fg; ctx.font = "13px " + col.font; ctx.textAlign = "center";
+      const lab = (step === 1 ? "Q" + (i + 1) + " " : "") + (c.q > 0 ? "+" : "−") + Math.abs(c.q * UNIT_NC) + " nC";
+      label(lab, x, y + r + 16 > H - 4 ? y - r - 8 : y + r + 16);
+    }
+  });
+  // test charge + force
+  if (step > 0 && (step === 2 || S.test)) {
+    const f = forceOn(S.tx, S.ty, S.ch), x = px(S.tx), y = py(S.ty);
+    if (f.F > 0) {
+      let L;
+      if (step === 2) L = S.F0 > 0 ? Math.min(170, 80 * f.F / S.F0) : 80;
+      else L = Play.clamp(18 * (Math.log10(f.F) + 8.3), 12, 110);
+      arrow(x, y, x + L * f.fx / f.F, y - L * f.fy / f.F, col.h, 3.5);
+    }
+    if (step === 1 && S.sel === "t") { ctx.strokeStyle = col.fg; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 13, 0, 2 * Math.PI); ctx.stroke(); }
+    ctx.fillStyle = col.hl; ctx.strokeStyle = col.fg; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, y, 8, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col.fg; ctx.font = "bold 13px " + col.font; ctx.textAlign = "left";
+    label("q", x + 10, y - 9);
+  }
+}
+const schedule = () => { if (!rafId) rafId = requestAnimationFrame(render); };
+
+/* ---------- panel ---------- */
+const f1 = (v) => Play.fmt(v, 1).replace("-", "−");
+function panel() {
+  const step = stp ? stp.i : 0, ro = $("readout"), rule = $("rule");
+  $("cap").textContent = step === 1 && plates() ? P.t("platesLocked") : P.t("cap" + (step + 1));
+  $("tag").textContent = P.t("tag2", { w: 2 * WX });
+  $("ctl2").hidden = step !== 1;
+  $("ctl3").hidden = step !== 2;
+  ro.innerHTML = ""; rule.innerHTML = "";
+  let msg = "";
+  if (step === 1) {
+    const pl = plates();
+    $("editRow").hidden = pl;
+    $("addP").disabled = $("addN").disabled = pl || S.ch.length >= 4;
+    $("addP").title = $("addN").title = pl ? P.t("platesLocked") : S.ch.length >= 4 ? P.t("full") : "";
+    const selC = typeof S.sel === "number" ? S.ch[S.sel] : null;
+    $("selLab").textContent = pl ? P.t("platesLocked") : selC ? P.t("selCharge", { k: S.sel + 1, q: (selC.q > 0 ? "+" : "−") + Math.abs(selC.q * UNIT_NC) }) : S.sel === "t" ? P.t("selTest") : P.t("selNone");
+    $("qDn").disabled = !selC || selC.q <= -3; $("qUp").disabled = !selC || selC.q >= 3; $("del").disabled = !selC;
+    Object.keys(presetBtns).forEach((k) => { presetBtns[k].classList.toggle("on", S.preset === k); presetBtns[k].setAttribute("aria-pressed", S.preset === k ? "true" : "false"); });
+    $("cLines").checked = S.lines; $("cGrid").checked = S.grid; $("cTest").checked = S.test;
+    if (S.test) {
+      const f = forceOn(S.tx, S.ty, S.ch);
+      let h = `<tr><th colspan="3" style="text-align:left;color:var(--fg);white-space:normal">${P.t("hTest", { x: f1(S.tx), y: f1(S.ty) })}</th></tr>`;
+      h += `<tr><td>${P.t("hFrom")}</td><td>${P.t("hR")}</td><td>${P.t("hF")}</td></tr>`;
+      S.ch.forEach((c, i) => {
+        const q = (c.q > 0 ? "+" : "−") + Math.abs(c.q * UNIT_NC);
+        h += `<tr><td>${c.plate ? P.t("rowPlate", { q }) : P.t("rowQ", { k: i + 1, q })}</td><td>${f1(f.parts[i].r)} cm</td><td>${fmtSci(f.parts[i].F)} N</td></tr>`;
+      });
+      h += `<tr class="tot"><td>${P.t("rowTot")}</td><td>${P.t("dirLab", { a: Play.fmt(f.ang, 0).replace("-", "−") })}</td><td>${fmtSci(f.F)} N</td></tr>`;
+      h += `<tr><td>${P.t("rowE")}</td><td></td><td>${fmtSci(f.E)} N/C</td></tr>`;
+      ro.innerHTML = h;
+      msg = P.t("liveForce", { x: f1(S.tx), y: f1(S.ty), F: fmtSci(f.F), a: Play.fmt(f.ang, 0).replace("-", "−") });
+    }
+  } else if (step === 2 && S.ch.length) {
+    const c = S.ch[0], r = Math.hypot(S.tx - c.x, S.ty - c.y), F = forceOn(S.tx, S.ty, S.ch).F;
+    const ratio = S.F0 > 0 ? F / S.F0 : NaN, k = S.r0 > 0 ? r / S.r0 : NaN, pred = k > 0 ? 1 / (k * k) : NaN;
+    ro.innerHTML = `<tr><td>${P.t("r3r0")}</td><td>${f1(S.r0)} cm</td><td>F₀ = ${fmtSci(S.F0)} N</td></tr>` +
+      `<tr><td>${P.t("r3r")}</td><td>${f1(r)} cm</td><td>F = ${fmtSci(F)} N</td></tr>` +
+      `<tr class="tot"><td>${P.t("r3ratio")}</td><td></td><td>${Play.fmt(ratio, 3)}</td></tr>` +
+      `<tr><td>${P.t("r3pred")}</td><td></td><td>${Play.fmt(pred, 3)}</td></tr>`;
+    const parts = [P.t("ruleMain", { Q: c.q * UNIT_NC, r: f1(Math.max(r, RMIN)), F: fmtSci(F) }),
+      P.t("ruleCheck", { r0: f1(S.r0), r: f1(r), k: Play.fmt(k, 2), pred: Play.fmt(pred, 3), F: fmtSci(F), F0: fmtSci(S.F0), ratio: Play.fmt(ratio, 3) })];
+    if (Math.abs(k - 2) < 0.03) parts.push(P.t("ruleHit"));
+    parts.push(P.t("ruleLines"));
+    rule.innerHTML = parts.map((p) => "<p>" + p + "</p>").join("");
+    msg = P.t("live3", { r: f1(r), F: fmtSci(F), ratio: Play.fmt(ratio, 3) });
+  }
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(() => { if (msg !== lastLive) { lastLive = msg; Play.live($("live"), msg); } }, drag ? 600 : 50);
+}
+function update(re) { if (re) retrace(); schedule(); panel(); }
+
+/* ---------- state changes ---------- */
+const clampX = (x) => Play.clamp(Number.isFinite(x) ? x : 0, -WX + 0.5, WX - 0.5);
+const clampY = (y) => Play.clamp(Number.isFinite(y) ? y : 0, -WY + 0.5, WY - 0.5);
+function freeSpot(x, y, skip) { return S.ch.every((c, j) => j === skip || c.plate || Math.hypot(c.x - x, c.y - y) >= 1.5); }
+function moveObj(o, x, y) {
+  x = clampX(x); y = clampY(y);
+  if (o === "t") { S.tx = x; S.ty = y; update(false); return; }
+  const c = S.ch[o];
+  if (!c || c.fixed || !freeSpot(x, y, o)) return;
+  c.x = x; c.y = y; update(true);
+}
+function loadPreset(name) {
+  S.preset = name; S.ch = presetCharges(name);
+  if (name === "plates") { S.tx = 0; S.ty = 0; S.sel = "t"; } else { S.tx = 0; S.ty = 6; S.sel = "t"; }
+  update(true);
+}
+function addCharge(sign) {
+  if (plates() || S.ch.length >= 4) return;
+  const spots = [[0, -7], [0, 7], [-12, -6], [12, 6], [-12, 6], [12, -6], [-15, 0], [15, 0], [0, 0]];
+  const s = spots.find(([x, y]) => freeSpot(x, y, -1) && Math.hypot(x - S.tx, y - S.ty) > 1.5) || [0, 0];
+  S.ch.push({ x: s[0], y: s[1], q: sign });
+  S.sel = S.ch.length - 1; S.preset = ""; update(true);
+}
+function changeQ(d) {
+  const c = typeof S.sel === "number" ? S.ch[S.sel] : null;
+  if (!c || c.fixed) return;
+  let q = Play.clamp(c.q + d, -3, 3);
+  if (q === 0) q = d > 0 ? 1 : -1;
+  c.q = q; S.preset = ""; update(true);
+}
+function removeSel() {
+  if (typeof S.sel !== "number" || plates()) return;
+  S.ch.splice(S.sel, 1); S.sel = "t"; S.preset = ""; update(true);
+}
+function objects() { const o = []; if (S.test) o.push("t"); if (!plates()) S.ch.forEach((c, i) => o.push(i)); return o; }
+
+/* ---------- pointer ---------- */
+function pick(w) {
+  const step = stp.i, tol = Math.max(1.0, 22 / sc);
+  if (step > 0 && (step === 2 || S.test) && Math.hypot(w.x - S.tx, w.y - S.ty) < tol) return "t";
+  if (step !== 1 || plates()) return null;
+  let best = null, bd = tol;
+  S.ch.forEach((c, i) => { const d = Math.hypot(w.x - c.x, w.y - c.y); if (d < bd) { bd = d; best = i; } });
+  return best;
+}
+cv.addEventListener("pointerdown", (e) => {
+  const w = toWorld(e), o = pick(w);
+  if (o === null) return;
+  e.preventDefault();
+  if (stp.i === 1) S.sel = o;
+  const ox = o === "t" ? S.tx : S.ch[o].x, oy = o === "t" ? S.ty : S.ch[o].y;
+  drag = { o, dx: ox - w.x, dy: oy - w.y };
+  try { cv.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+  update(false);
+});
+cv.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const w = toWorld(e);
+  moveObj(drag.o, w.x + drag.dx, w.y + drag.dy);
+});
+const endDrag = () => { if (drag) { drag = null; panel(); } };
+cv.addEventListener("pointerup", endDrag);
+cv.addEventListener("pointercancel", endDrag);
+cv.addEventListener("keydown", (e) => {
+  const step = stp.i;
+  if (step === 0) return;
+  const d = e.shiftKey ? 2 : 0.5, mv = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, d], ArrowDown: [0, -d] }[e.key];
+  if (step === 2) {
+    if (mv) { e.preventDefault(); moveObj("t", S.tx + mv[0], S.ty + mv[1]); }
+    return;
+  }
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    const o = objects(); if (!o.length) return;
+    const i = o.indexOf(S.sel); S.sel = o[(i + 1) % o.length]; update(false);
+  } else if (mv) {
+    e.preventDefault();
+    if (S.sel === "t" && !S.test) return;
+    const cur = S.sel === "t" ? [S.tx, S.ty] : S.ch[S.sel] ? [S.ch[S.sel].x, S.ch[S.sel].y] : null;
+    if (cur) moveObj(S.sel, cur[0] + mv[0], cur[1] + mv[1]);
+  } else if (e.key === "+" || e.key === "=") { e.preventDefault(); changeQ(1); }
+  else if (e.key === "-" || e.key === "_") { e.preventDefault(); changeQ(-1); }
+  else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); removeSel(); }
+});
+
+/* ---------- controls ---------- */
+const presetBtns = {};
+[["single", "pSingle"], ["dipole", "pDipole"], ["like", "pLike"], ["plates", "pPlates"]].forEach(([k, s]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(s);
+  b.addEventListener("click", () => loadPreset(k));
+  $("presets").appendChild(b); presetBtns[k] = b;
+});
+$("addP").addEventListener("click", () => addCharge(1));
+$("addN").addEventListener("click", () => addCharge(-1));
+$("qUp").addEventListener("click", () => changeQ(1));
+$("qDn").addEventListener("click", () => changeQ(-1));
+$("del").addEventListener("click", removeSel);
+$("cLines").addEventListener("change", (e) => { S.lines = e.target.checked; update(false); });
+$("cGrid").addEventListener("change", (e) => { S.grid = e.target.checked; update(false); });
+$("cTest").addEventListener("change", (e) => { S.test = e.target.checked; if (!S.test && S.sel === "t") S.sel = S.ch.length && !plates() ? 0 : "t"; update(false); });
+function markR0() {
+  const c = S.ch[0]; if (!c) return;
+  S.r0 = Play.clamp(Math.hypot(S.tx - c.x, S.ty - c.y), RMIN, 16);
+  S.F0 = forceOn(S.tx, S.ty, S.ch).F; update(false);
+}
+function testAt(r) {
+  const c = S.ch[0]; if (!c) return;
+  const a = Math.atan2(S.ty - c.y, S.tx - c.x) || 0;
+  moveObj("t", c.x + r * Math.cos(a), c.y + r * Math.sin(a));
+}
+$("setR0").addEventListener("click", markR0);
+$("goR0").addEventListener("click", () => testAt(S.r0));
+$("go2R0").addEventListener("click", () => testAt(2 * S.r0));
+
+/* ---------- steps ---------- */
+function enterStep(i) {
+  if (i === 0) { S.ch = [{ x: -5, y: 0, q: 1, fixed: true }, { x: 5, y: 0, q: -1, fixed: true }]; retrace(); }
+  else if (i === 1) { if (S.ch.some((c) => c.fixed) || !S.ch.length || S.step3) { S.step3 = false; loadPreset(S.preset || "dipole"); return; } }
+  else { S.ch = [{ x: -13, y: 0, q: 1 }]; S.tx = -7; S.ty = 0; S.step3 = true; retrace(); markR0(); return; }
+  update(false);
+}
+const Fp = coulomb(UNIT_NC, UNIT_NC, 10), mg = Fp / 9.81 * 1e6;
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right", { F: fmtSci(Fp), m: Play.fmt(mg, 0) }), wrong: P.t("wrong", { F: fmtSci(Fp) }),
+}, () => { S.answered = true; update(false); });
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  enterStep(i);
+});
+function resetAll() {
+  Object.assign(S, { ch: [], tx: 0, ty: 6, sel: "t", lines: true, grid: false, test: true, preset: "dipole", answered: false, r0: 6, F0: 0, step3: false });
+  pr.reset(); stp.go(0);
+}
+$("reset").addEventListener("click", resetAll);
+readColors();
+const mq = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
+if (mq && mq.addEventListener) mq.addEventListener("change", () => { readColors(); schedule(); });
+if ("ResizeObserver" in window) new ResizeObserver(resize).observe(cv); else addEventListener("resize", resize);
+resetAll();
+resize();
+</script>
+</body>
+</html>

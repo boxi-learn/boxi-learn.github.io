@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where reaction heat comes from</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 560 / 420; max-height: 470px; user-select: none; -webkit-user-select: none; }
+  .result .math { white-space: normal; }
+  .lbl { fill: var(--fg); font: 600 22px var(--font); }
+  .lbl-m { fill: var(--muted); font: 21px var(--font); }
+  .num { fill: var(--fg); font: 600 22px var(--math); }
+  .axis { stroke: var(--line); stroke-width: 2; }
+  .zero { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 5; }
+  .guide { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 5; }
+  .stair { fill: none; stroke: var(--fg); stroke-width: 3; stroke-linejoin: round; }
+  .up { stroke: var(--no); stroke-width: 4; }
+  .down { stroke: var(--a); stroke-width: 4; }
+  .bar-up { fill: var(--no); } .bar-down { fill: var(--a); }
+  .curve { fill: none; stroke: var(--fg); stroke-width: 3; }
+  .curve-a { fill: none; stroke: var(--a); stroke-width: 4; }
+  .atomH { fill: var(--on-panel); stroke: var(--fg); stroke-width: 1.5; }
+  .bondline { stroke: var(--fg); stroke-width: 5; stroke-linecap: round; }
+  .marker { fill: var(--no); stroke: var(--surface); stroke-width: 2; }
+  .arrow { stroke: var(--fg); stroke-width: 2.5; }
+  .hit { fill: transparent; cursor: grab; }
+  .rxpick, .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .rxpick { width: 100%; }
+  .eqline { width: 100%; font-family: var(--math); font-size: 18px; color: var(--fg); }
+  .chips { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+  .chips .hd { font-size: 13px; font-weight: 700; color: var(--muted); }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mol { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; border: 1px dashed var(--line); border-radius: 10px; padding: 3px 6px; }
+  .mol .mf { font-family: var(--math); font-size: 15px; color: var(--fg); margin-right: 2px; }
+  .chip { font-family: var(--math); font-size: 15px; padding: 3px 8px; }
+  .chip.brk { border-color: var(--no); }
+  .chip.brk.done { text-decoration: line-through; opacity: .5; }
+  .chip.mk { border-style: dashed; }
+  .chip.mk.done { background: var(--a); border-color: var(--a); color: var(--surface); border-style: solid; }
+  .chip:disabled { cursor: default; opacity: .45; }
+  .chip.done:disabled { opacity: .5; }
+  .chip.mk.done:disabled { opacity: 1; }
+  table.sums { border-collapse: collapse; width: 100%; font-size: 14px; margin: 2px 0 10px; }
+  table.sums td { padding: 4px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.sums td:last-child { text-align: right; font-family: var(--math); font-size: 16px; white-space: nowrap; color: var(--fg); }
+  table.sums tr.net td { font-weight: 700; color: var(--fg); }
+  .detail { font-family: var(--math); font-size: 13px; color: var(--muted); display: block; }
+  .status { font-size: 14px; color: var(--fg); margin: 0 0 8px; min-height: 1.4em; }
+  .status.win { color: var(--a); font-weight: 700; }
+  .rule { font-family: var(--math); font-size: 17px; color: var(--fg) !important; }
+  .livebox { font-size: 14px !important; }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 560 420" role="img"></svg>
+      <div class="controls" id="morseCtl">
+        <label for="r" data-t="rLabel"></label>
+        <input type="range" id="r" min="74" max="400" value="74" step="1">
+        <span class="val" id="rVal"></span>
+      </div>
+      <div class="controls" id="rxCtl">
+        <div class="rxpick" id="rxPick" role="group" data-t-aria="rxAria"></div>
+        <div class="seg" role="group" data-t-aria="dirAria">
+          <button type="button" class="small" id="dFwd" data-t="fwd"></button>
+          <button type="button" class="small" id="dRev" data-t="rev"></button>
+        </div>
+        <div class="eqline" id="eqline"></div>
+      </div>
+      <div class="controls" id="bondCtl">
+        <div class="chips" id="chips"></div>
+        <button type="button" class="small" id="auto"></button>
+        <button type="button" class="small" id="again" data-t="again"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="stepBody2"></p>
+      <div id="sumBox"></div>
+      <p class="status" id="status"></p>
+      <p class="livebox" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — pure chemistry, no DOM (checked in node)
+// Average bond enthalpies, kJ/mol (gas phase)
+const BOND = {
+  HH: ["H–H", 436], OO: ["O=O", 498], OH: ["O–H", 463], CH: ["C–H", 413], CO: ["C=O", 799],
+  CC: ["C–C", 348], ClCl: ["Cl–Cl", 243], HCl: ["H–Cl", 432], NN: ["N≡N", 945], NH: ["N–H", 391],
+};
+// dfh: standard enthalpy of formation at 25 °C, kJ/mol (gas)
+const SP = {
+  H2: { f: "H₂", atoms: { H: 2 }, bonds: ["HH"], dfh: 0 },
+  O2: { f: "O₂", atoms: { O: 2 }, bonds: ["OO"], dfh: 0 },
+  H2O: { f: "H₂O", atoms: { H: 2, O: 1 }, bonds: ["OH", "OH"], dfh: -241.8 },
+  CH4: { f: "CH₄", atoms: { C: 1, H: 4 }, bonds: ["CH", "CH", "CH", "CH"], dfh: -74.6 },
+  CO2: { f: "CO₂", atoms: { C: 1, O: 2 }, bonds: ["CO", "CO"], dfh: -393.5 },
+  Cl2: { f: "Cl₂", atoms: { Cl: 2 }, bonds: ["ClCl"], dfh: 0 },
+  HCl: { f: "HCl", atoms: { H: 1, Cl: 1 }, bonds: ["HCl"], dfh: -92.3 },
+  N2: { f: "N₂", atoms: { N: 2 }, bonds: ["NN"], dfh: 0 },
+  NH3: { f: "NH₃", atoms: { N: 1, H: 3 }, bonds: ["NH", "NH", "NH"], dfh: -45.9 },
+};
+const RX = [
+  { key: "rx1", L: [[2, "H2"], [1, "O2"]], R: [[2, "H2O"]] },
+  { key: "rx2", L: [[1, "CH4"], [2, "O2"]], R: [[1, "CO2"], [2, "H2O"]] },
+  { key: "rx3", L: [[1, "H2"], [1, "Cl2"]], R: [[2, "HCl"]] },
+  { key: "rx4", L: [[1, "N2"], [3, "H2"]], R: [[2, "NH3"]] },
+];
+const ELS = ["C", "N", "H", "O", "Cl"];
+function atomsOf(side) {
+  const a = {};
+  side.forEach(([n, sp]) => { for (const e in SP[sp].atoms) a[e] = (a[e] || 0) + n * SP[sp].atoms[e]; });
+  return a;
+}
+function sameAtoms(a, b) {
+  const ks = new Set(Object.keys(a).concat(Object.keys(b)));
+  return [...ks].every((k) => (a[k] || 0) === (b[k] || 0));
+}
+// Flat list of bonds, one entry per bond, with the molecule it belongs to
+function bondsOf(side) {
+  const out = [];
+  let m = 0;
+  side.forEach(([n, sp]) => {
+    for (let j = 0; j < n; j++, m++) SP[sp].bonds.forEach((b) => out.push({ b, sp, mol: m }));
+  });
+  return out;
+}
+const bondSum = (list) => list.reduce((s, x) => s + BOND[x.b][1], 0);
+const hf = (side) => side.reduce((s, [n, sp]) => s + n * SP[sp].dfh, 0);
+const r1 = (x) => Math.round(x * 10) / 10;
+function counts(list) {
+  const c = {};
+  list.forEach((x) => (c[x.b] = (c[x.b] || 0) + 1));
+  return Object.keys(c).map((b) => ({ b, n: c[b], e: BOND[b][1] }));
+}
+function plan(rx, rev) {
+  const A = rev ? rx.R : rx.L, B = rev ? rx.L : rx.R;
+  const brk = bondsOf(A), mk = bondsOf(B);
+  const sumB = bondSum(brk), sumM = bondSum(mk), dH = sumB - sumM;
+  const ref = r1(hf(B) - hf(A));
+  const pct = ref === 0 ? 0 : (100 * Math.abs(dH - ref)) / Math.abs(ref);
+  return { A, B, brk, mk, sumB, sumM, dH, ref, pct, atoms: atomsOf(A), balanced: sameAtoms(atomsOf(A), atomsOf(B)) };
+}
+// Energy after each action; seq = list of ["b"|"m", index]
+function levels(p, seq) {
+  const out = [0];
+  seq.forEach(([ph, i]) => out.push(out[out.length - 1] + (ph === "b" ? 1 : -1) * BOND[(ph === "b" ? p.brk : p.mk)[i].b][1]));
+  return out;
+}
+// H–H as a Morse curve: energy put in (kJ/mol) to stretch from re to r (pm)
+const MORSE = { D: 436, re: 74, a: 0.0194 };   // a in 1/pm (1.94 Å⁻¹)
+function morseIn(r) {
+  if (!Number.isFinite(r)) r = MORSE.re;
+  const x = 1 - Math.exp(-MORSE.a * (r - MORSE.re));
+  return MORSE.D * x * x;
+}
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "Where reaction heat comes from", eyebrow: "Chemistry · Stage 4", h1: "Breaking bonds costs energy; making bonds pays it back",
+    intro: "Pull a bond apart, then run four reactions bond by bond on an energy staircase. The heat a reaction gives out is what is left over.",
+    reset: "Reset", rLabel: "H–H distance", rxAria: "Choose a reaction", dirAria: "Choose the direction",
+    fwd: "Forward →", rev: "← Reverse", again: "Start over",
+    figMorse: "Two hydrogen atoms pulled apart above a curve of the energy needed, which climbs to 436 kJ per mole",
+    figStair: "Energy staircase: each bond broken raises the energy, each bond made lowers it; a bar shows the running total",
+    figProfile: "Energy profile: reactants, a schematic activation hump, and products, with the reaction enthalpy marked",
+    s1: "Guess", s2: "Break & make", s3: "Rule",
+    k1: "Predict first", t1: "Does breaking a bond give out energy?",
+    b1: "Answer first. Then drag the right-hand H atom (or use the slider) to pull one H₂ molecule apart.",
+    q: "Burning fuel gives out heat. What happens to energy at the moment a chemical bond breaks?",
+    o1: "Energy is released: it was stored in the bond", o2: "Energy has to be put in", o3: "No energy change at all",
+    right: "Yes. Pull the atoms apart and watch the energy you must supply climb toward 436 kJ/mol.",
+    wrong: "A very common idea. Pull the atoms apart and see which way the energy goes.",
+    locked: "Pick an answer first, then pull.",
+    morseLive: "Distance {d} pm. Energy put in so far: {e} kJ/mol (fully apart: {D}).",
+    morseRest: "At {d} pm the bond is relaxed: the lowest energy. Stretching it costs energy.",
+    axR: "distance between H atoms (pm)", axE: "energy put in (kJ/mol)", apart: "atoms fully apart: {D}",
+    k2: "Hands on", t2: "Break every old bond, then make the new ones",
+    b2: "Tap each bond of the reactants to break it: the energy climbs. When every atom is free, tap the product bonds to form them: the energy falls. Try Reverse too.",
+    autoBtn: "▶ Do it for me", pauseBtn: "❚❚ Pause",
+    hdBreak: "Break (energy in)", hdMake: "Make (energy out)",
+    brkAria: "Break a {b} bond in {f}, costs {e} kJ/mol", mkAria: "Make a {b} bond in {f}, releases {e} kJ/mol",
+    inL: "Energy in: bonds broken", outL: "Energy out: bonds made", netL: "Net ΔH (estimate)",
+    refL: "Measured ΔH (textbook)", diffL: "Estimate vs measured",
+    needBreak: "Break every old bond first: the atoms are still tied up.",
+    stBreak: "Breaking: {k} of {n} bonds broken.", stMake: "All atoms free. Now make the new bonds: {k} of {n} made.",
+    stDoneExo: "Done. More energy came out than went in: ΔH = {d} kJ/mol, exothermic (gives out heat).",
+    stDoneEndo: "Done. More energy went in than came out: ΔH = +{d} kJ/mol, endothermic (takes in heat).",
+    liveStair: "Energy now {v} kJ/mol relative to the reactants.",
+    lastB: "Broke {b}: +{e}", lastM: "Made {b}: −{e}",
+    reactants: "reactants", products: "products", freeAtoms: "free atoms",
+    k3: "The rule", t3: "Heat comes from making stronger bonds",
+    b3: "ΔH ≈ (energy to break the old bonds) − (energy released by the new bonds). Breaking always costs energy. When the new bonds are stronger in total, more comes out than went in: the reaction is exothermic (ΔH < 0). Run it in reverse and the same numbers make it endothermic.",
+    b3b: "The real reaction never pulls every atom apart: it goes over a much lower hump, the activation energy. But the start and end levels are the same whichever route you take, so bond bookkeeping still estimates ΔH.",
+    ruleLine: "ΔH ≈ {b} − {m} = {d} kJ/mol",
+    exo: "exothermic: gives out heat", endo: "endothermic: takes in heat",
+    ea: "activation hump (schematic)", atomsLine: "all bonds broken: +{v} (bookkeeping only)",
+    resultTitle: "What we found", resultMain: "ΔH ≈ Σ(bonds broken) − Σ(bonds made)",
+    resultNote: "Fuel does not give out heat because its bonds break. The heat comes when the stronger bonds of CO₂ and H₂O form.",
+    explainK: "Explain it", explainQ: "A friend says: “Food gives you energy because the bonds in sugar break and release it.” Use bond energies to explain what really happens.",
+    homeK: "Try at home", homeQ: "With an adult: measure the temperature of some vinegar, stir in a spoon of baking soda and measure again (it gets a little colder). Then open a disposable hand warmer and feel it heat up. Which reaction makes stronger bonds than it breaks?",
+    rx1: "Hydrogen burns", rx2: "Methane burns", rx3: "Hydrogen + chlorine", rx4: "Making ammonia",
+    foot: "Average bond enthalpies, kJ/mol, gas phase (average values; textbook tables vary slightly): H–H 436, O=O 498, O–H 463, C–H 413, C=O (in CO₂) 799, C–C 348, Cl–Cl 243, H–Cl 432, N≡N 945, N–H 391. Measured ΔH from standard enthalpies of formation at 25 °C, kJ/mol: H₂O(g) −241.8, CO₂ −393.5, CH₄ −74.6, HCl −92.3, NH₃ −45.9; water is counted as gas. ΔH is per mole of reaction as written. Bond-enthalpy estimates differ from measured values by a few percent, because a bond’s strength depends a little on the molecule it is in. The H₂ curve is a Morse model (rₑ = 74 pm, a = 1.94 Å⁻¹). CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "反应热从哪里来", eyebrow: "化学 · 阶段 4", h1: "断键要花能量，成键把能量还回来",
+    intro: "先把一根化学键拉开，再在「能量台阶」上一根键一根键地跑四个反应。反应放出的热，就是两笔账的差。",
+    reset: "重置", rLabel: "H–H 间距", rxAria: "选择反应", dirAria: "选择方向",
+    fwd: "正向 →", rev: "← 逆向", again: "重来",
+    figMorse: "两个氢原子被拉开，下面的曲线是需要的能量，一直升到每摩尔 436 千焦",
+    figStair: "能量台阶：每断一根键能量升高，每成一根键能量降低；柱子显示累计值",
+    figProfile: "能量图：反应物、示意的活化能小山、生成物，并标出反应焓变",
+    s1: "先猜", s2: "断键与成键", s3: "规律",
+    k1: "先猜一猜", t1: "断开化学键会放出能量吗？",
+    b1: "先选答案。再拖右边的 H 原子（或拖滑块），把一个 H₂ 分子拉开。",
+    q: "燃料燃烧会放热。化学键断开的那一刻，能量怎么变？",
+    o1: "放出能量：能量本来储存在键里", o2: "要往里加能量", o3: "能量完全不变",
+    right: "对。把两个原子拉开，看你要提供的能量一路升到 436 kJ/mol。",
+    wrong: "很多人这么想。把原子拉开，看能量往哪边走。",
+    locked: "先选一个答案，再来拉。",
+    morseLive: "间距 {d} pm。已经加进去的能量：{e} kJ/mol（完全拉开要 {D}）。",
+    morseRest: "{d} pm 时键是放松的，能量最低。拉长它就要花能量。",
+    axR: "两个 H 原子的距离 (pm)", axE: "加进去的能量 (kJ/mol)", apart: "完全拉开：{D}",
+    k2: "动手", t2: "先断开所有旧键，再连上新键",
+    b2: "点反应物里的每根键把它断开，能量往上爬。原子全部自由后，再点生成物的键把它们连上，能量往下降。也试试「逆向」。",
+    autoBtn: "▶ 自动演示", pauseBtn: "❚❚ 暂停",
+    hdBreak: "断键（吸收能量）", hdMake: "成键（放出能量）",
+    brkAria: "断开 {f} 里的一根 {b} 键，要花 {e} kJ/mol", mkAria: "连上 {f} 里的一根 {b} 键，放出 {e} kJ/mol",
+    inL: "吸收：断开的键", outL: "放出：形成的键", netL: "净 ΔH（估算）",
+    refL: "实测 ΔH（教科书值）", diffL: "估算与实测相差",
+    needBreak: "先把旧键全部断开：原子还被拴着呢。",
+    stBreak: "断键中：已断 {k} / {n} 根。", stMake: "原子全部自由了。现在连新键：已连 {k} / {n} 根。",
+    stDoneExo: "完成。放出的比吸收的多：ΔH = {d} kJ/mol，放热反应。",
+    stDoneEndo: "完成。吸收的比放出的多：ΔH = +{d} kJ/mol，吸热反应。",
+    liveStair: "现在的能量比反应物高 {v} kJ/mol。",
+    lastB: "断开 {b}：+{e}", lastM: "连上 {b}：−{e}",
+    reactants: "反应物", products: "生成物", freeAtoms: "自由原子",
+    k3: "规律", t3: "热来自形成更牢的键",
+    b3: "ΔH ≈（断开旧键要花的能量）−（形成新键放出的能量）。断键总是要花能量。新键加起来更牢时，放出的比花掉的多，反应就放热（ΔH < 0）。反过来跑，同样的数就让它变成吸热反应。",
+    b3b: "真实的反应并不会把每个原子都拆开，它翻过的是一座低得多的小山，叫活化能。但不管走哪条路，起点和终点的能量都一样，所以用键能记账仍然能估出 ΔH。",
+    ruleLine: "ΔH ≈ {b} − {m} = {d} kJ/mol",
+    exo: "放热：放出热量", endo: "吸热：吸收热量",
+    ea: "活化能小山（示意）", atomsLine: "键全断开：+{v}（只用来记账）",
+    resultTitle: "我们发现", resultMain: "ΔH ≈ Σ(断开的键) − Σ(形成的键)",
+    resultNote: "燃料放热，不是因为它的键断了；热是在形成更牢的 CO₂ 和 H₂O 的键时放出来的。",
+    explainK: "说一说", explainQ: "朋友说：「食物给你能量，是因为糖里的化学键断开，把能量放了出来。」用键能讲讲真正发生了什么。",
+    homeK: "家里做一做", homeQ: "请大人一起：量一下白醋的温度，加一勺小苏打搅一搅，再量一次（会稍微变凉）。再拆开一片暖宝宝，摸摸它变热。哪个反应形成的键比断开的更牢？",
+    rx1: "氢气燃烧", rx2: "甲烷燃烧", rx3: "氢气与氯气", rx4: "合成氨",
+    foot: "平均键焓，kJ/mol，气态（平均值，各教材的表略有出入）：H–H 436，O=O 498，O–H 463，C–H 413，C=O（CO₂ 中）799，C–C 348，Cl–Cl 243，H–Cl 432，N≡N 945，N–H 391。实测 ΔH 由 25 °C 标准生成焓算出，kJ/mol：H₂O(g) −241.8，CO₂ −393.5，CH₄ −74.6，HCl −92.3，NH₃ −45.9；水按气态计。ΔH 按所写方程式每摩尔反应计。键能估算和实测值一般差几个百分点，因为同一种键在不同分子里牢度略有不同。H₂ 曲线用 Morse 模型（rₑ = 74 pm，a = 1.94 Å⁻¹）。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent || fig);
+const T = (tag, attrs, text, parent) => { const e = S(tag, attrs, parent); e.textContent = text; return e; };
+const k0 = (x) => Play.fmt(x, 0);
+const sgn = (x) => (x > 0 ? "+" : x < 0 ? "−" : "") + k0(Math.abs(x));
+const state = { step: 0, rx: 0, rev: false, seq: [], shown: 0, r: MORSE.re, answered: false, playing: false };
+let P0 = plan(RX[0], false);
+const nB = () => state.seq.filter((s) => s[0] === "b").length;
+const nM = () => state.seq.filter((s) => s[0] === "m").length;
+const allBroken = () => nB() === P0.brk.length;
+const complete = () => allBroken() && nM() === P0.mk.length;
+const target = () => { const L = levels(P0, state.seq); return L[L.length - 1]; };
+const side = (list) => list.map(([n, sp]) => (n > 1 ? n + " " : "") + SP[sp].f).join(" + ");
+const atomText = () => ELS.filter((e) => P0.atoms[e]).map((e) => (P0.atoms[e] > 1 ? P0.atoms[e] + " " : "") + e).join(" + ");
+
+/* ---------- step 1: pull H–H apart ---------- */
+const MX = (r) => 60 + ((r - 40) / 360) * 460;           // curve x for r in pm (40..400)
+const MY = (e) => 360 - (e / 520) * 210;                  // curve y for energy put in
+const AX = (r) => 140 + (r / 400) * 360;                  // atom x on the top row
+function drawMorse() {
+  fig.setAttribute("aria-label", P.t("figMorse"));
+  fig.innerHTML = "";
+  const r = state.r, e = morseIn(r);
+  // atoms
+  const x1 = 140, x2 = AX(r), frac = Math.min(1, e / MORSE.D);
+  S("line", { class: "bondline", x1, x2, y1: 70, y2: 70, opacity: Math.max(0, 1 - frac * 1.15).toFixed(2) });
+  S("circle", { class: "atomH", cx: x1, cy: 70, r: 22 });
+  S("circle", { class: "atomH", cx: x2, cy: 70, r: 22, id: "hAtom" });
+  T("text", { class: "lbl", x: x1, y: 78, "text-anchor": "middle" }, "H");
+  T("text", { class: "lbl", x: x2, y: 78, "text-anchor": "middle" }, "H");
+  S("rect", { class: "hit", x: 0, y: 30, width: 560, height: 80 });
+  // axes
+  S("line", { class: "axis", x1: 60, x2: 530, y1: 360, y2: 360 });
+  S("line", { class: "axis", x1: 60, x2: 60, y1: 140, y2: 360 });
+  T("text", { class: "lbl-m", x: 295, y: 414, "text-anchor": "middle" }, P.t("axR"));
+  T("text", { class: "lbl-m", x: 68, y: 136 }, P.t("axE"));
+  const yD = MY(MORSE.D);
+  S("line", { class: "guide", x1: 60, x2: 530, y1: yD, y2: yD });
+  T("text", { class: "lbl-m", x: 524, y: yD - 8, "text-anchor": "end" }, P.t("apart", { D: MORSE.D }));
+  [100, 200, 300, 400].forEach((v) => T("text", { class: "lbl-m", x: MX(v), y: 384, "text-anchor": "middle" }, String(v)));
+  let d = "";
+  for (let q = 52; q <= 400; q += 4) { const ee = Math.min(520, morseIn(q)); d += (d ? "L" : "M") + MX(q).toFixed(1) + "," + MY(ee).toFixed(1); }
+  S("path", { class: "curve", d });
+  let da = "";
+  for (let q = MORSE.re; q <= r + 0.01; q += 2) da += (da ? "L" : "M") + MX(q).toFixed(1) + "," + MY(morseIn(q)).toFixed(1);
+  if (r > MORSE.re + 1) S("path", { class: "curve-a", d: da + "L" + MX(r).toFixed(1) + "," + MY(e).toFixed(1) });
+  S("line", { class: "arrow", x1: MX(r), x2: MX(r), y1: 110, y2: MY(e) - 10, "stroke-dasharray": "3 4" });
+  S("circle", { class: "marker", cx: MX(r), cy: MY(e), r: 9 });
+  T("text", { class: "num", x: Math.min(MX(r) + 14, 470), y: e > 200 ? MY(e) + 32 : MY(e) - 14 }, "+" + k0(e));
+  $("rVal").textContent = k0(r) + " pm";
+  $("r").disabled = !state.answered;
+  const st = $("status");
+  st.classList.remove("win");
+  st.textContent = state.answered ? "" : P.t("locked");
+  Play.live($("live"), r <= MORSE.re + 0.5 ? P.t("morseRest", { d: MORSE.re }) : P.t("morseLive", { d: k0(r), e: k0(e), D: MORSE.D }));
+}
+let dragging = false;
+function dragTo(evt) {
+  const p = Play.pointer(fig, evt);
+  state.r = Play.clamp(Math.round(((p.x - 140) / 360) * 400), MORSE.re, 400);
+  $("r").value = state.r;
+  drawMorse();
+}
+fig.addEventListener("pointerdown", (evt) => {
+  if (state.step !== 0 || !state.answered) return;
+  const p = Play.pointer(fig, evt);
+  if (p.y > 120) return;
+  dragging = true;
+  fig.setPointerCapture(evt.pointerId);
+  dragTo(evt);
+});
+fig.addEventListener("pointermove", (evt) => { if (dragging) dragTo(evt); });
+const endDrag = () => (dragging = false);
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", endDrag);
+$("r").addEventListener("input", (e) => { state.r = Play.clamp(+e.target.value, MORSE.re, 400); drawMorse(); });
+
+/* ---------- step 2: energy staircase ---------- */
+function drawStair() {
+  fig.setAttribute("aria-label", P.t("figStair"));
+  fig.innerHTML = "";
+  const p = P0, L = levels(p, state.seq), d = state.seq.length, N = p.brk.length + p.mk.length;
+  const top = p.sumB, bot = Math.min(0, p.dH);
+  const Y0 = 78, Y1 = 352, y = (v) => Y1 - ((v - bot) / (top - bot)) * (Y1 - Y0);
+  const x0 = 50, x1 = 440, w = (x1 - x0) / (N + 1);
+  // phase caption
+  T("text", { class: "lbl", x: 245, y: 30, "text-anchor": "middle" },
+    complete() ? side(p.B) : allBroken() && d > 0 ? atomText() : nB() === 0 ? side(p.A) : side(p.A) + " …");
+  S("line", { class: "axis", x1: x0, x2: x0, y1: Y0 - 20, y2: Y1 + 20 });
+  S("line", { class: "zero", x1: x0, x2: 470, y1: y(0), y2: y(0) });
+  const close = complete() && p.dH > 0 && y(0) - y(p.dH) < 30;
+  T("text", { class: "lbl-m", x: x0 + 6, y: y(0) + (close ? 24 : -8) }, "0 · " + P.t("reactants"));
+  if (allBroken()) {
+    S("line", { class: "guide", x1: x0, x2: 470, y1: y(top), y2: y(top) });
+    T("text", { class: "lbl-m", x: x0 + 6, y: y(top) - 8 }, "+" + k0(top) + " · " + P.t("freeAtoms"));
+  }
+  if (complete()) {
+    S("line", { class: "zero", x1: x0, x2: 470, y1: y(p.dH), y2: y(p.dH) });
+    T("text", { class: "lbl-m", x: x0 + 6, y: y(p.dH) + (p.dH < 0 ? 24 : -8) }, sgn(p.dH) + " · " + P.t("products"));
+  }
+  // staircase: risers coloured by direction
+  let path = "M" + x0 + "," + y(0);
+  for (let k = 1; k <= d; k++) {
+    const xk = x0 + k * w, v = k === d ? state.shown : L[k];
+    path += "L" + xk.toFixed(1) + "," + y(L[k - 1]).toFixed(1);
+    S("line", { class: state.seq[k - 1][0] === "b" ? "up" : "down", x1: xk, x2: xk, y1: y(L[k - 1]), y2: y(v) });
+    path += "M" + xk.toFixed(1) + "," + y(v).toFixed(1);
+  }
+  path += "L" + (x0 + (d + 1) * w).toFixed(1) + "," + y(d ? state.shown : 0).toFixed(1);
+  S("path", { class: "stair", d: path });
+  // running-total bar
+  const v = state.shown, yb = y(v), yz = y(0);
+  if (Math.abs(yb - yz) > 0.5) S("rect", { class: v > 0 ? "bar-up" : "bar-down", x: 480, width: 56, y: Math.min(yb, yz), height: Math.abs(yb - yz), rx: 4 });
+  S("line", { class: "axis", x1: 474, x2: 542, y1: yz, y2: yz });
+  const lab = (complete() ? "ΔH " : "") + sgn(Math.round(v));
+  T("text", { class: "num", x: 508, y: v >= 0 ? Math.max(yb - 10, 20) : Math.min(yb + 26, 412), "text-anchor": "middle" }, lab);
+  if (d > 0) {
+    const [ph, i] = state.seq[d - 1], b = (ph === "b" ? p.brk : p.mk)[i].b;
+    T("text", { class: "lbl-m", x: 245, y: 412, "text-anchor": "middle" }, P.t(ph === "b" ? "lastB" : "lastM", { b: BOND[b][0], e: BOND[b][1] }));
+  }
+}
+function renderSums() {
+  const p = P0, box = $("sumBox");
+  box.innerHTML = "";
+  if (state.step === 0) return;
+  const tb = document.createElement("table");
+  tb.className = "sums";
+  const row = (label, detail, val, cls) => {
+    const tr = document.createElement("tr");
+    if (cls) tr.className = cls;
+    const a = document.createElement("td"), b = document.createElement("td");
+    a.textContent = label;
+    if (detail) { const s = document.createElement("span"); s.className = "detail"; s.textContent = detail; a.appendChild(s); }
+    b.textContent = val;
+    tr.append(a, b);
+    tb.appendChild(tr);
+  };
+  const fm = (list) => counts(list).map((c) => c.n + " × " + c.e + " (" + BOND[c.b][0] + ")").join(" + ");
+  const show = state.step === 2 || complete();
+  const doneB = state.seq.filter((s) => s[0] === "b").map((s) => p.brk[s[1]]);
+  const doneM = state.seq.filter((s) => s[0] === "m").map((s) => p.mk[s[1]]);
+  const inV = show ? p.sumB : bondSum(doneB), outV = show ? p.sumM : bondSum(doneM);
+  row(P.t("inL"), show ? fm(p.brk) : "", sgn(inV));
+  row(P.t("outL"), show ? fm(p.mk) : "", sgn(-outV));
+  row(P.t("netL"), "", sgn(inV - outV), "net");
+  if (show) {
+    row(P.t("refL"), "", (p.ref < 0 ? "−" : p.ref > 0 ? "+" : "") + Play.fmt(Math.abs(p.ref), 1));
+    row(P.t("diffL"), "", Play.fmt(p.pct, 1) + " %");
+  }
+  box.appendChild(tb);
+}
+function stairStatus() {
+  const st = $("status"), p = P0;
+  st.classList.toggle("win", complete());
+  if (complete()) st.textContent = p.dH < 0 ? P.t("stDoneExo", { d: sgn(p.dH) }) : P.t("stDoneEndo", { d: k0(p.dH) });
+  else if (!allBroken()) st.textContent = P.t("stBreak", { k: nB(), n: p.brk.length });
+  else st.textContent = P.t("stMake", { k: nM(), n: p.mk.length });
+}
+function buildChips() {
+  const box = $("chips"), p = P0;
+  box.innerHTML = "";
+  [["b", p.brk, "hdBreak", "brkAria"], ["m", p.mk, "hdMake", "mkAria"]].forEach(([ph, list, hd, aria]) => {
+    const h = document.createElement("div");
+    h.className = "hd"; h.textContent = P.t(hd);
+    const row = document.createElement("div");
+    row.className = "row";
+    let molEl = null, cur = -1;
+    list.forEach((x, i) => {
+      if (x.mol !== cur) {
+        cur = x.mol;
+        molEl = document.createElement("span"); molEl.className = "mol";
+        const f = document.createElement("span"); f.className = "mf"; f.textContent = SP[x.sp].f;
+        molEl.appendChild(f); row.appendChild(molEl);
+      }
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip " + (ph === "b" ? "brk" : "mk");
+      b.dataset.ph = ph; b.dataset.i = i;
+      b.textContent = BOND[x.b][0] + " " + BOND[x.b][1];
+      b.setAttribute("aria-label", P.t(aria, { b: BOND[x.b][0], f: SP[x.sp].f, e: BOND[x.b][1] }));
+      b.addEventListener("click", () => { stopAuto(); act(ph, i); });
+      molEl.appendChild(b);
+    });
+    box.append(h, row);
+  });
+  syncChips();
+}
+const isDone = (ph, i) => state.seq.some((s) => s[0] === ph && s[1] === i);
+function syncChips() {
+  const ab = allBroken();
+  document.querySelectorAll("#chips .chip").forEach((b) => {
+    const ph = b.dataset.ph, i = +b.dataset.i, dn = isDone(ph, i);
+    b.classList.toggle("done", dn);
+    b.disabled = dn || (ph === "m" && !ab);
+    b.setAttribute("aria-pressed", String(dn));
+  });
+  $("auto").textContent = P.t(state.playing ? "pauseBtn" : "autoBtn");
+  $("auto").disabled = complete() && !state.playing;
+}
+function act(ph, i) {
+  if (isDone(ph, i)) return;
+  if (ph === "m" && !allBroken()) { $("status").textContent = P.t("needBreak"); return; }
+  state.seq.push([ph, i]);
+  syncChips();
+  tween();
+  stairStatus();
+  renderSums();
+  Play.live($("live"), P.t("liveStair", { v: sgn(target()) }));
+  const nxt = document.querySelector("#chips .chip:not(:disabled)");
+  if (document.activeElement && document.activeElement.disabled && nxt) nxt.focus();
+}
+let tw = 0;
+function tween() {
+  cancelAnimationFrame(tw);
+  const to = target();
+  if (Play.reduced) { state.shown = to; drawStair(); return; }
+  const from = state.shown, t0 = performance.now();
+  const f = (t) => {
+    const u = Math.min(1, (t - t0) / 380);
+    state.shown = from + (to - from) * (1 - Math.pow(1 - u, 3));
+    if (state.step === 1) drawStair();
+    if (u < 1) tw = requestAnimationFrame(f);
+  };
+  tw = requestAnimationFrame(f);
+}
+let timer = 0;
+function stopAuto() { state.playing = false; clearInterval(timer); if (state.step === 1) syncChips(); }
+function autoNext() {
+  const p = P0;
+  const bi = p.brk.findIndex((_, i) => !isDone("b", i));
+  if (bi >= 0) return act("b", bi);
+  const mi = p.mk.findIndex((_, i) => !isDone("m", i));
+  if (mi >= 0) return act("m", mi);
+}
+$("auto").addEventListener("click", () => {
+  if (state.playing) { stopAuto(); return; }
+  state.playing = true;
+  autoNext();
+  if (complete()) { stopAuto(); return; }
+  timer = setInterval(() => { autoNext(); if (complete()) stopAuto(); }, 650);
+  syncChips();
+});
+
+/* ---------- step 3: energy profile ---------- */
+function drawProfile() {
+  fig.setAttribute("aria-label", P.t("figProfile"));
+  fig.innerHTML = "";
+  const p = P0, top = p.sumB, bot = Math.min(0, p.dH), hi = Math.max(0, p.dH);
+  const Y0 = 70, Y1 = 350, y = (v) => Y1 - ((v - bot) / (top - bot)) * (Y1 - Y0);
+  const peak = hi + 0.3 * (top - hi);
+  const yR = y(0), yP = y(p.dH), yK = y(peak);
+  S("line", { class: "axis", x1: 40, x2: 40, y1: 40, y2: 380 });
+  T("text", { class: "lbl-m", x: 48, y: 30 }, "kJ/mol");
+  S("line", { class: "guide", x1: 40, x2: 480, y1: y(top), y2: y(top) });
+  T("text", { class: "lbl-m", x: 48, y: y(top) - 8 }, P.t("atomsLine", { v: k0(top) }));
+  S("path", { class: "curve-a", d: `M50,${yR} L160,${yR} C215,${yR} 215,${yK} 260,${yK} C305,${yK} 305,${yP} 360,${yP} L470,${yP}` });
+  T("text", { class: "lbl-m", x: 260, y: yK - 10, "text-anchor": "middle" }, P.t("ea"));
+  const capR = side(p.A), capP = side(p.B);
+  T("text", { class: "lbl", x: 105, y: yR + (p.dH < 0 ? -12 : 28), "text-anchor": "middle" }, capR);
+  T("text", { class: "lbl", x: 415, y: yP + (p.dH < 0 ? 28 : -12), "text-anchor": "middle" }, capP);
+  S("line", { class: "zero", x1: 160, x2: 492, y1: yR, y2: yR });
+  S("line", { class: "arrow", x1: 484, x2: 484, y1: yR, y2: yP });
+  const ah = p.dH < 0 ? -1 : 1;
+  S("path", { d: `M476,${yP + ah * 12} L484,${yP} L492,${yP + ah * 12}`, class: "arrow", fill: "none" });
+  T("text", { class: "num", x: 494, y: (yR + yP) / 2 - 4 }, "ΔH");
+  T("text", { class: "num", x: 494, y: (yR + yP) / 2 + 22 }, sgn(p.dH));
+  T("text", { class: "lbl", x: 260, y: 412, "text-anchor": "middle" }, P.t(p.dH < 0 ? "exo" : "endo"));
+  const st = $("status");
+  st.classList.add("win");
+  st.innerHTML = "";
+  const s1 = document.createElement("span"); s1.className = "rule";
+  s1.textContent = P.t("ruleLine", { b: k0(p.sumB), m: k0(p.sumM), d: sgn(p.dH) });
+  st.append(s1, document.createElement("br"), document.createTextNode(P.t(p.dH < 0 ? "exo" : "endo")));
+  Play.live($("live"), "");
+}
+
+/* ---------- shared ---------- */
+function buildPicker() {
+  const pick = $("rxPick");
+  pick.innerHTML = "";
+  RX.forEach((r, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small" + (i === state.rx ? " on" : ""); b.textContent = P.t(r.key);
+    b.setAttribute("aria-pressed", String(i === state.rx));
+    b.addEventListener("click", () => { state.rx = i; newRun(); });
+    pick.appendChild(b);
+  });
+  $("dFwd").classList.toggle("on", !state.rev); $("dFwd").setAttribute("aria-pressed", String(!state.rev));
+  $("dRev").classList.toggle("on", state.rev); $("dRev").setAttribute("aria-pressed", String(state.rev));
+  $("eqline").textContent = side(P0.A) + " → " + side(P0.B);
+}
+function newRun() {
+  stopAuto();
+  cancelAnimationFrame(tw);
+  P0 = plan(RX[state.rx], state.rev);
+  state.seq = []; state.shown = 0;
+  buildPicker(); buildChips(); render();
+}
+$("dFwd").addEventListener("click", () => { state.rev = false; newRun(); });
+$("dRev").addEventListener("click", () => { state.rev = true; newRun(); });
+$("again").addEventListener("click", newRun);
+
+function render() {
+  const s = state.step;
+  $("morseCtl").hidden = s !== 0;
+  $("rxCtl").hidden = s === 0;
+  $("bondCtl").hidden = s !== 1;
+  $("status").innerHTML = "";
+  if (s === 0) drawMorse();
+  else if (s === 1) { drawStair(); stairStatus(); syncChips(); Play.live($("live"), P.t("liveStair", { v: sgn(target()) })); }
+  else drawProfile();
+  renderSums();
+}
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { state.answered = true; if (state.step === 0) drawMorse(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  stopAuto();
+  state.step = i;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("stepBody2").textContent = i === 2 ? P.t("b3b") : "";
+  $("stepBody2").hidden = i !== 2;
+  $("predict").hidden = i !== 0;
+  if (i === 1) state.shown = target();
+  render();
+});
+$("reset").addEventListener("click", () => {
+  stopAuto();
+  state.rx = 0; state.rev = false; state.r = MORSE.re; state.answered = false;
+  $("r").value = MORSE.re;
+  pr.reset();
+  P0 = plan(RX[0], false);
+  state.seq = []; state.shown = 0;
+  buildPicker(); buildChips();
+  st.go(0);
+});
+buildPicker();
+buildChips();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A ball dropped on a moving train</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.fig { width: 100%; height: auto; display: block; }
+  #tr { touch-action: none; }
+  .vcap { font-size: 13px; font-weight: 650; color: var(--fg); padding: 10px 14px 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .vcap span { font-weight: 400; color: var(--muted); }
+  .vsep { border-top: 1px solid var(--line); }
+  .floor { stroke: var(--fg); stroke-width: 3; }
+  .rail { stroke: var(--muted); stroke-width: 2; }
+  .wall { fill: none; stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; }
+  .carfill { fill: var(--soft); opacity: .7; }
+  .post { stroke: var(--muted); stroke-width: 4; opacity: .3; }
+  .tick { stroke: var(--muted); stroke-width: 1.5; }
+  .tickA { stroke: var(--a); stroke-width: 2.5; }
+  .person { stroke: var(--fg); stroke-width: 4; stroke-linecap: round; fill: none; }
+  .head { fill: var(--fg); }
+  .hand { fill: var(--hl); stroke: var(--fg); stroke-width: 1.5; }
+  .ball { fill: var(--a); stroke: var(--fg); stroke-width: 1; }
+  .ballB { fill: var(--c); stroke: var(--fg); stroke-width: 1; }
+  .dotA { fill: var(--a); opacity: .45; } .dotB { fill: var(--c); opacity: .5; }
+  .trail { fill: none; stroke: var(--a); stroke-width: 2; stroke-dasharray: 5 5; opacity: .7; }
+  .pair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 5; }
+  .mark { fill: var(--hl); stroke: var(--fg); stroke-width: 1.2; }
+  .land { stroke: var(--no); stroke-width: 3; }
+  .rel { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .arrow { stroke: var(--a); stroke-width: 3; fill: none; }
+  .arrowHead { fill: var(--a); }
+  .tbl { fill: var(--soft); stroke: var(--fg); stroke-width: 2.5; }
+  .lbl { fill: var(--muted); font-size: 22px; font-family: var(--font); }
+  .lblA { fill: var(--a); font-size: 22px; font-weight: 700; font-family: var(--font); }
+  .lblC { fill: var(--c); font-size: 22px; font-weight: 700; font-family: var(--font); }
+  .stage svg text { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .controls .val { min-width: 4.4em; font-size: 14px; }
+  .controls select { font-size: 13px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .pr { display: flex; align-items: center; gap: 8px; flex: 1 1 210px; min-width: 0; }
+  .pr input[type=range] { flex: 1 1 80px; min-width: 0; }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout th, .readout td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .readout th:first-child, .readout td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  .readout td.both { text-align: center; color: var(--fg); font-weight: 650; }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+  #rule .big { color: var(--fg); font-weight: 650; font-size: 15px; }
+  .result .math { white-space: normal; }
+  @media (max-width: 560px) { .readout { font-size: 13px; } .readout th, .readout td { padding: 3px 3px; } }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div id="trainViz">
+        <div class="vcap"><strong data-t="capTrain"></strong><span id="tagTrain"></span></div>
+        <svg class="fig" id="tr" viewBox="0 0 600 230" role="img" data-t-aria="trAria"></svg>
+        <div class="vcap vsep"><strong data-t="capPlat"></strong><span id="tagPlat"></span></div>
+        <svg class="fig" id="pf" viewBox="0 0 600 250" role="img" data-t-aria="pfAria"></svg>
+        <div class="controls">
+          <div class="grp">
+            <button type="button" id="play"></button>
+            <label for="slow" data-t="slowLabel"></label>
+            <select id="slow"><option value="1">1×</option><option value="0.25" selected>¼×</option><option value="0.1">⅒×</option></select>
+            <span class="pr"><label for="tt" data-t="timeLabel"></label><input type="range" id="tt" min="0" max="200" step="1" value="0"><span class="val" id="ttVal"></span></span>
+          </div>
+          <div class="grp">
+            <span class="pr"><label for="v" data-t="vLabel"></label><input type="range" id="v" min="0" max="30" step="1" value="20"><span class="val" id="vVal"></span></span>
+            <span class="pr"><label for="h" data-t="hLabel"></label><input type="range" id="h" min="0.5" max="2" step="0.05" value="1.5"><span class="val" id="hVal"></span></span>
+          </div>
+          <div class="grp">
+            <label class="check"><input type="checkbox" id="acc"> <span data-t="accLabel"></span></label>
+            <span class="pr"><label for="a" data-t="aLabel"></label><input type="range" id="a" min="0.5" max="3" step="0.1" value="1"><span class="val" id="aVal"></span></span>
+          </div>
+        </div>
+      </div>
+      <div id="tableViz" hidden>
+        <div class="vcap"><strong data-t="capTable"></strong><span id="tagTable"></span></div>
+        <svg class="fig" id="tb" viewBox="0 0 600 295" role="img" data-t-aria="tbAria"></svg>
+        <div class="controls">
+          <div class="grp">
+            <button type="button" id="play2"></button>
+            <span class="pr"><label for="H" data-t="HLabel"></label><input type="range" id="H" min="0.5" max="2" step="0.05" value="0.8"><span class="val" id="HVal"></span></span>
+            <span class="pr"><label for="u" data-t="uLabel"></label><input type="range" id="u" min="0" max="5" step="0.1" value="2"><span class="val" id="uVal"></span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "A ball dropped on a moving train", eyebrow: "Physics · Stage 4", h1: "A ball dropped on a moving train: who sees it fall straight?",
+    intro: "Drop a ball inside a train and watch the same drop twice: once from inside the train, once from the platform.",
+    reset: "Reset", s1: "Guess", s2: "Two views", s3: "Rule",
+    capTrain: "Seen from inside the train", capPlat: "Seen from the platform", capTable: "Two balls leave a table at the same moment",
+    trAria: "Inside a train carriage: a passenger holds a ball out and lets go; posts outside stream backwards",
+    pfAria: "The same carriage seen from the platform: it moves to the right while the ball falls along a curve",
+    tbAria: "Ball A drops off a table edge while ball B is pushed sideways off the same edge at the same moment",
+    tagTrain: "train at rest for you", tagTrainAcc: "train speeding up: {a} m/s²", tagPlat: "{v} m/s →", tagPlatAcc: "{v} m/s →, speeding up {a} m/s²",
+    tagTable: "slow motion ¼× · dots every {dt} s",
+    k1: "Predict first", t1: "A steady train, an open hand",
+    b1: "The train rolls along a straight track at a steady {v} m/s ({kmh} km/h). You hold a ball {h} m above the floor and open your hand. Pick an answer, then press Drop.",
+    k2: "Hands on", t2: "One drop, two views",
+    b2: "Both pictures show the same drop at the same moment. Change the speed: the passenger’s view never changes, the platform view stretches. Dots are {dt} s apart. Then tick “Train speeding up”.",
+    k3: "The rule", t3: "Down and sideways do not interfere",
+    b3: "Drop ball A and push ball B off the same table edge at the same moment. Change the push speed and the height.",
+    q: "Where does the ball land?",
+    o1: "Behind my hand: the train moves on while the ball falls", o2: "Right under my hand", o3: "In front of my hand",
+    right: "Yes. Now look at the same drop from the platform in step 2: it does not look straight there.",
+    wrong: "Most people feel that. In step 2, check how far the train moves during the fall, and how far the ball moves.",
+    drop: "▶ Drop", pause: "❚❚ Pause", replay: "↺ Drop again", drop2: "▶ Release both",
+    slowLabel: "Slow motion", timeLabel: "Time", vLabel: "Train speed", hLabel: "Drop height", accLabel: "Train speeding up", aLabel: "a",
+    HLabel: "Table height", uLabel: "Push speed",
+    colTrain: "Train view", colPlat: "Platform view",
+    rT: "Fall time", rBall: "Ball moves sideways", rHand: "Hand moves sideways", rPath: "Path looks like", rSpd: "Speed on landing", rLand: "Lands, measured on the floor",
+    pStraight: "straight down", pParab: "a parabola", pSlant: "a slanted line",
+    under: "right under the hand", behind: "{d} m behind the hand",
+    landTrain: "lands {d} m behind", landZero: "lands right under the hand", underHand: "under hand",
+    release: "release", hand: "hand",
+    liveLand: "Landed after {t} s. Platform: the ball moved {xb} m sideways, the hand {xh} m. Train: {land}.",
+    tableA: "A: dropped", tableB: "B: pushed at {u} m/s", tableLand: "both land at t = {t} s", tableOut: "B: {x} m out",
+    liveTable: "Both landed after {t} s. B landed {x} m from the table edge.",
+    ruleBig: "Falling and moving sideways are independent: the drop takes t = √(2h/g) whatever the sideways speed, and the sideways distance is just v·t.",
+    ruleRows: "Height {h} m → t = {t} s",
+    ruleNow: "Here: H = {H} m, so both balls fall for {t} s; B moves {u} m/s × {t} s = {x} m sideways.",
+    ruleFrames: "On the train the ball keeps the train’s {v} m/s after you let go, so it stays level with your hand. You share that speed and see only the downward part: a straight drop. Someone on the platform sees both parts at once: a parabola. Both are right, each in their own frame (Galileo, 1632).",
+    ruleAcc: "Where the “lands behind” feeling comes from: if the train speeds up, the floor gains ½·a·t² on the ball. With a = {a} m/s² and h = {h} m that is a·h/g = {d} m. Braking makes it land in front.",
+    resultTitle: "What we found", resultMain: "y = h − ½gt² for everyone · sideways x = v·t depends on the frame",
+    resultNote: "In a train moving at a steady speed, a dropped ball lands right under your hand. Only a change of speed (a ≠ 0) makes it land behind, by a·h/g.",
+    explainK: "Explain it", explainQ: "A friend says a ball dropped in a fast train must fly to the back of the carriage. Use two views, the passenger’s and the platform’s, to explain where it lands, and say when it really would land behind.",
+    homeK: "Try at home", homeQ: "Walk at a steady pace and toss a soft ball straight up, a little above your head. It comes back down into your hand. Now toss it and stop suddenly: where does it come down?",
+    foot: "Model: no air resistance; g = 9.81 m/s². The ball leaves the hand with the train’s velocity v (no push). Platform frame: x = v·t, y = h − ½gt²; the hand moves v·t + ½at². Train frame: x = −½at², same y. Fall time T = √(2h/g); landing offset ½aT² = a·h/g. The platform panel squeezes the horizontal scale when the path is long (ruler in metres); the train and table panels are to scale. Earth’s rotation is ignored. Galileo argued with a stone dropped from a ship’s mast in his Dialogue (1632). · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "在行驶的火车上放手一个球", eyebrow: "物理 · 阶段 4", h1: "在行驶的火车上放手一个球：谁看到它直直落下？",
+    intro: "在火车里松手放一个球，把同一次下落看两遍：一遍在车里看，一遍在站台上看。",
+    reset: "重置", s1: "先猜", s2: "两个视角", s3: "规律",
+    capTrain: "在车厢里看", capPlat: "在站台上看", capTable: "两个球同时离开桌面",
+    trAria: "车厢里：乘客伸手拿着球，松手；窗外的柱子向后掠过",
+    pfAria: "站台上看同一节车厢：车厢向右开，球沿一条曲线落下",
+    tbAria: "球 A 从桌边自由落下，同一时刻球 B 被从同一桌边横着推出去",
+    tagTrain: "对你来说车是静止的", tagTrainAcc: "火车在加速：{a} m/s²", tagPlat: "{v} m/s →", tagPlatAcc: "{v} m/s →，加速 {a} m/s²",
+    tagTable: "慢放 ¼× · 每 {dt} 秒一个点",
+    k1: "先猜一猜", t1: "匀速的火车，松开的手",
+    b1: "火车沿直轨道匀速行驶，速度 {v} m/s（{kmh} km/h）。你把球举在离地板 {h} 米高的地方，松开手。先选一个答案，再按「放手」。",
+    k2: "动手", t2: "同一次下落，两个视角",
+    b2: "上下两幅图是同一次下落、同一时刻。改车速：车里看到的完全不变，站台上看到的被拉长。点与点相隔 {dt} 秒。最后勾上「火车在加速」。",
+    k3: "规律", t3: "竖直和水平互不干扰",
+    b3: "同一时刻，让球 A 从桌边落下，把球 B 从同一桌边横着推出去。改推出的速度和桌子高度。",
+    q: "球落在哪里？",
+    o1: "落在手的后面：球下落时火车往前开走了", o2: "正好落在手的下方", o3: "落在手的前面",
+    right: "对。到第 2 步，从站台上看同一次下落：那里看到的可不是直的。",
+    wrong: "很多人都这么觉得。到第 2 步看看：下落的这段时间里火车走了多远，球又走了多远。",
+    drop: "▶ 放手", pause: "❚❚ 暂停", replay: "↺ 再放一次", drop2: "▶ 同时放出",
+    slowLabel: "慢放", timeLabel: "时间", vLabel: "车速", hLabel: "下落高度", accLabel: "火车在加速", aLabel: "a",
+    HLabel: "桌子高度", uLabel: "推出速度",
+    colTrain: "车里看", colPlat: "站台看",
+    rT: "下落时间", rBall: "球横向移动", rHand: "手横向移动", rPath: "轨迹形状", rSpd: "落地时速度", rLand: "落点（量地板）",
+    pStraight: "竖直落下", pParab: "抛物线", pSlant: "一条斜直线",
+    under: "正在手的下方", behind: "在手后方 {d} 米",
+    landTrain: "落在后方 {d} 米", landZero: "正落在手的下方", underHand: "手的下方",
+    release: "松手处", hand: "手",
+    liveLand: "{t} 秒后落地。站台上看：球横向走了 {xb} 米，手走了 {xh} 米。车里看：{land}。",
+    tableA: "A：自由落下", tableB: "B：以 {u} m/s 推出", tableLand: "同时落地 t = {t} 秒", tableOut: "B：离桌边 {x} 米",
+    liveTable: "{t} 秒后两个球同时落地。B 落在离桌边 {x} 米处。",
+    ruleBig: "下落和横向运动互不干扰：不管横向速度多大，下落都用 t = √(2h/g)；横向走的距离就是 v·t。",
+    ruleRows: "高 {h} 米 → t = {t} 秒",
+    ruleNow: "现在：H = {H} 米，两个球都下落 {t} 秒；B 横向走了 {u} m/s × {t} 秒 = {x} 米。",
+    ruleFrames: "在火车上，松手后球仍带着火车的 {v} m/s，所以一直和你的手对齐。你也有这个速度，只看到向下的那部分：直直落下。站台上的人同时看到两部分：一条抛物线。两种说法都对，各自在自己的参考系里（伽利略，1632 年）。",
+    ruleAcc: "「会落在后面」的感觉从哪来：火车在加速时，地板比球多走 ½·a·t²。a = {a} m/s²、h = {h} 米时是 a·h/g = {d} 米。刹车时则会落在前面。",
+    resultTitle: "我们发现", resultMain: "y = h − ½gt² 对谁都一样 · 横向 x = v·t 要看参考系",
+    resultNote: "在匀速行驶的火车上，松手的球正落在手的下方。只有速度在变（a ≠ 0）时，它才落在后面，差 a·h/g。",
+    explainK: "说一说", explainQ: "朋友说：在飞快的火车里松手，球一定会飞到车厢后面。用乘客和站台上的人两个视角，讲讲球落在哪里；再说说什么时候它才真的会落在后面。",
+    homeK: "家里做一做", homeQ: "匀速走路，把一个软球竖直向上抛，比头高一点。它会落回你手里。再抛一次，然后突然停下：它落在哪里？",
+    foot: "模型：忽略空气阻力；g = 9.81 m/s²。松手时球带着火车的速度 v（不推）。站台系：x = v·t，y = h − ½gt²；手走 v·t + ½at²。车厢系：x = −½at²，y 相同。下落时间 T = √(2h/g)；落点偏差 ½aT² = a·h/g。站台图在路径太长时压缩横向比例（以米刻度为准）；车厢图和桌子图按真实比例。忽略地球自转。伽利略在《对话》（1632）里用从船桅顶落下的石头论证过这一点。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure kinematics, no DOM (tests extract this block) */
+const G = 9.81, DTD = 0.05;
+const num = (x, a, b, d) => (Number.isFinite(x) ? Math.min(b, Math.max(a, x)) : d);
+const fallTime = (h) => Math.sqrt(2 * num(h, 0, 100, 0) / G);
+// Release at t = 0 with the train at speed v, accelerating at a. Platform frame origin = release point.
+function stateAt(v, h, a, t) {
+  v = num(v, 0, 30, 0); h = num(h, 0, 100, 1); a = num(a, -10, 10, 0);
+  const T = fallTime(h);
+  t = t === Infinity ? T : num(t, 0, T, 0);
+  const y = Math.max(0, h - 0.5 * G * t * t);
+  const xb = v * t, xh = v * t + 0.5 * a * t * t;
+  return { t, T, y, xb, xh, rel: xb - xh, vyp: G * t, spT: Math.hypot(a * t, G * t), spP: Math.hypot(v, G * t), landed: t >= T - 1e-12 };
+}
+const landing = (v, h, a) => stateAt(v, h, a, Infinity);
+// offset behind the hand on landing: ½aT² = a·h/g
+const offsetBehind = (h, a) => num(a, -10, 10, 0) * num(h, 0, 100, 0) / G;
+function dotTimes(t) {
+  const out = [];
+  for (let k = 0; k * DTD <= num(t, 0, 100, 0) + 1e-9; k++) out.push(k * DTD);
+  return out;
+}
+// ruler step (m) so ticks are at least minPx apart
+function niceStep(sx, minPx) {
+  for (const s of [0.25, 0.5, 1, 2, 5, 10, 20]) if (s * sx >= minPx) return s;
+  return 50;
+}
+// platform panel scale: true scale unless the path needs more room than 560 units
+const platScale = (sy, xhEnd) => Math.min(sy, 560 / (Math.max(0, num(xhEnd, 0, 1e4, 0)) + 4));
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const sv = Play.svg;
+const DEF = { v: 20, h: 1.5 };
+const S = { v: DEF.v, h: DEF.h, acc: false, a: 1, t: 0, playing: false, slow: 0.25 };
+const Tb = { H: 0.8, u: 2, t: 0, playing: false };
+let raf = 0, last = 0, raf2 = 0, last2 = 0, lastLive = "", step = 0;
+const f2 = (x) => Play.fmt(Math.abs(x) < 5e-4 ? 0 : x, 2);
+const f3 = (x) => Play.fmt(x, 3);
+const aNow = () => (S.acc ? S.a : 0);
+function say(m) { if (m !== lastLive) { lastLive = m; Play.live($("live"), m); } }
+
+/* ---------- train + platform panels ---------- */
+const SY = 80, R = 7, FT = 200, HX = 360;   // train panel: floor y, hand x; same scale both ways
+const FP = 200, GP = 214;                    // platform panel: car floor y, ground y
+function person(g, hx, floorY, sx, h, sy) {
+  const bx = hx + 0.45 * sx, yAt = (m) => floorY - m * sy;
+  sv("circle", { class: "head", cx: bx, cy: yAt(1.62), r: Math.max(5, 0.11 * sy) }, g);
+  sv("path", { class: "person", d: `M${bx},${yAt(1.48)} L${bx},${yAt(0.85)} M${bx},${yAt(0.85)} L${bx - 0.12 * sx},${floorY} M${bx},${yAt(0.85)} L${bx + 0.12 * sx},${floorY} M${bx},${yAt(1.38)} L${hx},${yAt(h) - R}` }, g);
+}
+function arrow(g, x1, y, x2) {
+  sv("line", { class: "arrow", x1, y1: y, x2: x2 - 8, y2: y }, g);
+  sv("path", { class: "arrowHead", d: `M${x2},${y} l-12,-7 v14 z` }, g);
+}
+function drawTrain() {
+  const g = $("tr"); g.innerHTML = "";
+  const a = aNow(), st = stateAt(S.v, S.h, a, S.t);
+  // platform posts stream backwards: post k at platform x = 3k, seen at HX + (3k − xh)·SY
+  const sp = 3, off = st.xh % sp;
+  for (let k = -3; k <= 3; k++) {
+    const px = HX + (k * sp - off) * SY;
+    if (px > 4 && px < 596) sv("line", { class: "post", x1: px, y1: 14, x2: px, y2: FT - 4 }, g);
+  }
+  sv("line", { class: "floor", x1: 0, y1: FT, x2: 600, y2: FT }, g);
+  sv("line", { class: "wall", x1: 0, y1: 8, x2: 600, y2: 8 }, g);
+  person(g, HX, FT, SY, S.h, SY);
+  sv("circle", { class: "hand", cx: HX, cy: FT - S.h * SY - R, r: 8 }, g);
+  // spot under the hand
+  sv("path", { class: "mark", d: `M${HX},${FT} l-8,12 h16 z` }, g);
+  // trail: equal-time dots + path
+  const ts = dotTimes(st.t), px = (s) => HX + s.rel * SY, py = (s) => FT - s.y * SY - R;
+  if (st.t > 0) {
+    const s0 = stateAt(S.v, S.h, a, 0);
+    sv("line", { class: "trail", x1: px(s0), y1: py(s0), x2: px(st), y2: py(st) }, g);
+  }
+  ts.forEach((t) => { const s = stateAt(S.v, S.h, a, t); sv("circle", { class: "dotA", cx: px(s), cy: py(s), r: 5 }, g); });
+  sv("circle", { class: "ball", cx: px(st), cy: py(st), r: R }, g);
+  if (st.landed) {
+    const d = -st.rel;
+    sv("line", { class: "land", x1: px(st), y1: FT - 2, x2: px(st), y2: FT + 10 }, g);
+    sv("text", { class: d > 5e-4 ? "lblA" : "lbl", x: HX, y: FT + 25, "text-anchor": "middle" }, g).textContent =
+      d > 5e-4 ? P.t("landTrain", { d: f2(d) }) : P.t("landZero");
+  } else {
+    sv("text", { class: "lbl", x: HX, y: FT + 25, "text-anchor": "middle" }, g).textContent = P.t("underHand");
+  }
+  $("tagTrain").textContent = a > 0 ? P.t("tagTrainAcc", { a: Play.fmt(a, 1) }) : P.t("tagTrain");
+}
+function drawPlat() {
+  const g = $("pf"); g.innerHTML = "";
+  const a = aNow(), st = stateAt(S.v, S.h, a, S.t), end = landing(S.v, S.h, a);
+  const sx = platScale(SY, end.xh), x0 = 20 + 2 * sx;
+  const X = (m) => x0 + m * sx, Y = (m) => FP - m * SY - R;
+  // fixed posts and ruler on the ground
+  for (let m = -6; m <= 60; m += 3) if (X(m) > 4 && X(m) < 596) sv("line", { class: "post", x1: X(m), y1: 14, x2: X(m), y2: GP }, g);
+  sv("line", { class: "rail", x1: 0, y1: GP, x2: 600, y2: GP }, g);
+  const stp = niceStep(sx, 80);
+  for (let m = 0; X(m) < 596; m += stp) {
+    sv("line", { class: "tick", x1: X(m), y1: GP, x2: X(m), y2: GP + 8 }, g);
+    sv("text", { class: "lbl", x: X(m), y: GP + 32, "text-anchor": "middle" }, g).textContent = (m === 0 ? "0" : +m.toFixed(2)) + (X(m + stp) >= 596 || m === 0 ? " m" : "");
+  }
+  // release point
+  sv("line", { class: "rel", x1: X(0), y1: Y(S.h) - 14, x2: X(0), y2: FP }, g);
+  // carriage section: 2 m either side of the hand, moving with it
+  const cx = X(st.xh);
+  sv("rect", { class: "carfill", x: cx - 2 * sx, y: 12, width: 4 * sx, height: FP - 12 }, g);
+  sv("path", { class: "wall", d: `M${cx - 2 * sx},${FP} V12 H${cx + 2 * sx} V${FP}` }, g);
+  sv("line", { class: "floor", x1: cx - 2 * sx, y1: FP, x2: cx + 2 * sx, y2: FP }, g);
+  [-1.3, 1.3].forEach((w) => sv("circle", { class: "head", cx: cx + w * sx, cy: FP + 7, r: 6 }, g));
+  person(g, cx, FP, sx, S.h, SY);
+  sv("circle", { class: "hand", cx, cy: Y(S.h), r: 8 }, g);
+  if (S.v > 0) arrow(g, cx + 2 * sx - Math.min(70, 3 * sx) + 4, 34, cx + 2 * sx - 4);
+  // path: the parabola so far, sampled
+  if (st.t > 0) {
+    let d = "";
+    for (let i = 0; i <= 40; i++) { const s = stateAt(S.v, S.h, a, st.t * i / 40); d += (i ? "L" : "M") + X(s.xb).toFixed(1) + "," + Y(s.y).toFixed(1); }
+    sv("path", { class: "trail", d }, g);
+  }
+  dotTimes(st.t).forEach((t) => {
+    const s = stateAt(S.v, S.h, a, t);
+    sv("circle", { class: "dotA", cx: X(s.xb), cy: Y(s.y), r: 5 }, g);
+    if (S.v > 0) sv("line", { class: "tickA", x1: X(s.xb), y1: GP - 6, x2: X(s.xb), y2: GP + 4 }, g);
+  });
+  sv("circle", { class: "ball", cx: X(st.xb), cy: Y(st.y), r: R }, g);
+  sv("path", { class: "mark", d: `M${cx},${FP} l-8,12 h16 z` }, g);
+  if (st.landed) sv("line", { class: "land", x1: X(st.xb), y1: FP - 2, x2: X(st.xb), y2: FP + 10 }, g);
+  sv("text", { class: "lbl", x: Math.max(8, X(0) - 6), y: 36, "text-anchor": X(0) > 120 ? "end" : "start" }, g).textContent = P.t("release");
+  $("tagPlat").textContent = a > 0 ? P.t("tagPlatAcc", { v: S.v, a: Play.fmt(a, 1) }) : P.t("tagPlat", { v: S.v });
+}
+function drawReadout() {
+  const a = aNow(), st = stateAt(S.v, S.h, a, S.t), e = landing(S.v, S.h, a);
+  const m = (x) => f2(x) + " m";
+  const pT = a > 0 ? P.t("pSlant") : P.t("pStraight"), pP = S.v > 0 ? P.t("pParab") : P.t("pStraight");
+  const off = -e.rel;
+  const rows = [
+    ["", P.t("colTrain"), P.t("colPlat"), true],
+    [P.t("rT"), f3(e.T) + " s", f3(e.T) + " s"],
+    [P.t("rBall"), m(Math.abs(st.rel) < 5e-4 ? 0 : st.rel), m(st.xb)],
+    [P.t("rHand"), m(0), m(st.xh)],
+    [P.t("rPath"), pT, pP],
+    [P.t("rSpd"), Play.fmt(st.spT, 2) + " m/s", Play.fmt(st.spP, 2) + " m/s"],
+  ];
+  let html = rows.map((r) => r[3] ? `<tr><th></th><th>${r[1]}</th><th>${r[2]}</th></tr>` : `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
+  html += `<tr><td>${P.t("rLand")}</td><td class="both" colspan="2">${off > 5e-4 ? P.t("behind", { d: f2(off) }) : P.t("under")}</td></tr>`;
+  $("readout").innerHTML = html;
+}
+function syncTrainCtl() {
+  $("vVal").textContent = S.v + " m/s";
+  $("hVal").textContent = S.h.toFixed(2) + " m";
+  $("aVal").textContent = Play.fmt(S.a, 1) + " m/s²";
+  $("a").disabled = !S.acc;
+  $("acc").checked = S.acc;
+  const T = fallTime(S.h);
+  $("tt").value = T > 0 ? Math.round(200 * S.t / T) : 0;
+  $("ttVal").textContent = Play.fmt(S.t, 2) + " s";
+  const done = S.t >= T - 1e-12 && S.t > 0;
+  $("play").textContent = P.t(S.playing ? "pause" : done ? "replay" : "drop");
+}
+function drawAll() { drawTrain(); drawPlat(); drawReadout(); syncTrainCtl(); }
+function landed() {
+  const a = aNow(), e = landing(S.v, S.h, a), off = -e.rel;
+  say(P.t("liveLand", { t: f3(e.T), xb: f2(e.xb), xh: f2(e.xh), land: off > 5e-4 ? P.t("landTrain", { d: f2(off) }) : P.t("landZero") }));
+}
+function pause() { S.playing = false; cancelAnimationFrame(raf); syncTrainCtl(); }
+function tick(ts) {
+  if (!S.playing) return;
+  if (last) S.t += Math.min(0.1, (ts - last) / 1000) * S.slow;
+  last = ts;
+  const T = fallTime(S.h);
+  if (S.t >= T) { S.t = T; S.playing = false; landed(); }
+  drawAll();
+  if (S.playing) raf = requestAnimationFrame(tick);
+}
+$("play").addEventListener("click", () => {
+  if (S.playing) { pause(); return; }
+  const T = fallTime(S.h);
+  if (S.t >= T - 1e-12) S.t = 0;
+  if (Play.reduced) { S.t = T; drawAll(); landed(); return; }
+  S.playing = true; last = 0; raf = requestAnimationFrame(tick); syncTrainCtl();
+});
+// any parameter change: stop and show the finished drop with its full trails
+function changed() { pause(); S.t = fallTime(S.h); drawAll(); landed(); }
+$("v").addEventListener("input", () => { S.v = num(+$("v").value, 0, 30, 20); changed(); });
+$("h").addEventListener("input", () => { S.h = num(+$("h").value, 0.5, 2, 1.5); changed(); });
+$("a").addEventListener("input", () => { S.a = num(+$("a").value, 0.5, 3, 1); changed(); });
+$("acc").addEventListener("change", () => { S.acc = $("acc").checked; changed(); if (step === 2) drawRule(); });
+$("slow").addEventListener("change", () => { S.slow = num(+$("slow").value, 0.05, 1, 0.25); });
+$("tt").addEventListener("input", () => { pause(); S.t = fallTime(S.h) * num(+$("tt").value, 0, 200, 0) / 200; drawAll(); if (S.t >= fallTime(S.h) - 1e-12) landed(); });
+// drag the hand (train panel) up and down to set the drop height
+let dragging = false;
+const tr = $("tr");
+tr.addEventListener("pointerdown", (e) => {
+  const p = Play.pointer(tr, e);
+  if (Math.abs(p.x - HX) > 40 || Math.abs(p.y - (FT - S.h * SY - R)) > 40) return;
+  dragging = true; tr.setPointerCapture && tr.setPointerCapture(e.pointerId); e.preventDefault();
+});
+tr.addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  const p = Play.pointer(tr, e), h = Math.round(num((FT - R - p.y) / SY, 0.5, 2, 1.5) * 20) / 20;
+  if (Math.abs(h - S.h) > 1e-9) { S.h = h; $("h").value = h; changed(); }
+});
+["pointerup", "pointercancel"].forEach((ev) => tr.addEventListener(ev, () => { dragging = false; }));
+
+/* ---------- table panel (step 3) ---------- */
+const TS = 90, TG = 268, EDGE = 150;
+function drawTable() {
+  const g = $("tb"); g.innerHTML = "";
+  const T = fallTime(Tb.H), t = num(Tb.t, 0, T, 0), top = TG - Tb.H * TS;
+  const X = (m) => EDGE + R + m * TS, Y = (m) => TG - m * TS - R;
+  const yAt = (tt) => Math.max(0, Tb.H - 0.5 * G * tt * tt);
+  sv("line", { class: "floor", x1: 0, y1: TG, x2: 600, y2: TG }, g);
+  sv("rect", { class: "tbl", x: 20, y: top, width: EDGE - 20, height: 10 }, g);
+  sv("line", { class: "floor", x1: 36, y1: top + 10, x2: 36, y2: TG }, g);
+  sv("line", { class: "floor", x1: EDGE - 16, y1: top + 10, x2: EDGE - 16, y2: TG }, g);
+  for (let m = 0; X(m) < 596; m += 0.5) {
+    sv("line", { class: "tick", x1: X(m), y1: TG, x2: X(m), y2: TG + 8 }, g);
+    if (m % 1 === 0) sv("text", { class: "lbl", x: X(m), y: TG + 24, "text-anchor": "middle", "font-size": 18 }, g).textContent = m + (m === 0 ? "" : " m");
+  }
+  dotTimes(t).forEach((tt) => {
+    const y = Y(yAt(tt));
+    if (Tb.u > 0) sv("line", { class: "pair", x1: X(0), y1: y, x2: X(Tb.u * tt), y2: y }, g);
+    sv("circle", { class: "dotB", cx: X(0), cy: y, r: 5 }, g);
+    sv("circle", { class: "dotA", cx: X(Tb.u * tt), cy: y, r: 5 }, g);
+  });
+  sv("circle", { class: "ballB", cx: X(0), cy: Y(yAt(t)), r: R }, g);
+  sv("circle", { class: "ball", cx: X(Tb.u * t), cy: Y(yAt(t)), r: R }, g);
+  sv("text", { class: "lblC", x: 20, y: 28 }, g).textContent = P.t("tableA");
+  sv("text", { class: "lblA", x: 20, y: 56 }, g).textContent = P.t("tableB", { u: Play.fmt(Tb.u, 1) });
+  if (t >= T - 1e-12) {
+    sv("text", { class: "lbl", x: 590, y: 28, "text-anchor": "end" }, g).textContent = P.t("tableLand", { t: f3(T) });
+    if (Tb.u > 0) sv("text", { class: "lblA", x: 590, y: 56, "text-anchor": "end" }, g).textContent = P.t("tableOut", { x: f2(Tb.u * T) });
+  }
+  $("tagTable").textContent = P.t("tagTable", { dt: DTD });
+  $("HVal").textContent = Tb.H.toFixed(2) + " m";
+  $("uVal").textContent = Play.fmt(Tb.u, 1) + " m/s";
+  $("play2").textContent = P.t(Tb.playing ? "pause" : t >= T - 1e-12 && t > 0 ? "replay" : "drop2");
+}
+function tableLanded() { const T = fallTime(Tb.H); say(P.t("liveTable", { t: f3(T), x: f2(Tb.u * T) })); }
+function pause2() { Tb.playing = false; cancelAnimationFrame(raf2); }
+function tick2(ts) {
+  if (!Tb.playing) return;
+  if (last2) Tb.t += Math.min(0.1, (ts - last2) / 1000) * 0.25;
+  last2 = ts;
+  const T = fallTime(Tb.H);
+  if (Tb.t >= T) { Tb.t = T; Tb.playing = false; tableLanded(); }
+  drawTable();
+  if (Tb.playing) raf2 = requestAnimationFrame(tick2);
+}
+$("play2").addEventListener("click", () => {
+  if (Tb.playing) { pause2(); drawTable(); return; }
+  const T = fallTime(Tb.H);
+  if (Tb.t >= T - 1e-12) Tb.t = 0;
+  if (Play.reduced) { Tb.t = T; drawTable(); tableLanded(); return; }
+  Tb.playing = true; last2 = 0; raf2 = requestAnimationFrame(tick2); drawTable();
+});
+function changed2() { pause2(); Tb.t = fallTime(Tb.H); drawTable(); drawRule(); tableLanded(); }
+$("H").addEventListener("input", () => { Tb.H = num(+$("H").value, 0.5, 2, 0.8); changed2(); });
+$("u").addEventListener("input", () => { Tb.u = num(+$("u").value, 0, 5, 2); changed2(); });
+
+function drawRule() {
+  const box = $("rule");
+  if (step !== 2) { box.innerHTML = ""; return; }
+  const T = fallTime(Tb.H), aShow = S.acc ? S.a : 1;
+  const rows = [0.5, 1, 1.5, 2].map((h) => P.t("ruleRows", { h: h.toFixed(1), t: f3(fallTime(h)) }));
+  box.innerHTML =
+    '<p class="big">' + P.t("ruleBig") + "</p>" +
+    '<p class="mathline">y = h − ½gt² &nbsp;·&nbsp; x = v·t</p>' +
+    "<p>" + rows.join("<br>") + "</p>" +
+    "<p>" + P.t("ruleNow", { H: Tb.H.toFixed(2), t: f3(T), u: Play.fmt(Tb.u, 1), x: f2(Tb.u * T) }) + "</p>" +
+    "<p>" + P.t("ruleFrames", { v: S.v }) + "</p>" +
+    "<p>" + P.t("ruleAcc", { a: Play.fmt(aShow, 1), h: S.h.toFixed(2), d: f2(offsetBehind(S.h, aShow)) }) + "</p>";
+}
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+const stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k, { dt: DTD, v: DEF.v, kmh: Play.fmt(DEF.v * 3.6, 0), h: DEF.h.toFixed(1) });
+  $("predict").hidden = i !== 0;
+  $("trainViz").hidden = i === 2;
+  $("tableViz").hidden = i !== 2;
+  $("readout").hidden = i === 2;
+  if (i === 2) { pause(); drawTable(); } else pause2();
+  drawRule();
+});
+function resetAll() {
+  pause(); pause2();
+  Object.assign(S, { v: DEF.v, h: DEF.h, acc: false, a: 1, t: 0, slow: 0.25 });
+  Object.assign(Tb, { H: 0.8, u: 2, t: 0 });
+  $("v").value = DEF.v; $("h").value = DEF.h; $("a").value = 1; $("slow").value = "0.25"; $("H").value = 0.8; $("u").value = 2;
+  lastLive = ""; $("live").textContent = "";
+  pr.reset(); stp.go(0); drawAll(); drawTable();
+}
+$("reset").addEventListener("click", resetAll);
+resetAll();
+</script>
+</body>
+</html>

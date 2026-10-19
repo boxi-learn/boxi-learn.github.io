@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halve it: how search gets fast</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .pane { padding: 14px; display: grid; gap: 12px; min-width: 0; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 12px; color: var(--muted); font-weight: 650; margin-right: 2px; }
+  button.primary { background: var(--a); color: var(--surface); border-color: var(--a); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .preset.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+  .msg.ok { font-weight: 650; }
+  .msg.ok::before { content: "✓ "; color: var(--a); font-weight: 800; }
+  .stat { font-size: 14px; color: var(--muted); }
+  .stat b { color: var(--fg); font-size: 18px; font-variant-numeric: tabular-nums; }
+  .ax { stroke: var(--line); stroke-width: 1; }
+  .axs { stroke: var(--muted); stroke-width: 1.5; }
+  .axt { fill: var(--muted); font: 13px var(--font); }
+  .lab { fill: var(--fg); font: 13px var(--font); font-variant-numeric: tabular-nums; }
+  .labb { fill: var(--fg); font: 700 13px var(--font); font-variant-numeric: tabular-nums; }
+  svg.fig { width: 100%; display: block; touch-action: none; }
+  svg.fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  /* step 1 ladder */
+  #ladder { height: 340px; }
+  .lbar { fill: var(--a); }
+  .lbar.one { fill: var(--hl); }
+  /* step 2 guessing */
+  #line { height: 176px; cursor: crosshair; }
+  .ivl { fill: var(--a); opacity: .35; }
+  .zoom { fill: var(--a); opacity: .1; }
+  .gmark { stroke: var(--no); stroke-width: 2; }
+  .mid { stroke: var(--hl); stroke-width: 2.5; stroke-dasharray: 4 3; }
+  .midt { fill: var(--b); font: 700 13px var(--font); }
+  .cur { fill: var(--fg); }
+  .secret { fill: var(--a); stroke: var(--surface); stroke-width: 2; }
+  .coach { background: var(--soft); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+  .coach b { font-variant-numeric: tabular-nums; }
+  input[type=number] { width: 6.5em; border: 1px solid var(--line); border-radius: 9px; padding: 6px 8px; background: var(--surface); }
+  /* step 2 list search */
+  .lanes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 560px) { .lanes { grid-template-columns: 1fr; } }
+  .lane { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: var(--bg); min-width: 0; }
+  .lane.fin { border-color: var(--a); }
+  .lh { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
+  .cell { font: 13px var(--font); font-variant-numeric: tabular-nums; text-align: center; padding: 3px 0; border-radius: 4px; background: var(--surface); border: 1px solid var(--line); cursor: pointer; transition: opacity .15s; overflow: hidden; }
+  .cell.out { opacity: .28; }
+  .cell.tgt { box-shadow: 0 0 0 2px var(--c) inset; }
+  .cell.cmp { background: var(--hl); color: #1a2822; border-color: var(--hl); }
+  .cell.won { background: var(--a); color: var(--surface); border-color: var(--a); font-weight: 700; }
+  .cell.lo { border-left: 3px solid var(--c); }
+  .cell.hi { border-right: 3px solid var(--c); }
+  .lc { font-size: 13px; color: var(--muted); margin-top: 6px; min-height: 3.2em; }
+  .lc b { color: var(--fg); font-size: 16px; font-variant-numeric: tabular-nums; }
+  /* step 3 chart */
+  #chart { height: 340px; cursor: crosshair; }
+  @media (max-width: 560px) { #chart { height: 300px; } #ladder { height: 330px; } }
+  .serA { fill: none; stroke: var(--no); stroke-width: 2.5; }
+  .serB { fill: none; stroke: var(--a); stroke-width: 2.5; stroke-linejoin: round; }
+  .ptA { fill: var(--no); stroke: var(--surface); stroke-width: 1.5; }
+  .ptB { fill: var(--a); stroke: var(--surface); stroke-width: 1.5; }
+  .xline { stroke: var(--c); stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .xlab { fill: var(--c); font: 700 13px var(--font); }
+  .guide { stroke: var(--fg); stroke-width: 1; stroke-dasharray: 2 4; opacity: .6; }
+  .sl { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .sl input[type=range] { flex: 1 1 110px; }
+  .sl .val { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 5em; font-variant-numeric: tabular-nums; }
+  .dash { display: inline-block; width: 16px; border-top: 2px dashed var(--c); vertical-align: 4px; margin-right: 5px; }
+  .tw { overflow-x: auto; max-width: 100%; }
+  table.t { border-collapse: collapse; font-size: 13px; width: 100%; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  table.t th, table.t td { border-bottom: 1px solid var(--line); padding: 3px 5px; text-align: right; white-space: nowrap; }
+  table.t th { color: var(--muted); font-weight: 650; font-size: 12px; }
+  table.t th:first-child, table.t td:first-child { text-align: left; }
+  table.t tr.on td { background: var(--soft); }
+  table.t tr[data-k] { cursor: pointer; }
+  table.t td.w { font-weight: 700; color: var(--fg); }
+  .big { font-family: var(--math); font-size: 18px; margin: 2px 0 10px; color: var(--fg); }
+  #predict2 { margin-top: 0; }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="pane" id="vLadder">
+        <div class="row"><span class="lbl" data-t="nLbl"></span><span id="ladN"></span></div>
+        <svg class="fig" id="ladder" role="img" data-t-aria="ladderAria"></svg>
+        <div class="row"><button type="button" class="primary" id="halve" data-t="halve"></button><button type="button" id="showAll" data-t="showAll"></button></div>
+        <p class="msg" id="ladMsg"></p>
+      </div>
+      <div class="pane" id="vTry" hidden>
+        <div class="row" id="modes"></div>
+        <div id="gGame" style="display:grid;gap:10px;min-width:0">
+          <div class="row"><span class="lbl" data-t="rangeLbl"></span><span id="ranges"></span><span style="flex:1"></span><button type="button" class="small" id="newGame" data-t="newGame"></button></div>
+          <svg class="fig" id="line" tabindex="0" role="img" data-t-aria="lineAria"></svg>
+          <div class="row">
+            <label for="gIn" data-t="yourGuess"></label><input type="number" id="gIn" inputmode="numeric">
+            <button type="button" class="primary" id="gBtn" data-t="guessBtn"></button>
+            <button type="button" id="coachPick" data-t="coachBtn"></button>
+            <label class="check"><input type="checkbox" id="coachOn" checked><span data-t="coachLbl"></span></label>
+          </div>
+          <p class="msg" id="gMsg"></p>
+          <div class="row"><span class="stat"><span data-t="gCount"></span> <b id="gK">0</b></span><span class="stat" id="gPromise"></span></div>
+          <div class="coach" id="coach"></div>
+        </div>
+        <div id="gList" hidden style="display:grid;gap:10px;min-width:0">
+          <div class="row">
+            <label for="tIn" class="lbl" data-t="tgtLbl"></label><input type="number" id="tIn" min="0" max="1000">
+            <button type="button" class="small" id="tInList" data-t="inList"></button>
+            <button type="button" class="small" id="tNotIn" data-t="notIn"></button>
+            <button type="button" class="small" id="newList" data-t="newList"></button>
+          </div>
+          <div class="lanes">
+            <div class="lane" id="laneB"><div class="lh" data-t="binName"></div><div class="grid" id="gridB" data-t-aria="gridAria"></div><div class="lc" id="lcB"></div></div>
+            <div class="lane" id="laneL"><div class="lh" data-t="linName"></div><div class="grid" id="gridL" data-t-aria="gridAria"></div><div class="lc" id="lcL"></div></div>
+          </div>
+          <div class="row">
+            <button type="button" class="primary" id="play"></button>
+            <button type="button" id="stepBtn" data-t="stepBtn"></button>
+            <button type="button" id="finish" data-t="finish"></button>
+            <button type="button" id="restart" data-t="restart"></button>
+          </div>
+          <p class="msg" id="sMsg"></p>
+        </div>
+      </div>
+      <div class="pane" id="vRace" hidden>
+        <svg class="fig" id="chart" tabindex="0" role="img" data-t-aria="chartAria"></svg>
+        <div class="legend"><span><span class="dot" style="background:var(--no)"></span><span data-t="legA"></span></span><span><span class="dot" style="background:var(--a)"></span><span data-t="legB"></span></span><span><span class="dash"></span><span data-t="legX"></span></span></div>
+        <div class="sl"><label for="rIn" data-t="rLbl"></label><input type="range" id="rIn" min="0" max="6" step="1" value="3"><span class="val" id="rVal"></span></div>
+        <p class="note" id="perStep"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p class="msg" id="pNums"></p>
+      <div id="predict2"></div>
+      <p id="stepBody"></p>
+      <div class="big" id="big"></div>
+      <div class="tw"><table class="t" id="table"></table></div>
+      <p id="sortNote" hidden></p>
+      <p class="note" id="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure search logic (no DOM), checked in node.
+   Binary search is the standard version on a sorted array a:
+     low = 0, high = n − 1; while low ≤ high: mid = ⌊(low + high) / 2⌋, compare a[mid] with x
+     (one three-way comparison = one "look"); equal → found; a[mid] < x → low = mid + 1; else high = mid − 1.
+   Worst case, found or not: ⌊log₂ n⌋ + 1 looks = bitLen(n). Linear search looks left to right: up to n looks. */
+function mulberry32(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/* ⌊log₂ m⌋ + 1 for m ≥ 1 (number of binary digits), 0 for m < 1; exact for any safe integer. */
+function bitLen(m) { let k = 0; m = Math.floor(m); while (m >= 1) { m = Math.floor(m / 2); k++; } return k; }
+/* n distinct whole numbers from 1…maxV, sorted ascending, from a seeded generator. */
+function makeSorted(n, seed, maxV) {
+  const r = mulberry32(seed), s = new Set();
+  n = Math.min(n, maxV);
+  while (s.size < n) s.add(1 + Math.floor(r() * maxV));
+  return [...s].sort((p, q) => p - q);
+}
+function binInit(a, x) { return { a, x, lo: 0, hi: a.length - 1, mid: -1, last: null, cmp: 0, found: -1, done: a.length === 0 }; }
+function binStep(s) {
+  if (s.done) return false;
+  const mid = (s.lo + s.hi) >> 1, v = s.a[mid];
+  s.mid = mid; s.cmp++;
+  if (v === s.x) { s.found = mid; s.last = 0; s.done = true; }
+  else if (v < s.x) { s.lo = mid + 1; s.last = -1; }
+  else { s.hi = mid - 1; s.last = 1; }
+  if (s.lo > s.hi) s.done = true;
+  return true;
+}
+function linInit(a, x) { return { a, x, i: -1, cmp: 0, found: -1, done: a.length === 0 }; }
+function linStep(s) {
+  if (s.done) return false;
+  s.i++; s.cmp++;
+  if (s.a[s.i] === s.x) { s.found = s.i; s.done = true; }
+  else if (s.i === s.a.length - 1) s.done = true;
+  return true;
+}
+function binarySearch(a, x) { const s = binInit(a, x); while (binStep(s)); return { found: s.found, cmp: s.cmp }; }
+function linearSearch(a, x) { const s = linInit(a, x); while (linStep(s)); return { found: s.found, cmp: s.cmp }; }
+/* Guessing game: the halving guess for the still possible range lo…hi. */
+const halvingGuess = (lo, hi) => Math.floor((lo + hi) / 2);
+/* Halving ladder: how many numbers can still be possible before guess 1, 2, … (worst case). */
+function ladder(n) { const out = []; for (let m = Math.floor(n); m >= 1; m = Math.floor(m / 2)) out.push(m); return out; }
+/* Race: A = one by one at 1 ns per look (n looks), B = halving at R ns per look (bitLen(n) looks). */
+const timeA = (n) => n;
+const timeB = (n, R) => bitLen(n) * R;
+/* Smallest n0 such that B is strictly faster for every n ≥ n0. On each block [2^b, 2^(b+1) − 1]
+   bitLen is b + 1, so B wins exactly for n > R(b + 1) inside it. */
+function crossover(R) {
+  let start = null;
+  for (let b = 0; b < 52; b++) {
+    const lo = Math.pow(2, b), hi = Math.pow(2, b + 1) - 1, c = Math.max(lo, Math.floor(R * (b + 1)) + 1);
+    if (c > hi) start = null;
+    else if (c === lo) { if (start === null) start = lo; }
+    else start = c;
+    if (start !== null && lo > R * (b + 2) * 2) break;   // later blocks all win
+  }
+  return start;
+}
+/* Time in ns → [value, unit] with 3 significant digits. */
+function timeParts(ns) {
+  if (!Number.isFinite(ns) || ns < 0) return [NaN, "ns"];
+  const u = [[1e9, "s"], [1e6, "ms"], [1e3, "µs"], [1, "ns"]].find(([f]) => ns >= f) || [1, "ns"];
+  return [ns / u[0], u[1]];
+}
+if (typeof module !== "undefined") module.exports = { mulberry32, bitLen, makeSorted, binInit, binStep, linInit, linStep, binarySearch, linearSearch, halvingGuess, ladder, timeA, timeB, crossover, timeParts };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Halve it: how search gets fast", eyebrow: "Computing · Stage 4",
+    h1: "Halving finds one in a million in about 20 looks",
+    intro: "Guess a secret number with only “higher” or “lower” as hints, race halving search against one-by-one search on a sorted list, then pit a slow computer with a better method against a fast computer with a simple one.",
+    reset: "Reset", s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "How many guesses for one in a million?",
+    b1: "Answer both questions, then press “Halve once”: a guess in the middle leaves at most half of the numbers, whatever the answer is.",
+    q: "I think of a whole number from 1 to 1,000,000. After each guess I only say “higher” or “lower”. With the best strategy, how many guesses do you need at most?",
+    o20: "About 20", o1k: "About 1,000", o500k: "About 500,000",
+    right: "Yes. Each guess in the middle cuts the possibilities in half.", wrong: "Far fewer: each good guess cuts the possibilities in half.",
+    pNums: "1,000,000 → 500,000 → 250,000 → … → 1: halving needs at most {h} guesses. Guessing one by one could take {n}, and about {avg} on average.",
+    q2: "Computer A checks a sorted list of 1,000,000 items one by one. Computer B is {r} times slower but uses halving. Who finds the item first (worst case)?",
+    oA: "A: the faster computer always wins", oB: "B: the better method wins", oT: "About a tie",
+    right2: "Yes: B needs {tb}, A needs {ta}. Step 3 shows where the two switch places.",
+    wrong2: "Not here: B needs {tb}, A needs {ta}. Step 3 shows when speed does win.",
+    nLbl: "Numbers:", ladderAria: "Bars showing how many numbers can still be possible before each guess",
+    halve: "Halve once", showAll: "Show all",
+    ladK: "guess {k}",
+    ladStart: "Before guess 1 all {n} numbers are possible. Press “Halve once”.",
+    ladMsg: "Before guess {k} at most {m} numbers are still possible.",
+    ladDone: "Before guess {k} only 1 number is left, so guess {k} must hit. {n} numbers need at most {k} guesses = ⌊log₂ n⌋ + 1.",
+    k2: "Hands on", t2: "Guess, then search a list",
+    b2g: "I am thinking of a number. Tap or drag on the lower line to guess (or type it). The shaded part is what is still possible; the lower line zooms in on it. The coach marks the halving guess.",
+    b2l: "64 sorted numbers. Both searches look for the same target, one look per tick. Halving looks at the middle of what is left and throws half away; one by one starts at the left. Tap any cell to make it the target.",
+    modeG: "Guess the number", modeL: "Search a list",
+    rangeLbl: "Range:", newGame: "New number",
+    lineAria: "Number line. Left and right arrows move the pointer, Enter guesses.",
+    allNums: "all numbers {a}–{b}", zoomT: "zoom: still possible",
+    yourGuess: "Your guess", guessBtn: "Guess", coachBtn: "Coach’s pick", coachLbl: "Coach",
+    gStart: "Pick a number from {a} to {b}.",
+    higher: "{g}: higher!", lower: "{g}: lower!", got: "{g}: got it in {k} guesses!",
+    wasted: " ({g} was outside {lo}–{hi}, so you already knew that.)",
+    gCount: "Guesses:", gPromise: "Halving promises at most {w} for {n} numbers.",
+    coachTxt: "Still possible: <b>{lo}–{hi}</b> ({m} numbers). Halving guess: <b>{mid}</b>. With halving, at most <b>{w}</b> more.",
+    coachOne: "Only <b>{lo}</b> is left: guess it!",
+    coachOff: "Coach is off. Turn it on to see the halving guess.",
+    gBeat: "That is within the halving promise of {w}.", gOver: "Halving would have needed at most {w}. Try following the coach.",
+    secretT: "secret {s}",
+    tgtLbl: "Target", inList: "Target in list", notIn: "Target not in list", newList: "New list",
+    binName: "Halving (binary search)", linName: "One by one (linear search)",
+    gridAria: "64 sorted numbers; tap one to make it the target",
+    looksL: "looks", look1: "look",
+    ready: "Target {x}. Press Step or Play.",
+    bLess: "#{i} is {v} < {x}: keep the right part ({m} left).", bMore: "#{i} is {v} > {x}: keep the left part ({m} left).",
+    bHit: "#{i} is {v}: found!", bNone: "Nothing left: {x} is not in the list.",
+    lMiss: "#{i} is {v}, not {x}: next.", lHit: "#{i} is {v}: found!", lNone: "Checked all {n}: {x} is not in the list.",
+    listDone: "Looks: halving {b}, one by one {l}. For 64 items halving never needs more than {w} looks.",
+    play: "▶ Play", pause: "❚❚ Pause", stepBtn: "Step", finish: "Finish", restart: "⟲ Restart",
+    k3: "The rule", t3: "Halving needs ⌊log₂ n⌋ + 1 looks, one by one up to n: for big lists the better method beats the faster machine",
+    b3: "Lines are worst-case times computed for every n. Drag on the chart or use ← / → to pick n, and move the slider to make A even faster.",
+    chartAria: "Log–log chart of worst-case search time against list size for the two computers",
+    legA: "A: fast computer, one by one (n looks)", legB: "B: slow computer, halving (⌊log₂ n⌋ + 1 looks)", legX: "crossover",
+    rLbl: "B is slower than A by", rTimes: "{r}×",
+    perStep: "A: 1 ns per look. B: {t} per look.",
+    axN: "list size n", axT: "worst-case time",
+    xLab: "n = {c}",
+    cross: "Crossover: from n = {c} on, B is always faster.",
+    atN: "n = {n}: B makes {lb} looks = {tb}; A makes {la} looks = {ta}. {w}",
+    wB: "B wins, {x}× faster.", wA: "A wins, {x}× faster.", wT: "A tie.",
+    thN: "n", thB: "B: halving", thA: "A: one by one",
+    sortA: "Halving only works on a sorted list. Sorting first costs about n · log₂ n comparisons (see ",
+    sortLink: "The sorting race", sortB: "): for n = {n} about {s}, more than one search one by one ({n2}). Sort once, and it pays off after about {k} searches.",
+    keys1: "Keyboard: Tab to the buttons; Enter or space presses them.",
+    keys2g: "Keyboard: click the number line, then ← / → move the pointer (Shift: 10 at a time) and Enter guesses.",
+    keys2l: "Keyboard: type a target and press Enter, then use Step or Play.",
+    keys3: "Keyboard: click the chart, then ← / → change n; Home / End jump to the ends.",
+    resultTitle: "What we found", resultMain: "halving: ⌊log₂ n⌋ + 1 looks · one by one: up to n looks",
+    resultNote: "For 1,000,000 items that is {h} looks against 1,000,000. Making the computer {r}× faster only shifts the one-by-one line down; the halving line grows so slowly that the slow computer wins for every list from {c} items on.",
+    explainK: "Explain it",
+    explainQ: "A friend says “just buy a faster computer, the method doesn’t matter.” Use the numbers for a list of a million to explain why halving still wins, and say when your friend is right.",
+    homeK: "Try at home",
+    homeQ: "Ask someone to think of a number from 1 to 100 and answer only “higher” or “lower”. Play once guessing freely and once always guessing the middle; count the guesses. Then find a word in a paper dictionary by opening it in the middle and halving.",
+    foot: "Binary search here is the standard version: low = 0, high = n − 1; look at mid = ⌊(low + high) / 2⌋; stop on a match, otherwise keep the half that can still hold the target; stop when low > high. One look = one three-way comparison (less, equal or greater). Worst case ⌊log₂ n⌋ + 1 looks, found or not (Knuth, The Art of Computer Programming, Vol. 3, §6.2.1). Linear search checks left to right and does not use the order. Step 3 uses assumed costs: A = 1 ns per look (about a billion simple steps a second), B = A’s cost × the slider (default 1,000, so 1 µs). The list is 64 distinct whole numbers 1–999 from a seeded generator (mulberry32). Sorting cost n · log₂ n is the usual estimate for merge sort. ns = nanosecond, µs = microsecond, ms = millisecond. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "对半找：搜索为什么能这么快", eyebrow: "信息科技 · 阶段 4",
+    h1: "每次砍掉一半，一百万个里找一个只要约 20 次",
+    intro: "只靠「大了 / 小了」去猜一个秘密数；在排好序的数列上让「对半找」和「一个一个找」比赛；再让一台用好方法的慢电脑，和一台用笨方法的快电脑比一比。",
+    reset: "重置", s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "一百万个数里找一个，要猜几次？",
+    b1: "先回答两个问题，再按「砍一半」：每次猜正中间，不管回答是什么，最多只剩一半。",
+    q: "我心里想一个 1 到 1,000,000 之间的整数。你每猜一次，我只说「大了」或「小了」。用最好的办法，最多要猜几次？",
+    o20: "大约 20 次", o1k: "大约 1000 次", o500k: "大约 50 万次",
+    right: "对。每次猜中间，可能的数就少一半。", wrong: "少得多：每次猜得好，可能的数就少一半。",
+    pNums: "1,000,000 → 500,000 → 250,000 → … → 1：对半猜最多 {h} 次。一个一个猜最多要 {n} 次，平均约 {avg} 次。",
+    q2: "电脑 A 在 1,000,000 个排好序的数里一个一个地找。电脑 B 慢 {r} 倍，但用对半找。最坏情况下谁先找到？",
+    oA: "A：电脑快就一定赢", oB: "B：方法好的赢", oT: "差不多打平",
+    right2: "对：B 要 {tb}，A 要 {ta}。第 3 步看它们在哪里交换名次。",
+    wrong2: "这里不是：B 要 {tb}，A 要 {ta}。第 3 步看什么时候快电脑才赢。",
+    nLbl: "数的个数：", ladderAria: "每猜一次之前最多还剩多少个可能的数的条形图",
+    halve: "砍一半", showAll: "全部显示",
+    ladK: "第 {k} 次",
+    ladStart: "猜第 1 次之前，{n} 个数都有可能。按「砍一半」。",
+    ladMsg: "猜第 {k} 次之前，最多还剩 {m} 个可能的数。",
+    ladDone: "猜第 {k} 次之前只剩 1 个数，所以第 {k} 次一定猜中。{n} 个数最多猜 {k} 次 = ⌊log₂ n⌋ + 1。",
+    k2: "动手", t2: "先猜数，再在数列里找",
+    b2g: "我想好了一个数。在下面那条线上点或拖来猜（也可以直接输入）。阴影是还可能的范围，下面那条线把它放大。教练会标出对半猜的位置。",
+    b2l: "64 个排好序的数。两种方法找同一个目标，每一拍各看一次。对半找看剩下部分的正中间，扔掉一半；一个一个找从左边开始。点任意一格，就把它设为目标。",
+    modeG: "猜数游戏", modeL: "在数列里找",
+    rangeLbl: "范围：", newGame: "换一个数",
+    lineAria: "数轴。左右方向键移动指针，回车猜。",
+    allNums: "全部 {a}–{b}", zoomT: "放大：还可能的范围",
+    yourGuess: "你猜", guessBtn: "猜", coachBtn: "按教练猜", coachLbl: "教练",
+    gStart: "猜一个 {a} 到 {b} 之间的数。",
+    higher: "{g}：小了，再大一点！", lower: "{g}：大了，再小一点！", got: "{g}：猜中了，用了 {k} 次！",
+    wasted: "（{g} 不在 {lo}–{hi} 里，这个你本来就知道。）",
+    gCount: "已猜：", gPromise: "{n} 个数，对半猜保证最多 {w} 次。",
+    coachTxt: "还可能：<b>{lo}–{hi}</b>（{m} 个数）。对半猜：<b>{mid}</b>。照这样最多还要 <b>{w}</b> 次。",
+    coachOne: "只剩 <b>{lo}</b> 了：猜它！",
+    coachOff: "教练关着。打开就能看到对半猜的位置。",
+    gBeat: "没超过对半猜保证的 {w} 次。", gOver: "对半猜最多只要 {w} 次。下次跟着教练试试。",
+    secretT: "秘密数 {s}",
+    tgtLbl: "目标", inList: "目标在数列里", notIn: "目标不在数列里", newList: "换一串数",
+    binName: "对半找（二分查找）", linName: "一个一个找（顺序查找）",
+    gridAria: "64 个排好序的数；点一个把它设为目标",
+    looksL: "次", look1: "次",
+    ready: "目标 {x}。按「走一步」或「开始」。",
+    bLess: "第 {i} 个是 {v} < {x}：留右边（还剩 {m} 个）。", bMore: "第 {i} 个是 {v} > {x}：留左边（还剩 {m} 个）。",
+    bHit: "第 {i} 个是 {v}：找到了！", bNone: "一个不剩：{x} 不在数列里。",
+    lMiss: "第 {i} 个是 {v}，不是 {x}：下一个。", lHit: "第 {i} 个是 {v}：找到了！", lNone: "{n} 个都看完了：{x} 不在数列里。",
+    listDone: "对半找：看了 {b} 次。一个一个找：看了 {l} 次。64 个数，对半找最多只要看 {w} 次。",
+    play: "▶ 开始", pause: "❚❚ 暂停", stepBtn: "走一步", finish: "直接跑完", restart: "⟲ 从头来",
+    k3: "规律", t3: "对半找要看 ⌊log₂ n⌋ + 1 次，一个一个找最多 n 次：数据一多，好方法胜过快机器",
+    b3: "两条线是对每个 n 算出来的最坏情况用时。在图上拖或按 ← / → 选 n，拖滑块让 A 更快。",
+    chartAria: "两台电脑最坏查找用时随数列长度变化的双对数图",
+    legA: "A：快电脑，一个一个找（n 次）", legB: "B：慢电脑，对半找（⌊log₂ n⌋ + 1 次）", legX: "交叉点",
+    rLbl: "B 比 A 慢", rTimes: "{r} 倍",
+    perStep: "A：每看一次 1 ns。B：每看一次 {t}。",
+    axN: "数列长度 n", axT: "最坏用时",
+    xLab: "n = {c}",
+    cross: "交叉点：从 n = {c} 起，B 总是更快。",
+    atN: "n = {n}：B 看 {lb} 次 = {tb}；A 看 {la} 次 = {ta}。{w}",
+    wB: "B 赢，快 {x} 倍。", wA: "A 赢，快 {x} 倍。", wT: "打平。",
+    thN: "n", thB: "B：对半找", thA: "A：一个一个找",
+    sortA: "对半找只能用在排好序的数列上。先排序大约要比较 n · log₂ n 次（见",
+    sortLink: "排序比赛", sortB: "）：n = {n} 时约 {s} 次，比一个一个找一遍（{n2} 次）还多。排一次序，大约找 {k} 次以上就划算了。",
+    keys1: "键盘：Tab 移到按钮上，回车或空格按下。",
+    keys2g: "键盘：先点一下数轴，← / → 移动指针（按住 Shift 一次 10），回车猜。",
+    keys2l: "键盘：输入目标按回车，再用「走一步」或「开始」。",
+    keys3: "键盘：先点一下图，← / → 改 n；Home / End 跳到两头。",
+    resultTitle: "我们发现", resultMain: "对半找：⌊log₂ n⌋ + 1 次 · 一个一个找：最多 n 次",
+    resultNote: "1,000,000 个数，就是 {h} 次对 1,000,000 次。电脑快 {r} 倍，只是把「一个一个找」那条线往下挪；对半找那条线涨得太慢，从 {c} 个数起慢电脑就一直赢。",
+    explainK: "说一说",
+    explainQ: "朋友说：「买台更快的电脑就行，方法无所谓。」用一百万个数的例子跟他解释为什么对半找还是赢；再说说什么时候他说得对。",
+    homeK: "家里做一做",
+    homeQ: "请家人想一个 1 到 100 的数，只回答「大了」或「小了」。玩两次：一次随便猜，一次每次都猜中间，数一数各猜了几次。再用纸质字典查一个字：从中间翻开，每次扔掉一半。",
+    foot: "本页的二分查找是标准写法：low = 0，high = n − 1；看 mid = ⌊(low + high) / 2⌋；相等就停，否则留下还可能有目标的那一半；low > high 时停。看一次 = 一次三路比较（小于、等于、大于）。最坏情况看 ⌊log₂ n⌋ + 1 次，找得到找不到都一样（Knuth《计算机程序设计艺术》第 3 卷 §6.2.1）。顺序查找从左往右看，不利用顺序。第 3 步的用时是假设的：A 每看一次 1 ns（约每秒十亿个简单步骤），B = A 的用时 × 滑块倍数（默认 1000，即 1 µs）。数列是 1–999 中用种子随机数（mulberry32）取的 64 个不同整数。排序代价 n · log₂ n 是归并排序的通常估计。ns = 纳秒，µs = 微秒，ms = 毫秒。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const LOC = P.lang === "zh" ? "zh-CN" : "en-US";
+const nf = (x) => (Number.isFinite(x) ? Math.round(x).toLocaleString(LOC) : "—");
+const sig = (x) => (Number.isFinite(x) ? x.toLocaleString(LOC, { maximumSignificantDigits: 3 }) : "—");
+const tf = (ns) => { const [v, u] = timeParts(ns); return sig(v) + " " + u; };
+const ratio = (a, b) => (b > 0 ? sig(a / b) : "—");
+function setMsg(el, t, cls) { el.className = "msg" + (cls ? " " + cls : ""); Play.live(el, t); }
+function addRow(t, cells, tag, on) {
+  const tr = document.createElement("tr");
+  if (on) tr.className = "on";
+  cells.forEach((c) => { const x = document.createElement(tag); x.textContent = c; tr.appendChild(x); });
+  t.appendChild(tr);
+  return tr;
+}
+const svgW = (el, d) => Math.max(280, Math.round(el.getBoundingClientRect().width) || d);
+const svgH = (el, d) => Math.max(120, Math.round(el.getBoundingClientRect().height) || d);
+let step = 0;
+const MILLION = 1e6;
+
+/* ================= step 1: halving ladder ================= */
+const LADN = [100, 1000, MILLION];
+let ladN = MILLION, ladShown = 1;
+const ladBtns = LADN.map((n) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small preset"; b.textContent = nf(n);
+  b.addEventListener("click", () => { ladN = n; ladShown = 1; renderLadder(); });
+  $("ladN").appendChild(b); $("ladN").append(" ");
+  return [b, n];
+});
+function renderLadder() {
+  ladBtns.forEach(([b, n]) => { b.classList.toggle("on", n === ladN); b.setAttribute("aria-pressed", String(n === ladN)); });
+  const svg = $("ladder"), W = svgW(svg, 600), H = svgH(svg, 340), rows = ladder(ladN);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = "";
+  const rh = Math.min(32, (H - 8) / rows.length), c1 = W < 420 ? 62 : 74, c2 = c1 + (W < 420 ? 70 : 84), x0 = c2 + 8, bw = W - x0 - 10;
+  rows.forEach((m, k) => {
+    if (k >= ladShown) return;
+    const y = 4 + k * rh, cy = y + rh / 2 + 4.5;
+    Play.svg("text", { class: "axt", x: 4, y: cy }, svg).textContent = P.t("ladK", { k: k + 1 });
+    Play.svg("text", { class: k === rows.length - 1 ? "labb" : "lab", x: c2, y: cy, "text-anchor": "end" }, svg).textContent = nf(m);
+    Play.svg("rect", { class: "lbar" + (m === 1 ? " one" : ""), x: x0, y: y + rh * 0.18, width: Math.max(2, (m / ladN) * bw), height: Math.max(4, rh * 0.64), rx: 2 }, svg);
+  });
+  const k = Math.min(ladShown, rows.length), m = rows[k - 1];
+  if (ladShown <= 1) setMsg($("ladMsg"), P.t("ladStart", { n: nf(ladN) }));
+  else if (k === rows.length) setMsg($("ladMsg"), P.t("ladDone", { k, n: nf(ladN) }), "ok");
+  else setMsg($("ladMsg"), P.t("ladMsg", { k, m: nf(m) }));
+  $("halve").disabled = $("showAll").disabled = ladShown >= rows.length;
+}
+$("halve").addEventListener("click", () => { ladShown = Math.min(ladShown + 1, ladder(ladN).length); renderLadder(); });
+$("showAll").addEventListener("click", () => { ladShown = ladder(ladN).length; renderLadder(); });
+
+/* ================= step 2a: guessing game ================= */
+let gN = 100, secret = 1, gLo = 1, gHi = 100, gK = 0, gDone = false, guesses = [], cur = 50, dragging = false, mode = "g";
+const rangeBtns = [100, 1000].map((n) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small preset"; b.textContent = "1–" + n;
+  b.addEventListener("click", () => { gN = n; newGame(); });
+  $("ranges").appendChild(b); $("ranges").append(" ");
+  return [b, n];
+});
+function newGame() {
+  secret = 1 + Math.floor(Math.random() * gN);
+  gLo = 1; gHi = gN; gK = 0; gDone = false; guesses = []; cur = halvingGuess(1, gN);
+  $("gIn").min = 1; $("gIn").max = gN; $("gIn").value = "";
+  rangeBtns.forEach(([b, n]) => { b.classList.toggle("on", n === gN); b.setAttribute("aria-pressed", String(n === gN)); });
+  setMsg($("gMsg"), P.t("gStart", { a: 1, b: nf(gN) }));
+  renderGame();
+}
+function guess(g) {
+  if (gDone) return;
+  g = Math.round(Play.clamp(g, 1, gN));
+  if (!Number.isFinite(g)) return;
+  gK++; guesses.push(g);
+  const out = g < gLo || g > gHi, lo0 = gLo, hi0 = gHi;
+  let t;
+  if (g === secret) { gDone = true; gLo = gHi = secret; t = P.t("got", { g: nf(g), k: gK }); }
+  else if (g < secret) { gLo = Math.max(gLo, g + 1); t = P.t("higher", { g: nf(g) }); }
+  else { gHi = Math.min(gHi, g - 1); t = P.t("lower", { g: nf(g) }); }
+  if (out && !gDone) t += P.t("wasted", { g: nf(g), lo: nf(lo0), hi: nf(hi0) });
+  if (gDone) { const w = bitLen(gN); t += " " + P.t(gK <= w ? "gBeat" : "gOver", { w }); }
+  setMsg($("gMsg"), t, gDone ? "ok" : "");
+  cur = Play.clamp(halvingGuess(gLo, gHi), gLo, gHi);
+  renderGame();
+}
+function drawLine() {
+  const svg = $("line"), W = svgW(svg, 600), H = svgH(svg, 176);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = "";
+  const L = 22, R = 22, y1 = 44, y2 = 120;
+  const X1 = (v) => L + ((v - 1) / Math.max(1, gN - 1)) * (W - L - R);
+  const span = gHi - gLo, X2 = (v) => (span <= 0 ? W / 2 : L + ((v - gLo) / span) * (W - L - R));
+  Play.svg("text", { class: "axt", x: L, y: 16 }, svg).textContent = P.t("allNums", { a: 1, b: nf(gN) });
+  Play.svg("line", { class: "axs", x1: L, x2: W - R, y1, y2: y1 }, svg);
+  const a = X1(gLo - 0.5 < 1 ? 1 : gLo - 0.5), b = X1(gHi + 0.5 > gN ? gN : gHi + 0.5);
+  const bb = Math.max(b, a + 3);
+  Play.svg("rect", { class: "ivl", x: a, y: y1 - 7, width: bb - a, height: 14, rx: 3 }, svg);
+  guesses.forEach((g) => Play.svg("line", { class: "gmark", x1: X1(g), x2: X1(g), y1: y1 - 10, y2: y1 + 10 }, svg));
+  Play.svg("text", { class: "axt", x: L, y: y1 + 26, "text-anchor": "middle" }, svg).textContent = "1";
+  Play.svg("text", { class: "axt", x: W - R, y: y1 + 26, "text-anchor": "end" }, svg).textContent = nf(gN);
+  // zoom trapezoid
+  const zl = span <= 0 ? W / 2 - 6 : L, zr = span <= 0 ? W / 2 + 6 : W - R;
+  Play.svg("polygon", { class: "zoom", points: `${a},${y1 + 8} ${bb},${y1 + 8} ${zr},${y2 - 6} ${zl},${y2 - 6}` }, svg);
+  Play.svg("text", { class: "axt", x: W - R, y: y2 - 30, "text-anchor": "end" }, svg).textContent = P.t("zoomT");
+  Play.svg("line", { class: "axs", x1: zl, x2: zr, y1: y2, y2 }, svg);
+  if (span > 0 && span <= 40) for (let v = gLo; v <= gHi; v++) Play.svg("line", { class: "ax", x1: X2(v), x2: X2(v), y1: y2 - 4, y2: y2 + 4 }, svg);
+  if (gDone) {
+    Play.svg("circle", { class: "secret", cx: X2(secret), cy: y2, r: 9 }, svg);
+    Play.svg("text", { class: "labb", x: X2(secret), y: y2 + 30, "text-anchor": "middle" }, svg).textContent = P.t("secretT", { s: nf(secret) });
+    return;
+  }
+  Play.svg("text", { class: "lab", x: zl, y: y2 + 22, "text-anchor": span <= 0 ? "end" : "start" }, svg).textContent = nf(gLo);
+  if (span > 0) Play.svg("text", { class: "lab", x: zr, y: y2 + 22, "text-anchor": "end" }, svg).textContent = nf(gHi);
+  if ($("coachOn").checked && span > 0) {
+    const m = halvingGuess(gLo, gHi), xm = X2(m);
+    Play.svg("line", { class: "mid", x1: xm, x2: xm, y1: y2 - 12, y2: y2 + 12 }, svg);
+    const anc = xm < 80 ? "start" : xm > W - 80 ? "end" : "middle";
+    Play.svg("text", { class: "midt", x: xm, y: y2 + 44, "text-anchor": anc }, svg).textContent = "½ → " + nf(m);
+  }
+  const xc = X2(cur), anc = xc < 40 ? "start" : xc > W - 40 ? "end" : "middle";
+  Play.svg("path", { class: "cur", d: `M${xc},${y2 - 3} l-7,-11 h14 z` }, svg);
+  Play.svg("text", { class: "labb", x: xc, y: y2 - 18, "text-anchor": anc }, svg).textContent = nf(cur);
+  $("gK").textContent = gK;
+}
+function renderCoach() {
+  $("gK").textContent = gK;
+  $("gPromise").textContent = P.t("gPromise", { w: bitLen(gN), n: nf(gN) });
+  const c = $("coach");
+  if (gDone) { c.hidden = true; return; }
+  c.hidden = false;
+  if (!$("coachOn").checked) c.textContent = P.t("coachOff");
+  else if (gLo === gHi) c.innerHTML = P.t("coachOne", { lo: nf(gLo) });
+  else c.innerHTML = P.t("coachTxt", { lo: nf(gLo), hi: nf(gHi), m: nf(gHi - gLo + 1), mid: nf(halvingGuess(gLo, gHi)), w: bitLen(gHi - gLo + 1) });
+  $("coachPick").disabled = !$("coachOn").checked;
+}
+function renderGame() { drawLine(); renderCoach(); }
+function linePick(e) {
+  const p = Play.pointer($("line"), e), W = svgW($("line"), 600), span = gHi - gLo;
+  if (span <= 0) { cur = gLo; return; }
+  const f = Play.clamp((p.x - 22) / (W - 44), 0, 1);
+  cur = Math.round(gLo + f * span);
+}
+const line = $("line");
+line.addEventListener("pointerdown", (e) => {
+  if (gDone) return;
+  dragging = true; try { line.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
+  linePick(e); renderGame(); e.preventDefault();
+});
+line.addEventListener("pointermove", (e) => { if (gDone || (!dragging && e.pointerType !== "mouse")) return; linePick(e); renderGame(); });
+line.addEventListener("pointerup", () => { if (dragging) { dragging = false; guess(cur); } });
+line.addEventListener("pointercancel", () => { dragging = false; });
+line.addEventListener("keydown", (e) => {
+  if (gDone) return;
+  const d = { ArrowLeft: -1, ArrowRight: 1, ArrowDown: -1, ArrowUp: 1 }[e.key];
+  if (d) { cur = Play.clamp(cur + d * (e.shiftKey ? 10 : 1), gLo, gHi); renderGame(); }
+  else if (e.key === "Enter" || e.key === " ") guess(cur);
+  else return;
+  e.preventDefault();
+});
+$("gBtn").addEventListener("click", () => { const v = parseFloat($("gIn").value); if (Number.isFinite(v)) guess(v); });
+$("gIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { $("gBtn").click(); e.preventDefault(); } });
+$("coachPick").addEventListener("click", () => guess(halvingGuess(gLo, gHi)));
+$("coachOn").addEventListener("change", renderGame);
+$("newGame").addEventListener("click", newGame);
+
+/* ================= step 2b: searching a sorted list ================= */
+const LISTN = 64, MAXV = 999;
+let listSeed = 1, list = [], target = 0, bs = null, ls = null, timer = 0, playing = false;
+const cellsB = [], cellsL = [];
+function buildGrid(box, arr) {
+  box.innerHTML = ""; arr.length = 0;
+  for (let i = 0; i < LISTN; i++) {
+    const c = document.createElement("div");
+    c.className = "cell";
+    c.addEventListener("click", () => setTarget(list[i]));
+    box.appendChild(c); arr.push(c);
+  }
+}
+buildGrid($("gridB"), cellsB); buildGrid($("gridL"), cellsL);
+$("gridB").setAttribute("role", "group"); $("gridL").setAttribute("role", "group");
+function newList(seed) {
+  listSeed = seed;
+  list = makeSorted(LISTN, seed, MAXV);
+  list.forEach((v, i) => { cellsB[i].textContent = v; cellsL[i].textContent = v; });
+  const r = mulberry32(seed * 31 + 5);
+  setTarget(list[Math.floor(r() * LISTN)]);
+}
+function setTarget(x) {
+  target = Math.round(Play.clamp(x, 0, MAXV + 1));
+  $("tIn").value = target;
+  restartSearch();
+}
+function restartSearch() {
+  stopPlay();
+  bs = binInit(list, target); ls = linInit(list, target);
+  setMsg($("sMsg"), P.t("ready", { x: target }));
+  renderSearch();
+}
+function tickSearch() {
+  const a = binStep(bs), b = linStep(ls);
+  renderSearch();
+  return a || b;
+}
+function renderSearch() {
+  cellsB.forEach((c, i) => {
+    const out = bs.done ? i !== bs.found : (i < bs.lo || i > bs.hi) && !(bs.cmp > 0 && i === bs.mid);
+    c.className = "cell" + (out ? " out" : "") + (list[i] === target ? " tgt" : "") +
+      (i === bs.found ? " won" : !bs.done && bs.cmp > 0 && i === bs.mid ? " cmp" : "") +
+      (!bs.done && i === bs.lo ? " lo" : "") + (!bs.done && i === bs.hi ? " hi" : "");
+  });
+  cellsL.forEach((c, i) => {
+    const out = i < ls.i && i !== ls.found;
+    c.className = "cell" + (out ? " out" : "") + (list[i] === target ? " tgt" : "") +
+      (i === ls.found ? " won" : i === ls.i && !ls.done ? " cmp" : ls.done && ls.found < 0 ? " out" : "");
+  });
+  const lane = (el, s, txt) => {
+    el.innerHTML = "";
+    const b = document.createElement("b"); b.textContent = s.cmp;
+    el.append(b, " " + P.t(s.cmp === 1 ? "look1" : "looksL") + (txt ? " · " + txt : ""));
+  };
+  let tb = "";
+  if (bs.cmp > 0) {
+    const m = Math.max(0, bs.hi - bs.lo + 1), vars = { i: bs.mid + 1, v: bs.a[bs.mid], x: target, m };
+    tb = bs.last === 0 ? P.t("bHit", vars) : bs.done ? P.t(bs.last < 0 ? "bLess" : "bMore", vars) + " " + P.t("bNone", vars) : P.t(bs.last < 0 ? "bLess" : "bMore", vars);
+  }
+  let tl = "";
+  if (ls.cmp > 0) { const v = { i: ls.i + 1, v: list[ls.i], x: target, n: LISTN }; tl = ls.found >= 0 ? P.t("lHit", v) : ls.done ? P.t("lNone", v) : P.t("lMiss", v); }
+  lane($("lcB"), bs, tb); lane($("lcL"), ls, tl);
+  $("laneB").classList.toggle("fin", bs.done); $("laneL").classList.toggle("fin", ls.done);
+  const all = bs.done && ls.done;
+  if (all) { stopPlay(); setMsg($("sMsg"), P.t("listDone", { b: bs.cmp, l: ls.cmp, w: bitLen(LISTN) }), "ok"); }
+  $("stepBtn").disabled = $("finish").disabled = all;
+}
+function stopPlay() { if (timer) clearTimeout(timer); timer = 0; playing = false; $("play").textContent = P.t("play"); }
+function playSearch() {
+  if (playing) { stopPlay(); return; }
+  if (bs.done && ls.done) restartSearch();
+  playing = true; $("play").textContent = P.t("pause");
+  const go = () => { if (!playing) return; if (tickSearch() && !(bs.done && ls.done)) timer = setTimeout(go, 160); else stopPlay(); };
+  timer = setTimeout(go, 120);
+}
+$("play").addEventListener("click", playSearch);
+$("stepBtn").addEventListener("click", () => { stopPlay(); tickSearch(); });
+$("finish").addEventListener("click", () => { stopPlay(); while (tickSearch()); });
+$("restart").addEventListener("click", restartSearch);
+$("tIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { const v = parseFloat($("tIn").value); if (Number.isFinite(v)) setTarget(v); e.preventDefault(); } });
+$("tIn").addEventListener("change", () => { const v = parseFloat($("tIn").value); if (Number.isFinite(v)) setTarget(v); });
+$("tInList").addEventListener("click", () => setTarget(list[Math.floor(Math.random() * LISTN)]));
+$("tNotIn").addEventListener("click", () => {
+  const have = new Set(list), free = [];
+  for (let v = 1; v <= MAXV; v++) if (!have.has(v)) free.push(v);
+  setTarget(free[Math.floor(Math.random() * free.length)]);
+});
+$("newList").addEventListener("click", () => newList(1 + Math.floor(Math.random() * 9999)));
+
+const modeBtns = [["modeG", "g"], ["modeL", "l"]].map(([k, m]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "preset"; b.textContent = P.t(k);
+  b.addEventListener("click", () => setMode(m));
+  $("modes").appendChild(b);
+  return [b, m];
+});
+function setMode(m) {
+  mode = m;
+  modeBtns.forEach(([b, x]) => { b.classList.toggle("on", x === m); b.setAttribute("aria-pressed", String(x === m)); });
+  $("gGame").hidden = m !== "g"; $("gList").hidden = m !== "l";
+  if (m !== "l") stopPlay();
+  if (step === 1) { $("stepBody").textContent = P.t(m === "g" ? "b2g" : "b2l"); $("keys").textContent = P.t(m === "g" ? "keys2g" : "keys2l"); }
+  if (m === "g") renderGame();
+}
+
+/* ================= step 3: race chart ================= */
+const chart = $("chart");
+let rk = 3, selX = 6;   // R = 10^rk; selected n = 10^selX
+const Rv = () => Math.pow(10, rk);
+const nAt = (x) => Math.max(1, Math.round(Math.pow(10, x)));
+function shortN(n) {
+  if (P.lang === "zh") return n >= 1e8 ? n / 1e8 + "亿" : n >= 1e4 ? n / 1e4 + "万" : n >= 1e3 ? n / 1e3 + "千" : String(n);
+  return n >= 1e9 ? n / 1e9 + "B" : n >= 1e6 ? n / 1e6 + "M" : n >= 1e3 ? n / 1e3 + "k" : String(n);
+}
+const shortT = (ns) => { const [v, u] = timeParts(ns); return Math.round(v) + " " + u; };
+function renderChart() {
+  const W = svgW(chart, 600), H = svgH(chart, 340), R = Rv(), c = crossover(R);
+  chart.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  chart.innerHTML = "";
+  const L = W < 420 ? 54 : 64, Rm = 14, T = 32, B = 40;
+  const X = (lx) => L + ((lx - 1) / 8) * (W - L - Rm);
+  const Y = (ns) => H - B - (Math.log10(Math.max(ns, 1)) / 10) * (H - B - T);
+  for (let e = 0; e <= 10; e++) {
+    Play.svg("line", { class: "ax", x1: L, x2: W - Rm, y1: Y(Math.pow(10, e)), y2: Y(Math.pow(10, e)) }, chart);
+    if (H >= 320 || e % 2 === 0) Play.svg("text", { class: "axt", x: L - 6, y: Y(Math.pow(10, e)) + 4, "text-anchor": "end" }, chart).textContent = shortT(Math.pow(10, e));
+  }
+  for (let e = 1; e <= 9; e++) if (W >= 420 || e % 2 === 1) Play.svg("text", { class: "axt", x: X(e), y: H - B + 18, "text-anchor": "middle" }, chart).textContent = shortN(Math.pow(10, e));
+  Play.svg("text", { class: "axt", x: W - Rm, y: H - 4, "text-anchor": "end" }, chart).textContent = P.t("axN");
+  Play.svg("text", { class: "axt", x: 4, y: 14 }, chart).textContent = P.t("axT");
+  const ptsA = [], ptsB = [];
+  for (let px = 0; px <= W - L - Rm; px += 2) {
+    const lx = 1 + (px / (W - L - Rm)) * 8, n = Math.floor(Math.pow(10, lx));
+    ptsA.push((L + px).toFixed(1) + "," + Y(timeA(n)).toFixed(1));
+    ptsB.push((L + px).toFixed(1) + "," + Y(timeB(n, R)).toFixed(1));
+  }
+  Play.svg("polyline", { class: "serA", points: ptsA.join(" ") }, chart);
+  Play.svg("polyline", { class: "serB", points: ptsB.join(" ") }, chart);
+  if (c !== null && c >= 10 && c <= 1e9) {
+    const xc = X(Math.log10(c));
+    Play.svg("line", { class: "xline", x1: xc, x2: xc, y1: T, y2: H - B }, chart);
+    const anc = xc > W - 120 ? "end" : "start";
+    Play.svg("text", { class: "xlab", x: xc + (anc === "start" ? 5 : -5), y: T + 12, "text-anchor": anc }, chart).textContent = P.t("xLab", { c: nf(c) });
+  }
+  const n = nAt(selX), xs = X(selX);
+  Play.svg("line", { class: "guide", x1: xs, x2: xs, y1: T, y2: H - B }, chart);
+  Play.svg("circle", { class: "ptA", cx: xs, cy: Y(timeA(n)), r: 5.5 }, chart);
+  Play.svg("circle", { class: "ptB", cx: xs, cy: Y(timeB(n, R)), r: 5.5 }, chart);
+  renderRule();
+}
+function renderRule() {
+  const R = Rv(), c = crossover(R), n = nAt(selX), ta = timeA(n), tb = timeB(n, R);
+  $("rVal").textContent = P.t("rTimes", { r: nf(R) });
+  $("perStep").textContent = P.t("perStep", { t: tf(R) });
+  $("big").textContent = P.t("cross", { c: nf(c) });
+  const w = tb < ta ? P.t("wB", { x: ratio(ta, tb) }) : ta < tb ? P.t("wA", { x: ratio(tb, ta) }) : P.t("wT");
+  $("stepBody").textContent = P.t("b3") + " " + P.t("atN", { n: nf(n), lb: bitLen(n), tb: tf(tb), la: nf(n), ta: tf(ta), w });
+  const t = $("table");
+  t.innerHTML = "";
+  addRow(t, [P.t("thN"), P.t("thB"), P.t("thA")], "th");
+  for (let e = 1; e <= 9; e++) {
+    const m = Math.pow(10, e), a = timeA(m), b = timeB(m, R);
+    const tr = addRow(t, [nf(m), tf(b), tf(a)], "td", Math.round(selX) === e);
+    tr.children[b < a ? 1 : 2].className = a === b ? "" : "w";
+    tr.dataset.k = e;
+    tr.addEventListener("click", () => { selX = e; renderChart(); });
+  }
+  const sn = $("sortNote");
+  sn.innerHTML = "";
+  const s = Math.round(n * Math.log2(n)), gain = n - bitLen(n);
+  const a = document.createElement("a");
+  a.href = "sorting-race.html" + (P.lang === "zh" ? "?lang=zh" : ""); a.textContent = P.t("sortLink");
+  sn.append(P.t("sortA"), a, P.t("sortB", { n: nf(n), s: sig(s), n2: nf(n), k: gain > 0 ? nf(Math.ceil(s / gain)) : "—" }));
+}
+function chartPick(e) {
+  const p = Play.pointer(chart, e), W = svgW(chart, 600), L = W < 420 ? 54 : 64;
+  selX = Math.round(Play.clamp(1 + ((p.x - L) / (W - L - 14)) * 8, 1, 9) * 20) / 20;
+  renderChart();
+}
+let chDrag = false;
+chart.addEventListener("pointerdown", (e) => { chDrag = true; try { chart.setPointerCapture(e.pointerId); } catch (err) { /* ok */ } chartPick(e); });
+chart.addEventListener("pointermove", (e) => { if (chDrag) chartPick(e); });
+chart.addEventListener("pointerup", () => (chDrag = false));
+chart.addEventListener("pointercancel", () => (chDrag = false));
+chart.addEventListener("keydown", (e) => {
+  const d = { ArrowLeft: -0.25, ArrowRight: 0.25, ArrowDown: -0.25, ArrowUp: 0.25 }[e.key];
+  if (d) selX = Play.clamp(Math.round((selX + d) * 4) / 4, 1, 9);
+  else if (e.key === "Home") selX = 1;
+  else if (e.key === "End") selX = 9;
+  else return;
+  renderChart(); e.preventDefault();
+});
+$("rIn").addEventListener("input", () => { rk = +$("rIn").value; renderChart(); renderResult(); });
+if ("ResizeObserver" in window) new ResizeObserver(() => { if (step === 2) renderChart(); if (step === 1 && mode === "g") renderGame(); if (step === 0) renderLadder(); }).observe(document.querySelector(".stage"));
+
+function renderResult() {
+  $("resultNote").textContent = P.t("resultNote", { h: bitLen(MILLION), r: nf(Rv()), c: nf(crossover(Rv())) });
+}
+
+/* ================= steps ================= */
+const avg = MILLION / 2;   // one by one: (n + 1) / 2 on average, shown as “about n / 2”
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o20"), right: true }, { label: P.t("o1k") }, { label: P.t("o500k") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => setMsg($("pNums"), P.t("pNums", { h: bitLen(MILLION), n: nf(MILLION), avg: nf(avg) })));
+const R0 = 1000, v2 = { r: nf(R0), tb: tf(timeB(MILLION, R0)), ta: tf(timeA(MILLION)) };
+const pr2 = Play.predict($("predict2"), {
+  q: P.t("q2", v2),
+  options: [{ label: P.t("oA") }, { label: P.t("oB"), right: true }, { label: P.t("oT") }],
+  right: P.t("right2", v2), wrong: P.t("wrong2", v2),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = i === 1 ? P.t(mode === "g" ? "b2g" : "b2l") : P.t("b" + k);
+  $("keys").textContent = i === 1 ? P.t(mode === "g" ? "keys2g" : "keys2l") : P.t("keys" + k);
+  $("predict").hidden = $("pNums").hidden = $("predict2").hidden = i !== 0;
+  $("vLadder").hidden = i !== 0; $("vTry").hidden = i !== 1; $("vRace").hidden = i !== 2;
+  $("sortNote").hidden = i !== 2;
+  if (i !== 1) stopPlay();
+  $("big").textContent = ""; $("table").innerHTML = "";
+  if (i === 0) renderLadder();
+  if (i === 1) setMode(mode);
+  if (i === 2) renderChart();
+});
+$("reset").addEventListener("click", () => {
+  stopPlay(); pr.reset(); pr2.reset(); setMsg($("pNums"), "");
+  ladN = MILLION; ladShown = 1;
+  gN = 100; $("coachOn").checked = true; newGame();
+  newList(1); setMode("g");
+  rk = 3; $("rIn").value = 3; selX = 6; renderResult();
+  st.go(0);
+});
+newGame();
+newList(1);
+setMode("g");
+renderResult();
+renderLadder();
+</script>
+</body>
+</html>

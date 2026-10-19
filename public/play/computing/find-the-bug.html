@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find the bug</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 1 / 1; max-height: 400px; }
+  @media (max-width: 560px) { .stage svg.main { height: auto; max-height: none; } }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .cell { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  .wall { fill: var(--b); }
+  .wallx { stroke: var(--surface); stroke-width: 2; opacity: .45; }
+  .star { fill: var(--hl); stroke: var(--fg); stroke-width: 1.2; }
+  .trail { fill: none; stroke: var(--a); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; opacity: .35; }
+  .rbody { fill: var(--a); stroke: var(--fg); stroke-width: 1.5; }
+  .rnose { fill: var(--surface); }
+  .rbump .rbody { fill: var(--no); }
+  .ghost .rbody, .ghost .rnose { fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-dasharray: 4 3; }
+  .gdot { fill: var(--soft); stroke: var(--c); stroke-width: 2.5; }
+  .gdot.ok { stroke: var(--a); }
+  .gdot.no { stroke: var(--no); stroke-width: 3.5; }
+  .gdottx { fill: var(--fg); font: 700 13px var(--font); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .cursor { fill: none; stroke: var(--hl); stroke-width: 3; }
+  .bartx { fill: var(--fg); font: 600 13px var(--font); dominant-baseline: central; }
+  .barmu { fill: var(--muted); font: 13px var(--font); dominant-baseline: central; }
+  .barfix { fill: var(--a); } .barall { fill: var(--line); }
+  .pane { padding: 10px 14px 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 13px; color: var(--muted); font-weight: 650; margin-right: 2px; }
+  .ic { display: inline-block; width: 1.2em; text-align: center; color: var(--a); font-weight: 800; }
+  .prog { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; min-height: 40px; padding: 8px; border: 1px dashed var(--line); border-radius: 10px; background: var(--bg); }
+  .prog .empty { font-size: 13px; color: var(--muted); padding: 4px 2px; }
+  .cmd { font-size: 14px; padding: 5px 9px; white-space: nowrap; }
+  .cmd .n { font-size: 12px; color: var(--muted); margin-right: 4px; font-variant-numeric: tabular-nums; }
+  .cmd.sel { border-color: var(--a); box-shadow: 0 0 0 2px var(--a) inset; }
+  .cmd.cur { background: var(--hl); color: #1a2822; border-color: var(--hl); }
+  .cmd.cur .n, .cmd.cur .ic { color: #1a2822; }
+  .cmd.bad { background: var(--no); color: #fff; border-color: var(--no); }
+  .cmd.bad .n, .cmd.bad .ic { color: #fff; }
+  .cmd.new { border-style: dashed; border-color: var(--a); }
+  .cmd:disabled { cursor: default; opacity: 1; }
+  .count { font-size: 13px; color: var(--muted); }
+  .count b { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .cmp { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14px; background: var(--soft); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; justify-content: start; }
+  .cmp b { font-variant-numeric: tabular-nums; }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+  .msg.ok { font-weight: 650; }
+  .msg.ok::before { content: "✓ "; color: var(--a); font-weight: 800; }
+  .msg.no { color: var(--no); font-weight: 650; }
+  .msg.no::before { content: "! "; font-weight: 800; }
+  button.primary { background: var(--a); color: var(--surface); border-color: var(--a); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.on.mark { background: var(--c); border-color: var(--c); color: var(--surface); }
+  .lvl button.done::after { content: " ✓"; color: var(--a); }
+  .lvl button.on.done::after { color: var(--bg); }
+  .checklist { margin: 0 0 12px; padding-left: 1.4em; font-size: 14px; }
+  .checklist li { margin: 3px 0; }
+  .checklist b { color: var(--a); }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 300 300" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="pane" id="pane">
+        <div class="row lvl" id="lvlRow"></div>
+        <div class="prog" id="prog" aria-label="program"></div>
+        <div class="row" id="guessRow">
+          <button type="button" class="small" id="markBtn" aria-pressed="false" data-t="markBtn"></button>
+          <button type="button" class="small" id="clearDots" data-t="clearDots"></button>
+          <span class="count" id="guessTip"></span>
+        </div>
+        <div class="row" id="editRow1">
+          <span class="lbl" id="chgLbl"></span>
+          <button type="button" class="small" data-chg="F"><span class="ic">↑</span> <span data-t="opF"></span></button>
+          <button type="button" class="small" data-chg="L"><span class="ic">↺</span> <span data-t="opL"></span></button>
+          <button type="button" class="small" data-chg="R"><span class="ic">↻</span> <span data-t="opR"></span></button>
+        </div>
+        <div class="row" id="editRow2">
+          <span class="lbl" id="addLbl"></span>
+          <button type="button" class="small" data-add="F"><span class="ic">↑</span> <span data-t="opF"></span></button>
+          <button type="button" class="small" data-add="L"><span class="ic">↺</span> <span data-t="opL"></span></button>
+          <button type="button" class="small" data-add="R"><span class="ic">↻</span> <span data-t="opR"></span></button>
+        </div>
+        <div class="row" id="editRow3">
+          <button type="button" class="small" id="del" data-t="del"></button>
+          <button type="button" class="small" id="swapNext" data-t="swapNext"></button>
+          <button type="button" class="small" id="restore" data-t="restore"></button>
+        </div>
+        <div class="row">
+          <button type="button" class="primary" id="stepBtn" data-t="stepBtn"></button>
+          <button type="button" id="run"></button>
+          <button type="button" id="back" data-t="back"></button>
+          <span class="count" id="count"></span>
+        </div>
+        <p class="msg" id="live"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <ol class="checklist" id="checklist" hidden>
+        <li data-t-html="c1"></li><li data-t-html="c2"></li><li data-t-html="c3"></li><li data-t-html="c4"></li>
+      </ol>
+      <div class="cmp" id="cmp" hidden></div>
+      <p class="note" id="keys" data-t="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure logic (no DOM) so it can be checked in node. Grid 5×5, x right, y down; d: 0 up, 1 right, 2 down, 3 left.
+   Same robot rules as robot-commands.html: forward into a wall or the edge = bump, and the program stops there. */
+const N = 5;
+const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const DEMO = { key: "demo", start: { x: 0, y: 4, d: 0 }, goal: [4, 0], walls: [[4, 1], [2, 3], [3, 3]],
+  bug: "FFFRFFFF", plan: "FFFFRFFFF" };
+const PUZZLES = [
+  { key: "p1", kind: "turn", start: { x: 0, y: 4, d: 0 }, goal: [3, 1], walls: [[1, 3], [2, 3], [4, 0]],
+    bug: "FFRFFFRF", plan: "FFRFFFLF" },
+  { key: "p2", kind: "missing", start: { x: 4, y: 4, d: 0 }, goal: [0, 1], walls: [[2, 2], [1, 3], [3, 3]],
+    bug: "FFLFFFF", plan: "FFFLFFFF" },
+  { key: "p3", kind: "extra", start: { x: 0, y: 0, d: 1 }, goal: [3, 3], walls: [[1, 2], [0, 3], [4, 1]],
+    bug: "FFFRFFFLF", plan: "FFRFFFLF" },
+  { key: "p4", kind: "order", start: { x: 1, y: 4, d: 0 }, goal: [3, 1], walls: [[4, 2], [0, 2], [2, 1]],
+    bug: "RFFFLFF", plan: "FRFFLFF" },
+];
+function blocked(lv, x, y) {
+  return x < 0 || y < 0 || x >= N || y >= N || lv.walls.some((w) => w[0] === x && w[1] === y);
+}
+function apply(lv, s, op) {
+  if (op === "L") return { s: { x: s.x, y: s.y, d: (s.d + 3) % 4 } };
+  if (op === "R") return { s: { x: s.x, y: s.y, d: (s.d + 1) % 4 } };
+  const nx = s.x + DIRS[s.d][0], ny = s.y + DIRS[s.d][1];
+  if (blocked(lv, nx, ny)) return { s, bump: true };
+  return { s: { x: nx, y: ny, d: s.d } };
+}
+/* State after each command; a bump adds one entry {…, bump:true} and stops. */
+function trace(lv, ops) {
+  let s = { ...lv.start };
+  const out = [];
+  for (const op of ops) {
+    const r = apply(lv, s, op);
+    if (r.bump) { out.push({ ...s, bump: true }); break; }
+    s = r.s;
+    out.push({ ...s });
+  }
+  return out;
+}
+function run(lv, ops) {
+  const t = trace(lv, ops), last = t.length ? t[t.length - 1] : { ...lv.start };
+  const bump = t.length && last.bump ? t.length - 1 : -1;
+  const ok = bump < 0 && last.x === lv.goal[0] && last.y === lv.goal[1];
+  return { end: last, bump, ok };
+}
+/* First step (0-based) where what happens differs from what was expected.
+   Expected after step k = the reader's dot k if they placed one (place only), else the plan (place and facing). */
+function firstDiff(lv, ops, dots) {
+  const real = trace(lv, ops), want = trace(lv, lv.plan);
+  for (let k = 0; k < real.length; k++) {
+    const r = real[k];
+    if (r.bump) return { k, why: "bump" };
+    const dot = dots && dots[k];
+    if (dot) { if (dot[0] !== r.x || dot[1] !== r.y) return { k, why: "dot" }; continue; }
+    const w = want[k];
+    if (!w) return { k, why: "extra" };
+    if (w.x !== r.x || w.y !== r.y) return { k, why: "place" };
+    if (w.d !== r.d) return { k, why: "face" };
+  }
+  if (!run(lv, ops).ok && real.length < want.length) return { k: real.length, why: "short" };
+  return { k: -1, why: "" };
+}
+/* Fewest single-command edits (change, add, remove, swap two neighbours) from a to b. */
+function edits(a, b) {
+  const m = a.length, n = b.length, D = [];
+  for (let i = 0; i <= m; i++) { D.push([]); for (let j = 0; j <= n; j++) D[i].push(i === 0 ? j : j === 0 ? i : 0); }
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
+    D[i][j] = Math.min(D[i - 1][j] + 1, D[i][j - 1] + 1, D[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) D[i][j] = Math.min(D[i][j], D[i - 2][j - 2] + 1);
+  }
+  return D[m][n];
+}
+if (typeof module !== "undefined") module.exports = { N, DEMO, PUZZLES, apply, trace, run, firstDiff, edits };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Find the bug", eyebrow: "Computing · Stage 1",
+    h1: "To find a bug, go one step at a time",
+    intro: "A program almost works. Run it one command at a time, check each step against what you expected, and fix just the step that goes wrong.",
+    reset: "Reset", figAria: "A 5 by 5 grid with a robot, walls and a star",
+    s1: "Guess", s2: "Find it", s3: "Rule",
+    k1: "Predict first", t1: "So close! What now?",
+    b1: "This program should take the robot to the star, but it does not quite get there. Pick an answer, then press Run all to watch.",
+    k2: "Hands on", t2: "Four broken programs",
+    b2: "Each program has one small mistake. First, if you like, tap the grid to mark where you think the robot should be after each step. Then press Step. The first step that surprises you turns red. Fix it by changing just one command.",
+    k3: "The rule", t3: "Step, compare, fix the first surprise",
+    b3: "Most bugs are one wrong command. You do not need to start again — you need to find which step is wrong.",
+    q: "The robot almost reaches the star. What should you do?",
+    o1: "Delete it all and start again", o2: "Go step by step and find the wrong command", o3: "Add more commands at the end",
+    right: "Yes. Most of the program is fine. Watch each step and look for the first one that is wrong.",
+    wrong: "Most of the program is fine, so that is a lot of extra work. And look: the robot bumps and stops, so commands at the end never run.",
+    opF: "Forward", opL: "Turn left", opR: "Turn right",
+    nameF: "forward", nameL: "turn left", nameR: "turn right",
+    chgNone: "Tap a command to fix it.", chgLbl: "Change #{n} to:", addLbl: "Add before #{n}:", addEnd: "Add at the end:",
+    del: "Remove", swapNext: "Swap with next", restore: "Put the bug back",
+    markBtn: "✎ Mark my guesses", clearDots: "Clear guesses",
+    tipOff: "Guesses are optional. Without them, the faded robot shows where it should be.",
+    tipOn: "Tap the square where the robot is after step {n}.", tipFull: "One guess for every step. Now press Step.",
+    run: "▶ Run all", pause: "❚❚ Pause", stepBtn: "Step", back: "⟲ Back to start",
+    emptyProg: "Empty — add a command.",
+    bug1: "Bug 1", bug2: "Bug 2", bug3: "Bug 3", bug4: "Bug 4",
+    count: "Commands changed: {e}",
+    cmpE: "Commands you changed", cmpA: "Starting again means writing", cmpU: "commands",
+    pickFirst: "Pick an answer first.",
+    diffPlace: "First surprise at step {k} ({c}): the robot is not where it should be (faded robot). Look at this command.",
+    diffFace: "First surprise at step {k} ({c}): the robot faces the wrong way (faded robot). Look at this command.",
+    diffDot: "First surprise at step {k} ({c}): the robot is not on your dot {k}. Is the command wrong, or was the guess wrong?",
+    diffExtra: "First surprise at step {k} ({c}): the plan was already finished — this command is one too many.",
+    bump: "Bump at step {k} ({c})! The robot stopped. Nothing after it runs.",
+    bumpEarlier: "But the first surprise came earlier, at step {k} (red).",
+    short: "The program ended too soon: a command is missing before the end.",
+    miss: "The program ended, but not on the star. The red command is where it first went wrong.",
+    demoEnd: "It stopped close to the star. Only one command is wrong. Go to step 2 and find bugs like this.",
+    win: "Fixed! You changed {e} command(s). Starting again means writing all {n}. The bug was {kind}.",
+    kturn: "one wrong turn", kmissing: "a missing forward", kextra: "one forward too many", korder: "two commands in the wrong order",
+    winMore: "It works! You changed {e} commands. Can you do it with fewer? The fewest is {m}.",
+    allDone: "All four fixed. Go to step 3.",
+    noProg: "Add a command first.",
+    chartAria: "Bars: commands changed to fix each bug, next to commands written when starting again",
+    chFix: "changed", chAll: "to write again", chFew: "to change (fewest)",
+    c1: "<b>Predict:</b> say where the robot should be after each step.",
+    c2: "<b>Step:</b> run one command at a time.",
+    c3: "<b>Compare:</b> is the robot where you expected?",
+    c4: "<b>Fix the first difference:</b> change that one command, then run again.",
+    keys: "Keyboard: Tab to a command and press Enter to pick it. On the grid: Space = Step, Enter = Run all. In guess mode, arrow keys move the yellow box and Enter puts a dot.",
+    resultTitle: "What we found", resultMain: "predict → step → compare → fix",
+    resultNote: "A bug is usually one command. Run one step at a time, find the first step that does something you did not expect, and fix only that.",
+    explainK: "Explain it",
+    explainQ: "A friend's robot program stops one square from the star, and they want to delete it all. Explain how they can find the wrong command instead.",
+    homeK: "Try at home",
+    homeQ: "Write directions from your bed to the kitchen. Ask someone to follow them, one line at a time, while you watch. Where do they first go wrong? Change only that line.",
+    foot: "CC BY 4.0 · Boxi Yu · Each robot command does one thing: forward moves one square, a turn is a quarter turn on the spot. Moving into a wall or the edge is a bump, and the program stops. “Commands changed” counts the fewest single edits (change, add, remove, swap two neighbours) between the broken program and yours.",
+  },
+  zh: {
+    title: "找到那个错", eyebrow: "信息科技 · 阶段 1",
+    h1: "找错的办法：一步一步来",
+    intro: "程序差一点就对了。一次执行一条，每一步都和你想的对一对，只改出错的那一条。",
+    reset: "重置", figAria: "5 × 5 的格子，有机器人、墙和星星",
+    s1: "先猜", s2: "找错", s3: "规律",
+    k1: "先猜一猜", t1: "就差一点！怎么办？",
+    b1: "这个程序本该把机器人带到星星那里，可它差了一点。先选一个答案，再按「全部运行」看看。",
+    k2: "动手", t2: "四个出错的程序",
+    b2: "每个程序都有一个小错。你可以先点格子，标出你觉得每一步之后机器人应该在哪里（不标也行）。然后按「单步」。第一个让你意外的步骤会变红。只改一条指令把它修好。",
+    k3: "规律", t3: "单步、对比、修第一个不一样",
+    b3: "大多数错只是一条指令错了。不用全部重写——要找到是哪一步错了。",
+    q: "机器人差一点就到星星了。你该怎么办？",
+    o1: "全部删掉重写", o2: "一步一步走，找到错的那条", o3: "在最后多加几条",
+    right: "对。程序大部分是好的。看每一步，找第一个出错的步骤。",
+    wrong: "程序大部分是好的，这样要多做很多事。再看：机器人撞墙就停了，后面加的指令根本不会执行。",
+    opF: "前进", opL: "左转", opR: "右转",
+    nameF: "前进", nameL: "左转", nameR: "右转",
+    chgNone: "点一条指令来修改。", chgLbl: "把第 {n} 条改成：", addLbl: "在第 {n} 条前面加：", addEnd: "在最后加：",
+    del: "删除", swapNext: "和下一条换位置", restore: "把错放回去",
+    markBtn: "✎ 标出我的猜测", clearDots: "清除猜测",
+    tipOff: "猜测可以不标。不标的话，淡色机器人表示它应该在哪里。",
+    tipOn: "点一下第 {n} 步之后机器人所在的格子。", tipFull: "每一步都猜好了。现在按「单步」。",
+    run: "▶ 全部运行", pause: "❚❚ 暂停", stepBtn: "单步", back: "⟲ 回到起点",
+    emptyProg: "空的——加一条指令。",
+    bug1: "错 1", bug2: "错 2", bug3: "错 3", bug4: "错 4",
+    count: "改动的指令：{e} 条",
+    cmpE: "你改了", cmpA: "全部重写要写", cmpU: "条",
+    pickFirst: "先选一个答案。",
+    diffPlace: "第 {k} 步（{c}）第一次和想的不一样：机器人不在该在的地方（淡色机器人）。看看这条指令。",
+    diffFace: "第 {k} 步（{c}）第一次和想的不一样：机器人朝错了方向（淡色机器人）。看看这条指令。",
+    diffDot: "第 {k} 步（{c}）第一次和想的不一样：机器人不在你的第 {k} 个点上。是指令错了，还是猜错了？",
+    diffExtra: "第 {k} 步（{c}）第一次和想的不一样：本来已经走完了——这条是多出来的。",
+    bump: "第 {k} 步（{c}）撞墙了！机器人停下了，后面的指令都不执行。",
+    bumpEarlier: "不过第一次不一样更早，在第 {k} 步（红色）。",
+    short: "程序结束得太早：最后之前少了一条指令。",
+    miss: "程序执行完了，可没到星星。红色那条就是第一次走错的地方。",
+    demoEnd: "它停在星星附近。只有一条指令错了。到第 2 步去找找这样的错。",
+    win: "修好了！你只改了 {e} 条。全部重写要写 {n} 条。这个错是：{kind}。",
+    kturn: "转错了一次方向", kmissing: "少了一个前进", kextra: "多了一个前进", korder: "两条指令顺序反了",
+    winMore: "能走通！你改了 {e} 条。能更少吗？最少只要改 {m} 条。",
+    allDone: "四个都修好了。去第 3 步。",
+    noProg: "先加一条指令。",
+    chartAria: "柱子：修好每个错改了几条指令，旁边是全部重写要写几条",
+    chFix: "条，你改的", chAll: "条，全部重写", chFew: "条，最少要改",
+    c1: "<b>猜：</b>说出每一步之后机器人应该在哪里。",
+    c2: "<b>单步：</b>一次只执行一条指令。",
+    c3: "<b>对比：</b>机器人在你想的地方吗？",
+    c4: "<b>修第一个不一样：</b>只改那一条，再运行一遍。",
+    keys: "键盘：用 Tab 走到一条指令，按回车选中它。在格子上：空格 = 单步，回车 = 全部运行。标猜测时，方向键移动黄框，回车放一个点。",
+    resultTitle: "我们发现", resultMain: "猜 → 单步 → 对比 → 修",
+    resultNote: "错误通常只是一条指令。一次执行一步，找到第一个和你想的不一样的步骤，只改它。",
+    explainK: "说一说",
+    explainQ: "朋友的机器人程序停在离星星一格的地方，他想全部删掉重写。跟他说说怎样找到错的那一条。",
+    homeK: "家里做一做",
+    homeQ: "写一份从床边走到厨房的路线。请家人一行一行照着走，你在旁边看。他第一次走错是在哪一行？只改那一行。",
+    foot: "CC BY 4.0 · Boxi Yu · 每条指令只做一件事：前进走一格，转弯是原地转四分之一圈。走进墙或出了边界就是撞墙，程序停止。「改动的指令」是从出错程序改到你的程序最少要几次单独修改（改一条、加一条、删一条、相邻两条换位置）。",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), progEl = $("prog"), msg = $("live");
+const C = 56, O = 10, cx = (v) => O + v * C + C / 2;
+const ICON = { F: "↑", L: "↺", R: "↻" };
+const MAXLEN = 14;
+const SP = P.lang === "zh" ? "" : " ";  // sentence joiner
+
+/* ---------- state ---------- */
+let step = 0, pIdx = 0, lv = DEMO;
+let progs = {}, dots = {}, sel = null, solved = {};
+let marking = false, cursor = { x: 0, y: 0 };
+let ex = null, fd = null, shownDiff = false;
+let timer = null, running = false, anim = null, picked = false;
+
+function freshState() {
+  progs = { demo: DEMO.bug.split("") };
+  dots = { demo: [] };
+  PUZZLES.forEach((p) => { progs[p.key] = p.bug.split(""); dots[p.key] = []; });
+  solved = {}; sel = null; marking = false;
+}
+const prog = () => progs[lv.key];
+const myDots = () => dots[lv.key];
+
+/* ---------- drawing ---------- */
+let gTrail, gRobot, gGhost, gDots, gCur;
+function robotShape(g) {
+  Play.svg("circle", { class: "rbody", cx: 0, cy: 0, r: 17 }, g);
+  Play.svg("polygon", { class: "rbody", points: "0,-24 9,-13 -9,-13" }, g);
+  Play.svg("polygon", { class: "rnose", points: "0,-11 8,6 0,2 -8,6" }, g);
+}
+function drawLevel() {
+  fig.innerHTML = "";
+  fig.setAttribute("aria-label", P.t("figAria"));
+  const g = Play.svg("g", {}, fig);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++)
+    Play.svg("rect", { class: "cell", x: O + x * C, y: O + y * C, width: C, height: C }, g);
+  lv.walls.forEach(([x, y]) => {
+    Play.svg("rect", { class: "wall", x: O + x * C + 3, y: O + y * C + 3, width: C - 6, height: C - 6, rx: 6 }, g);
+    Play.svg("path", { class: "wallx", d: `M${O + x * C + 6} ${O + y * C + C / 2}H${O + x * C + C - 6}M${O + x * C + C / 2} ${O + y * C + 6}V${O + y * C + C / 2}`, fill: "none" }, g);
+  });
+  const [gx, gy] = lv.goal, pts = [];
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 ? 9 : 21, a = -Math.PI / 2 + (i * Math.PI) / 5;
+    pts.push((cx(gx) + r * Math.cos(a)).toFixed(1) + "," + (cx(gy) + r * Math.sin(a)).toFixed(1));
+  }
+  Play.svg("polygon", { class: "star", points: pts.join(" ") }, g);
+  gTrail = Play.svg("polyline", { class: "trail", points: "" }, fig);
+  gDots = Play.svg("g", {}, fig);
+  gGhost = Play.svg("g", { class: "ghost" }, fig);
+  robotShape(gGhost);
+  gGhost.style.display = "none";
+  gRobot = Play.svg("g", {}, fig);
+  robotShape(gRobot);
+  gCur = Play.svg("rect", { class: "cursor", x: 0, y: 0, width: C - 4, height: C - 4, rx: 6 }, fig);
+  drawCursor();
+}
+function drawCursor() {
+  gCur.style.display = marking && document.activeElement === fig ? "" : "none";
+  gCur.setAttribute("x", O + cursor.x * C + 2);
+  gCur.setAttribute("y", O + cursor.y * C + 2);
+}
+function placeAt(g, x, y, ang) {
+  g.setAttribute("transform", `translate(${(O + x * C + C / 2).toFixed(1)} ${(O + y * C + C / 2).toFixed(1)}) rotate(${ang.toFixed(1)})`);
+}
+function drawTrail(path) { gTrail.setAttribute("points", path.map(([x, y]) => cx(x) + "," + cx(y)).join(" ")); }
+/* Guess dots: one circle per square, labelled with every step number guessed there. */
+function drawDots() {
+  gDots.innerHTML = "";
+  const by = {};
+  myDots().forEach((d, k) => { if (!d) return; const key = d[0] + "," + d[1]; (by[key] = by[key] || []).push(k); });
+  const done = ex ? ex.i : 0, real = ex ? ex.states : [];
+  Object.entries(by).forEach(([key, ks]) => {
+    const [x, y] = key.split(",").map(Number);
+    const label = ks.map((k) => k + 1).join("·");
+    let cls = "gdot";
+    const checked = ks.filter((k) => k < done && real[k] && !real[k].bump);
+    if (checked.length) cls += checked.every((k) => real[k].x === x && real[k].y === y) ? " ok" : " no";
+    const w = Math.max(24, 9 * label.length + 8);
+    Play.svg("rect", { class: cls, x: cx(x) - w / 2, y: cx(y) + 6, width: w, height: 20, rx: 10 }, gDots);
+    Play.svg("text", { class: "gdottx", x: cx(x), y: cx(y) + 16 }, gDots).textContent = label;
+  });
+}
+function drawGhost() {
+  // the faded robot = where the plan says the robot should be after the steps run so far (only when no guess dot for that step)
+  const k = ex ? ex.i - 1 : -1;
+  if (!ex || k < 0 || myDots()[k] || step === 2) { gGhost.style.display = "none"; return; }
+  const want = trace(lv, lv.plan), w = want[Math.min(k, want.length - 1)];
+  if (!w) { gGhost.style.display = "none"; return; }
+  gGhost.style.display = "";
+  placeAt(gGhost, w.x, w.y, w.d * 90);
+}
+
+/* ---------- step 3 chart ---------- */
+function drawChart() {
+  fig.innerHTML = "";
+  fig.setAttribute("aria-label", P.t("chartAria"));
+  const max = Math.max(...PUZZLES.map((p) => p.plan.length)), x0 = 70, W = 210;
+  PUZZLES.forEach((p, i) => {
+    const y = 26 + i * 70, fixed = solved[p.key], all = p.plan.length;
+    const e = fixed != null ? fixed : edits(p.bug.split(""), p.plan.split("")), bw = Math.max(4, (W * e) / max);
+    Play.svg("text", { class: "bartx", x: 10, y: y + 12 }, fig).textContent = P.t("bug" + (i + 1));
+    Play.svg("rect", { class: "barfix", x: x0, y: y + 2, width: bw, height: 20, rx: 4 }, fig);
+    Play.svg("text", { class: "bartx", x: x0 + bw + 6, y: y + 12 }, fig).textContent = e + SP + P.t(fixed != null ? "chFix" : "chFew");
+    Play.svg("rect", { class: "barall", x: x0, y: y + 28, width: (W * all) / max, height: 20, rx: 4 }, fig);
+    Play.svg("text", { class: "barmu", x: x0 + 6, y: y + 38 }, fig).textContent = all + SP + P.t("chAll");
+  });
+}
+
+/* ---------- program editor ---------- */
+function chip(op, i) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "cmd";
+  b.innerHTML = `<span class="n">${i + 1}</span><span class="ic">${ICON[op]}</span> `;
+  b.appendChild(document.createTextNode(P.t("name" + op)));
+  if (step !== 1) b.disabled = true;
+  else b.addEventListener("click", () => { sel = sel === i ? null : i; renderProg(); progEl.children[i] && progEl.children[i].focus(); });
+  if (step === 1 && sel === i) b.classList.add("sel");
+  return b;
+}
+function renderProg() {
+  progEl.innerHTML = "";
+  const p = prog();
+  if (!p.length) { const e = document.createElement("span"); e.className = "empty"; e.textContent = P.t("emptyProg"); progEl.appendChild(e); }
+  const cur = ex && ex.i > 0 ? ex.i - 1 : -1;
+  const bad = shownDiff && fd && fd.k >= 0 ? fd.k : -1;
+  p.forEach((op, i) => {
+    const b = chip(op, i);
+    if (i === bad) b.classList.add("bad");
+    else if (i === cur && !(ex && ex.bumped)) b.classList.add("cur");
+    progEl.appendChild(b);
+  });
+  if (sel != null && sel >= p.length) sel = p.length ? p.length - 1 : null;
+  const has = sel != null;
+  $("chgLbl").textContent = has ? P.t("chgLbl", { n: sel + 1 }) : P.t("chgNone");
+  document.querySelectorAll("[data-chg]").forEach((b) => (b.disabled = !has));
+  $("addLbl").textContent = has ? P.t("addLbl", { n: sel + 1 }) : P.t("addEnd");
+  document.querySelectorAll("[data-add]").forEach((b) => (b.disabled = p.length >= MAXLEN));
+  $("del").disabled = !has;
+  $("swapNext").disabled = !has || sel >= p.length - 1;
+  const orig = lv.bug.split(""), e = edits(orig, p);
+  $("restore").disabled = e === 0;
+  $("count").textContent = step === 1 ? P.t("count", { e }) : "";
+  const cmp = $("cmp");
+  cmp.hidden = step !== 1;
+  if (step === 1) {
+    cmp.innerHTML = "";
+    [["cmpE", e], ["cmpA", lv.plan.length]].forEach(([k, v]) => {
+      const a = document.createElement("span"); a.textContent = P.t(k);
+      const b = document.createElement("b"); b.textContent = v + SP + P.t("cmpU");
+      cmp.append(a, b);
+    });
+  }
+  renderGuessRow();
+}
+function renderGuessRow() {
+  const n = myDots().length, full = n >= prog().length;
+  $("markBtn").classList.toggle("on", marking);
+  $("markBtn").classList.toggle("mark", marking);
+  $("markBtn").setAttribute("aria-pressed", marking ? "true" : "false");
+  $("clearDots").disabled = !n;
+  $("guessTip").textContent = !marking ? P.t("tipOff") : full ? P.t("tipFull") : P.t("tipOn", { n: n + 1 });
+}
+function edited() { stopRun(); ex = null; fd = null; shownDiff = false; showAtStart(); renderProg(); setMsg(""); }
+function change(op) { if (sel == null) return; prog()[sel] = op; edited(); }
+function addOp(op) {
+  const p = prog();
+  if (p.length >= MAXLEN) return;
+  if (sel == null) p.push(op); else p.splice(sel, 0, op);
+  edited();
+}
+function removeSel() { if (sel == null) return; prog().splice(sel, 1); if (!prog().length) sel = null; else sel = Math.min(sel, prog().length - 1); edited(); }
+function swapNext() {
+  const p = prog();
+  if (sel == null || sel >= p.length - 1) return;
+  [p[sel], p[sel + 1]] = [p[sel + 1], p[sel]];
+  sel++;
+  edited();
+}
+function restore() { progs[lv.key] = lv.bug.split(""); sel = null; edited(); }
+
+/* ---------- guesses ---------- */
+function placeDot(x, y) {
+  const d = myDots();
+  if (d.length >= prog().length) return;
+  d.push([x, y]);
+  ex = null; fd = null; shownDiff = false; showAtStart(); renderProg(); setMsg("");
+}
+function clearDots() { dots[lv.key] = []; ex = null; fd = null; shownDiff = false; showAtStart(); renderProg(); setMsg(""); }
+fig.addEventListener("click", (e) => {
+  if (!marking || step !== 1) return;
+  const p = Play.pointer(fig, e), x = Math.floor((p.x - O) / C), y = Math.floor((p.y - O) / C);
+  if (x < 0 || y < 0 || x >= N || y >= N) return;
+  cursor = { x, y };
+  placeDot(x, y);
+});
+
+/* ---------- running ---------- */
+function startExec() {
+  const p = prog();
+  ex = { ops: p.slice(), states: trace(lv, p), i: 0, s: { ...lv.start }, angle: lv.start.d * 90, path: [[lv.start.x, lv.start.y]], bumped: false, over: false };
+  // a program that reaches the star has nothing to debug, even if it differs from the plan
+  fd = run(lv, p).ok ? { k: -1, why: "" } : firstDiff(lv, p, myDots());
+  shownDiff = false;
+}
+function showAtStart() {
+  cancelAnim();
+  if (step === 2) return;
+  gRobot.classList.remove("rbump");
+  placeAt(gRobot, lv.start.x, lv.start.y, lv.start.d * 90);
+  drawTrail([[lv.start.x, lv.start.y]]);
+  drawDots(); drawGhost();
+}
+function cancelAnim() { if (anim) { cancelAnimationFrame(anim.raf); anim = null; } }
+function tween(from, to, ms, done) {
+  cancelAnim();
+  if (ms <= 0) { placeAt(gRobot, to.x, to.y, to.a); done(); return; }
+  const t0 = performance.now();
+  anim = { raf: 0 };
+  const f = (t) => {
+    const k = Math.min(1, (t - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    placeAt(gRobot, from.x + (to.x - from.x) * e, from.y + (to.y - from.y) * e, from.a + (to.a - from.a) * e);
+    if (k < 1) anim.raf = requestAnimationFrame(f); else { anim = null; done(); }
+  };
+  anim.raf = requestAnimationFrame(f);
+}
+const cname = (k) => P.t("name" + ex.ops[k]);
+function revealDiff(k) {
+  if (shownDiff || !fd || fd.k !== k) return false;
+  shownDiff = true;
+  const key = { place: "diffPlace", face: "diffFace", dot: "diffDot", extra: "diffExtra" }[fd.why];
+  if (key) setMsg(P.t(key, { k: k + 1, c: cname(k) }), "no");
+  return true;
+}
+function doOne(ms, after) {
+  if (!ex || ex.over) { startExec(); showAtStart(); setMsg(""); }
+  if (!ex.ops.length) { setMsg(P.t("noProg"), "no"); stopRun(); return; }
+  const k = ex.i, o = ex.ops[k], r = apply(lv, ex.s, o);
+  const from = { x: ex.s.x, y: ex.s.y, a: ex.angle };
+  if (r.bump) {
+    ex.bumped = ex.over = true;
+    ex.i = k + 1;
+    if (fd && fd.k === k) shownDiff = true;
+    renderProg(); drawDots(); drawGhost();
+    gRobot.classList.add("rbump");
+    const dx = DIRS[ex.s.d][0] * .22, dy = DIRS[ex.s.d][1] * .22;
+    tween(from, { x: from.x + dx, y: from.y + dy, a: from.a }, ms / 2, () => tween({ x: from.x + dx, y: from.y + dy, a: from.a }, from, ms / 2, () => {}));
+    const earlier = shownDiff && fd && fd.k >= 0 && fd.k < k ? SP + P.t("bumpEarlier", { k: fd.k + 1 }) : "";
+    setMsg(P.t("bump", { k: k + 1, c: P.t("name" + o) }) + earlier + (step === 0 ? SP + P.t("demoEnd") : ""), "no");
+    stopRun();
+    return;
+  }
+  ex.angle += o === "L" ? -90 : o === "R" ? 90 : 0;
+  ex.s = r.s;
+  if (o === "F") ex.path.push([ex.s.x, ex.s.y]);
+  ex.i = k + 1;
+  ex.over = ex.i >= ex.ops.length;
+  const said = revealDiff(k);
+  renderProg();
+  tween(from, { x: ex.s.x, y: ex.s.y, a: ex.angle }, ms, () => {
+    drawTrail(ex.path); drawDots(); drawGhost();
+    if (ex.over) { finish(said); stopRun(); }
+    else if (after) after();
+  });
+}
+function finish(said) {
+  const p = prog(), res = run(lv, p);
+  if (res.ok) {
+    if (step === 0) return;
+    const e = edits(lv.bug.split(""), p), m = edits(lv.bug.split(""), lv.plan.split(""));
+    gGhost.style.display = "none";
+    if (e <= m) {
+      solved[lv.key] = e;
+      const all = PUZZLES.every((q) => solved[q.key] != null);
+      setMsg(P.t("win", { e, n: p.length, kind: P.t("k" + lv.kind) }) + (all ? SP + P.t("allDone") : ""), "ok");
+    } else {
+      if (solved[lv.key] == null) solved[lv.key] = e;
+      setMsg(P.t("winMore", { e, m }), "ok");
+    }
+    renderLevels();
+    return;
+  }
+  if (fd && fd.why === "short") { shownDiff = true; setMsg(P.t("short"), "no"); renderProg(); return; }
+  if (step === 0) { setMsg(P.t("demoEnd"), "no"); return; }
+  if (!said) setMsg(P.t("miss"), "no");
+  renderProg();
+}
+function setMsg(t, cls) { msg.className = "msg" + (cls ? " " + cls : ""); Play.live(msg, t); }
+const SPEED = 420;
+function loop() { if (!running) return; doOne(Play.reduced ? 0 : SPEED, () => { timer = setTimeout(loop, Play.reduced ? 380 : 90); }); }
+function canRun() {
+  if (step === 0 && !picked) { setMsg(P.t("pickFirst"), "no"); return false; }
+  return step !== 2;
+}
+function runAll() {
+  if (running) { stopRun(); return; }
+  if (anim || !canRun()) return;
+  if (!ex || ex.over) { startExec(); showAtStart(); renderProg(); setMsg(""); }
+  if (!ex.ops.length) { setMsg(P.t("noProg"), "no"); return; }
+  running = true;
+  $("run").textContent = P.t("pause");
+  loop();
+}
+function stopRun() { running = false; clearTimeout(timer); $("run").textContent = P.t("run"); }
+function stepOnce() {
+  if (running) stopRun();
+  if (!canRun() || anim) return;
+  doOne(Play.reduced ? 0 : 260);
+}
+function backToStart() { stopRun(); ex = null; fd = null; shownDiff = false; showAtStart(); renderProg(); setMsg(""); }
+
+/* ---------- puzzles and steps ---------- */
+function renderLevels() {
+  const row = $("lvlRow");
+  row.innerHTML = "";
+  row.hidden = step !== 1;
+  if (step !== 1) return;
+  PUZZLES.forEach((l, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small";
+    b.textContent = P.t("bug" + (i + 1));
+    b.classList.toggle("on", lv === l);
+    b.classList.toggle("done", solved[l.key] != null);
+    b.setAttribute("aria-pressed", lv === l ? "true" : "false");
+    b.addEventListener("click", () => { pIdx = i; setLevel(l); });
+    row.appendChild(b);
+  });
+}
+function setLevel(l) {
+  stopRun();
+  lv = l; ex = null; fd = null; shownDiff = false; sel = null;
+  if (step === 2) drawChart(); else drawLevel();
+  showAtStart();
+  renderLevels(); renderProg(); setMsg("");
+  const edit = step === 1;
+  ["guessRow", "editRow1", "editRow2", "editRow3"].forEach((id) => ($(id).hidden = !edit));
+  $("pane").hidden = step === 2;
+  $("keys").hidden = step === 2;
+}
+freshState();
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { picked = true; if (msg.textContent === P.t("pickFirst")) setMsg(""); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("checklist").hidden = i !== 2;
+  marking = false;
+  setLevel(i === 0 ? DEMO : PUZZLES[pIdx]);
+});
+
+/* ---------- wiring ---------- */
+document.querySelectorAll("[data-chg]").forEach((b) => b.addEventListener("click", () => change(b.dataset.chg)));
+document.querySelectorAll("[data-add]").forEach((b) => b.addEventListener("click", () => addOp(b.dataset.add)));
+$("del").addEventListener("click", removeSel);
+$("swapNext").addEventListener("click", swapNext);
+$("restore").addEventListener("click", restore);
+$("markBtn").addEventListener("click", () => { marking = !marking; renderGuessRow(); drawCursor(); });
+$("clearDots").addEventListener("click", clearDots);
+$("run").addEventListener("click", runAll);
+$("stepBtn").addEventListener("click", stepOnce);
+$("back").addEventListener("click", backToStart);
+fig.addEventListener("focus", drawCursor);
+fig.addEventListener("blur", drawCursor);
+fig.addEventListener("keydown", (e) => {
+  const k = e.key;
+  if (step === 2) return;
+  if (marking && step === 1 && k.startsWith("Arrow")) {
+    const d = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[k];
+    cursor = { x: Play.clamp(cursor.x + d[0], 0, N - 1), y: Play.clamp(cursor.y + d[1], 0, N - 1) };
+    drawCursor();
+  } else if (marking && step === 1 && k === "Enter") placeDot(cursor.x, cursor.y);
+  else if (marking && step === 1 && k === "Backspace") { myDots().pop(); ex = null; fd = null; shownDiff = false; showAtStart(); renderProg(); }
+  else if (k === "Enter") runAll();
+  else if (k === " ") stepOnce();
+  else return;
+  e.preventDefault();
+});
+progEl.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  const bs = [...progEl.querySelectorAll("button")], i = bs.indexOf(document.activeElement);
+  if (i < 0) return;
+  const j = Play.clamp(i + (e.key === "ArrowRight" ? 1 : -1), 0, bs.length - 1);
+  bs[j].focus();
+  e.preventDefault();
+});
+$("reset").addEventListener("click", () => {
+  stopRun(); freshState(); picked = false; pIdx = 0; pr.reset(); st.go(0);
+});
+</script>
+</body>
+</html>
