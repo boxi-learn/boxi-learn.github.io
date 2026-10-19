@@ -1,5 +1,6 @@
 ---
 import Base from "../../../layouts/Base.astro";
+import CardList from "../../../components/CardList.astro";
 import { type Lang, LANGS, SUBJECTS, STAGES, MATH_URL, t } from "../../../data/site";
 
 export function getStaticPaths() {
@@ -27,7 +28,8 @@ const here = SUBJECTS.filter((s) => s.stages.includes(st.n));
         <div>
           <h3><a class="accent" href={`/${lang}/${s.id}/`}>{s.name[lang]}</a></h3>
           <div class="q">{s.stage_questions[String(st.n)]?.[lang]}</div>
-          {lessons.length === 0 ? <p class="meta">{t("noLessons", lang)}</p> : (
+          {st.n === 0 && s.cards.length > 0 && <CardList subject={s} lang={lang} />}
+          {lessons.length === 0 ? (st.n === 0 && s.cards.length > 0 ? null : <p class="meta">{t("noLessons", lang)}</p>) : (
             <ul class="lessons">
               {lessons.map((l) => (
                 <li>

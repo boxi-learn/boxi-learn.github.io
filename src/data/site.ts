@@ -18,6 +18,25 @@ export interface Lesson {
   explain?: T;
   home?: T;
 }
+export type TL = { en: string[]; zh: string[] };
+/** Stage-0 parent game card: printable, played with real things, no screen for the child. */
+export interface Card {
+  id: string;
+  slug: string;
+  seeds: string[];
+  age: string;
+  minutes: number;
+  title: T;
+  why: T;
+  materials: TL;
+  steps: TL;
+  guess: T;
+  ask: TL;
+  easier: T;
+  harder: T;
+  watch: T;
+  safety?: T | null;
+}
 export interface Subject {
   id: string;
   order: number;
@@ -30,6 +49,7 @@ export interface Subject {
   stage_questions: Record<string, T>;
   misconceptions: T[];
   lessons: Lesson[];
+  cards: Card[];
 }
 export interface Stage { n: number; name: T; age: T; theme: T; form: T }
 
@@ -82,6 +102,24 @@ export const UI: Record<string, T> = {
   continuesFrom: { en: "Grows out of", zh: "前面是" },
   allStage: { en: "All subjects at this stage", zh: "这一阶段的所有学科" },
   noLessons: { en: "No lessons at this stage yet.", zh: "这一阶段还没有课。" },
+  cards: { en: "Game cards for parents", zh: "家长游戏卡" },
+  cardsLead: {
+    en: "Print a card, read it once, then play. Your child plays with real things, not a screen. Each card starts with a guess.",
+    zh: "打印一张，读一遍，就可以玩。孩子玩的是真东西，不看屏幕。每张卡都从“先猜一猜”开始。",
+  },
+  card: { en: "Card", zh: "游戏卡" },
+  forParents: { en: "For parents", zh: "给家长" },
+  ages: { en: "Ages {a}", zh: "{a} 岁" },
+  minutes: { en: "{n} min", zh: "{n} 分钟" },
+  materials: { en: "You need", zh: "准备" },
+  steps: { en: "How to play", zh: "怎么玩" },
+  guessFirst: { en: "Guess first", zh: "先猜一猜" },
+  askThree: { en: "Three things to ask", zh: "问孩子三个问题" },
+  easier: { en: "Make it easier", zh: "变简单" },
+  harder: { en: "Make it harder", zh: "变难一点" },
+  watchFor: { en: "What to watch for", zh: "留心看" },
+  safety: { en: "Safety", zh: "安全" },
+  printCard: { en: "Print this card", zh: "打印这张卡" },
   license: { en: "Text and pages CC BY 4.0 · Boxi Yu", zh: "文字与页面 CC BY 4.0 · Boxi Yu" },
 };
 export const GRADE_LABEL: Record<string, T> = {
@@ -90,4 +128,6 @@ export const GRADE_LABEL: Record<string, T> = {
   uk: { en: "UK (year)", zh: "英国（Year）" },
 };
 export const t = (key: string, lang: Lang) => UI[key][lang];
+export const tf = (key: string, lang: Lang, vars: Record<string, string | number>) =>
+  UI[key][lang].replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ""));
 export const other = (lang: Lang): Lang => (lang === "en" ? "zh" : "en");

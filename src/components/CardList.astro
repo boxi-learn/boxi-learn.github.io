@@ -1,0 +1,19 @@
+---
+import { type Lang, type Subject, t, tf } from "../data/site";
+
+interface Props { subject: Subject; lang: Lang }
+const { subject: s, lang } = Astro.props;
+---
+
+<p class="meta">{t("cardsLead", lang)}</p>
+<ul class="lessons">
+  {s.cards.map((c) => (
+    <li>
+      <a class="lesson" href={`/${lang}/${s.id}/cards/${c.slug}/`}>
+        <span class="title">{c.title[lang]}</span>
+        <span class="sub">{c.why[lang]} · {tf("ages", lang, { a: c.age })} · {tf("minutes", lang, { n: c.minutes })}</span>
+        <span class="badge card">{t("card", lang)}</span>
+      </a>
+    </li>
+  ))}
+</ul>

@@ -685,6 +685,379 @@
       "zh": "用三种方法介绍家里的冰箱：量一量（列数字），跟厨房里别的东西比一比（作比较），再说说它像什么（打比方）。读给家人听，问问哪一句最帮得上忙。"
      }
     }
+   ],
+   "cards": [
+    {
+     "id": "CN0-1",
+     "slug": "rhyme-clap",
+     "seeds": [
+      "CN-5",
+      "X-1"
+     ],
+     "age": "3–5",
+     "minutes": 5,
+     "title": {
+      "en": "Clap the Rhyme",
+      "zh": "拍手念童谣"
+     },
+     "why": {
+      "en": "Your child feels that a rhyme has a beat and that line endings chime, long before knowing the word 押韵.",
+      "zh": "孩子用手和耳朵感到童谣有节拍、句尾会「对上音」，比学「押韵」这个词早得多。"
+     },
+     "materials": {
+      "en": [
+       "a traditional rhyme you know, such as 小老鼠，上灯台",
+       "your hands"
+      ],
+      "zh": [
+       "一首你会的传统童谣，比如「小老鼠，上灯台」",
+       "两只手"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Say the rhyme slowly and clap once on every character.",
+       "Say it again, clapping together, and stretch the last character of each line.",
+       "Next time, stop just before a line's last character and let your child fill it in.",
+       "Say the whole line together to check.",
+       "Try it fast, then slow, then as a whisper."
+      ],
+      "zh": [
+       "慢慢念一遍童谣，每个字拍一下手。",
+       "再念一遍，和孩子一起拍，每句最后一个字拖长一点。",
+       "下一遍念到句尾前停住，让孩子把最后一个字接上。",
+       "一起把整句念一遍，听听接得对不对。",
+       "换着玩：快快念、慢慢念、悄悄念。"
+      ]
+     },
+     "guess": {
+      "en": "I'll stop before the end. What sound do you think comes next?",
+      "zh": "我念到这里停一下，你猜后面是哪个字？"
+     },
+     "ask": {
+      "en": [
+       "Which two words at the ends sound alike?",
+       "Does this rhyme feel happy or sleepy? Why?",
+       "Can you clap it on your knees instead?"
+      ],
+      "zh": [
+       "句子最后的哪两个字听起来像？",
+       "这首童谣听着开心还是想睡觉？为什么？",
+       "换成拍膝盖，还拍得对吗？"
+      ]
+     },
+     "easier": {
+      "en": "Use only the first two lines, and clap together the whole time.",
+      "zh": "只念前两句，从头到尾一起拍。"
+     },
+     "harder": {
+      "en": "Your child says the rhyme alone while you clap; then swap.",
+      "zh": "孩子一个人念，你来拍；再交换。"
+     },
+     "watch": {
+      "en": "A wrong fill-in that still rhymes means your child is hearing the endings. Smile at the guess, then say the real line.",
+      "zh": "孩子接错了但接的字也押韵，说明在听句尾的音了。先为这一猜笑一笑，再一起念原句。"
+     }
+    },
+    {
+     "id": "CN0-2",
+     "slug": "next-page-guess",
+     "seeds": [
+      "CN-3",
+      "CN-4",
+      "X-1",
+      "X-2"
+     ],
+     "age": "3–6",
+     "minutes": 10,
+     "title": {
+      "en": "What's on the Next Page?",
+      "zh": "翻页前猜一猜"
+     },
+     "why": {
+      "en": "Guessing before turning the page, and pointing to why, is the first step to reading with evidence.",
+      "zh": "翻页前先猜、再指着画说为什么，是「读要有证据」最早的样子。"
+     },
+     "materials": {
+      "en": [
+       "any picture book, new to your child if possible",
+       "a cosy spot to sit together"
+      ],
+      "zh": [
+       "任意一本绘本，最好孩子没看过",
+       "一个能挨着坐的舒服地方"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Look at the cover together and ask what the book might be about.",
+       "Read a page or two, then pause with your hand on the corner.",
+       "Ask what will happen next, and why they think so.",
+       "Turn the page and look together: did it happen?",
+       "At the end, ask which picture gave the best clue."
+      ],
+      "zh": [
+       "先一起看封面，问问孩子这本书可能讲什么。",
+       "读一两页，手按在书角停一下。",
+       "问孩子接下来会发生什么，为什么这么想。",
+       "翻过去一起看：真的是这样吗？",
+       "读完后问问：哪张画给的提示最有用？"
+      ]
+     },
+     "guess": {
+      "en": "Before we turn the page: what do you think happens next?",
+      "zh": "先别翻，你猜下一页会怎么样？"
+     },
+     "ask": {
+      "en": [
+       "What in the picture made you think that?",
+       "How do you think this character feels? Where can you see it?",
+       "If you wrote this book, what would happen instead?"
+      ],
+      "zh": [
+       "画里的什么让你这么想？",
+       "这个小人现在心里怎么样？从哪里看出来的？",
+       "要是你来写这本书，会让它怎么样？"
+      ]
+     },
+     "easier": {
+      "en": "Ask only 'What is happening here?' and let your child point.",
+      "zh": "只问「这一页在干什么？」，让孩子用手指着说。"
+     },
+     "harder": {
+      "en": "Ask what the writer left out between two pages, and what might have happened there.",
+      "zh": "问问两页之间作者没画出来的事：中间可能发生了什么？"
+     },
+     "watch": {
+      "en": "Notice when your child points at a detail to back up a guess. Praise the pointing, whether the guess came true or not.",
+      "zh": "留意孩子有没有指着画里的细节来说理由。不管猜中没有，都夸这一指。"
+     }
+    },
+    {
+     "id": "CN0-3",
+     "slug": "character-hunt",
+     "seeds": [
+      "CN-1",
+      "X-1"
+     ],
+     "age": "4–6",
+     "minutes": 10,
+     "title": {
+      "en": "Character Hunt",
+      "zh": "找字小侦探"
+     },
+     "why": {
+      "en": "Your child finds that the same character turns up again and again around the house, and that its shape looks like what it means.",
+      "zh": "孩子会发现同一个字在家里到处都有，而且字的样子和意思有关系。"
+     },
+     "materials": {
+      "en": [
+       "food boxes, bottles and old flyers at home",
+       "a piece of paper with 口, 人 and 大 written large"
+      ],
+      "zh": [
+       "家里的食品盒、瓶子、旧传单",
+       "一张纸，上面写大大的「口、人、大」"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Show the paper. Make each shape with your body: open mouth, a person walking, arms and legs spread wide.",
+       "Pick one character and hunt for it on boxes and labels.",
+       "When your child finds one, compare it with the paper together.",
+       "Say aloud the word it sits in, such as 大米 or 行人."
+      ],
+      "zh": [
+       "拿出纸，用身体摆一摆：张嘴是「口」，迈步走是「人」，张开手脚是「大」。",
+       "挑一个字，在盒子、标签上找它。",
+       "孩子找到了，一起拿纸对一对，是不是同一个。",
+       "把它所在的词念出来，比如「大米」「行人」。"
+      ]
+     },
+     "guess": {
+      "en": "Look at this box first: do you think 大 is hiding on it? Now let's check.",
+      "zh": "先看看这个盒子：你猜上面有没有「大」？我们来找找。"
+     },
+     "ask": {
+      "en": [
+       "Why do you think 大 looks like a person stretching wide?",
+       "Where did you find the most of them?",
+       "Is there a character here that looks like 人 but isn't? What's different?"
+      ],
+      "zh": [
+       "你觉得「大」为什么像一个人张开手脚？",
+       "在哪里找到的最多？",
+       "有没有长得像「人」又不是「人」的字？哪里不一样？"
+      ]
+     },
+     "easier": {
+      "en": "Hunt for 口 only. Its square shape is easy to spot.",
+      "zh": "只找「口」，方方的最好认。"
+     },
+     "harder": {
+      "en": "Add 日 and 木, and guess what each looks like before you tell them.",
+      "zh": "再加上「日」和「木」，先让孩子猜它们像什么，再告诉答案。"
+     },
+     "watch": {
+      "en": "Mixing up 人 and 入 is a good sign: your child is looking closely at strokes. Compare them side by side and praise the looking.",
+      "zh": "把「人」和「入」认混，恰恰说明孩子在细看笔画。把两个字并排比一比，夸孩子看得仔细。"
+     }
+    },
+    {
+     "id": "CN0-4",
+     "slug": "what-sound",
+     "seeds": [
+      "CN-5",
+      "X-1",
+      "X-4"
+     ],
+     "age": "3–5",
+     "minutes": 5,
+     "title": {
+      "en": "What's That Sound?",
+      "zh": "这是什么声音"
+     },
+     "why": {
+      "en": "Your child listens hard, names what they hear, and finds sound words like 哗哗 and 叮当 to say it.",
+      "zh": "孩子用心听、说出听到了什么，再找「哗哗」「叮当」这样的象声词把它说出来。"
+     },
+     "materials": {
+      "en": [
+       "a cup of water and an empty bowl",
+       "a bunch of keys",
+       "a sheet of paper",
+       "a spoon"
+      ],
+      "zh": [
+       "一杯水和一个空碗",
+       "一串钥匙",
+       "一张纸",
+       "一把勺子"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Your child closes their eyes or turns around.",
+       "Make one sound: pour water, shake keys, crumple paper, or tap the spoon on the bowl.",
+       "Your child guesses what it was, then turns to look.",
+       "Together, find a sound word for it: 哗哗, 叮当, 沙沙, 当当.",
+       "Swap roles: your child makes a sound and you guess."
+      ],
+      "zh": [
+       "孩子闭上眼睛，或者背过身去。",
+       "你弄出一种声音：倒水、晃钥匙、揉纸，或用勺子敲碗。",
+       "孩子先猜是什么，再转过来看。",
+       "一起给这个声音找个词：哗哗、叮当、沙沙、当当。",
+       "换过来，孩子弄声音，你来猜。"
+      ]
+     },
+     "guess": {
+      "en": "Keep your eyes shut. What do you think made that sound?",
+      "zh": "眼睛别睁开，你猜是什么在响？"
+     },
+     "ask": {
+      "en": [
+       "How would you say that sound with your mouth?",
+       "Which two sounds were hardest to tell apart?",
+       "What other things at home go 叮当?"
+      ],
+      "zh": [
+       "这个声音用嘴巴学，怎么说？",
+       "哪两个声音最难分？",
+       "家里还有什么东西会「叮当」响？"
+      ]
+     },
+     "easier": {
+      "en": "Use two sounds only, and let your child watch you make each one first.",
+      "zh": "只用两种声音，先让孩子看着你弄一遍。"
+     },
+     "harder": {
+      "en": "Make two sounds one after the other, and ask which came first.",
+      "zh": "连着弄两种声音，问孩子哪个先响。"
+     },
+     "watch": {
+      "en": "Invented sound words are welcome. Making up a word that fits the sound is exactly the skill, so say it back and use it.",
+      "zh": "孩子自己编的象声词也很好：给声音配一个像的词，正是要练的本事。跟着说一遍，接着用。"
+     },
+     "safety": {
+      "en": "You handle the water, keys and any breakable bowl; use a plastic bowl. Wipe up spills so no one slips.",
+      "zh": "水、钥匙和易碎的碗由大人拿，碗用塑料的。洒了水马上擦干，免得滑倒。"
+     }
+    },
+    {
+     "id": "CN0-5",
+     "slug": "toy-sentences",
+     "seeds": [
+      "CN-2",
+      "X-4"
+     ],
+     "age": "4–6",
+     "minutes": 5,
+     "title": {
+      "en": "Who Does What?",
+      "zh": "谁在做什么"
+     },
+     "why": {
+      "en": "Acting out tiny scenes with toys, your child says whole sentences built on 'who + does what', the skeleton every sentence stands on.",
+      "zh": "用玩具演小场面，孩子说出「谁 + 做什么」的完整句子，这正是每句话的骨架。"
+     },
+     "materials": {
+      "en": [
+       "2 or 3 large soft toys",
+       "one everyday object, such as a cup or a ball"
+      ],
+      "zh": [
+       "2–3 个大一点的毛绒玩具",
+       "一样日常东西，比如杯子或球"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Make a toy do something: the bear drinks from the cup.",
+       "Say it plainly: 小熊喝水.",
+       "Your child makes a toy do something and tells you who did what.",
+       "Add one describing word together: 小熊大口喝水."
+      ],
+      "zh": [
+       "让一个玩具做件事：小熊拿杯子喝水。",
+       "用一句话说出来：「小熊喝水。」",
+       "轮到孩子让玩具做件事，说出谁做了什么。",
+       "一起加一个词：「小熊大口喝水。」"
+      ]
+     },
+     "guess": {
+      "en": "Watch the bunny. What do you think it's about to do? Now watch.",
+      "zh": "看着小兔，你猜它要干什么？好，看它做。"
+     },
+     "ask": {
+      "en": [
+       "Who did it, and what did they do?",
+       "If the ball did it instead, how would you say it?",
+       "Can you tell me the whole story from the start?"
+      ],
+      "zh": [
+       "是谁做的？做了什么？",
+       "要是换成球来做，这句话怎么说？",
+       "能把刚才的事从头讲给我听吗？"
+      ]
+     },
+     "easier": {
+      "en": "You act, your child only names who it was: 'the bear!'",
+      "zh": "你来演，孩子只说是谁：「小熊！」"
+     },
+     "harder": {
+      "en": "String two actions together: the bear drinks, then the bunny falls asleep.",
+      "zh": "连着做两件事：小熊喝完水，小兔睡着了。"
+     },
+     "watch": {
+      "en": "If your child says only 'drinks!', simply echo the full sentence back. No need to correct; hearing it is enough.",
+      "zh": "孩子只说「喝水！」时，你把整句接着说一遍就好，不用纠正，听多了自然会说。"
+     },
+     "safety": {
+      "en": "Avoid toys with small loose parts, like button eyes, for children who still put things in their mouths.",
+      "zh": "孩子还爱往嘴里放东西的话，别用纽扣眼睛这类会掉小零件的玩具。"
+     }
+    }
    ]
   },
   {
@@ -1224,6 +1597,377 @@
       "zh": "给单词拍节拍：重读音节拍一下大的，另一个拍一下小的。拍拍 a PREsent 和 to preSENT，再试 record、object、rebel。"
      }
     }
+   ],
+   "cards": [
+    {
+     "id": "EN0-1",
+     "slug": "head-shoulders",
+     "seeds": [
+      "EN-4",
+      "X-1"
+     ],
+     "age": "3–5",
+     "minutes": 5,
+     "title": {
+      "en": "Head, Shoulders, Knees and Toes",
+      "zh": "头、肩膀、膝盖、脚趾"
+     },
+     "why": {
+      "en": "Your child picks up English words for the body by touching each part as it is sung, with no translating needed.",
+      "zh": "边唱边摸，孩子不用翻译，就把身体部位的英文词和自己的身体连在一起。"
+     },
+     "materials": {
+      "en": [
+       "your bodies",
+       "a little space to stand up"
+      ],
+      "zh": [
+       "你和孩子的身体",
+       "一块能站起来的空地"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Say the words slowly, touching each part: head, shoulders, knees, toes, eyes, ears, mouth, nose.",
+       "Sing the traditional rhyme: \"Head, shoulders, knees and toes, knees and toes.\" Touch as you sing.",
+       "Finish with: \"And eyes and ears and mouth and nose.\"",
+       "Sing it again a little faster, then very slowly.",
+       "Leave one word out, just touch the part, and see if your child fills it in."
+      ],
+      "zh": [
+       "先慢慢说一遍，边说边摸：head、shoulders、knees、toes、eyes、ears、mouth、nose。读音提示：head 的 d 轻轻收住，不要读成「黑的」；knees 的 k 不发音，结尾是轻轻的 z 音。",
+       "唱这首传统儿歌：\"Head, shoulders, knees and toes, knees and toes.\" 唱到哪个词就摸哪里。",
+       "最后一句是：\"And eyes and ears and mouth and nose.\"",
+       "再唱一遍，快一点；再来一遍，特别慢。",
+       "故意不唱某个词，只用手去摸，看孩子会不会自己补上。"
+      ]
+     },
+     "guess": {
+      "en": "I'm going to stop before the next word. Where do you think my hands go next? Touch it, then we'll sing and check.",
+      "zh": "下一个词我先不唱。你猜我的手要去哪儿？先摸摸看，再一起唱，看对不对。"
+     },
+     "ask": {
+      "en": [
+       "Which word is the funniest to say?",
+       "Can you touch your knees and your nose at the same time?",
+       "Shall we sing it super slow or super fast?"
+      ],
+      "zh": [
+       "哪个英文词说起来最好玩？",
+       "你能同时摸到 knees 和 nose 吗？",
+       "咱们唱超级慢的，还是超级快的？"
+      ]
+     },
+     "easier": {
+      "en": "Use only the first line and just four words: head, shoulders, knees, toes.",
+      "zh": "只唱第一句，只用 head、shoulders、knees、toes 四个词。"
+     },
+     "harder": {
+      "en": "Let your child lead and change the speed, or add new parts like hands, feet and tummy.",
+      "zh": "让孩子来带唱、来定快慢，或者加新部位：hands、feet、tummy。"
+     },
+     "watch": {
+      "en": "Your child may touch the right part long before saying the word. That is understanding, and it comes first. Your own accent is fine: what matters is that you have a go together.",
+      "zh": "孩子往往先会摸对，过很久才会说出来。摸对就是听懂了，听懂本来就在说之前。你的口音不标准也没关系，重要的是一起开口唱。"
+     }
+    },
+    {
+     "id": "EN0-2",
+     "slug": "teddy-says",
+     "seeds": [
+      "EN-3",
+      "EN-4",
+      "X-1"
+     ],
+     "age": "4–6",
+     "minutes": 5,
+     "title": {
+      "en": "Teddy Says",
+      "zh": "小熊说"
+     },
+     "why": {
+      "en": "Your child learns to follow short English commands with their whole body, so the words mean actions, not Chinese words.",
+      "zh": "孩子用整个身体听懂简短的英文指令，这些词直接就是动作，不用先变成中文。"
+     },
+     "materials": {
+      "en": [
+       "a teddy or any soft toy",
+       "a clear patch of floor"
+      ],
+      "zh": [
+       "一只小熊或任何毛绒玩具",
+       "一块空出来的地面"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Show each action as you say it: jump, clap, sit down, stand up, turn around, stop.",
+       "Hold up the teddy and say: \"Teddy says jump!\" Both of you jump.",
+       "Give a few more \"Teddy says…\" commands, doing them together.",
+       "Now sometimes leave out \"Teddy says\". If you just say \"Clap!\", nobody claps.",
+       "Swap: your child holds the teddy and gives the commands."
+      ],
+      "zh": [
+       "边说边做示范：jump（跳）、clap（拍手）、sit down（坐下）、stand up（站起来）、turn around（转一圈）、stop（停）。读音提示：clap 的 cl 连起来一口气读，不要读成「克拉普」。",
+       "举起小熊说：\"Teddy says jump!\"，你和孩子一起跳。",
+       "再说几个 \"Teddy says…\"，一起做。",
+       "然后偶尔不说 \"Teddy says\"，只说 \"Clap!\"——这时谁都不许拍。",
+       "换过来，孩子拿着小熊发指令，你来做。"
+      ]
+     },
+     "guess": {
+      "en": "Listen carefully: did Teddy say it? Guess, move or freeze, then we'll check what I said.",
+      "zh": "仔细听：是小熊说的吗？先猜，动还是不动，然后我们再看看我刚才到底怎么说的。"
+     },
+     "ask": {
+      "en": [
+       "Which action do you like best?",
+       "How did you know when not to move?",
+       "What should Teddy make me do next?"
+      ],
+      "zh": [
+       "你最喜欢哪个动作？",
+       "你是怎么知道这次不能动的？",
+       "接下来让小熊叫我做什么？"
+      ]
+     },
+     "easier": {
+      "en": "Skip the trick round and use only three actions: jump, clap, stop.",
+      "zh": "先不玩「没说小熊说」那一轮，只用 jump、clap、stop 三个动作。"
+     },
+     "harder": {
+      "en": "Join two actions: \"Teddy says clap and jump!\" or add numbers: \"Jump three times!\"",
+      "zh": "两个动作连起来：\"Teddy says clap and jump!\"，或者加数字：\"Jump three times!\""
+     },
+     "watch": {
+      "en": "Moving by mistake is part of the fun, so laugh about it together. Watch for your child acting on the English word before you show the action: that is listening for meaning.",
+      "zh": "做错动作本来就是这个游戏的乐趣，一起笑一笑就好。留意孩子是不是不等你示范、一听到英文词就动起来——这就是在听意思了。"
+     }
+    },
+    {
+     "id": "EN0-3",
+     "slug": "farm-sounds",
+     "seeds": [
+      "EN-5",
+      "X-3",
+      "X-1"
+     ],
+     "age": "3–5",
+     "minutes": 5,
+     "title": {
+      "en": "What Does the Cow Say?",
+      "zh": "小动物怎么叫"
+     },
+     "why": {
+      "en": "Your child hears that animals \"speak\" differently in English, a first taste that one thing can be said in more than one way.",
+      "zh": "孩子会发现，同一只小狗，英语里叫声和中文不一样——第一次体会「同一个意思有不同的说法」。"
+     },
+     "materials": {
+      "en": [
+       "toy animals or pictures of animals from any picture book"
+      ],
+      "zh": [
+       "玩具小动物，或任何绘本里的动物图片"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Hold up each animal and say its English sound: dog \"woof\", cat \"meow\", cow \"moo\", duck \"quack\".",
+       "Ask your child how the dog barks in Chinese, then how it barks in English.",
+       "Sing the traditional rhyme: \"Old MacDonald had a farm, E-I-E-I-O.\"",
+       "Add: \"And on that farm he had a cow… with a moo moo here.\" Your child makes the sound.",
+       "Let your child choose the next animal for the song."
+      ],
+      "zh": [
+       "一只一只拿出来，说英文叫声：狗 woof、猫 meow、牛 moo、鸭子 quack。读音提示：woof 嘴唇先收圆，结尾 f 是上牙轻碰下唇吹气；quack 结尾 k 短短收住，后面不加「e」音。",
+       "问孩子：小狗中文怎么叫？英语里又是怎么叫的？",
+       "唱这首传统儿歌：\"Old MacDonald had a farm, E-I-E-I-O.\"（E-I-E-I-O 就是念这三个字母的名字：E、I、E、I、O）",
+       "接着唱：\"And on that farm he had a cow… with a moo moo here.\"，叫声让孩子来。",
+       "下一段唱什么动物，让孩子来挑。"
+      ]
+     },
+     "guess": {
+      "en": "Before I say it: how do you think a duck says it in English? Have a try, then listen.",
+      "zh": "我先不说：你猜鸭子在英语里怎么叫？先学一声，再听我说。"
+     },
+     "ask": {
+      "en": [
+       "Does the English dog sound like the Chinese dog?",
+       "Which animal sound is the silliest?",
+       "What sound would a sheep make, do you think?"
+      ],
+      "zh": [
+       "英语里的小狗和中文里的小狗，叫得一样吗？",
+       "哪个动物叫得最好笑？",
+       "你猜小羊会怎么叫？"
+      ]
+     },
+     "easier": {
+      "en": "Use only two animals, dog and cat, and make the sounds together.",
+      "zh": "只用两只动物：狗和猫，一起叫。"
+     },
+     "harder": {
+      "en": "Add sheep \"baa\", pig \"oink\" and hen \"cluck\", and let your child sing a whole verse.",
+      "zh": "加上 sheep \"baa\"、pig \"oink\"、hen \"cluck\"，让孩子自己唱完一段。"
+     },
+     "watch": {
+      "en": "Notice if your child is surprised that the sounds differ; that surprise is the point. Don't ask which one is \"right\": both are.",
+      "zh": "留意孩子听到叫声不一样时有没有吃惊——这份吃惊就是这张卡要的。不用问哪个「对」，两种都对。"
+     }
+    },
+    {
+     "id": "EN0-4",
+     "slug": "first-sound-spy",
+     "seeds": [
+      "EN-1",
+      "X-1"
+     ],
+     "age": "4–6",
+     "minutes": 5,
+     "title": {
+      "en": "I Spy a Sound",
+      "zh": "我看见一个音"
+     },
+     "why": {
+      "en": "Your child starts to hear that English words begin with a sound, the very first step towards reading letters later.",
+      "zh": "孩子开始听出英文单词开头有一个「音」，这是以后用字母拼读的第一步。"
+     },
+     "materials": {
+      "en": [
+       "a few safe things around the room, such as a ball, a book, a banana, a cup, a cat toy"
+      ],
+      "zh": [
+       "屋里几样安全的东西，比如球、书、香蕉、杯子、玩具猫"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Name each thing slowly in English: ball, book, banana, cup, cat.",
+       "Stretch the first sound: \"b-b-b-ball.\" Say the sound /b/ short, without a vowel.",
+       "Say the traditional line: \"I spy with my little eye something beginning with b-b-b.\"",
+       "Your child guesses, touches the thing and says its name.",
+       "Swap: your child chooses a thing and says the first sound for you."
+      ],
+      "zh": [
+       "用英语慢慢说出每样东西：ball、book、banana、cup、cat。",
+       "把开头的音拉长：\"b-b-b-ball\"。读音提示：/b/ 只是嘴唇一碰的短音，不要读成「波」或字母名「比」；/k/ 是喉咙里轻轻一顶，不要读成「克」。",
+       "说这句传统游戏词：\"I spy with my little eye something beginning with b-b-b.\"",
+       "孩子猜是哪样，跑过去摸一摸，说出它的英文名字。",
+       "换过来，孩子挑一样东西，说出开头的音让你猜。"
+      ]
+     },
+     "guess": {
+      "en": "Which thing starts with b-b-b? Point at your guess first, then we'll say its name slowly and listen.",
+      "zh": "哪样东西是 b-b-b 开头的？先指一个你猜的，再一起慢慢说它的名字，听听对不对。"
+     },
+     "ask": {
+      "en": [
+       "Do ball and book start the same way?",
+       "What does cup start with? Is it like cat?",
+       "Can you find something else that starts with b-b-b?"
+      ],
+      "zh": [
+       "ball 和 book 开头的音一样吗？",
+       "cup 是什么音开头的？和 cat 像不像？",
+       "你还能找到别的 b-b-b 开头的东西吗？"
+      ]
+     },
+     "easier": {
+      "en": "Put just two things in front of your child, one starting with b and one with c.",
+      "zh": "只在孩子面前摆两样：一个 b 开头，一个 c 开头。"
+     },
+     "harder": {
+      "en": "Add a third sound, like m for mug and milk, and play with things all over the room.",
+      "zh": "加第三个音，比如 m（mug、milk），在整个屋子里找。"
+     },
+     "watch": {
+      "en": "This card is about hearing, not letters, so no need to write anything. If a guess starts with a different sound, just say both names slowly and let your child hear the difference.",
+      "zh": "这张卡练的是耳朵，不是字母，不用写字。孩子猜的东西开头音不对，就把两个名字都慢慢说一遍，让孩子自己听出不同。"
+     },
+     "safety": {
+      "en": "Use only things that are safe to hold. Leave out coins, buttons, batteries, small magnets and anything sharp.",
+      "zh": "只用拿在手里安全的东西。硬币、纽扣、电池、小磁铁和尖利的东西都不要用。"
+     }
+    },
+    {
+     "id": "EN0-5",
+     "slug": "in-on-under",
+     "seeds": [
+      "EN-3",
+      "X-3",
+      "X-4"
+     ],
+     "age": "4–6",
+     "minutes": 5,
+     "title": {
+      "en": "In, On, Under",
+      "zh": "里面、上面、下面"
+     },
+     "why": {
+      "en": "Your child learns in, on and under by moving a toy, and hears that English puts the place word first, \"on the box\".",
+      "zh": "孩子挪着玩具学会 in、on、under，也会听到英语把方位词放在前面：on the box，而中文说「盒子上」。"
+     },
+     "materials": {
+      "en": [
+       "a big soft toy",
+       "a box or basket",
+       "a chair or table"
+      ],
+      "zh": [
+       "一个大的毛绒玩具",
+       "一个盒子或篮子",
+       "一把椅子或一张桌子"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Move the toy as you say: \"in the box\", \"on the box\", \"under the chair\".",
+       "Give your child the toy and say: \"Put Teddy in the box.\"",
+       "Try \"on the box\" and \"under the chair\". Show it the first time if needed.",
+       "Mix them up and speed up, then let your child give the orders.",
+       "Hide the toy while your child looks away. Your child finds it and says where it was."
+      ],
+      "zh": [
+       "边挪玩具边说：\"in the box\"（盒子里）、\"on the box\"（盒子上）、\"under the chair\"（椅子下）。读音提示：the 的 th 是舌尖轻轻放在牙齿间，读不准就读得轻一点、快一点，没关系。",
+       "把玩具交给孩子，说：\"Put Teddy in the box.\"",
+       "再试 \"on the box\" 和 \"under the chair\"，第一次可以先做给孩子看。",
+       "打乱顺序、越说越快，然后让孩子来发指令。",
+       "孩子转过身，你把玩具藏好。孩子找到后，说说它在哪儿。"
+      ]
+     },
+     "guess": {
+      "en": "I've hidden Teddy. Guess where first: in, on or under? Then go and look.",
+      "zh": "小熊藏好了。先猜：in、on 还是 under？然后去找找看。"
+     },
+     "ask": {
+      "en": [
+       "Where would you like to hide Teddy?",
+       "Can you put Teddy under the box? Now on it?",
+       "Can you tell me where Teddy is, in English or Chinese?"
+      ],
+      "zh": [
+       "你想把小熊藏在哪儿？",
+       "能把小熊放到盒子下面吗？再放到上面呢？",
+       "你来告诉我小熊在哪儿，英语、中文都行。"
+      ]
+     },
+     "easier": {
+      "en": "Use only in and on, with one box.",
+      "zh": "只用 in 和 on，只用一个盒子。"
+     },
+     "harder": {
+      "en": "Add \"next to\" and \"behind\", and let your child give you two orders in a row.",
+      "zh": "加上 \"next to\"（旁边）和 \"behind\"（后面），让孩子一次给你两个指令。"
+     },
+     "watch": {
+      "en": "Your child might answer with one word, \"under!\", or point. That is a full answer at this age. Repeat it back in a whole phrase, \"Yes, under the chair\", without asking them to repeat it.",
+      "zh": "孩子可能只答一个词 \"under!\"，或者直接用手指——这个年龄这就是完整的回答。你用整句说一遍：\"Yes, under the chair\"，不用让孩子跟着重复。"
+     },
+     "safety": {
+      "en": "Use a big toy, not small figures, if a child under 3 is nearby. Keep the box away from stairs and don't let your child climb inside it.",
+      "zh": "家里有 3 岁以下的孩子时，用大玩具，别用小人偶。盒子不要放在楼梯边，也别让孩子爬进去。"
+     }
+    }
    ]
   },
   {
@@ -1697,6 +2441,399 @@
      "home": {
       "en": "In a dark room with one lamp on one side, hold a ball at arm's length and turn slowly on the spot. Watch the lit part of the ball grow and shrink — your head is Earth. Bonus: draw the Moon each evening for two weeks.",
       "zh": "暗房间里只在一边开一盏灯，伸直手臂举一个球，原地慢慢转一圈。看球上亮的部分怎样变大又变小——你的头就是地球。加分：连续两周，每天傍晚画一次月亮。"
+     }
+    }
+   ],
+   "cards": [
+    {
+     "id": "SCI0-1",
+     "slug": "sink-or-float",
+     "seeds": [
+      "SCI-5",
+      "X-1",
+      "X-2"
+     ],
+     "age": "3–6",
+     "minutes": 10,
+     "title": {
+      "en": "Sink or Float?",
+      "zh": "沉下去还是浮起来？"
+     },
+     "why": {
+      "en": "Your child learns to make a guess about each object, then let the water give the answer.",
+      "zh": "孩子先猜每样东西会沉还是会浮，再让水来告诉答案。"
+     },
+     "materials": {
+      "en": [
+       "a large bowl or basin of water",
+       "a towel",
+       "6–8 things to test: a spoon, an apple, a cork, a key, a plastic lid, a ball of foil"
+      ],
+      "zh": [
+       "一大盆水",
+       "一条毛巾",
+       "6–8 样要试的东西：勺子、苹果、软木塞、钥匙、塑料瓶盖、一团锡纸"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Lay the objects on the towel next to the bowl of water.",
+       "Pick one up together. Your child says: will it sink or float?",
+       "Put it in the water gently and watch what happens.",
+       "Sort the tested things into a sink pile and a float pile.",
+       "Squash the foil ball flat or shape it into a boat, and test it again."
+      ],
+      "zh": [
+       "把东西摆在水盆旁边的毛巾上。",
+       "一起拿起一样，让孩子先说：它会沉还是会浮？",
+       "轻轻放进水里，看看到底怎样。",
+       "试过的分成两堆：沉的一堆，浮的一堆。",
+       "把那团锡纸压扁，或捏成小船，再放进去试一次。"
+      ]
+     },
+     "guess": {
+      "en": "Before it goes in: do you think it will sink or float? Let's put it in and see.",
+      "zh": "先别放，你猜它会沉下去还是浮起来？好，放进去看看。"
+     },
+     "ask": {
+      "en": [
+       "Did anything surprise you?",
+       "The apple is big but it floats. What do you think about that?",
+       "Can you find something at home that might float? Let's try it."
+      ],
+      "zh": [
+       "哪一样跟你猜的不一样？",
+       "苹果那么大，怎么浮起来了？你怎么想？",
+       "家里还有什么可能会浮？去找来试试。"
+      ]
+     },
+     "easier": {
+      "en": "Test only three things with very clear answers, such as a key, a cork and a spoon.",
+      "zh": "只试三样结果很明显的，比如钥匙、软木塞和勺子。"
+     },
+     "harder": {
+      "en": "Put one small and one big thing of the same material side by side, such as two keys or two wooden blocks.",
+      "zh": "找同一种材料的一大一小两样，比如两把钥匙、两块木头，一起试。"
+     },
+     "watch": {
+      "en": "Many children say big things sink and small things float. Don't correct the guess; let the water show it. Praise the guess, right or wrong.",
+      "zh": "很多孩子觉得大的会沉、小的会浮。不用纠正，让水来回答。不管猜对猜错，都夸孩子敢猜。"
+     },
+     "safety": {
+      "en": "Stay right next to your child the whole time around water, even a shallow bowl. Keep small objects like keys and corks away from children who still put things in their mouths.",
+      "zh": "玩水时大人全程守在旁边，浅盆也一样。孩子还爱往嘴里放东西的话，钥匙、软木塞这类小东西要看好。"
+     }
+    },
+    {
+     "id": "SCI0-2",
+     "slug": "shadow-play",
+     "seeds": [
+      "SCI-6",
+      "X-1",
+      "X-3"
+     ],
+     "age": "3–6",
+     "minutes": 8,
+     "title": {
+      "en": "Shadow Play",
+      "zh": "影子游戏"
+     },
+     "why": {
+      "en": "Your child finds out that a shadow appears where light is blocked, and that moving the light changes it.",
+      "zh": "孩子会发现：光被挡住的地方就有影子，灯一动，影子也跟着变。"
+     },
+     "materials": {
+      "en": [
+       "a torch",
+       "a plain wall or a sheet of white paper",
+       "a toy figure or a cup"
+      ],
+      "zh": [
+       "一支手电筒",
+       "一面白墙或一张白纸",
+       "一个小玩偶或杯子"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Darken the room a little and stand the toy between the torch and the wall.",
+       "Switch on the torch and look at the toy's shadow together.",
+       "Move the torch closer to the toy, then farther away.",
+       "Shine the torch from the left, then from the right.",
+       "Let your child hold the torch and make shadows with their hands."
+      ],
+      "zh": [
+       "把房间调暗一点，玩偶放在手电筒和墙中间。",
+       "打开手电筒，一起看看玩偶的影子。",
+       "把手电筒慢慢靠近玩偶，再慢慢拿远。",
+       "从左边照，再换到右边照。",
+       "让孩子拿手电筒，用自己的手做影子。"
+      ]
+     },
+     "guess": {
+      "en": "If I bring the torch closer, will the shadow get bigger or smaller? Let's try.",
+      "zh": "手电筒再靠近一点，你猜影子会变大还是变小？我们试试。"
+     },
+     "ask": {
+      "en": [
+       "Where is the shadow when the light is on this side?",
+       "Can you make the toy's shadow disappear?",
+       "Why does a shadow have no colour, even when the toy does?"
+      ],
+      "zh": [
+       "光从这边照过来，影子跑到哪边去了？",
+       "你能让玩偶的影子不见吗？",
+       "玩偶是彩色的，影子怎么是黑的？"
+      ]
+     },
+     "easier": {
+      "en": "Only move the torch closer and farther; leave the side-to-side part for another day.",
+      "zh": "只玩手电筒近一点、远一点，左右换方向留到下次。"
+     },
+     "harder": {
+      "en": "On a sunny day, go outside in the morning and again after lunch. Look at where your own shadow points.",
+      "zh": "晴天上午出门看一次，午饭后再看一次，看看自己的影子朝哪边。"
+     },
+     "watch": {
+      "en": "Notice whether your child moves the light or the toy to change the shadow. Both are good experiments. Ask what they think will happen before each move.",
+      "zh": "留意孩子是动灯还是动玩偶来改影子，两种都是好实验。每动一下之前，问问孩子觉得会怎样。"
+     },
+     "safety": {
+      "en": "Use a torch, not a hot lamp, and remind your child not to shine it into anyone's eyes. Never look straight at the Sun when you go outside.",
+      "zh": "用手电筒，不用会发烫的台灯；提醒孩子别照别人的眼睛。到户外看影子时，千万不要直视太阳。"
+     }
+    },
+    {
+     "id": "SCI0-3",
+     "slug": "bean-sprouts",
+     "seeds": [
+      "SCI-4",
+      "SCI-6",
+      "X-1"
+     ],
+     "age": "3–6",
+     "minutes": 5,
+     "title": {
+      "en": "Watch a Bean Grow",
+      "zh": "看豆子发芽"
+     },
+     "why": {
+      "en": "Your child sees a dry seed come to life over days, and notices the root goes down and the shoot goes up.",
+      "zh": "孩子会看到一颗干豆子几天里活过来，还会发现根往下长，芽往上长。"
+     },
+     "materials": {
+      "en": [
+       "a clear glass jar or cup",
+       "kitchen paper or cotton wool",
+       "a few dry mung beans",
+       "water"
+      ],
+      "zh": [
+       "一个透明玻璃杯或罐子",
+       "厨房纸或棉花",
+       "几颗干绿豆",
+       "水"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Line the inside of the jar with damp kitchen paper.",
+       "Push three or four beans between the paper and the glass, so you can see them.",
+       "Put the jar by a window and keep the paper damp, not soaking.",
+       "Look at the beans together each morning for about a week."
+      ],
+      "zh": [
+       "把湿的厨房纸贴着罐子内壁围一圈。",
+       "在纸和玻璃中间塞三四颗绿豆，从外面看得见。",
+       "罐子放在窗边，保持纸湿润，但别泡在水里。",
+       "接下来一周左右，每天早上一起看一看。"
+      ]
+     },
+     "guess": {
+      "en": "What do you think the bean will look like tomorrow? Let's check in the morning.",
+      "zh": "你猜明天这颗豆子会变成什么样？明早我们来看。"
+     },
+     "ask": {
+      "en": [
+       "What came out of the bean first?",
+       "Which way is the root growing? Which way is the shoot growing?",
+       "What do you think the bean needs to keep growing?"
+      ],
+      "zh": [
+       "豆子先冒出来的是什么？",
+       "根往哪边长？芽往哪边长？",
+       "你觉得豆子还需要什么才能接着长？"
+      ]
+     },
+     "easier": {
+      "en": "Just look and talk each day: is it bigger? Skip the questions about roots.",
+      "zh": "每天就看看、说说：是不是变大了？根和芽的问题先不问。"
+     },
+     "harder": {
+      "en": "Start a second jar in a dark cupboard and compare the two after five days.",
+      "zh": "再做一罐放进黑柜子里，五天后和窗边那罐比一比。"
+     },
+     "watch": {
+      "en": "Waiting is part of science. Let your child draw the bean each day; looking back at the drawings shows how much it changed.",
+      "zh": "等待也是科学的一部分。让孩子每天画一画豆子，回头翻一翻，就能看出它变了多少。"
+     },
+     "safety": {
+      "en": "Dry beans are a choking hazard for young children; hand out a few at a time and put the rest away. Use mung beans, and don't let your child eat the beans or sprouts from the jar.",
+      "zh": "干豆子对小孩子有窒息风险，一次只给几颗，其余收好。用绿豆来种，罐子里的豆子和豆芽都别让孩子吃。"
+     }
+    },
+    {
+     "id": "SCI0-4",
+     "slug": "magnet-hunt",
+     "seeds": [
+      "SCI-2",
+      "X-1",
+      "X-2"
+     ],
+     "age": "4–6",
+     "minutes": 8,
+     "title": {
+      "en": "Magnet Hunt",
+      "zh": "磁铁寻宝"
+     },
+     "why": {
+      "en": "Your child discovers that a magnet pulls some things without touching them, and that only some materials stick.",
+      "zh": "孩子会发现：磁铁不用碰到也能把东西拉过来，而且只有一些东西会被吸住。"
+     },
+     "materials": {
+      "en": [
+       "one large fridge magnet or toy magnet wand, bigger than a matchbox",
+       "a tray of things to test: a spoon, a key, a paper clip, a coin, a crayon, a sock"
+      ],
+      "zh": [
+       "一块大的冰箱贴或玩具磁铁棒（比火柴盒大）",
+       "一盘要试的东西：勺子、钥匙、回形针、硬币、蜡笔、袜子"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Lay the objects on the tray in a row.",
+       "For each one, your child guesses: will the magnet pick it up?",
+       "Hold the magnet close and see if it sticks.",
+       "Make a stick pile and a no-stick pile.",
+       "Walk around the room with the magnet and test the fridge, a door and a table leg."
+      ],
+      "zh": [
+       "把东西在盘子里排成一排。",
+       "每一样都让孩子先猜：磁铁能把它吸起来吗？",
+       "拿磁铁靠近，看看吸不吸。",
+       "分成两堆：吸住的一堆，吸不住的一堆。",
+       "拿着磁铁在屋里走一圈，试试冰箱门、房门和桌腿。"
+      ]
+     },
+     "guess": {
+      "en": "Will the magnet pick up the spoon? Say yes or no first, then we'll try.",
+      "zh": "磁铁能吸起这把勺子吗？先说能还是不能，再试。"
+     },
+     "ask": {
+      "en": [
+       "What is the same about the things that stuck?",
+       "Can the magnet pull the paper clip through a sheet of paper?",
+       "Were any metal things not picked up? Which ones?"
+      ],
+      "zh": [
+       "吸住的那些东西，有什么地方一样？",
+       "隔着一张纸，磁铁还能拉动回形针吗？",
+       "有没有金属的东西没被吸住？是哪几样？"
+      ]
+     },
+     "easier": {
+      "en": "Use only four things: two that stick and two that clearly don't, like a sock and a crayon.",
+      "zh": "只用四样：两样会被吸住，两样明显不会，比如袜子和蜡笔。"
+     },
+     "harder": {
+      "en": "Put a paper clip on a paper plate and move the magnet underneath to steer it around.",
+      "zh": "把回形针放在纸盘上，磁铁在盘子下面移动，让回形针跟着走。"
+     },
+     "watch": {
+      "en": "Many children expect every metal thing to stick. Coins are a good surprise: some stick and some don't, depending on what they are made of. Let the test settle it, and praise the guess.",
+      "zh": "很多孩子以为金属都会被吸住。硬币是个好惊喜：有的吸得住，有的吸不住，要看是什么材料做的。让实验来定答案，夸孩子先猜了。"
+     },
+     "safety": {
+      "en": "Use only one large magnet that cannot fit in a mouth. Never use small, button or strong (neodymium) magnets: two swallowed magnets can pull together inside the body and cause serious harm. If you think a magnet was swallowed, get medical help at once. Keep coins and paper clips under close watch, and put everything away after play.",
+      "zh": "只用一块放不进嘴里的大磁铁。绝对不要用小磁铁、纽扣磁铁或强力磁铁（钕磁铁）：吞下两颗磁铁会在肚子里互相吸住，造成严重伤害。怀疑孩子吞了磁铁，立刻就医。硬币、回形针也要看紧，玩完全部收好。"
+     }
+    },
+    {
+     "id": "SCI0-5",
+     "slug": "ice-melt-race",
+     "seeds": [
+      "SCI-1",
+      "SCI-3",
+      "X-1"
+     ],
+     "age": "3–6",
+     "minutes": 10,
+     "title": {
+      "en": "Ice Melting Race",
+      "zh": "冰块融化比赛"
+     },
+     "why": {
+      "en": "Your child sees that ice turns into water, not into nothing, and that warmth makes it happen faster.",
+      "zh": "孩子会看到冰变成了水，没有消失；越暖和，化得越快。"
+     },
+     "materials": {
+      "en": [
+       "3 ice cubes of the same size",
+       "3 small plates",
+       "a warm spot, such as a sunny windowsill"
+      ],
+      "zh": [
+       "3 块一样大的冰块",
+       "3 个小盘子",
+       "一个暖和的地方，比如有太阳的窗台"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Put one ice cube on each plate.",
+       "Leave one in a cool spot, one in a warm spot, and let your child hold one in their hand.",
+       "Check all three every few minutes. Which is smallest?",
+       "When the ice is gone, look at what is left on each plate."
+      ],
+      "zh": [
+       "每个盘子放一块冰。",
+       "一块放在阴凉处，一块放在暖和处，第三块让孩子握在手里。",
+       "每隔几分钟看一看三块冰，哪块最小？",
+       "冰化完了，看看每个盘子里剩下了什么。"
+      ]
+     },
+     "guess": {
+      "en": "Which ice cube do you think will melt first? Point to it, and we'll watch.",
+      "zh": "你猜哪块冰最先化完？指一指，我们来看。"
+     },
+     "ask": {
+      "en": [
+       "Where did the ice go?",
+       "Why did the one in your hand melt so fast?",
+       "Can we turn the water back into ice? How?"
+      ],
+      "zh": [
+       "冰跑到哪里去了？",
+       "你手里那块为什么化得那么快？",
+       "盘子里的水还能变回冰吗？怎么变？"
+      ]
+     },
+     "easier": {
+      "en": "Use just two ice cubes: one in the sun and one in the shade.",
+      "zh": "只用两块冰：一块晒太阳，一块放阴凉处。"
+     },
+     "harder": {
+      "en": "Put the water from one plate back in the freezer, and check it the next morning.",
+      "zh": "把一个盘子里的水倒回冰格，放进冰箱，第二天早上看看。"
+     },
+     "watch": {
+      "en": "If your child says the ice disappeared, point to the puddle and ask where it came from. Holding ice is cold, so let them stop whenever they like.",
+      "zh": "孩子要是说冰没了，就指指盘子里的水，问问它是从哪来的。握冰很冰手，孩子想放下就放下。"
+     },
+     "safety": {
+      "en": "Ice cubes can be a choking hazard for young children, so keep them on the plates and out of mouths. Wipe up water on the floor so nobody slips.",
+      "zh": "冰块对小孩子有窒息风险，放在盘子里，别让孩子含进嘴里。地上洒了水要及时擦干，免得滑倒。"
      }
     }
    ]
@@ -2271,7 +3408,8 @@
       "zh": "把纸盘的边剪掉一段，平放在桌上，让一颗弹珠沿盘边内侧快速滚一圈。滚到缺口时它往哪里走？撒点面粉或者用尺子比一比它的路线。"
      }
     }
-   ]
+   ],
+   "cards": []
   },
   {
    "id": "chemistry",
@@ -2840,7 +3978,8 @@
       "zh": "数出 1000 粒米当作 H⁺。先拿走 900 粒（剩 100：pH 升一级），再拿走 90 粒（剩 10：又一级），再拿走 9 粒（剩 1：又一级）。每一级要拿的越来越少；再下一级就得拿走不到一粒米。那最后一点点，就是那一滴。"
      }
     }
-   ]
+   ],
+   "cards": []
   },
   {
    "id": "biology",
@@ -3373,7 +4512,8 @@
       "zh": "连续三天，在起床后、午饭后和晚上各量一次舌下体温，画成折线。它是不是一直正好 37.0？（用同一支体温计；吃喝后等 15 分钟再量。）"
      }
     }
-   ]
+   ],
+   "cards": []
   },
   {
    "id": "geography",
@@ -3938,7 +5078,8 @@
       "zh": "在橘子上画几个一样大的小圆：一个在“赤道”附近，一个在顶部附近。剥下橘子皮压平。哪个圆被撕开或拉得更厉害？"
      }
     }
-   ]
+   ],
+   "cards": []
   },
   {
    "id": "history",
@@ -4463,7 +5604,8 @@
       "zh": "请一位长辈比较他小时候和现在：出行、照明、主食、怎么得到消息、一个家里过的节日。哪些变了很多，哪些没变？"
      }
     }
-   ]
+   ],
+   "cards": []
   },
   {
    "id": "computing",
@@ -5028,6 +6170,372 @@
      "home": {
       "en": "Score 10 snacks from 0 to 10 for sweetness and for crunch, and plot them on squared paper: a circle if a family member likes it, a square if not. Can one ruler line split circles from squares? Try to find four snacks that no line can split.",
       "zh": "给 10 种零食的甜度和脆度各打 0 到 10 分，画在方格纸上：家人喜欢的画圆、不喜欢的画方块。能用尺子画一条直线把圆和方块分开吗？试着找出四种零食，让任何直线都分不开。"
+     }
+    }
+   ],
+   "cards": [
+    {
+     "id": "CS0-1",
+     "slug": "parent-robot",
+     "seeds": [
+      "CS-1",
+      "X-4"
+     ],
+     "age": "3–6",
+     "minutes": 5,
+     "title": {
+      "en": "Parent Robot",
+      "zh": "爸妈机器人"
+     },
+     "why": {
+      "en": "Your child finds out that a robot does exactly what it is told, one instruction at a time, and nothing more.",
+      "zh": "孩子会发现：机器人只照你说的做，一次一句，多一点都不会。"
+     },
+     "materials": {
+      "en": [
+       "a favourite soft toy",
+       "a clear path across the room"
+      ],
+      "zh": [
+       "一个孩子喜欢的毛绒玩具",
+       "房间里一段没有杂物的路"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Put the toy across the room. Say: I am a robot. I only know step, turn left, turn right.",
+       "Your child gives one instruction at a time. Do exactly that, with stiff robot moves.",
+       "If an instruction is unclear, like 'go there', freeze and say: Robot does not understand.",
+       "When the robot reaches the toy, pick it up only if your child says 'pick up'.",
+       "Swap: your child is the robot and you give the instructions."
+      ],
+      "zh": [
+       "把玩具放在房间另一头，说：「我是机器人，只听得懂『走一步』『左转』『右转』。」",
+       "孩子一次说一句，你就只做那一句，动作僵硬一点，像机器人。",
+       "听到「去那边」这种说不清的话，就停住说：「机器人听不懂。」",
+       "走到玩具旁边，要孩子说「捡起来」，你才捡。",
+       "换过来：孩子当机器人，你来下指令。"
+      ]
+     },
+     "guess": {
+      "en": "Before you start: how many steps do you think the robot needs to reach the toy?",
+      "zh": "开始前先猜：机器人要走几步才能碰到玩具？"
+     },
+     "ask": {
+      "en": [
+       "Why did the robot stop?",
+       "What could you say so the robot understands?",
+       "Was it harder to give the orders or to be the robot?"
+      ],
+      "zh": [
+       "机器人刚才为什么不动了？",
+       "换一句什么话，机器人就听懂了？",
+       "下指令难，还是当机器人难？"
+      ]
+     },
+     "easier": {
+      "en": "Use only 'step' and put the toy straight ahead, a few steps away.",
+      "zh": "只用「走一步」，玩具放在正前方几步远的地方。"
+     },
+     "harder": {
+      "en": "Put a chair in the way, so the robot has to turn to go round it.",
+      "zh": "在路上放一把椅子，机器人得转弯绕过去。"
+     },
+     "watch": {
+      "en": "Look for the moment your child switches from pointing to choosing a word. Laugh with them when the robot walks into a wall; that is the fun part.",
+      "zh": "留意孩子什么时候从用手指着，变成挑一句话来说。机器人撞到墙时一起笑一笑，这正是好玩的地方。"
+     },
+     "safety": {
+      "en": "Clear the path of things to trip over, and keep the robot well away from stairs and sharp corners.",
+      "zh": "先把路上会绊脚的东西挪开，机器人别走到楼梯和尖角附近。"
+     }
+    },
+    {
+     "id": "CS0-2",
+     "slug": "routine-step-cards",
+     "seeds": [
+      "CS-1",
+      "X-1"
+     ],
+     "age": "4–6",
+     "minutes": 8,
+     "title": {
+      "en": "Steps in Order",
+      "zh": "排排步骤"
+     },
+     "why": {
+      "en": "Your child sees that an everyday job is a list of small steps, and that the order changes the result.",
+      "zh": "孩子会看到，每天做的事也是一串小步骤，顺序换了，结果就不一样。"
+     },
+     "materials": {
+      "en": [
+       "4–5 pieces of paper",
+       "a marker or crayons"
+      ],
+      "zh": [
+       "4 到 5 张纸",
+       "一支记号笔或几支蜡笔"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Pick a routine your child knows, like brushing teeth or getting dressed to go out.",
+       "Together, draw one step on each paper: get the brush, add toothpaste, brush, rinse.",
+       "Shuffle the papers, and let your child lay them out in order on the floor.",
+       "Act out the routine by following the papers exactly, one at a time."
+      ],
+      "zh": [
+       "挑一件孩子熟悉的事，比如刷牙，或者穿衣服出门。",
+       "一起画，一张纸画一步：拿牙刷、挤牙膏、刷牙、漱口。",
+       "把纸打乱，让孩子在地上按顺序摆好。",
+       "照着纸一张一张做一遍，纸上怎么画就怎么做。"
+      ]
+     },
+     "guess": {
+      "en": "Which step do you think comes first? Put it down, then we act it out and see.",
+      "zh": "你猜哪一步排第一？先摆上，再演一遍看看对不对。"
+     },
+     "ask": {
+      "en": [
+       "What happens if we brush before the toothpaste goes on?",
+       "Is there a step we forgot to draw?",
+       "Could two of these steps swap places and still work?"
+      ],
+      "zh": [
+       "还没挤牙膏就刷，会怎么样？",
+       "有没有哪一步忘了画？",
+       "有没有两步换个位置也没关系？"
+      ]
+     },
+     "easier": {
+      "en": "Use just three cards, such as put on socks, put on shoes, open the door.",
+      "zh": "只用三张，比如穿袜子、穿鞋、开门。"
+     },
+     "harder": {
+      "en": "Draw a longer routine, like washing hands, with six or seven steps.",
+      "zh": "画一件步骤更多的事，比如洗手，画六七步。"
+     },
+     "watch": {
+      "en": "Some steps really can swap and some cannot; if your child notices that, it is a big idea. Ask them to explain the order back to you.",
+      "zh": "有的步骤能换，有的不能换。孩子要是发现了这一点，就是很大的收获。请孩子把顺序讲给你听。"
+     }
+    },
+    {
+     "id": "CS0-3",
+     "slug": "silly-robot-bug",
+     "seeds": [
+      "CS-4",
+      "CS-1",
+      "X-1"
+     ],
+     "age": "3–6",
+     "minutes": 5,
+     "title": {
+      "en": "Find the Silly Step",
+      "zh": "哪一步错了"
+     },
+     "why": {
+      "en": "Your child learns that a mistake is one wrong step you can find and fix, not a reason to start over.",
+      "zh": "孩子会知道：出错只是某一步不对，找到它改掉就好，不用全部重来。"
+     },
+     "materials": {
+      "en": [
+       "a pair of socks and shoes, or a coat",
+       "the step cards from Steps in Order, if you made them"
+      ],
+      "zh": [
+       "一双袜子和鞋，或者一件外套",
+       "如果做过「排排步骤」，把那几张卡也拿来"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Tell your child the robot will get dressed, but there is a mistake hidden in its list.",
+       "Act out a routine with one step out of place, like putting on shoes before socks.",
+       "Go slowly, one step at a time, and let your child shout 'Stop!' at the wrong step.",
+       "Ask which step to change, fix only that one, and act it out again."
+      ],
+      "zh": [
+       "跟孩子说：机器人要穿衣服了，可是它的步骤里藏了一个错。",
+       "演一遍，故意放错一步，比如先穿鞋、再穿袜子。",
+       "一步一步慢慢演，孩子看到错的那一步就喊「停！」。",
+       "问孩子该改哪一步，只改那一步，再演一遍。"
+      ]
+     },
+     "guess": {
+      "en": "Before the robot starts: do you think the mistake is near the start, the middle or the end?",
+      "zh": "机器人开始前先猜：那个错在开头、中间，还是最后？"
+     },
+     "ask": {
+      "en": [
+       "Which step was the silly one?",
+       "Did we need to change the other steps too?",
+       "How did you know that step was wrong?"
+      ],
+      "zh": [
+       "哪一步是错的？",
+       "别的步骤也要改吗？",
+       "你怎么看出那一步错了？"
+      ]
+     },
+     "easier": {
+      "en": "Make the mistake very big and funny, like a sock on your hand.",
+      "zh": "错得夸张一点，比如把袜子套在手上。"
+     },
+     "harder": {
+      "en": "Hide a missing step instead of a swapped one, like forgetting to open the door.",
+      "zh": "这次不是放错，而是少一步，比如忘了开门就往外走。"
+     },
+     "watch": {
+      "en": "Notice whether your child watches each step before calling out. Praise the hunt: 'You checked every step.' Then let them hide a mistake for you.",
+      "zh": "看孩子是不是一步步盯着看再喊停。夸找的过程：「你每一步都看了。」再让孩子藏一个错给你找。"
+     }
+    },
+    {
+     "id": "CS0-4",
+     "slug": "clap-stomp-loop",
+     "seeds": [
+      "CS-2",
+      "X-1"
+     ],
+     "age": "3–6",
+     "minutes": 5,
+     "title": {
+      "en": "Clap, Stomp, Again",
+      "zh": "拍拍跺跺再一遍"
+     },
+     "why": {
+      "en": "Your child meets a first loop: a short pattern you say once and then repeat.",
+      "zh": "孩子第一次碰到「循环」：一小段动作说一次，然后重复做。"
+     },
+     "materials": {
+      "en": [
+       "your hands and feet",
+       "paper and a marker to draw the pattern"
+      ],
+      "zh": [
+       "手和脚",
+       "一张纸、一支笔，用来画动作"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Show a short pattern: clap, clap, stomp. Do it once slowly.",
+       "Say: Again, three times. Do the pattern three times together without stopping.",
+       "Draw the pattern once as pictures, a hand, a hand, a foot, and write '3 times' beside it.",
+       "Let your child make up a new pattern and tell you how many times to repeat it."
+      ],
+      "zh": [
+       "先做一小段：拍手、拍手、跺脚。慢慢做一遍。",
+       "说「再来，做三遍」，然后一起连着做三遍。",
+       "把这一段在纸上画一次：手、手、脚，旁边写「3 遍」。",
+       "请孩子编一段新动作，再告诉你要重复几遍。"
+      ]
+     },
+     "guess": {
+      "en": "If we do clap, clap, stomp three times, how many claps will there be? Guess, then let's count.",
+      "zh": "「拍、拍、跺」做三遍，一共拍几下手？先猜，再做一遍数数看。"
+     },
+     "ask": {
+      "en": [
+       "What part keeps coming back?",
+       "Is it quicker to say the whole thing, or say it once and '3 times'?",
+       "What comes next after clap, clap, stomp, clap, clap…?"
+      ],
+      "zh": [
+       "哪一段一直在重复？",
+       "从头到尾全说出来快，还是说一遍再加「3 遍」快？",
+       "拍、拍、跺、拍、拍……下一个是什么？"
+      ]
+     },
+     "easier": {
+      "en": "Use a two-part pattern, clap, stomp, and repeat it twice.",
+      "zh": "只用两个动作：拍手、跺脚，重复两遍。"
+     },
+     "harder": {
+      "en": "Put a loop in a walk: step, step, turn, four times. Where do you end up?",
+      "zh": "走路也来循环：走一步、走一步、转身，做四遍。最后站在哪儿？"
+     },
+     "watch": {
+      "en": "The idea to notice is 'say it once, do it many times'. If your child starts saying 'times three' on their own, that is a loop in their words.",
+      "zh": "要留意的是「说一次，做很多次」。孩子自己说出「做三遍」，就是用自己的话说出了循环。"
+     }
+    },
+    {
+     "id": "CS0-5",
+     "slug": "arrow-grid-walk",
+     "seeds": [
+      "CS-1",
+      "CS-4",
+      "X-1"
+     ],
+     "age": "4–6",
+     "minutes": 10,
+     "title": {
+      "en": "Arrow Path",
+      "zh": "箭头小路"
+     },
+     "why": {
+      "en": "Your child plans a whole route with arrow cards before anyone moves, then checks it one step at a time.",
+      "zh": "孩子先用箭头卡把整条路排好，再一步一步走，看排得对不对。"
+     },
+     "materials": {
+      "en": [
+       "floor tiles, or masking tape to make a 4 × 4 grid",
+       "8–10 pieces of card with a big arrow drawn on each",
+       "a soft toy as the goal"
+      ],
+      "zh": [
+       "地砖格子，或者用纸胶带在地上贴一个 4 × 4 的格子",
+       "8 到 10 张卡片，每张画一个大箭头",
+       "一个毛绒玩具当终点"
+      ]
+     },
+     "steps": {
+      "en": [
+       "Put the toy on one square and stand on another square, facing the same way as your child.",
+       "Your child lays arrow cards in a row: each card means one step that way.",
+       "When the row is done, walk it card by card while your child points to each one.",
+       "If you miss the toy, look together for the card where things went wrong and change it."
+      ],
+      "zh": [
+       "把玩具放在一个格子上，你站在另一格，和孩子朝同一个方向。",
+       "孩子把箭头卡排成一排，每张卡表示朝那个方向走一格。",
+       "排完了，你一张一张照着走，孩子用手指着走到哪张。",
+       "没走到玩具，就一起找是哪张卡开始走偏的，把它改掉。"
+      ]
+     },
+     "guess": {
+      "en": "Before I walk: do you think these arrows will take me to the toy?",
+      "zh": "我走之前你先猜：照这些箭头走，能走到玩具那里吗？"
+     },
+     "ask": {
+      "en": [
+       "Which card made me go the wrong way?",
+       "Is there a shorter path with fewer cards?",
+       "Can you find a different path that also works?"
+      ],
+      "zh": [
+       "是哪张卡让我走错了？",
+       "有没有用更少卡片的近路？",
+       "还有别的路也能走到吗？"
+      ]
+     },
+     "easier": {
+      "en": "Put the toy in a straight line from you, so only one kind of arrow is needed.",
+      "zh": "玩具放在正前方一条直线上，只用一种箭头就够了。"
+     },
+     "harder": {
+      "en": "Put a cushion on one square as a rock the path must go around.",
+      "zh": "在一格上放个靠垫当石头，路要绕开它。"
+     },
+     "watch": {
+      "en": "Planning the whole path before moving is the hard part; many children want to place one card and step. Both are fine, and praise every check.",
+      "zh": "先把整条路排完再走，是最难的一步；很多孩子想放一张走一格。两种都可以，每次去验一验都值得夸。"
+     },
+     "safety": {
+      "en": "If you cut the cards, do the cutting yourself and put the scissors away. Keep the tape grid flat so nobody trips.",
+      "zh": "卡片要剪的话由大人来剪，剪完把剪刀收好。胶带贴平，别让人绊倒。"
      }
     }
    ]
