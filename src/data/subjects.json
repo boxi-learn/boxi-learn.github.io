@@ -404,7 +404,7 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "How a word's meaning moves through time",
       "zh": "文言词义演变时间线"
@@ -417,7 +417,15 @@
       "en": "A character has only one meaning.",
       "zh": "一个字只有一个意思。"
      },
-     "play": null
+     "play": "word-meaning-timeline.html",
+     "explain": {
+      "en": "A friend reads 弃甲曳兵而走 as 'they threw off their armour, dragged the soldiers and walked off'. Tell them which two words they read with today's meaning, what the words mean here, and which other words in the sentence prove it.",
+      "zh": "同学把「弃甲曳兵而走」讲成「丢掉盔甲，拖着士兵，走开了」。告诉他哪两个字用了今天的意思，在这里应该是什么意思，句子里还有哪几个字能证明。"
+     },
+     "home": {
+      "en": "Ask an older family member for a word that meant something different when they were young, or look up 走, 去 or 闻 in a dictionary and count how many meanings it lists. Which meaning is listed first, and why?",
+      "zh": "问问家里长辈：有没有哪个词，他们小时候的意思和现在不一样？或者翻字典查「走、去、闻」，数数各列了几个意思。排在第一个的是哪个意思，为什么？"
+     }
     },
     {
      "slug": "argument-map",
@@ -432,20 +440,28 @@
       "us": "?",
       "uk": "?"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Map an argument: claim, reasons, evidence",
       "zh": "论证结构图"
      },
      "insight": {
       "en": "An argument is a claim held up by reasons, and each reason needs evidence; a reason with nothing under it does not hold the claim up.",
-      "zh": "论证 = 观点 + 理由 + 证据；底下没有证据的理由，撑不起观点。"
+      "zh": "论证 = 观点 + 理由 + 论据；底下没有论据的理由，撑不起观点。"
      },
      "misconception": {
       "en": "Stating an opinion firmly is already an argument.",
       "zh": "观点说得够坚定，就算论证了。"
      },
-     "play": null
+     "play": "argument-map.html",
+     "explain": {
+      "en": "Pick a short opinion piece or advert. Find its claim, list its reasons, and say which reason has no evidence under it.",
+      "zh": "找一篇短评论或一则广告，说出它的观点，列出它的理由，再指出哪条理由底下没有论据。"
+     },
+     "home": {
+      "en": "Have a friendly debate at dinner (e.g. “we should get a dog”). Write the claim on one sticky note, each reason on another and each piece of evidence on a third colour. Which reasons end up with nothing stuck under them?",
+      "zh": "饭桌上来一场友好的辩论（比如「我们家该不该养狗」）。观点写在一张便利贴上，每条理由写一张，每条论据用另一种颜色。贴完看看，哪条理由下面空空的？"
+     }
     },
     {
      "slug": "intertext-reader",
@@ -764,20 +780,28 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "The skeleton of a long sentence",
       "zh": "长句子的骨架"
      },
      "insight": {
-      "en": "Strip away the clauses and phrases and a long sentence still stands on its subject and verb.",
-      "zh": "去掉从句和短语，长句子仍然靠主语和谓语立着。"
+      "en": "Strip away the clauses and phrases and a long sentence still stands on its subject and main verb (and object); find the main verb first.",
+      "zh": "去掉从句和短语，长句子仍然靠主语和谓语动词（和宾语）立着；先找谓语动词。"
      },
      "misconception": {
-      "en": "Long sentences are read by translating word by word.",
-      "zh": "长句子要逐词翻译着读。"
+      "en": "Long sentences are read by translating word by word from left to right.",
+      "zh": "长句子要从左到右逐词翻译着读。"
      },
-     "play": null
+     "play": "sentence-tree.html",
+     "explain": {
+      "en": "Take a long sentence from something you read in English. Show a friend how you find its main verb, then its subject, then where each chunk hangs — and why the first verb you meet is often not the main one.",
+      "zh": "从你读的英文材料里找一个长句，给同学演示：先找谓语动词，再找主语，再看每个挂件挂在哪个词上；再讲讲为什么遇到的第一个动词往往不是谓语。"
+     },
+     "home": {
+      "en": "Copy a long English sentence onto a strip of paper and cut it into chunks. Put the chunks aside one by one until only the skeleton is left, and read it aloud. Then swap sentences with someone.",
+      "zh": "把一个英语长句抄在纸条上，用剪刀剪成一块块挂件，一块一块拿开，直到只剩骨架，把它读出来。再和家人交换句子试试。"
+     }
     },
     {
      "slug": "register-rewriter",
@@ -1327,20 +1351,28 @@
       "us": "8",
       "uk": "9"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Where does a lens put the picture?",
       "zh": "透镜把像放在哪里？"
      },
      "insight": {
-      "en": "Rays from one point of the object meet again at one point of the image; move the object closer and the image moves away and grows.",
-      "zh": "物体上一点发出的光，经过透镜又会聚到像上一点；物体靠近，像就远离、变大。"
+      "en": "Rays from one point of the object meet again at one point of the image; move the object closer (but still beyond f) and the image moves away and grows; inside f there is only an upright, magnified virtual image, as in a magnifier.",
+      "zh": "物体上一点发出的光，经过透镜又会聚到像上一点；物体靠近（仍在焦点以外），像就远离、变大；进到焦点以内，只能看到正立、放大的虚像，就像放大镜。"
      },
      "misconception": {
       "en": "Covering half the lens cuts off half the picture.",
       "zh": "挡住半个透镜，像就少一半。"
      },
-     "play": null
+     "play": "lens-images.html",
+     "explain": {
+      "en": "A friend says that if a fly lands on a camera lens, the photo will have a black hole where the fly is. Using the words “every point”, “rays” and “brightness”, explain what really happens.",
+      "zh": "朋友说：要是一只苍蝇停在相机镜头上，拍出的照片会在苍蝇那里缺一块黑洞。用上「每一点」「光线」「亮度」三个词，讲讲实际会怎样。"
+     },
+     "home": {
+      "en": "Hold a magnifying glass between a bright window and a white wall or sheet of paper. Move the paper until the window appears sharp — upside down. Then cover half the glass with your hand and watch. Never look at the Sun through a lens or focus sunlight on anything.",
+      "zh": "拿放大镜站在明亮的窗户和白墙（或一张白纸）之间，前后移动白纸，直到窗户的像变清晰——它是倒着的。再用手挡住放大镜的一半，看看像怎么变。千万不要透过透镜看太阳，也不要用透镜聚焦阳光。"
+     }
     },
     {
      "slug": "frames-projectile",
@@ -1646,7 +1678,7 @@
       "us": "8",
       "uk": "10"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Same atoms, different stuff",
       "zh": "同样的原子，不同的物质"
@@ -1659,7 +1691,15 @@
       "en": "Atoms have the properties of the substance they make up.",
       "zh": "原子带着它所组成物质的性质。"
      },
-     "play": null
+     "play": "same-atoms-different-stuff.html",
+     "explain": {
+      "en": "A friend says diamond is hard because diamond atoms are hard. Use graphite to show why that cannot be right.",
+      "zh": "朋友说：金刚石硬，是因为金刚石的原子硬。用石墨说明为什么这说不通。"
+     },
+     "home": {
+      "en": "Rub a soft pencil (2B or softer) on paper until there is a dark patch, then rub it with your finger. Feel how slippery it is: sheets of carbon sliding off. Then try to scratch glass with the pencil tip (careful): nothing happens.",
+      "zh": "用软铅笔（2B 或更软）在纸上涂出一块黑，用手指搓一搓，感受它有多滑：那是一层层碳在滑落。再用笔尖去划玻璃（小心）：什么也划不出来。"
+     }
     },
     {
      "slug": "ph-tenfold",
@@ -1673,7 +1713,7 @@
       "us": "8",
       "uk": "9"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "pH: every step is ten times",
       "zh": "pH：每差一级就是十倍"
@@ -1686,7 +1726,15 @@
       "en": "pH 3 is only a little more acidic than pH 4.",
       "zh": "pH 3 只比 pH 4 酸一点点。"
      },
-     "play": null
+     "play": "ph-tenfold.html",
+     "explain": {
+      "en": "Normal rain is about pH 5.6. In a lake at pH 4.6, many kinds of fish struggle to survive. Explain to a friend why a change of just 1 is a big deal.",
+      "zh": "正常雨水约 pH 5.6。湖水到了 pH 4.6，很多种鱼都难以生存。跟朋友讲讲：为什么只差 1 就是大事？"
+     },
+     "home": {
+      "en": "With an adult: chop red cabbage, soak it in hot water, let it cool and strain it. Add a spoon of this purple indicator to lemon juice, vinegar, tap water and baking-soda water, then line the cups up by colour and compare with the ruler. Use one clean spoon per cup and never mix cleaning products.",
+      "zh": "请大人一起：把紫甘蓝切碎，用热水泡，放凉后滤出紫色的汁。各舀一勺加到柠檬汁、白醋、自来水、小苏打水里，按颜色排好队，再和 pH 尺对一对。每杯用干净的勺子，清洁剂不要混在一起。"
+     }
     },
     {
      "slug": "bond-energy",
@@ -1949,7 +1997,7 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Why are cells so small?",
       "zh": "细胞为什么这么小？"
@@ -1962,7 +2010,15 @@
       "en": "Big animals have bigger cells.",
       "zh": "大动物的细胞更大。"
      },
-     "play": null
+     "play": "why-cells-are-small.html",
+     "explain": {
+      "en": "A friend says an elephant must have huge cells. Using the cube model, explain why a cell twice as wide gets hungrier faster than it can feed, and what an elephant does instead.",
+      "zh": "朋友说大象的细胞一定很大。用立方体模型给他讲讲：细胞宽一倍，为什么饿得比吃得快；大象又是怎么办的。"
+     },
+     "home": {
+      "en": "Put a big ice cube and the same amount of crushed ice in two glasses of warm water. Which melts first? Heat gets in through the surface, like food into a cell.",
+      "zh": "两杯温水，一杯放一大块冰，另一杯放同样多的碎冰。哪杯先化完？热量从表面进去，就像食物进入细胞。"
+     }
     },
     {
      "slug": "where-plants-get-mass",
@@ -2012,7 +2068,7 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Where does fat go when you lose weight?",
       "zh": "减掉的脂肪去哪儿了？"
@@ -2022,10 +2078,18 @@
       "zh": "烧掉的脂肪大部分变成二氧化碳从嘴里呼出去，其余变成水排出。"
      },
      "misconception": {
-      "en": "When you lose weight, the fat turns into energy or heat.",
-      "zh": "减肥时，脂肪变成了能量或热。"
+      "en": "When you lose weight, the fat turns into energy or heat, or leaves through the toilet.",
+      "zh": "减肥时，脂肪变成了能量或热，或者从厕所排掉了。"
      },
-     "play": null
+     "play": "where-fat-goes.html",
+     "explain": {
+      "en": "A friend says lost fat “turns into energy”. Using the 10 kg example, explain where its atoms actually go, and why the energy cannot account for the missing mass.",
+      "zh": "朋友说减掉的脂肪「变成了能量」。用 10 千克的例子给他讲讲：脂肪的原子到底去了哪里，为什么能量解释不了少掉的质量。"
+     },
+     "home": {
+      "en": "Breathe onto a cold mirror: the mist is water leaving you. Then count your breaths for one quiet minute and use 0.04 g of CO₂ per breath to estimate how long it takes to breathe out 1 kg of CO₂.",
+      "zh": "对着冰凉的镜子哈一口气：那层雾就是从你身体出去的水。再安静地数一分钟呼吸次数，按每次呼出 0.04 克 CO₂，估算呼出 1 千克 CO₂ 要多久。"
+     }
     },
     {
      "slug": "mendel-peas",
@@ -2368,7 +2432,7 @@
       "us": "?",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Read a place from its climate graph",
       "zh": "从气候图读出一个地方"
@@ -2381,7 +2445,15 @@
       "en": "Places at the same latitude have the same climate.",
       "zh": "同一纬度的地方气候都一样。"
      },
-     "play": null
+     "play": "climate-graph.html",
+     "explain": {
+      "en": "A friend says Beijing and Lisbon must have the same weather because both are near 40°N. Use the two climate graphs to explain why you would pack an umbrella for Lisbon in January but for Beijing in July.",
+      "zh": "朋友说北京和里斯本都在北纬 40° 附近，天气一定一样。用两张气候图解释：为什么去里斯本要在一月带伞，去北京要在七月带伞？"
+     },
+     "home": {
+      "en": "Find your town's monthly rain and temperature on a weather service's climate page and draw its climate graph on squared paper: 12 bars and one line. Which of the five types is it closest to? What do farmers grow nearby?",
+      "zh": "在气象部门网站的「气候」页面查家乡每个月的降水和气温，在方格纸上画出气候图：12 根柱、一条线。它最像五种气候里的哪一种？附近的农民种什么？"
+     }
     },
     {
      "slug": "population-pyramid",
@@ -2395,7 +2467,7 @@
       "us": "?",
       "uk": "9"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "What a population pyramid tells you",
       "zh": "人口金字塔告诉你什么"
@@ -2408,7 +2480,15 @@
       "en": "A country with more young people simply has more people.",
       "zh": "年轻人多的国家只是人多而已。"
      },
-     "play": null
+     "play": "population-pyramid.html",
+     "explain": {
+      "en": "A friend says: “Country A only has more young people — that's all.” Use the words ‘parents’ and ‘in 25 years’ to explain what the wide base means for the future.",
+      "zh": "朋友说：「A 国只是年轻人多而已。」用「父母」和「25 年后」这两个词，讲讲底部宽对将来意味着什么。"
+     },
+     "home": {
+      "en": "List the ages of everyone in your extended family (grandparents to cousins). Sort them into 10-year groups and draw your family's own pyramid. Who will be the parents in 20 years?",
+      "zh": "列出大家庭里每个人的年龄（从祖父母到表兄弟姐妹），按 10 岁一组分好，画出你家自己的金字塔。20 年后谁会当父母？"
+     }
     },
     {
      "slug": "atmospheric-circulation",
@@ -2672,7 +2752,7 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "How old is it? Tree rings and radiocarbon",
       "zh": "它有多老？树轮和放射性碳"
@@ -2685,7 +2765,15 @@
       "en": "Scientists just guess how old ancient things are.",
       "zh": "科学家只是猜古物有多老。"
      },
-     "play": null
+     "play": "dating-the-past.html",
+     "explain": {
+      "en": "A friend says “archaeologists just guess the age of bones and charcoal.” Explain, with one number from this page, how the carbon-14 clock works and why tree rings are needed to check it.",
+      "zh": "朋友说「考古学家只是猜骨头和木炭有多老」。用本页的一个数字给他讲清楚：碳-14 的钟怎么走，为什么还要用树轮来校准。"
+     },
+     "home": {
+      "en": "Look at a tree stump or a log end. Count the rings from bark to centre, and find the narrow ones. Then take 64 coins, shake them in a box and remove the tails; repeat. How many shakes until about 1/4, 1/16 are left?",
+      "zh": "找一个树桩或木头的断面，从树皮往中心数年轮，找出窄的那几圈。再拿 64 枚硬币放进盒子里摇，拿掉反面朝上的，重复。摇几次后大约剩 1/4、1/16？"
+     }
     },
     {
      "slug": "weigh-the-source",
@@ -2700,7 +2788,7 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Which source would you trust?",
       "zh": "你更相信哪份材料？"
@@ -2713,7 +2801,15 @@
       "en": "If it is written in an old source, it must be true.",
       "zh": "古代材料上写的，就一定是真的。"
      },
-     "play": null
+     "play": "weigh-the-source.html",
+     "explain": {
+      "en": "A classmate says: “The ballad is very old, so its number must be right.” Use two other sources to answer them: who made each, when, and why?",
+      "zh": "同学说：「这首歌谣很古老，所以它的数字一定对。」用另外两份材料回答他：每份是谁、何时、为什么写的？"
+     },
+     "home": {
+      "en": "Find two accounts of the same family event (a photo caption, a message, someone's memory). For each ask who made it, when and why. Where do they disagree, and which would you trust for what?",
+      "zh": "找两份讲同一件家庭往事的材料（照片说明、一条消息、一个人的回忆）。每份都问：谁、何时、为什么留下的？哪里说法不同？各自在哪方面更可信？"
+     }
     },
     {
      "slug": "silk-roads",
@@ -2728,7 +2824,7 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "What travelled the Silk Roads?",
       "zh": "丝绸之路上走的是什么？"
@@ -2741,7 +2837,15 @@
       "en": "The Silk Road was one road that merchants travelled from end to end.",
       "zh": "丝绸之路是一条路，商人从头走到尾。"
      },
-     "play": null
+     "play": "silk-roads.html",
+     "explain": {
+      "en": "A friend says “a merchant took silk along the Silk Road from China to Rome”. Use the trader counter and the price from this page to explain what really happened, and why the price went up so much.",
+      "zh": "朋友说：「一个商人沿着丝绸之路把丝绸从中国运到了罗马。」用本页的经手人数和价格，跟他讲讲实际是怎样的，价格为什么涨了那么多。"
+     },
+     "home": {
+      "en": "Play “pass it on” with your family: whisper a short message along a line of people, or pass a cup of rice and let each person keep one spoonful as their “fee”. How much arrives at the end of 3 people? Of 6?",
+      "zh": "和家人玩「传下去」：沿一排人悄悄传一句话；或者传一杯米，每人留一勺当「辛苦费」。经过 3 个人还剩多少？6 个人呢？"
+     }
     },
     {
      "slug": "causes-web",
@@ -3054,7 +3158,7 @@
       "us": "6",
       "uk": "7"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "Counting with only 0 and 1",
       "zh": "只用 0 和 1 数数"
@@ -3067,7 +3171,15 @@
       "en": "Binary is a secret code only computers can read.",
       "zh": "二进制是只有电脑才看得懂的密码。"
      },
-     "play": null
+     "play": "binary-cards.html",
+     "explain": {
+      "en": "A friend says binary is a secret code only computers understand. Use the dot cards to show them how to read 10110, and why each card has twice the dots of the card to its right.",
+      "zh": "朋友说二进制是只有电脑才看得懂的密码。用点点卡给他演示怎样读 10110，并说说为什么每张卡的点数是右边那张的两倍。"
+     },
+     "home": {
+      "en": "Draw five cards on paper with 1, 2, 4, 8 and 16 dots. Ask someone for a number up to 31 and make it by turning cards over; then count from 0 to 31 together, flipping cards as you go.",
+      "zh": "在纸上画五张卡，分别画 1、2、4、8、16 个点。请家人说一个不超过 31 的数，你翻卡把它拼出来；再一起从 0 数到 31，边数边翻卡。"
+     }
     },
     {
      "slug": "sorting-race",
@@ -3081,7 +3193,7 @@
       "us": "7",
       "uk": "8"
      },
-     "status": "planned",
+     "status": "ready",
      "title": {
       "en": "The sorting race",
       "zh": "排序比赛"
@@ -3094,7 +3206,15 @@
       "en": "Any method that gets the right answer is equally good.",
       "zh": "只要结果对，方法都一样好。"
      },
-     "play": null
+     "play": "sorting-race.html",
+     "explain": {
+      "en": "A friend says “bubble sort works, so it’s as good as any other.” Use the numbers for 1,000 items to explain why a programmer would still pick merge sort, and say when insertion sort is the smart choice.",
+      "zh": "朋友说：「冒泡排序能排对，所以跟别的方法一样好。」用 1000 个数的比较次数跟他解释，程序员为什么还是会选归并排序；再说说什么时候插入排序最划算。"
+     },
+     "home": {
+      "en": "Shuffle 8 playing cards face down. Sort them twice: once by comparing neighbours (bubble sort), once by sorting each half and then merging the two piles. Count the comparisons each time, with someone keeping a tally.",
+      "zh": "把 8 张扑克牌洗乱、背面朝上。排两次：一次只比较相邻的两张（冒泡排序），一次先把两半各自排好、再把两叠合并。请家人记下每次比较了多少回。"
+     }
     },
     {
      "slug": "halving-search",

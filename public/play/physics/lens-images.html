@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where does a lens put the picture?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .axis { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 5; }
+  .plane { stroke: var(--line); stroke-width: 2; stroke-dasharray: 3 6; }
+  .lens { fill: color-mix(in srgb, var(--c) 18%, transparent); stroke: var(--c); stroke-width: 2.5; }
+  .card { fill: var(--fg); opacity: .85; }
+  .fan { stroke: var(--hl); stroke-width: 1.6; opacity: .75; fill: none; }
+  .fan.off { opacity: .35; }
+  .r1 { stroke: var(--a); } .r2 { stroke: var(--b); } .r3 { stroke: var(--h); }
+  .pr { stroke-width: 2.6; fill: none; }
+  .ext { stroke-width: 2; stroke-dasharray: 6 5; fill: none; opacity: .8; }
+  .obj { stroke: var(--fg); stroke-width: 4; stroke-linecap: round; }
+  .flame { fill: var(--hl); stroke: var(--b); stroke-width: 1.5; }
+  .img { stroke: var(--no); stroke-width: 4; stroke-linecap: round; }
+  .img.virt { stroke-dasharray: 5 5; }
+  .imgFlame { fill: color-mix(in srgb, var(--no) 35%, transparent); stroke: var(--no); stroke-width: 1.5; }
+  .ghost { opacity: .35; }
+  .scr { stroke: var(--fg); stroke-width: 6; stroke-linecap: round; opacity: .55; }
+  .spot { stroke: var(--hl); stroke-width: 8; stroke-linecap: round; }
+  .tick { fill: var(--muted); }
+  .lbl { fill: var(--muted); font-size: 24px; font-family: var(--font); }
+  .lblF { fill: var(--fg); font-size: 24px; font-weight: 700; font-family: var(--math); }
+  .lblE { fill: var(--no); font-size: 24px; font-weight: 700; font-family: var(--font); }
+  .hit { cursor: grab; outline: none; }
+  .hit:active { cursor: grabbing; }
+  .hit .ring { fill: transparent; stroke: none; }
+  .hit:focus-visible .ring { stroke: var(--hl); stroke-width: 3; }
+  .controls .grp { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; flex-wrap: wrap; }
+  .pair { display: flex; align-items: center; gap: 8px; flex: 1 1 160px; min-width: 0; }
+  .pair input[type=range] { flex: 1 1 70px; min-width: 0; }
+  .controls .val { min-width: 4.2em; font-size: 14px; }
+  .btns { display: inline-flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .cap { font-size: 14px; color: var(--fg); padding: 2px 14px 6px; min-height: 2.6em; }
+  .readout { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  .readout th, .readout td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+  .readout th:first-child, .readout td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+  .readout tr.cur td { background: color-mix(in srgb, var(--a) 14%, transparent); color: var(--fg); font-weight: 650; }
+  .rtab td, .rtab th { text-align: left !important; font-size: 13px; }
+  .tablewrap { max-width: 100%; overflow-x: auto; }
+  .onscr { display: flex; gap: 12px; align-items: center; margin: 2px 0 10px; }
+  .onscr svg { width: 168px; height: 112px; flex: none; border-radius: 10px; }
+  .onscr .sc { fill: var(--ink-panel); }
+  .onscr .sObj { stroke: var(--hl); stroke-width: 4; stroke-linecap: round; }
+  .onscr .sFl { fill: var(--hl); }
+  .onscr .sTxt { fill: var(--on-panel-muted); font-size: 13px; font-family: var(--font); }
+  .onscr .side { font-size: 13px; color: var(--muted); }
+  .onscr .side strong { color: var(--fg); }
+  @media (max-width: 860px) { .stage svg.main { height: auto; aspect-ratio: 640 / 300; } }
+  #rule { font-size: 14px; }
+  #rule p { margin: 0 0 8px; }
+</style>
+</head>
+<body data-subject="physics">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 640 300" role="group" data-t-aria="figAria"></svg>
+      <div class="cap" id="cap"></div>
+      <div class="controls">
+        <div class="grp">
+          <span class="pair"><label for="u" data-t="uLabel"></label>
+          <input type="range" id="u" min="1" max="38" step="0.1" value="20">
+          <span class="val" id="uVal"></span></span>
+          <span class="pair"><label for="f" data-t="fLabel"></label>
+          <input type="range" id="f" min="4" max="10" step="0.5" value="8">
+          <span class="val" id="fVal"></span></span>
+        </div>
+        <div class="grp">
+          <span class="pair"><label class="check"><input type="checkbox" id="scrOn" checked> <span data-t="scrLabel"></span></label>
+          <input type="range" id="xs" min="1" max="39.5" step="0.1" value="13.3" data-t-aria="xsAria">
+          <span class="val" id="xsVal"></span></span>
+        </div>
+        <div class="grp">
+          <span class="btns" id="covers" role="group" data-t-aria="coverLabel"><span data-t="coverLabel"></span></span>
+          <button type="button" class="small" id="slide"></button>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="onscr" id="onscr">
+        <svg id="scrView" viewBox="0 0 168 112" role="img"></svg>
+        <div class="side" id="scrSide"></div>
+      </div>
+      <table class="readout" id="readout"></table>
+      <div id="rule"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Where does a lens put the picture?", eyebrow: "Physics · Stage 3", h1: "Where does a lens put the picture?",
+    intro: "A candle, a convex lens and a screen. Drag the candle and the screen, change the lens, and cover part of it with a card.",
+    reset: "Reset", figAria: "Ray diagram: a candle left of a convex lens, rays bending through the lens, an image and a screen on the right",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Cover half the lens",
+    b1: "The screen shows a sharp, upside-down picture of the candle. Now a card is slid over the top half of the lens.",
+    k2: "Hands on", t2: "Chase the image",
+    b2: "Drag the candle (or use its slider) and slide the screen until the picture is sharp. Move the candle closer to the lens: where does the sharp picture go, and how big is it? Then cover half the lens.",
+    k3: "The rule", t3: "Every point comes back together at one point",
+    b3: "All the light the lens catches from one point of the candle is bent so it meets again at one point: that is the image point. Where it lands is set by u and f.",
+    q: "What does the screen show now?", o1: "Only half the candle — the covered half is cut off", o2: "The whole candle, but dimmer", o3: "Nothing — the picture is gone",
+    right: "Yes. Every part of the lens sends light from every point of the candle to the same image point, so the uncovered half still makes the whole picture — with half the light.",
+    wrong: "Most people expect that. Look at the screen now: the whole candle is still there, only dimmer. Rays from every point go through every part of the lens.",
+    uLabel: "Candle u", fLabel: "Focal length f", scrLabel: "Screen", xsAria: "Screen distance from the lens",
+    coverLabel: "Card:", cNone: "none", cTop: "top half", cBot: "bottom half",
+    slide: "▶ Slide candle in", pause: "❚❚ Pause",
+    objAria: "Candle", scrAria: "Screen",
+    objVal: "{u} cm from the lens", scrVal: "{x} cm from the lens",
+    lF: "F", lF2: "F′", l2F: "2F", l2F2: "2F′",
+    offR: "image → v = {v} cm", offL: "← virtual image, {v} cm", parallel: "rays leave parallel",
+    capReal: "Image: real, inverted, {size}, ×{m}, at v = {v} cm.", capVirt: "Image: virtual, upright, {size}, ×{m}, {d} cm on the candle's side — look through the lens to see it.", capInf: "Candle at the focal point: the rays leave the lens parallel and never meet — no image.",
+    capSharp: "Screen at {x} cm: sharp!", capBlur: "Screen at {x} cm: blurred (blur spot {b} cm wide).", capVirtScr: "No screen position works: a virtual image can't be caught on a screen.", capInfScr: "Wherever the screen goes, it gets a blur spot as wide as the lens.", capNoScr: "Screen removed.",
+    bigger: "magnified", smaller: "smaller", same: "same size",
+    scrTitle: "On the screen", scrNone: "no screen", light: "Light that gets through: <strong>{p}%</strong>", blurL: "Blur spot: <strong>{b} cm</strong>", sharpL: "<strong>Sharp</strong>",
+    rU: "Object distance u", rF: "Focal length f", rV: "Image distance v", rM: "Magnification m = −v/u", rT: "Image", rS: "Screen / blur spot",
+    real: "real, inverted", virt: "virtual, upright", none: "none (at infinity)", far: "very far",
+    ruleMain: "<strong>One point in, one point out.</strong> The lens equation <span class=\"math\">1/f = 1/u + 1/v</span> gives where; <span class=\"math\">m = −v/u</span> gives how big. Now: <span class=\"math\">1/{f} = 1/{u} + 1/v</span> → <span class=\"math\">v = {v} cm</span>, <span class=\"math\">m = {m}</span>.",
+    ruleInf: "<strong>One point in, one point out.</strong> The lens equation <span class=\"math\">1/f = 1/u + 1/v</span> gives where. Now u = f = {f} cm, so 1/v = 0: the rays come out parallel and there is no image.",
+    ruleTable: "With f = {f} cm (your lens):", thU: "u", thV: "v", thM: "m", thI: "image", thUse: "used in",
+    zFar: "beyond 2F", z2F: "at 2F", zMid: "between F and 2F", zF: "at F", zIn: "inside F",
+    iFar: "real, inverted, smaller", i2F: "real, inverted, same size", iMid: "real, inverted, larger", iF: "no image", iIn: "virtual, upright, larger",
+    useFar: "camera, eye", use2F: "1:1 copier", useMid: "projector", useF: "torch beam (lamp at F)", useIn: "magnifying glass",
+    ruleMove: "Move the candle in from far away: the image moves out from F′ and grows; at u = f it runs off to infinity; inside f it jumps to the candle's side, upright.",
+    live: "u = {u} cm, f = {f} cm: {img}",
+    resultTitle: "What we found", resultMain: "1/f = 1/u + 1/v · m = −v/u",
+    resultNote: "Each point of the object has its own image point, and every part of the lens helps make it. Covering half the lens halves the light, not the picture.",
+    explainK: "Explain it", explainQ: "A friend says that if a fly lands on a camera lens, the photo will have a black hole where the fly is. Using the words “every point”, “rays” and “brightness”, explain what really happens.",
+    homeK: "Try at home", homeQ: "Hold a magnifying glass between a bright window and a white wall or sheet of paper. Move the paper until the window appears sharp — upside down. Then cover half the glass with your hand and watch. Never look at the Sun through a lens or focus sunlight on anything.",
+    foot: "Model: ideal thin convex lens (no aberrations), lens aperture 20 cm wide, candle 4 cm tall; distances in cm, picture scale 8 px per cm. Sign convention “real is positive”: u > 0 for a real object on the left, v > 0 for a real image on the right, v < 0 for a virtual image on the object's side, f > 0 for a converging lens; m < 0 means inverted. The three coloured rays are the principal rays (parallel → through F′; through the centre → straight; through F → parallel); where they miss the glass the dashed lens plane is used as a construction line. Blur spot on the screen = open aperture × |1 + x(1/u − 1/f)|, from tracing each ray. The half-lens misconception is documented by Goldberg & McDermott, Am. J. Phys. 55, 108 (1987). · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "透镜把像放在哪里？", eyebrow: "物理 · 阶段 3", h1: "透镜把像放在哪里？",
+    intro: "一支蜡烛、一块凸透镜、一块光屏。拖动蜡烛和光屏，换透镜，再用卡片挡住透镜的一部分。",
+    reset: "重置", figAria: "光路图：凸透镜左边一支蜡烛，光线穿过透镜后偏折，右边是像和光屏",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "挡住半个透镜",
+    b1: "光屏上有一个清晰的、倒立的蜡烛像。现在用一张卡片挡住透镜的上半部分。",
+    k2: "动手", t2: "追着像跑",
+    b2: "拖动蜡烛（或用它的滑块），再移动光屏，直到像变清晰。把蜡烛移近透镜：清晰的像跑到哪里去了？变大还是变小？再挡住半个透镜试试。",
+    k3: "规律", t3: "每一点的光都会重新聚到一点",
+    b3: "透镜接住的、从蜡烛上某一点发出的所有光，都被折到同一点会合：那就是这一点的像。像落在哪里，由 u 和 f 决定。",
+    q: "现在光屏上是什么样？", o1: "只剩半支蜡烛——挡住的那一半没了", o2: "整支蜡烛都在，只是暗了", o3: "什么都没有——像消失了",
+    right: "对。蜡烛上每一点发出的光，穿过透镜的每一部分都会聚到同一个像点，所以没挡住的那一半照样成完整的像——只是光少了一半。",
+    wrong: "大多数人都这么想。现在看光屏：整支蜡烛还在，只是暗了。每一点的光都穿过透镜的每一部分。",
+    uLabel: "物距 u", fLabel: "焦距 f", scrLabel: "光屏", xsAria: "光屏到透镜的距离",
+    coverLabel: "卡片：", cNone: "不挡", cTop: "挡上半", cBot: "挡下半",
+    slide: "▶ 蜡烛慢慢靠近", pause: "❚❚ 暂停",
+    objAria: "蜡烛", scrAria: "光屏",
+    objVal: "离透镜 {u} 厘米", scrVal: "离透镜 {x} 厘米",
+    lF: "F", lF2: "F′", l2F: "2F", l2F2: "2F′",
+    offR: "像 → v = {v} cm", offL: "← 虚像，{v} cm", parallel: "光线平行射出",
+    capReal: "像：实像，倒立，{size}，×{m}，像距 v = {v} cm。", capVirt: "像：虚像，正立，{size}，×{m}，在蜡烛同侧 {d} cm——要透过透镜才看得到。", capInf: "蜡烛在焦点上：光线穿过透镜后平行射出，永不会聚——不成像。",
+    capSharp: "光屏在 {x} cm：清晰！", capBlur: "光屏在 {x} cm：模糊（光斑宽 {b} cm）。", capVirtScr: "光屏放哪里都接不到：虚像不能被光屏接收。", capInfScr: "光屏放在哪里，都只有一个和透镜一样宽的光斑。", capNoScr: "光屏已拿走。",
+    bigger: "放大", smaller: "缩小", same: "等大",
+    scrTitle: "光屏上", scrNone: "没有光屏", light: "透过的光：<strong>{p}%</strong>", blurL: "光斑：<strong>{b} cm</strong>", sharpL: "<strong>清晰</strong>",
+    rU: "物距 u", rF: "焦距 f", rV: "像距 v", rM: "放大率 m = −v/u", rT: "像", rS: "光屏 / 光斑",
+    real: "实像，倒立", virt: "虚像，正立", none: "不成像（在无穷远）", far: "非常远",
+    ruleMain: "<strong>一点进，一点出。</strong>透镜公式 <span class=\"math\">1/f = 1/u + 1/v</span> 算出像在哪；<span class=\"math\">m = −v/u</span> 算出像多大。现在：<span class=\"math\">1/{f} = 1/{u} + 1/v</span> → <span class=\"math\">v = {v} cm</span>，<span class=\"math\">m = {m}</span>。",
+    ruleInf: "<strong>一点进，一点出。</strong>透镜公式 <span class=\"math\">1/f = 1/u + 1/v</span> 算出像在哪。现在 u = f = {f} cm，所以 1/v = 0：光线平行射出，不成像。",
+    ruleTable: "f = {f} cm（你现在的透镜）时：", thU: "u", thV: "v", thM: "m", thI: "像", thUse: "用在",
+    zFar: "2F 以外", z2F: "在 2F", zMid: "F 和 2F 之间", zF: "在 F", zIn: "F 以内",
+    iFar: "倒立、缩小的实像", i2F: "倒立、等大的实像", iMid: "倒立、放大的实像", iF: "不成像", iIn: "正立、放大的虚像",
+    useFar: "照相机、眼睛", use2F: "1:1 复印", useMid: "投影仪", useF: "手电筒（灯在 F）", useIn: "放大镜",
+    ruleMove: "蜡烛从远处移近：像从 F′ 附近往外跑、越来越大；u = f 时像跑到无穷远；进到 f 以内，像跳到蜡烛这一侧，变成正立的。",
+    live: "u = {u} cm，f = {f} cm：{img}",
+    resultTitle: "我们发现", resultMain: "1/f = 1/u + 1/v · m = −v/u",
+    resultNote: "物体上每一点都有自己的像点，透镜的每一部分都参与成像。挡住半个透镜，少的是一半的光，不是一半的像。",
+    explainK: "说一说", explainQ: "朋友说：要是一只苍蝇停在相机镜头上，拍出的照片会在苍蝇那里缺一块黑洞。用上「每一点」「光线」「亮度」三个词，讲讲实际会怎样。",
+    homeK: "家里做一做", homeQ: "拿放大镜站在明亮的窗户和白墙（或一张白纸）之间，前后移动白纸，直到窗户的像变清晰——它是倒着的。再用手挡住放大镜的一半，看看像怎么变。千万不要透过透镜看太阳，也不要用透镜聚焦阳光。",
+    foot: "模型：理想薄凸透镜（无像差），透镜口径 20 cm，蜡烛高 4 cm；距离单位厘米，图上 1 cm = 8 像素。符号约定「实正虚负」：实物在左时 u > 0，实像在右时 v > 0，虚像在物体同侧时 v < 0，会聚透镜 f > 0；m < 0 表示倒立。三条彩色光线是特殊光线（平行于主光轴 → 过 F′；过光心 → 不偏折；过 F → 平行射出）；它们没有打在镜片上时，用虚线画的透镜平面作辅助线。光屏上的光斑宽 = 未挡住的口径 × |1 + x(1/u − 1/f)|，由逐条光线追迹得出。「挡住半个透镜就少半个像」的迷思见 Goldberg & McDermott, Am. J. Phys. 55, 108 (1987)。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* SIM-BEGIN — pure thin-lens model, no DOM (tests extract this block). Units: cm. Real-is-positive. */
+const A_CM = 10, H_CM = 4, U_MIN = 1, U_MAX = 38, F_MIN = 4, F_MAX = 10, X_MIN = 1, X_MAX = 39.5;
+const r10 = (x) => Math.round(x * 10) / 10;
+function lens(u, f) {
+  u = Number.isFinite(u) ? Math.min(U_MAX, Math.max(U_MIN, u)) : 20;
+  f = Number.isFinite(f) ? Math.min(F_MAX, Math.max(F_MIN, f)) : 8;
+  const d10 = Math.round(u * 10) - Math.round(f * 10); // tenths of a cm: exact zero test
+  if (d10 === 0) return { u, f, kind: "inf", v: null, m: null, zone: 3 };
+  const v = (u * f) / (u - f), m = -v / u;
+  const r = Math.round(u * 10) - 2 * Math.round(f * 10);
+  const zone = r > 0 ? 0 : r === 0 ? 1 : d10 > 0 ? 2 : 4;
+  return { u, f, kind: v > 0 ? "real" : "virtual", v, m, zone };
+}
+/* Ray from (−u, y0) hitting the lens at height yL leaves with slope s' = (yL − y0)/u − yL/f. */
+const outSlope = (u, f, y0, yL) => (yL - y0) / u - yL / f;
+/* Screen at x (cm right of lens). cover: "none" | "top" | "bottom". */
+function screen(u, f, x, cover) {
+  const g = 1 + x / u - x / f;               // spread factor of one point's rays on the screen
+  const open = cover === "none" ? 2 * A_CM : A_CM;
+  const c = cover === "top" ? -A_CM / 2 : cover === "bottom" ? A_CM / 2 : 0; // mean yL of open part
+  return { blur: open * Math.abs(g), shift: c * g, hImg: (-x * H_CM) / u, light: open / (2 * A_CM) };
+}
+const blocked = (yL, cover) => (cover === "top" && yL > 1e-9) || (cover === "bottom" && yL < -1e-9);
+function sharpAt(L, x, blur) { return L.kind === "real" && (Math.abs(x - L.v) <= 0.051 || blur <= 0.4); }
+function sizeWord(m) { const a = Math.abs(m); return a > 1.005 ? "bigger" : a < 0.995 ? "smaller" : "same"; }
+/* SIM-END */
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), sv = Play.svg;
+const X0 = 320, AX = 150, K = 8;
+const px = (x) => X0 + x * K, py = (y) => AX - y * K;
+const S = { u: 20, f: 8, x: 13.3, scr: true, cover: "none", answered: false, playing: false };
+let stp = null, raf = 0, last = 0, lastLive = "", drag = null;
+const nf = (x, d = 1) => Play.fmt(x, d).replace("-", "−");
+const fmtV = (v) => (Math.abs(v) > 999 ? P.t("far") : nf(v));
+const nfs = (x) => String(+(+x).toFixed(2)).replace("-", "−");
+const fmtM = (m) => (Math.abs(m) >= 100 ? nf(m, 0) : nf(m, 2));
+
+function candle(parent, x, base, H, cls, flameCls) { // H in px, + = up
+  const w = Play.clamp(Math.abs(H) * 0.2, 2.5, 9), top = base - H, neck = base - 0.68 * H, mid = base - 0.82 * H;
+  sv("line", { class: cls, x1: x, y1: base, x2: x, y2: neck }, parent);
+  sv("path", { class: flameCls, d: `M${x},${top} Q${x + w},${mid} ${x},${neck} Q${x - w},${mid} ${x},${top}Z` }, parent);
+}
+function seg(parent, cls, x1, y1, x2, y2) { return sv("line", { class: cls, x1: px(x1).toFixed(1), y1: py(y1).toFixed(1), x2: px(x2).toFixed(1), y2: py(y2).toFixed(1) }, parent); }
+function handle(fid, aria, now, min, max, txt) {
+  const g = sv("g", { class: "hit", tabindex: 0, role: "slider", "data-fid": fid, "aria-label": aria, "aria-valuemin": min, "aria-valuemax": max, "aria-valuenow": now, "aria-valuetext": txt }, fig);
+  return g;
+}
+
+function draw() {
+  const fid = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fid : null;
+  const L = lens(S.u, S.f), u = L.u, f = L.f, h = H_CM;
+  fig.innerHTML = "";
+  const defs = sv("defs", {}, fig), cp = sv("clipPath", { id: "clipV" }, defs);
+  sv("rect", { x: 0, y: 0, width: 640, height: 300 }, cp);
+  const g = sv("g", { "clip-path": "url(#clipV)" }, fig);
+  // axis, lens plane, focal marks
+  sv("line", { class: "axis", x1: 0, y1: AX, x2: 640, y2: AX }, g);
+  sv("line", { class: "plane", x1: X0, y1: 0, x2: X0, y2: 300 }, g);
+  [[-f, "lF"], [f, "lF2"], [-2 * f, "l2F"], [2 * f, "l2F2"]].forEach(([x, k]) => {
+    if (Math.abs(x) > 39) return;
+    sv("circle", { class: "tick", cx: px(x), cy: AX, r: 4 }, g);
+    sv("text", { class: "lblF", x: px(x), y: AX + 28, "text-anchor": "middle" }, g).textContent = P.t(k);
+  });
+  // lens (biconvex)
+  const yT = py(A_CM), yB = py(-A_CM);
+  sv("path", { class: "lens", d: `M${X0},${yT} Q${X0 + 18},${AX} ${X0},${yB} Q${X0 - 18},${AX} ${X0},${yT}Z` }, g);
+  const xEnd = S.scr ? S.x : 41;
+  const outEnd = (yL, y0) => { const s = outSlope(u, f, y0, yL); return [xEnd, yL + s * xEnd]; };
+  // fan of rays from the candle tip
+  const N = 9;
+  for (let i = 0; i < N; i++) {
+    const yL = -A_CM + (2 * A_CM * i) / (N - 1), bl = blocked(yL, S.cover);
+    seg(g, "fan" + (bl ? " off" : ""), -u, h, 0, yL);
+    if (!bl) { const e = outEnd(yL, h); seg(g, "fan", 0, yL, e[0], e[1]); }
+  }
+  // principal rays
+  const pr = [{ c: "r1", yL: h }, { c: "r2", yL: 0 }];
+  if (L.kind !== "inf") { const y3 = (h * f) / (f - u); if (Math.abs(y3) < 40) pr.push({ c: "r3", yL: y3 }); }
+  pr.forEach((r) => {
+    if (r.c === "r3" && u < f) seg(g, "ext " + r.c, -f, 0, -u, h); // construction line from F
+    seg(g, "pr " + r.c, -u, h, 0, r.yL);
+    if (blocked(r.yL, S.cover)) return;
+    const e = outEnd(r.yL, h);
+    seg(g, "pr " + r.c, 0, r.yL, e[0], e[1]);
+    if (L.kind === "virtual") seg(g, "ext " + r.c, 0, r.yL, L.v, L.m * h);
+  });
+  // cover card
+  if (S.cover !== "none") {
+    const top = S.cover === "top";
+    sv("rect", { class: "card", x: X0 - 7, y: top ? yT - 12 : AX + 1, width: 14, height: A_CM * K + 11, rx: 3 }, g);
+  }
+  // image
+  if (L.kind !== "inf" && Math.abs(L.v) <= 40) {
+    const ig = sv("g", { class: L.kind === "real" && S.scr && S.x < L.v - 0.05 ? "ghost" : "" }, g);
+    candle(ig, px(L.v), AX, L.m * h * K, "img" + (L.kind === "virtual" ? " virt" : ""), "imgFlame");
+  }
+  // screen + where the tip's rays land on it
+  if (S.scr) {
+    const sc = screen(u, f, S.x, S.cover);
+    sv("line", { class: "scr", x1: px(S.x), y1: 44, x2: px(S.x), y2: 286 }, g);
+    const yc = sc.shift + sc.hImg, half = sc.blur / 2;
+    if (half < 25) sv("line", { class: "spot", x1: px(S.x), y1: py(yc + half) - 0.5, x2: px(S.x), y2: py(yc - half) + 0.5 }, g);
+  }
+  // edge labels
+  const lab = (x, y, k, vars, anchor) => { sv("text", { class: "lblE", x, y, "text-anchor": anchor }, fig).textContent = P.t(k, vars); };
+  if (L.kind === "inf") lab(630, 30, "parallel", {}, "end");
+  else if (L.kind === "real" && L.v > 40) lab(630, 30, "offR", { v: fmtV(L.v) }, "end");
+  else if (L.kind === "virtual" && L.v < -40) lab(10, 30, "offL", { v: fmtV(L.v) }, "start");
+  // draggable candle (drawn last so it sits on top)
+  const go = handle("obj", P.t("objAria"), u.toFixed(1), U_MIN, U_MAX, P.t("objVal", { u: nf(u) }));
+  sv("rect", { class: "ring", x: px(-u) - 22, y: py(h) - 14, width: 44, height: h * K + 34, rx: 8 }, go);
+  candle(go, px(-u), AX, h * K, "obj", "flame");
+  if (S.scr) {
+    const gs = handle("scr", P.t("scrAria"), S.x.toFixed(1), X_MIN, X_MAX, P.t("scrVal", { x: nf(S.x) }));
+    sv("rect", { class: "ring", x: px(S.x) - 20, y: 38, width: 40, height: 254, rx: 8 }, gs);
+  }
+  if (fid) { const el = fig.querySelector(`[data-fid="${fid}"]`); if (el) el.focus(); }
+  return L;
+}
+
+function screenView(L) {
+  const box = $("scrView");
+  box.innerHTML = "";
+  sv("rect", { class: "sc", x: 0, y: 0, width: 168, height: 112, rx: 10 }, box);
+  sv("text", { class: "sTxt", x: 8, y: 18 }, box).textContent = P.t("scrTitle");
+  let side = "";
+  if (!S.scr) { sv("text", { class: "sTxt", x: 84, y: 64, "text-anchor": "middle" }, box).textContent = P.t("scrNone"); }
+  else {
+    const sc = screen(L.u, L.f, S.x, S.cover), KS = Math.min(12, 66 / Math.max(1e-6, Math.abs(sc.hImg))), cy = 62 + (sc.hImg * KS) / 2;
+    const bpx = sc.blur * KS, sd = Play.clamp(bpx / 4, 0, 30);
+    const defs = sv("defs", {}, box), fl = sv("filter", { id: "bl", x: "-200%", y: "-200%", width: "500%", height: "500%" }, defs);
+    sv("feGaussianBlur", { stdDeviation: sd.toFixed(2) }, fl);
+    const gg = sv("g", { filter: sd > 0.05 ? "url(#bl)" : "", opacity: sc.light.toFixed(2) }, box);
+    candle(gg, 84, cy - sc.shift * KS, sc.hImg * KS, "sObj", "sFl");
+    const sharp = sharpAt(L, S.x, sc.blur);
+    side = (sharp ? P.t("sharpL") : P.t("blurL", { b: nf(sc.blur) })) + "<br>" + P.t("light", { p: Math.round(sc.light * 100) });
+  }
+  $("scrSide").innerHTML = side;
+}
+
+function panel(L) {
+  $("uVal").textContent = nf(L.u) + " cm"; $("fVal").textContent = nf(L.f) + " cm"; $("xsVal").textContent = nf(S.x) + " cm";
+  $("u").value = L.u; $("f").value = L.f; $("xs").value = S.x; $("scrOn").checked = S.scr; $("xs").disabled = !S.scr;
+  $("slide").textContent = P.t(S.playing ? "pause" : "slide");
+  $("slide").setAttribute("aria-pressed", S.playing ? "true" : "false");
+  Object.keys(coverBtns).forEach((k) => { coverBtns[k].classList.toggle("on", S.cover === k); coverBtns[k].setAttribute("aria-pressed", S.cover === k ? "true" : "false"); });
+  $("covers").hidden = stp && stp.i === 0 && !S.answered;
+  // caption under the figure
+  let img;
+  if (L.kind === "inf") img = P.t("capInf");
+  else if (L.kind === "real") img = P.t("capReal", { size: P.t(sizeWord(L.m)), m: fmtM(Math.abs(L.m)), v: fmtV(L.v) });
+  else img = P.t("capVirt", { size: P.t(sizeWord(L.m)), m: fmtM(Math.abs(L.m)), d: fmtV(-L.v) });
+  let scr = P.t("capNoScr");
+  const sc = screen(L.u, L.f, S.x, S.cover);
+  if (S.scr) scr = L.kind === "real" ? P.t(sharpAt(L, S.x, sc.blur) ? "capSharp" : "capBlur", { x: nf(S.x), b: nf(sc.blur) }) : P.t(L.kind === "inf" ? "capInfScr" : "capVirtScr");
+  $("cap").textContent = img + " " + scr;
+  // readout
+  const typ = L.kind === "inf" ? P.t("none") : P.t(L.kind === "real" ? "real" : "virt") + ", " + P.t(sizeWord(L.m));
+  const rows = [["rU", nf(L.u) + " cm"], ["rF", nf(L.f) + " cm"], ["rV", L.kind === "inf" ? "—" : fmtV(L.v) + (Math.abs(L.v) > 999 ? "" : " cm")],
+    ["rM", L.kind === "inf" ? "—" : fmtM(L.m)], ["rT", typ], ["rS", S.scr ? nf(S.x) + " cm / " + nf(sc.blur) + " cm" : "—"]];
+  $("readout").innerHTML = stp && stp.i === 2 ? "" : rows.map((r) => `<tr><td>${P.t(r[0])}</td><td>${r[1]}</td></tr>`).join("");
+  // rule (step 3)
+  const box = $("rule");
+  if (!stp || stp.i !== 2) box.innerHTML = "";
+  else {
+    let hT = L.kind === "inf" ? P.t("ruleInf", { f: nf(L.f) }) : P.t("ruleMain", { f: nf(L.f), u: nf(L.u), v: fmtV(L.v), m: fmtM(L.m) });
+    const ex = [[3, "Far"], [2, "2F"], [1.5, "Mid"], [1, "F"], [0.5, "In"]];
+    let t = `<div class="tablewrap"><table class="readout rtab"><tr><th>${P.t("thU")}</th><th>${P.t("thV")}</th><th>${P.t("thM")}</th><th>${P.t("thI")}</th><th>${P.t("thUse")}</th></tr>`;
+    ex.forEach(([k, z], i) => {
+      const R = lens(k * L.f, L.f);
+      const vv = R.kind === "inf" ? "∞" : nf(R.v), mm = R.kind === "inf" ? "—" : nf(R.m, 2);
+      t += `<tr class="${L.zone === i ? "cur" : ""}"><td>${P.t("z" + z)}<br>${nfs(k * L.f)}</td><td>${vv}</td><td>${mm}</td><td>${P.t("i" + z)}</td><td>${P.t("use" + z)}</td></tr>`;
+    });
+    t += "</table></div>";
+    box.innerHTML = `<p>${hT}</p><p>${P.t("ruleTable", { f: nf(L.f) })}</p>${t}<p>${P.t("ruleMove")}</p>`;
+  }
+  const msg = P.t("live", { u: nf(L.u), f: nf(L.f), img });
+  if (msg !== lastLive && !drag) { lastLive = msg; Play.live($("live"), msg); }
+}
+function update() { const L = draw(); screenView(L); panel(L); }
+
+/* ---------- direct manipulation ---------- */
+function setU(v) { S.u = Play.clamp(r10(v), U_MIN, U_MAX); }
+function setX(v) { S.x = Play.clamp(r10(v), X_MIN, X_MAX); }
+fig.addEventListener("pointerdown", (e) => {
+  const t = e.target.closest && e.target.closest("[data-fid]");
+  if (!t) return;
+  drag = t.dataset.fid; t.focus(); setPlaying(false); e.preventDefault(); move(e);
+});
+function move(e) {
+  if (!drag) return;
+  const p = Play.pointer(fig, e), xc = (p.x - X0) / K;
+  if (drag === "obj") setU(-xc); else setX(xc);
+  update();
+}
+addEventListener("pointermove", move);
+addEventListener("pointerup", () => { if (drag) { drag = null; update(); } });
+addEventListener("pointercancel", () => { drag = null; });
+fig.addEventListener("keydown", (e) => {
+  const fid = e.target.dataset && e.target.dataset.fid;
+  if (!fid) return;
+  const st = e.shiftKey ? 0.1 : 0.5;
+  let d = 0;
+  if (e.key === "ArrowRight" || e.key === "ArrowUp") d = st;
+  else if (e.key === "ArrowLeft" || e.key === "ArrowDown") d = -st;
+  else if (e.key === "Home" || e.key === "End") {
+    e.preventDefault();
+    if (fid === "obj") setU(e.key === "Home" ? U_MIN : U_MAX); else setX(e.key === "Home" ? X_MIN : X_MAX);
+    update(); return;
+  } else return;
+  e.preventDefault(); setPlaying(false);
+  if (fid === "obj") setU(S.u - (e.key === "ArrowUp" || e.key === "ArrowDown" ? -d : d)); // ← moves the candle left (farther)
+  else setX(S.x + d);
+  update();
+});
+$("u").addEventListener("input", () => { setPlaying(false); setU(+$("u").value); update(); });
+$("f").addEventListener("input", () => { const v = +$("f").value; S.f = Number.isFinite(v) ? Play.clamp(v, F_MIN, F_MAX) : 8; update(); });
+$("xs").addEventListener("input", () => { setX(+$("xs").value); update(); });
+$("scrOn").addEventListener("change", () => { S.scr = $("scrOn").checked; update(); });
+const coverBtns = {};
+[["none", "cNone"], ["top", "cTop"], ["bottom", "cBot"]].forEach(([k, s]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = P.t(s);
+  b.addEventListener("click", () => { S.cover = k; update(); });
+  $("covers").appendChild(b); coverBtns[k] = b;
+});
+
+/* ---------- slide-in animation (only on request) ---------- */
+function tick(ts) {
+  if (!S.playing) return;
+  const dt = last ? Math.min(0.1, (ts - last) / 1000) : 0;
+  last = ts;
+  S.u = Math.max(U_MIN, S.u - 3 * dt);
+  if (S.u <= U_MIN) { S.u = U_MIN; S.playing = false; }
+  update();
+  if (S.playing) raf = requestAnimationFrame(tick);
+}
+function setPlaying(on) {
+  if (on === S.playing) return;
+  S.playing = on; cancelAnimationFrame(raf); last = 0;
+  if (on) { if (S.u <= U_MIN + 0.05) S.u = U_MAX; S.scr = false; raf = requestAnimationFrame(tick); }
+  else S.u = r10(S.u);
+  update();
+}
+$("slide").addEventListener("click", () => setPlaying(!S.playing));
+
+/* ---------- steps ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+}, () => { S.answered = true; S.cover = "top"; update(); });
+let ready = false;
+stp = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  if (ready) update();
+});
+function resetAll() {
+  cancelAnimationFrame(raf);
+  Object.assign(S, { u: 20, f: 8, x: 13.3, scr: true, cover: "none", answered: false, playing: false });
+  pr.reset(); stp.go(0); update();
+}
+$("reset").addEventListener("click", resetAll);
+ready = true;
+resetAll();
+</script>
+</body>
+</html>

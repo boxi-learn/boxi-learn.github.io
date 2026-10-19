@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why are cells so small?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .lab { font-size: 13px; fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round; }
+  .lab.b { font-weight: 650; }
+  .lab.m { fill: var(--muted); }
+  .lab.no { fill: var(--no); font-weight: 650; }
+  .lab.ok { fill: var(--a); font-weight: 650; }
+  .lab.q { fill: var(--a); font-size: 30px; font-weight: 750; }
+  .ft { stroke: var(--a); stroke-width: 1.2; stroke-linejoin: round; fill: var(--a); }
+  .ft.t { fill-opacity: .28; } .ft.l { fill-opacity: .5; } .ft.r { fill-opacity: .7; }
+  .base { fill: var(--surface); stroke: none; }
+  .grid { stroke: var(--surface); stroke-width: .8; opacity: .55; }
+  .hunger { fill: var(--no); stroke: none; }
+  .food { fill: var(--hl); stroke: var(--fg); stroke-width: .6; }
+  .axis { stroke: var(--muted); stroke-width: 1; fill: none; }
+  .curve { stroke: var(--a); stroke-width: 2.5; fill: none; }
+  .need { stroke: var(--no); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+  .mk { fill: var(--a); stroke: var(--surface); stroke-width: 2; }
+  .mk.s { fill: var(--hl); }
+  .barbg { fill: var(--line); opacity: .7; }
+  .bIn { fill: var(--hl); } .bUse { fill: var(--no); } .bStore { fill: var(--a); }
+  .body { fill: var(--muted); opacity: .45; }
+  .lens { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5; }
+  .lead { stroke: var(--fg); stroke-width: 1; opacity: .6; fill: none; }
+  .ghost { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .rbc { fill: var(--no); opacity: .75; }
+  .nerve { stroke: var(--c); stroke-width: 3; fill: none; stroke-linecap: round; }
+  .soma { fill: var(--c); }
+  .yolk { fill: var(--hl); opacity: .8; }
+  .egg { fill: var(--soft); stroke: var(--fg); stroke-width: 1.2; }
+  .controls .wide { min-width: 6.5em; }
+  #extra { font-size: 14px; }
+  #extra strong { color: var(--fg); }
+  .status { font-weight: 700; }
+  .status.ok { color: var(--a); } .status.warn { color: var(--b); } .status.no { color: var(--no); }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctl">
+        <label for="side" data-t="sideLabel"></label>
+        <input type="range" id="side" min="1" max="10" step="0.5" value="2">
+        <span class="val" id="sideVal"></span>
+        <button type="button" class="small wide" id="feed"></button>
+        <button type="button" class="small wide" id="split" aria-pressed="false"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="extra"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+ en: {
+  title: "Why are cells so small?", eyebrow: "Biology · Stage 3", h1: "Why are cells so small?",
+  intro: "Guess first. Then grow a model cell, feed it through its surface, and see why big bodies use more cells instead of bigger ones.",
+  reset: "Reset", figAria: "Model cube cell with a surface-to-volume chart and a food balance",
+  s1: "Guess", s2: "Grow & feed", s3: "Rule",
+  k1: "Predict first", t1: "Mouse cells vs elephant cells",
+  b1: "Pick one. Being wrong costs nothing: step 2 lets you test the idea.",
+  q: "An elephant weighs about {r} times as much as a mouse. How do their body cells compare?",
+  o1: "The elephant's cells are much bigger", o2: "About the same size: the elephant just has far more of them", o3: "The elephant's cells are smaller",
+  right: "Now find out why in step 2.", wrong: "Keep your guess and test it in step 2.",
+  fb1: "A very common idea: a big animal, so big cells. If cells grew with the body, an elephant's would be about {k} times wider. Step 2 shows why a cell that big could not feed itself.",
+  fb2: "Yes. But why can't a cell simply grow bigger? Step 2 shows what goes wrong.",
+  fb3: "Not really: in most tissues they are about the same size. Step 2 shows what sets the limit.",
+  fMouse: "mouse ≈ {m} g", fEle: "elephant ≈ {e} t", fCells: "cells?",
+  sideLabel: "Side s", play: "▶ Feed", pause: "❚❚ Pause", splitBtn: "Split into 8", mergeBtn: "Merge back",
+  k2: "Hands on", t2: "Grow the cell, then feed it",
+  b2: "Drag the slider to change the side. Food can only get in through the surface (yellow dots); every bit of the inside uses food. Press Feed to run it, then try Split into 8.",
+  x2a: "Side {s}: surface 6 × {s}² = <strong>{S}</strong>, volume {s}³ = <strong>{V}</strong>, surface : volume = 6 ÷ {s} = <strong>{r}</strong>.",
+  x2dbl: " Compared with side {h}: surface ×{a}, volume ×{b}.",
+  x2split: "8 cells of side {h}: total volume {V} (same), total surface {S} ({k} times the big cell's). Each small cell has surface : volume = {r}.",
+  live2: "Food in {in} per second, food used {use} per second: supply covers {pct}% of the need. {st}",
+  stOk: "The cell keeps up.", stWarn: "The cell is falling behind.", stNo: "The cell is starving.",
+  cOk: "keeps up", cWarn: "falling behind", cNo: "starving",
+  gIn: "in (∝ surface)", gUse: "used (∝ volume)", gStore: "food stored",
+  cTitle: "surface : volume", cNeed: "needed: {n}", cAxis: "side s", cOne: "1 unit",
+  k3: "The rule", t3: "Cells stay small; big bodies have more of them",
+  b3: "Make a cell twice as wide and its needs (volume) grow 8 times but its supply (surface) only 4 times. Its surface-to-volume ratio halves, so a big cell cannot feed itself fast enough.",
+  x3: "So an elephant is not built from giant cells. Its red blood cells are about {e} µm across, a mouse's about {m} µm: about {x} times wider, while the elephant is about {k} times longer. If cells grew with the body, an elephant's red blood cell would be ≈ {g} µm. Many other body cells are 10–30 µm across in both animals. Exceptions keep the rule: a nerve cell can be {nl} long but only a few µm thick, so no part is far from its surface; an egg cell is big because most of it is stored food that is not busy using energy.",
+  live3: "Surface ×4 and volume ×8 when the width doubles, every time.",
+  fRbc: "red blood cell, µm", fMouseR: "mouse", fHuman: "human", fEleR: "elephant",
+  fIf: "if cells grew with the body: ≈ {g} µm →", fNerve: "nerve cell: up to ~{nl} long, a few µm thick", fEgg: "egg: big, mostly stored food (yolk)",
+  resultTitle: "What we found", resultMain: "width ×2 → surface ×{a}, volume ×{b}",
+  resultNote: "Supply grows with the surface, need with the volume. So cells stay small, and big animals have more cells, not bigger ones.",
+  explainK: "Explain it", explainQ: "A friend says an elephant must have huge cells. Using the cube model, explain why a cell twice as wide gets hungrier faster than it can feed, and what an elephant does instead.",
+  homeK: "Try at home", homeQ: "Put a big ice cube and the same amount of crushed ice in two glasses of warm water. Which melts first? Heat gets in through the surface, like food into a cell.",
+  foot: "Model: food enters at {a} unit per second per unit² of surface; the cell uses {b} units per second per unit³ of volume, so supply keeps up while 6/s ≥ {n}, i.e. s ≤ {c}. These rates are a model, not real cell numbers. Data (approximate): masses mouse ≈ {m} g, African elephant ≈ {e} t; red blood cell diameters mouse ≈ {rm} µm, human ≈ {rh} µm, elephant ≈ {re} µm. Most mammal cell types keep about the same size across body sizes (Savage et al., PNAS 2007). Human motor nerve fibres can be about 1 m long and about 1–20 µm thick; a human egg is about 0.12 mm, a chicken yolk (one cell) about 3 cm. · CC BY 4.0 · Boxi Yu",
+ },
+ zh: {
+  title: "细胞为什么这么小？", eyebrow: "生物 · 阶段 3", h1: "细胞为什么这么小？",
+  intro: "先猜一猜。再把一个模型细胞变大，从表面给它喂食，看看为什么大身体用的是更多的细胞，而不是更大的细胞。",
+  reset: "重置", figAria: "立方体模型细胞，旁边是表面积与体积之比的图和食物收支",
+  s1: "先猜", s2: "变大 · 喂食", s3: "规律",
+  k1: "先猜一猜", t1: "老鼠的细胞和大象的细胞",
+  b1: "选一个。猜错没关系，第 2 步可以检验。",
+  q: "大象的体重大约是老鼠的 {r} 倍。它们身体里的细胞相比如何？",
+  o1: "大象的细胞大得多", o2: "差不多大，只是大象的细胞多得多", o3: "大象的细胞更小",
+  right: "到第 2 步看看为什么。", wrong: "记住你的猜测，到第 2 步检验。",
+  fb1: "很多人这么想：动物大，细胞也大。要是细胞跟着身体一起长，大象的细胞会宽大约 {k} 倍。第 2 步告诉你，这么大的细胞喂不饱自己。",
+  fb2: "对。可是细胞为什么不能干脆长大一点？第 2 步看看会出什么问题。",
+  fb3: "不是这样：大多数组织里，两者的细胞差不多大。第 2 步看看是什么在限制细胞的大小。",
+  fMouse: "老鼠 ≈ {m} 克", fEle: "大象 ≈ {e} 吨", fCells: "细胞？",
+  sideLabel: "边长 s", play: "▶ 喂食", pause: "❚❚ 暂停", splitBtn: "切成 8 块", mergeBtn: "合回去",
+  k2: "动手", t2: "把细胞变大，再喂喂它",
+  b2: "拖滑块改变边长。食物只能从表面进来（黄点），而里面每一处都要用食物。按「喂食」运行，再试试「切成 8 块」。",
+  x2a: "边长 {s}：表面积 6 × {s}² = <strong>{S}</strong>，体积 {s}³ = <strong>{V}</strong>，表面积 : 体积 = 6 ÷ {s} = <strong>{r}</strong>。",
+  x2dbl: "和边长 {h} 比：表面积 ×{a}，体积 ×{b}。",
+  x2split: "8 个边长 {h} 的细胞：总体积 {V}（不变），总表面积 {S}（是一个大细胞的 {k} 倍）。每个小细胞的表面积 : 体积 = {r}。",
+  live2: "每秒进来的食物 {in}，每秒用掉 {use}：供应够需要的 {pct}%。{st}",
+  stOk: "细胞吃得饱。", stWarn: "细胞有点跟不上了。", stNo: "细胞在挨饿。",
+  cOk: "吃得饱", cWarn: "跟不上", cNo: "挨饿",
+  gIn: "进来（∝ 表面积）", gUse: "用掉（∝ 体积）", gStore: "储存的食物",
+  cTitle: "表面积 : 体积", cNeed: "需要：{n}", cAxis: "边长 s", cOne: "1 单位",
+  k3: "规律", t3: "细胞保持小；大身体靠更多的细胞",
+  b3: "细胞宽一倍，需要（体积）变 8 倍，供应（表面积）只变 4 倍。表面积与体积之比减半，太大的细胞喂不饱自己。",
+  x3: "所以大象不是用巨大的细胞搭起来的。它的红细胞直径约 {e} 微米，老鼠的约 {m} 微米：只宽约 {x} 倍，而大象的身长大约是老鼠的 {k} 倍。要是细胞跟着身体长，大象的红细胞会有约 {g} 微米。许多其他体细胞在两种动物里都是 10–30 微米。例外也符合这条规律：神经细胞可以长达 {nl}，却只有几微米粗，哪一处离表面都不远；卵细胞大，是因为它大部分是储存的养料，并不在消耗能量。",
+  live3: "宽度翻倍，表面积 ×4，体积 ×8，每次都一样。",
+  fRbc: "红细胞直径，微米", fMouseR: "老鼠", fHuman: "人", fEleR: "大象",
+  fIf: "要是细胞跟着身体长：≈ {g} 微米 →", fNerve: "神经细胞：可长约 {nl}，只有几微米粗", fEgg: "卵细胞：大，主要是储存的养料（卵黄）",
+  resultTitle: "我们发现", resultMain: "宽 ×2 → 表面积 ×{a}，体积 ×{b}",
+  resultNote: "供应跟着表面积长，需要跟着体积长。所以细胞保持小，大动物是细胞更多，而不是细胞更大。",
+  explainK: "说一说", explainQ: "朋友说大象的细胞一定很大。用立方体模型给他讲讲：细胞宽一倍，为什么饿得比吃得快；大象又是怎么办的。",
+  homeK: "家里做一做", homeQ: "两杯温水，一杯放一大块冰，另一杯放同样多的碎冰。哪杯先化完？热量从表面进去，就像食物进入细胞。",
+  foot: "模型：每单位² 表面每秒进来 {a} 单位食物；每单位³ 体积每秒用掉 {b} 单位，所以只要 6/s ≥ {n}，即 s ≤ {c}，供应就跟得上。这些速率是模型，不是真实细胞的数。数据（近似值）：老鼠约 {m} 克，非洲象约 {e} 吨；红细胞直径老鼠约 {rm} 微米，人约 {rh} 微米，大象约 {re} 微米。哺乳动物大多数细胞类型的大小不随体型变化（Savage 等，PNAS，2007）。人的运动神经纤维可长约 1 米、粗约 1–20 微米；人的卵细胞约 0.12 毫米，鸡蛋黄（一个细胞）约 3 厘米。· CC BY 4.0 · Boxi Yu",
+ },
+});
+
+// ---------- model (all numbers computed here) ----------
+const A_IN = 1;      // food in per second per unit² of surface
+const B_USE = 2;     // food used per second per unit³ of volume
+const CAP = 1.5;       // store, in seconds of full use per unit³ (sets how fast it drains)
+const NEED_RATIO = B_USE / A_IN;            // surface:volume needed to keep up
+const CRIT = 6 / NEED_RATIO;                // largest side that keeps up
+const DATA = { mouseG: 20, eleT: 5, rbc: { mouse: 6, human: 7.5, ele: 9 }, nerveM: 1 };
+const MASS_RATIO = DATA.eleT * 1e6 / DATA.mouseG;
+const LEN_RATIO = Math.cbrt(MASS_RATIO);
+const cell = (s, split) => {
+  const n = split ? 8 : 1, h = split ? s / 2 : s;
+  const S = n * 6 * h * h, V = n * h * h * h;
+  const supply = A_IN * S, use = B_USE * V, ratio = supply / use;
+  return { n, h, S, V, sv: S / V, supply, use, ratio };
+};
+const status = (r) => (r >= 1 ? "ok" : r >= 0.75 ? "warn" : "no");
+// store level change per second (0..1 scale); depends only on the side of each small cell
+const dStore = (h) => (A_IN * 6 / h - B_USE) / (B_USE * CAP);
+
+const g = (x) => (Number.isFinite(x) ? String(+x.toFixed(2)) : "—");
+const big = (x) => (Number.isFinite(x) ? Math.round(x).toLocaleString(P.lang === "zh" ? "zh-CN" : "en-US") : "—");
+const sig2 = (x) => { if (!(x > 0)) return 0; const p = Math.pow(10, Math.floor(Math.log10(x)) - 1); return Math.round(x / p) * p; };
+
+// ---------- state ----------
+const fig = document.getElementById("fig"), side = document.getElementById("side");
+const feedBtn = document.getElementById("feed"), splitBtn = document.getElementById("split");
+const extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+let step = 0, split = false, store = 1, raf = 0, last = 0, acc = 0, predictNote = "";
+let dots = [], H = null; // handles for the animated parts of step 2
+
+const C30 = Math.cos(Math.PI / 6), U = 13, OX = 165, OY = 182;
+const proj = (x, y, z) => [OX + (x - y) * C30 * U, OY + (x + y) * 0.5 * U - z * U];
+const pts = (arr) => arr.map((p) => proj(...p).map((v) => v.toFixed(1)).join(",")).join(" ");
+const T = (x, y, txt, cls, parent, anchor) => { const e = Play.svg("text", { x, y, class: "lab " + (cls || ""), "text-anchor": anchor || "start" }, parent); e.textContent = txt; return e; };
+
+function faces(x0, y0, z0, a) {
+  const x1 = x0 + a, y1 = y0 + a, z1 = z0 + a;
+  return {
+    t: [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]],
+    l: [[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]],
+    r: [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]],
+  };
+}
+function drawCube(parent, x0, y0, z0, a) {
+  const gr = Play.svg("g", {}, parent), F = faces(x0, y0, z0, a), hung = [];
+  for (const k of ["t", "l", "r"]) {
+    Play.svg("polygon", { class: "base", points: pts(F[k]) }, gr);
+    Play.svg("polygon", { class: "ft " + k, points: pts(F[k]) }, gr);
+    const lines = [];
+    for (let i = 1; i < a - 1e-9; i++) {
+      if (k === "t") lines.push([[x0 + i, y0, z0 + a], [x0 + i, y0 + a, z0 + a]], [[x0, y0 + i, z0 + a], [x0 + a, y0 + i, z0 + a]]);
+      if (k === "l") lines.push([[x0 + i, y0 + a, z0], [x0 + i, y0 + a, z0 + a]], [[x0, y0 + a, z0 + i], [x0 + a, y0 + a, z0 + i]]);
+      if (k === "r") lines.push([[x0 + a, y0 + i, z0], [x0 + a, y0 + i, z0 + a]], [[x0 + a, y0, z0 + i], [x0 + a, y0 + a, z0 + i]]);
+    }
+    for (const [p, q] of lines) { const [a1, b1] = proj(...p), [a2, b2] = proj(...q); Play.svg("line", { class: "grid", x1: a1, y1: b1, x2: a2, y2: b2 }, gr); }
+    hung.push(Play.svg("polygon", { class: "hunger", points: pts(F[k]), "fill-opacity": 0 }, gr));
+  }
+  const dg = Play.svg("g", {}, gr);
+  return { x0, y0, z0, a, hung, dg };
+}
+
+// ---------- step 1 figure ----------
+function drawGuess() {
+  // mouse (small) and elephant (big), each with a zoom lens holding "?"
+  Play.svg("ellipse", { class: "body", cx: 110, cy: 250, rx: 26, ry: 15 }, fig);
+  Play.svg("circle", { class: "body", cx: 136, cy: 240, r: 10 }, fig);
+  Play.svg("path", { class: "lead", d: "M84 254 q-24 6 -30 -10" }, fig);
+  T(110, 292, P.t("fMouse", { m: DATA.mouseG }), "m", fig, "middle");
+  Play.svg("rect", { class: "body", x: 300, y: 170, width: 190, height: 100, rx: 44 }, fig);
+  Play.svg("circle", { class: "body", cx: 490, cy: 175, r: 42 }, fig);
+  Play.svg("path", { class: "body", d: "M512 200 q22 40 4 92 h-14 q12 -46 -8 -80 z" }, fig);
+  for (const x of [318, 350, 430, 462]) Play.svg("rect", { class: "body", x, y: 250, width: 26, height: 60, rx: 8 }, fig);
+  T(400, 336, P.t("fEle", { e: DATA.eleT }), "m", fig, "middle");
+  for (const [cx, cy, tx, ty] of [[110, 110, 110, 238], [390, 90, 390, 190]]) {
+    Play.svg("line", { class: "lead", x1: cx, y1: cy + 46, x2: tx, y2: ty }, fig);
+    Play.svg("circle", { class: "lens", cx, cy, r: 46 }, fig);
+    T(cx, cy + 11, "?", "q", fig, "middle");
+    T(cx, cy - 56, P.t("fCells"), "b", fig, "middle");
+  }
+}
+
+// ---------- step 2 figure ----------
+const CH = { x0: 352, x1: 584, y0: 196, y1: 54, smax: 10, rmax: 6 };
+const cx = (s) => CH.x0 + (s / CH.smax) * (CH.x1 - CH.x0);
+const cy = (r) => CH.y0 - (Math.min(r, CH.rmax) / CH.rmax) * (CH.y0 - CH.y1);
+
+function drawGrow() {
+  const s = +side.value, c = cell(s, split);
+  const cubes = [];
+  if (!split) cubes.push(drawCube(fig, -s / 2, -s / 2, -s / 2, s));
+  else {
+    const h = s / 2, gap = Math.max(0.4, s * 0.12), lo = -h - gap / 2, hi = gap / 2;
+    const list = [];
+    for (const x of [lo, hi]) for (const y of [lo, hi]) for (const z of [lo, hi]) list.push([x, y, z]);
+    list.sort((p, q) => p[0] + p[1] + p[2] - (q[0] + q[1] + q[2]));
+    for (const [x, y, z] of list) cubes.push(drawCube(fig, x, y, z, h));
+  }
+  // scale bar: 1 unit
+  Play.svg("line", { class: "axis", x1: 20, y1: 344, x2: 20 + U, y2: 344, "stroke-width": 3 }, fig);
+  T(20 + U + 6, 348, P.t("cOne"), "m", fig);
+
+  // chart: surface:volume = 6/s
+  T(CH.x0, 26, P.t("cTitle") + " = 6 ÷ s", "b", fig);
+  Play.svg("path", { class: "axis", d: `M${CH.x0} ${CH.y1 - 6} V${CH.y0} H${CH.x1}` }, fig);
+  let d = "";
+  for (let i = 0; i <= 90; i++) { const x = 1 + i * 0.1; d += (i ? "L" : "M") + cx(x).toFixed(1) + " " + cy(6 / x).toFixed(1); }
+  Play.svg("path", { class: "curve", d }, fig);
+  Play.svg("line", { class: "need", x1: CH.x0, y1: cy(NEED_RATIO), x2: CH.x1, y2: cy(NEED_RATIO) }, fig);
+  T(CH.x1, cy(NEED_RATIO) - 6, P.t("cNeed", { n: g(NEED_RATIO) }), "no", fig, "end");
+  for (const t of [1, 5, 10]) T(cx(t), CH.y0 + 16, String(t), "m", fig, "middle");
+  for (const r of [2, 6]) T(CH.x0 - 5, cy(r) + 4, String(r), "m", fig, "end");
+  T(CH.x1, CH.y0 + 32, P.t("cAxis") + " →", "m", fig, "end");
+  Play.svg("circle", { class: "mk", cx: cx(s), cy: cy(6 / s), r: 6 }, fig);
+  if (split) {
+    const r = 6 / c.h, clipped = r > CH.rmax;
+    Play.svg("circle", { class: "mk s", cx: cx(c.h), cy: cy(r), r: 6 }, fig);
+    T(cx(c.h) + 10, cy(r) + 5, (clipped ? "↑ " : "") + g(r), "b", fig);
+  }
+
+  // food balance gauge
+  const gx = 352, gw = 232, mx = Math.max(c.supply, c.use, 1e-9);
+  const row = (y, label, val, cls, frac) => {
+    T(gx, y - 4, label + "  " + val, "m", fig);
+    Play.svg("rect", { class: "barbg", x: gx, y, width: gw, height: 9, rx: 3 }, fig);
+    return Play.svg("rect", { class: cls, x: gx, y, width: Math.max(0, gw * frac), height: 9, rx: 3 }, fig);
+  };
+  row(252, P.t("gIn"), g(c.supply), "bIn", c.supply / mx);
+  row(284, P.t("gUse"), g(c.use), "bUse", c.use / mx);
+  const storeBar = row(316, P.t("gStore"), "", "bStore", store);
+  const st = status(c.ratio);
+  const stText = T(gx, 346, "", st === "ok" ? "ok" : "no", fig);
+  H = { cubes, storeBar, stText, gw, c, s };
+  paintStore();
+}
+
+function paintStore() {
+  if (!H) return;
+  const st = status(H.c.ratio);
+  const starving = store <= 1e-6 && H.c.ratio < 1;
+  for (const cb of H.cubes) for (const p of cb.hung) p.setAttribute("fill-opacity", ((1 - store) * 0.6).toFixed(3));
+  H.storeBar.setAttribute("width", (H.gw * Play.clamp(store, 0, 1)).toFixed(1));
+  H.stText.textContent = Math.round(H.c.ratio * 100) + "% · " + P.t(starving ? "cNo" : st === "ok" ? "cOk" : st === "warn" ? "cWarn" : "cNo");
+  H.stText.setAttribute("class", "lab " + (st === "ok" ? "ok" : "no"));
+}
+
+// ---------- step 3 figure ----------
+function drawRule() {
+  const x0 = 110, x1 = 440, umax = 12, X = (u) => x0 + (u / umax) * (x1 - x0);
+  T(20, 30, P.t("fRbc"), "b", fig);
+  const rows = [["fMouseR", DATA.rbc.mouse], ["fHuman", DATA.rbc.human], ["fEleR", DATA.rbc.ele]];
+  rows.forEach(([k, v], i) => {
+    const y = 56 + i * 30;
+    T(x0 - 8, y + 12, P.t(k), "", fig, "end");
+    Play.svg("rect", { class: "rbc", x: x0, y, width: X(v) - x0, height: 16, rx: 4 }, fig);
+    T(X(v) + 6, y + 13, g(v), "m", fig);
+  });
+  const gy = 56 + 3 * 30, ghost = DATA.rbc.mouse * LEN_RATIO;
+  Play.svg("rect", { class: "ghost", x: x0, y: gy, width: 580 - x0, height: 16, rx: 4 }, fig);
+  T(x0 + 6, gy + 34, P.t("fIf", { g: big(sig2(ghost)) }), "m", fig);
+  // exceptions: nerve cell (long, thin) and egg (big, mostly yolk)
+  Play.svg("circle", { class: "soma", cx: 40, cy: 262, r: 11 }, fig);
+  Play.svg("path", { class: "nerve", d: "M51 262 C150 250 250 274 400 262" }, fig);
+  Play.svg("path", { class: "nerve", d: "M400 262 l14 -10 M400 262 l16 4 M400 262 l10 12 M30 254 l-10 -10 M32 270 l-12 8" }, fig);
+  T(40, 296, P.t("fNerve", { nl: nerveText() }), "", fig);
+  Play.svg("circle", { class: "egg", cx: 520, cy: 270, r: 46 }, fig);
+  Play.svg("circle", { class: "yolk", cx: 520, cy: 270, r: 38 }, fig);
+  Play.svg("circle", { class: "soma", cx: 534, cy: 252, r: 5 }, fig);
+  T(580, 340, P.t("fEgg"), "", fig, "end");
+}
+const nerveText = () => (P.lang === "zh" ? DATA.nerveM + " 米" : DATA.nerveM + " m");
+
+// ---------- text ----------
+function text() {
+  if (step === 0) { extra.textContent = predictNote; Play.live(liveEl, ""); return; }
+  if (step === 1) {
+    const s = +side.value, c = cell(s, split), h = s / 2, one = cell(s, false);
+    if (!split) {
+      let html = P.t("x2a", { s: g(s), S: g(c.S), V: g(c.V), r: g(c.sv) });
+      if (s >= 2) html += P.t("x2dbl", { h: g(h), a: g(c.S / cell(h, false).S), b: g(c.V / cell(h, false).V) });
+      extra.innerHTML = html;
+    } else extra.innerHTML = P.t("x2split", { h: g(c.h), V: g(c.V), S: g(c.S), k: g(c.S / one.S), r: g(c.sv) });
+    const st = status(c.ratio);
+    Play.live(liveEl, P.t("live2", { in: g(c.supply), use: g(c.use), pct: Math.round(c.ratio * 100), st: P.t(st === "ok" ? "stOk" : st === "warn" ? "stWarn" : "stNo") }));
+    return;
+  }
+  extra.textContent = P.t("x3", {
+    e: g(DATA.rbc.ele), m: g(DATA.rbc.mouse), x: g(DATA.rbc.ele / DATA.rbc.mouse), k: big(LEN_RATIO),
+    g: big(sig2(DATA.rbc.mouse * LEN_RATIO)), nl: nerveText(),
+  });
+  Play.live(liveEl, P.t("live3"));
+}
+
+function draw() {
+  fig.innerHTML = "";
+  dots = []; H = null;
+  if (step === 0) drawGuess(); else if (step === 1) drawGrow(); else drawRule();
+  document.getElementById("sideVal").textContent = "s = " + g(+side.value);
+  feedBtn.textContent = raf ? P.t("pause") : P.t("play");
+  splitBtn.textContent = split ? P.t("mergeBtn") : P.t("splitBtn");
+  splitBtn.setAttribute("aria-pressed", split ? "true" : "false");
+  text();
+}
+
+// ---------- feeding animation (never autoplays) ----------
+function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; feedBtn.textContent = P.t("play"); }
+function spawn() {
+  const cb = H.cubes[Math.floor(Math.random() * H.cubes.length)], a = cb.a, k = Math.floor(Math.random() * 3);
+  const u = Math.random() * a, v = Math.random() * a;
+  const p = k === 0 ? [cb.x0 + u, cb.y0 + v, cb.z0 + a] : k === 1 ? [cb.x0 + u, cb.y0 + a, cb.z0 + v] : [cb.x0 + a, cb.y0 + u, cb.z0 + v];
+  const q = [cb.x0 + a / 2, cb.y0 + a / 2, cb.z0 + a / 2];
+  const el = Play.svg("circle", { class: "food", r: 2.6 }, cb.dg);
+  dots.push({ p, q, t: 0, el });
+}
+function tick(t) {
+  const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+  last = t;
+  if (!H) { stop(); return; }
+  store = Play.clamp(store + dStore(H.c.h) * dt, 0, 1);
+  if (!Play.reduced) {
+    acc += H.c.supply * 0.2 * dt;           // dots per second ∝ total surface
+    while (acc >= 1) { acc -= 1; spawn(); }
+    dots = dots.filter((d) => {
+      d.t += dt / 0.9;
+      if (d.t >= 1) { d.el.remove(); return false; }
+      const f = d.t * 0.8, [x, y] = proj(d.p[0] + (d.q[0] - d.p[0]) * f, d.p[1] + (d.q[1] - d.p[1]) * f, d.p[2] + (d.q[2] - d.p[2]) * f);
+      d.el.setAttribute("cx", x.toFixed(1)); d.el.setAttribute("cy", y.toFixed(1));
+      d.el.setAttribute("opacity", (1 - d.t).toFixed(2));
+      return true;
+    });
+  }
+  paintStore();
+  raf = requestAnimationFrame(tick);
+}
+feedBtn.addEventListener("click", () => {
+  if (raf) { stop(); return; }
+  last = 0; acc = 0;
+  raf = requestAnimationFrame(tick);
+  feedBtn.textContent = P.t("pause");
+});
+splitBtn.addEventListener("click", () => { split = !split; store = 1; draw(); });
+side.addEventListener("input", () => { store = 1; draw(); });
+
+// ---------- steps ----------
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q", { r: big(MASS_RATIO) }),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { predictNote = P.t("fb" + (i + 1), { k: big(LEN_RATIO) }); if (step === 0) extra.textContent = predictNote; });
+
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  if (i !== 1) stop();
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  document.getElementById("predict").hidden = i !== 0;
+  document.getElementById("ctl").hidden = i !== 1;
+  draw();
+});
+
+document.getElementById("resultMain").textContent = P.t("resultMain", { a: g(cell(2, false).S / cell(1, false).S), b: g(cell(2, false).V / cell(1, false).V) });
+document.getElementById("foot").textContent = P.t("foot", {
+  a: g(A_IN), b: g(B_USE), n: g(NEED_RATIO), c: g(CRIT), m: DATA.mouseG, e: DATA.eleT,
+  rm: g(DATA.rbc.mouse), rh: g(DATA.rbc.human), re: g(DATA.rbc.ele),
+});
+document.getElementById("reset").addEventListener("click", () => {
+  stop(); side.value = 2; split = false; store = 1; predictNote = ""; pr.reset(); st.go(0);
+});
+</script>
+</body>
+</html>

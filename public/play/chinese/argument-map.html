@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map an argument</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .board { padding: 14px; display: flex; flex-direction: column; gap: 12px; min-height: 360px; }
+  .meter { background: var(--soft); border-radius: 12px; padding: 9px 12px; font-size: 13px; color: var(--muted); }
+  .meter .row { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .meter b { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .meter .track { height: 10px; border-radius: 99px; background: var(--line); margin-top: 6px; overflow: hidden; }
+  .meter .fill { height: 100%; width: 0; background: var(--a); border-radius: 99px; transition: width .35s; }
+  @media (prefers-reduced-motion: reduce) { .meter .fill { transition: none; } }
+  .map { display: flex; flex-direction: column; }
+  .tgt { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: center; width: 100%; min-height: 46px; padding: 6px; border: 2px dashed var(--line); border-radius: 12px; background: transparent; font-size: 13px; color: var(--muted); text-align: center; }
+  .tgt .lab { font-size: 13px; color: var(--muted); }
+  .tgt.ready { border-color: var(--hl); }
+  .tgt.over { border-color: var(--a); background: var(--soft); }
+  .tgt.filled { border-style: solid; }
+  .tgt.claim.filled { border-color: var(--a); }
+  .tgt.reason.filled { border-color: var(--c); }
+  .tgt.evid.filled { border-color: var(--b); }
+  .tgt.dim { opacity: .5; }
+  .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .col { display: flex; flex-direction: column; min-width: 0; }
+  .conn { display: block; width: 100%; height: 26px; }
+  .conn path { fill: none; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+  .conn .solid { stroke: var(--a); }
+  .conn .weak { stroke: var(--no); stroke-dasharray: 5 4; }
+  .conn .none { stroke: var(--line); stroke-dasharray: 3 4; }
+  .chip { display: inline-flex; gap: 4px; align-items: baseline; padding: 3px 7px; border-radius: 8px; font-size: 13px; line-height: 1.35; color: var(--fg); background: var(--surface); border: 1px solid var(--line); text-align: left; max-width: 100%; overflow-wrap: anywhere; }
+  .chip .n { font-weight: 700; flex: none; }
+  .chip .ge { color: var(--muted); }
+  .claim .chip { background: var(--a); border-color: var(--a); color: var(--surface); font-size: 14px; }
+  .claim .chip .ge { color: var(--surface); opacity: .85; }
+  .reason .chip .n { color: var(--c); }
+  .evid .chip .n { color: var(--b); }
+  .demo { font-size: 11px; font-weight: 700; color: var(--b); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; white-space: nowrap; }
+  .tgt.wobble { border-color: var(--no) !important; border-style: dashed !important; transform: rotate(-3deg); transform-origin: 50% 100%; animation: wob 1.8s ease-in-out infinite; }
+  @keyframes wob { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+  @media (prefers-reduced-motion: reduce) { .tgt.wobble { animation: none; } }
+  .tgt.wobble .chip .n { color: var(--no); }
+  .hang { font-size: 12px; color: var(--no); font-weight: 700; text-align: center; min-height: 1.2em; }
+  .bins { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bins .tgt { min-height: 52px; flex-direction: column; }
+  .bins .chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+  .tray { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .tray .hd { font-size: 13px; color: var(--muted); }
+  .sent { display: flex; gap: 8px; align-items: flex-start; text-align: left; width: 100%; padding: 7px 10px; border-radius: 10px; touch-action: none; }
+  .sent .n { font-weight: 700; color: var(--a); flex: none; }
+  .sent .zh { font-size: 15px; line-height: 1.55; }
+  .sent .en { display: block; font-size: 13px; color: var(--muted); line-height: 1.45; margin-top: 2px; }
+  .sent.sel { outline: 3px solid var(--hl); outline-offset: 2px; }
+  .sent.tried { border-style: dashed; border-color: var(--no); opacity: .7; }
+  .sent.shake { animation: shake .35s; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  @media (prefers-reduced-motion: reduce) { .sent.shake { animation: none; } }
+  .ghost { position: fixed; z-index: 9; pointer-events: none; transform: translate(-50%, -60%); opacity: .9; max-width: 260px; }
+  .louder { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  .fb3 { font-size: 14px; min-height: 1.4em; color: var(--fg) !important; }
+  .fb3.no { color: var(--no) !important; }
+  .rule { font-size: 16px !important; color: var(--fg) !important; font-weight: 650; }
+  .nums { font-variant-numeric: tabular-nums; }
+  .legend .dot.k { background: var(--a); } .legend .dot.r { background: var(--c); } .legend .dot.e { background: var(--b); }
+  @media (max-width: 560px) {
+    .board { padding: 10px; }
+    .cols { gap: 5px; }
+    .tgt { padding: 4px; }
+    .chip { font-size: 12.5px; padding: 2px 4px; }
+    .tgt .lab { font-size: 13px; }
+  }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="undo" data-t="undo"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="board" id="board" role="group" data-t-aria="boardAria">
+        <div class="meter" id="meter"></div>
+        <div class="map" id="map"></div>
+        <div class="louder" id="louderRow"><button type="button" class="small" id="louder" data-t="louder"></button><span id="louderN"></span></div>
+        <div class="bins" id="bins"></div>
+        <div class="tray" id="tray" role="group" data-t-aria="trayAria"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="fb3" id="fb3" aria-live="polite"></p>
+      <p class="rule" id="rule" hidden></p>
+      <p class="nums" id="nums" hidden></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// ---- logic (pure; tested in node) ----
+// Original passage written for this page. Roles: claim | reason (key A/B/C) | evid (of = reason key) | repeat | off.
+// The survey figures are invented for teaching and labelled 示例数据 / sample data on the page.
+const SENTS = [
+  { id: 1, role: "claim", zh: "我认为，中学生应该每天保证一小时的户外活动。", en: "I think secondary-school students should get one hour of outdoor activity every day.", g: ["每天一小时户外活动", "1 hour outdoors daily"] },
+  { id: 2, role: "reason", key: "A", zh: "首先，户外活动能让身体更结实。", en: "First, outdoor activity makes the body stronger.", g: ["身体更结实", "stronger body"] },
+  { id: 3, role: "evid", of: "A", demo: true, zh: "一项对 400 名初二学生的调查发现：每天在户外活动满一小时的同学，一学期平均请病假 1.2 天；不到半小时的同学，平均请 2.5 天。", en: "A survey of 400 Year-8 students found that those with a full hour outdoors each day took 1.2 sick days per term on average; those with under half an hour took 2.5.", g: ["调查：病假少", "survey: fewer sick days"] },
+  { id: 4, role: "reason", key: "B", zh: "其次，到户外走一走，能让大脑从书本里歇一歇，回到教室更容易专心。", en: "Second, a walk outside gives the brain a break from books, so it is easier to focus back in class.", g: ["更容易专心", "easier to focus"] },
+  { id: 5, role: "evid", of: "B", zh: "很多同学都有这样的体会：课间去操场跑一圈再回来，下一节课就没那么犯困了。", en: "Many students have noticed this: after a lap of the playground at break, they feel less sleepy in the next lesson.", g: ["课间跑一圈不困", "a lap at break: less sleepy"] },
+  { id: 6, role: "reason", key: "C", zh: "再次，户外活动还能让同学们交到更多朋友。", en: "Third, outdoor activity also helps students make more friends.", g: ["交到更多朋友", "more friends"] },
+  { id: 7, role: "off", zh: "学校食堂新换的桌椅也很漂亮。", en: "The new tables and chairs in the school canteen are also very nice.", g: ["食堂桌椅", "canteen chairs"] },
+  { id: 8, role: "repeat", zh: "总之，每天一小时户外活动必须保证，这一点毫无疑问！", en: "In short, one hour outdoors every day must be guaranteed — there is no doubt about it!", g: ["再喊一遍观点", "the claim, louder"] },
+];
+// Step 3: evidence the reader can pick for the unsupported reason (key C).
+const POOL = [
+  { id: 101, ok: true, zh: "上学期班里组织了三次周末郊游，好几位原来不太说话的同学，后来成了常在一起的好朋友。", en: "Last term our class went on three weekend hikes; several students who hardly talked before became close friends.", g: ["郊游后成了朋友", "friends after the hikes"], why: "obs" },
+  { id: 102, ok: false, zh: "户外活动的时候，记得涂防晒霜、多喝水。", en: "When you are outdoors, remember sunscreen and drink plenty of water.", why: "off" },
+  { id: 103, ok: true, demo: true, zh: "同一份调查里，经常参加户外集体活动的同学，有 78% 说自己至少有三个好朋友；很少参加的同学，这个比例是 52%。", en: "In the same survey, 78% of students who often joined outdoor group activities said they had at least three good friends; among those who rarely joined, 52% did.", g: ["调查：78% 对 52%", "survey: 78% vs 52%"], why: "data" },
+  { id: 104, ok: false, zh: "交朋友真的非常、非常重要！", en: "Making friends is really, really important!", why: "loud" },
+];
+const byId = (id) => SENTS.find((s) => s.id === id) || POOL.find((s) => s.id === id);
+const NCOL = 3;
+const emptyState = () => ({ claim: null, cols: Array.from({ length: NCOL }, () => ({ reason: null, evid: [] })), rep: [], off: [] });
+const clone = (st) => JSON.parse(JSON.stringify(st));
+const placedIds = (st) => [st.claim, ...st.cols.flatMap((c) => [c.reason, ...c.evid]), ...st.rep, ...st.off].filter((x) => x !== null);
+
+// Where can sentence `id` go? target: "claim" | "r0".."r2" | "e0".."e2" | "rep" | "off".
+// Returns "ok" or a reason code that names what the sentence really is.
+function check(st, id, target) {
+  const s = byId(id);
+  if (!s) return "bad";
+  const kind = target[0], col = +target.slice(1);
+  const roleCode = { claim: "isClaim", reason: "isReason", evid: "isEvid", repeat: "isRepeat", off: "isOff" }[s.role];
+  if (target === "claim") return s.role === "claim" ? (st.claim === null ? "ok" : "full") : roleCode;
+  if (target === "rep") return s.role === "repeat" ? "ok" : roleCode;
+  if (target === "off") return s.role === "off" ? "ok" : roleCode;
+  if (kind === "r") {
+    if (!(col >= 0 && col < NCOL)) return "bad";
+    if (s.role !== "reason") return roleCode;
+    return st.cols[col].reason === null ? "ok" : "full";
+  }
+  if (kind === "e") {
+    if (!(col >= 0 && col < NCOL)) return "bad";
+    if (s.role !== "evid") return roleCode;
+    const r = st.cols[col].reason;
+    if (r === null) return "needReason";
+    return byId(r).key === s.of ? "ok" : "wrongReason";
+  }
+  return "bad";
+}
+function place(st, id, target) {
+  const res = check(st, id, target);
+  if (res !== "ok") return { st, res };
+  const n = clone(st), col = +target.slice(1);
+  if (target === "claim") n.claim = id;
+  else if (target === "rep") n.rep.push(id);
+  else if (target === "off") n.off.push(id);
+  else if (target[0] === "r") n.cols[col].reason = id;
+  else n.cols[col].evid.push(id);
+  return { st: n, res };
+}
+// How well is the claim held up? Only reasons with evidence under them count.
+function holdUp(st) {
+  const reasons = st.cols.filter((c) => c.reason !== null);
+  const n = reasons.length;
+  const s = reasons.filter((c) => c.evid.length > 0).length;
+  return { s, n, pct: n ? Math.round((100 * s) / n) : 0, dangling: reasons.filter((c) => !c.evid.length).map((c) => c.reason) };
+}
+// The finished map of the passage (used when step 3 opens on an unfinished map).
+function solved() {
+  let st = emptyState();
+  const go = (id, t) => { st = place(st, id, t).st; };
+  go(1, "claim");
+  SENTS.filter((s) => s.role === "reason").forEach((s, i) => go(s.id, "r" + i));
+  SENTS.filter((s) => s.role === "evid").forEach((s) => go(s.id, "e" + st.cols.findIndex((c) => c.reason !== null && byId(c.reason).key === s.of)));
+  SENTS.filter((s) => s.role === "repeat").forEach((s) => go(s.id, "rep"));
+  SENTS.filter((s) => s.role === "off").forEach((s) => go(s.id, "off"));
+  return st;
+}
+// Step 3: attach pool evidence to the column whose reason has key "C".
+function pickPool(st, id) {
+  const p = POOL.find((x) => x.id === id);
+  const col = st.cols.findIndex((c) => c.reason !== null && byId(c.reason).key === "C");
+  if (!p || col < 0) return { st, res: "bad" };
+  if (!p.ok) return { st, res: p.why };
+  if (st.cols[col].evid.includes(id)) return { st, res: "ok" };
+  const n = clone(st);
+  n.cols[col].evid.push(id);
+  return { st: n, res: "ok" };
+}
+// ---- end logic ----
+
+const P = Play.setup({
+  en: {
+    title: "Map an argument", eyebrow: "Chinese · Stage 3", h1: "Map an argument: claim, reasons, evidence",
+    intro: "A Chinese passage argues for one claim. Sort every sentence into a map and see which reasons actually hold the claim up.",
+    reset: "Reset", undo: "Undo", boardAria: "Argument map board", trayAria: "Sentences of the passage",
+    s1: "Guess", s2: "Map it", s3: "Fix & rule",
+    k1: "Predict first", t1: "Saying it firmly — is that an argument?",
+    b1: "Pick an answer. Then press “Say it louder” as often as you like and watch the meter.",
+    k2: "Hands on", t2: "Put each sentence where it belongs",
+    b2: "Tap a sentence, then tap its place in the map (or drag it there). Keyboard: Tab to a sentence, Enter, then Tab to a place and Enter. The claim goes on top, reasons (why?) in the middle, evidence (facts, data, things people saw) under the reason it supports. Two bins catch the rest.",
+    k3: "Fix it · the rule", t3: "Give the dangling reason something to stand on",
+    b3: "Reason ⑥ has nothing under it. Tap the pool sentences below that would really support it.",
+    q: "「我坚信中学生应该每天户外活动一小时，这一点毫无疑问！」 Is this an argument?",
+    o1: "Yes — it is said firmly and with no doubt", o2: "No — it is a claim with no reason and no evidence", o3: "It becomes one if you say it three times",
+    right: "Right. It is only a claim. Nothing underneath holds it up — however loudly it is said.",
+    wrong: "Try “Say it louder” and watch the meter: it stays at 0. Firmness adds nothing underneath the claim.",
+    louder: "Say it louder!", louderN: "Claim stated {r}× · reasons: 0 · evidence: 0",
+    claimL: "claim", reasonL: "reason", evidL: "evidence", repL: "only repeats the claim", offL: "off topic",
+    meterL: "How well the claim is held up", meterV: "{s} of {n} reasons have evidence = {p}%", meterZero: "no reasons yet = 0%",
+    hang: "no evidence", demo: "sample data",
+    legK: "claim — what the writer wants you to believe", legR: "reason — answers “why?”", legE: "evidence — facts, data, observations",
+    pickFirst: "Pick a sentence first.", selected: "Picked {n}. Now tap its place in the map.",
+    ok: "✓ {n} placed.", progress: "{k} of {t} sentences placed.",
+    isClaim: "{n} is the claim — what the whole passage wants you to believe. It goes on top.",
+    isReason: "{n} answers “why?” — it is a reason. It goes in the middle row, under the claim.",
+    isEvid: "{n} is a concrete fact or something people saw — evidence. It goes under the reason it supports.",
+    isRepeat: "{n} says the claim again, just louder. It adds no new support — put it in “only repeats the claim”.",
+    isOff: "{n} has nothing to do with outdoor activity — it is off topic.",
+    full: "That place is taken. Try an empty one.", needReason: "Put a reason in this column first; evidence hangs under a reason.",
+    wrongReason: "{n} is about “{g}”, not “{h}”. Put it under the reason it supports.",
+    done: "All {t} sentences placed. {d} hangs with nothing under it, so the claim is held up by {s} of {n} reasons.",
+    fbObs: "✓ Yes — a thing people saw happen, and it is about friends. Reason ⑥ now stands.",
+    fbData: "✓ Yes — survey numbers about friends (sample data). Reason ⑥ now stands.",
+    fbOff: "✗ True advice, but it says nothing about making friends — off topic for this reason.",
+    fbLoud: "✗ This just says the reason again, louder. Like step 1: firmness is not evidence.",
+    rule: "An argument = claim + reasons + evidence. A reason with nothing under it does not hold the claim up.",
+    nums: "Before: {s0} of {n} reasons had evidence = {p0}%. Now: {s} of {n} = {p}%. The claim was stated {r} times (sentences ① and ⑧); repeating it added 0.",
+    resultTitle: "What we found", resultMain: "claim ← reasons ← evidence",
+    resultNote: "Saying a claim firmly, or twice, adds nothing underneath it. Each reason needs evidence — a fact, data or an observation — or it dangles.",
+    explainK: "Explain it", explainQ: "Pick a short opinion piece or advert. Find its claim, list its reasons, and say which reason has no evidence under it.",
+    homeK: "Try at home", homeQ: "Have a friendly debate at dinner (e.g. “we should get a dog”). Write the claim on one sticky note, each reason on another and each piece of evidence on a third colour. Which reasons end up with nothing stuck under them?",
+    foot: "For teachers: claim = 论点, reason = 分论点/理由, evidence = 论据. On this page evidence means factual evidence (data, events, observations); in Chinese essay teaching, principles and well-known sayings (道理论据) can also count. The survey figures (1.2 vs 2.5 sick days; 78% vs 52%) are invented sample data for teaching, not real results. Passage and all sentences are original. CC BY 4.0 · Boxi Yu",
+    figR: "reason", figE: "evidence",
+  },
+  zh: {
+    title: "论证结构图", eyebrow: "语文 · 阶段 3", h1: "论证结构图：观点、理由、论据",
+    intro: "一段议论文要证明一个观点。把每句话放进结构图，看看哪些理由真的撑住了观点。",
+    reset: "重置", undo: "撤回", boardAria: "论证结构图", trayAria: "短文里的句子",
+    s1: "先猜", s2: "画结构图", s3: "补论据 · 规律",
+    k1: "先猜一猜", t1: "说得够坚定，就算论证了吗？",
+    b1: "先选一个答案，再随便按几次「说得更坚定」，看看撑起程度会不会变。",
+    k2: "动手", t2: "把每句话放到它该在的位置",
+    b2: "先点一句话，再点结构图里它该去的位置（也可以直接拖过去）。键盘：Tab 选句子按回车，再 Tab 到位置按回车。观点放最上面；理由（为什么）放中间；论据（事实、数据、亲眼所见）放在它支撑的理由下面。另外两个框收其余的句子。",
+    k3: "补论据 · 规律", t3: "给悬空的理由找到支撑",
+    b3: "理由 ⑥ 底下什么都没有。从下面的候选句里，点真正能支撑它的。",
+    q: "「我坚信中学生应该每天户外活动一小时，这一点毫无疑问！」这算论证吗？",
+    o1: "算，说得这么坚定，毫无疑问", o2: "不算，只有观点，没有理由和论据", o3: "多说几遍就算了",
+    right: "对。这只是一个观点，底下什么都没有撑着，说得再响也一样。",
+    wrong: "按几次「说得更坚定」看看：撑起程度一直是 0。语气再坚定，观点底下也没多出任何东西。",
+    louder: "说得更坚定！", louderN: "观点说了 {r} 遍 · 理由 0 条 · 论据 0 条",
+    claimL: "观点（论点）", reasonL: "理由", evidL: "论据", repL: "只是重复观点", offL: "跑题",
+    meterL: "观点被撑起的程度", meterV: "{n} 条理由中有 {s} 条有论据 = {p}%", meterZero: "还没有理由 = 0%",
+    hang: "没有论据", demo: "示例数据",
+    legK: "观点：作者想让你相信什么", legR: "理由：回答「为什么」", legE: "论据：事实、数据、亲眼所见",
+    pickFirst: "先选一句话。", selected: "选中了 {n}，再点它在结构图里的位置。",
+    ok: "✓ {n} 放好了。", progress: "已放好 {k} / {t} 句。",
+    isClaim: "{n} 是观点：整段话想让人相信的就是它，放在最上面。",
+    isReason: "{n} 回答「为什么」，是一条理由，放在观点下面那一层。",
+    isEvid: "{n} 是具体的事实或亲眼所见，是论据，放到它支撑的那条理由下面。",
+    isRepeat: "{n} 只是把观点再说一遍、说得更响，没有带来新的支撑，放进「只是重复观点」。",
+    isOff: "{n} 和户外活动没关系，是跑题的句子。",
+    full: "这个位置已经有了，换一个空的。", needReason: "这一列还没有理由。论据要挂在理由下面，先放理由。",
+    wrongReason: "{n} 说的是「{g}」，不是「{h}」。放到它支撑的那条理由下面。",
+    done: "{t} 句全部放好。{d} 底下什么都没有，悬着；所以 {n} 条理由里只有 {s} 条撑住了观点。",
+    fbObs: "✓ 对，这是亲眼看到的事，而且说的正是交朋友。理由 ⑥ 站住了。",
+    fbData: "✓ 对，这是关于交朋友的调查数字（示例数据）。理由 ⑥ 站住了。",
+    fbOff: "✗ 这句话没错，可它和交朋友无关，撑不起这条理由。",
+    fbLoud: "✗ 这只是把理由再喊一遍。跟第 1 步一样：语气坚定不等于有论据。",
+    rule: "论证 = 观点 + 理由 + 论据；底下没有论据的理由，撑不起观点。",
+    nums: "补之前：{n} 条理由中 {s0} 条有论据 = {p0}%。现在：{s} / {n} = {p}%。观点一共说了 {r} 遍（① 和 ⑧），多说的那一遍让撑起程度增加了 0。",
+    resultTitle: "我们发现", resultMain: "观点 ← 理由 ← 论据",
+    resultNote: "把观点说得更坚定、多说几遍，底下不会多出任何支撑。每条理由都要有论据（事实、数据、亲眼所见），否则就是悬空的。",
+    explainK: "说一说", explainQ: "找一篇短评论或一则广告，说出它的观点，列出它的理由，再指出哪条理由底下没有论据。",
+    homeK: "家里做一做", homeQ: "饭桌上来一场友好的辩论（比如「我们家该不该养狗」）。观点写在一张便利贴上，每条理由写一张，每条论据用另一种颜色。贴完看看，哪条理由下面空空的？",
+    foot: "给老师：观点即论点，理由即分论点，论据分事实论据和道理论据；本页只用事实论据（数据、事例、亲眼所见）。调查数字（病假 1.2 天对 2.5 天；78% 对 52%）是为教学编的示例数据，不是真实调查结果。短文和全部句子均为原创。CC BY 4.0 · Boxi Yu",
+    figR: "理由", figE: "论据",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const mapEl = $("map"), binsEl = $("bins"), trayEl = $("tray"), fb3 = $("fb3"), liveEl = $("live"), meterEl = $("meter");
+const NUM = "①②③④⑤⑥⑦⑧⑨";
+const num = (id) => (id < 100 ? NUM[id - 1] : "+");
+const gist = (s) => (s.g ? s.g[L === "en" ? 1 : 0] : "");
+
+let step = 0, st = emptyState(), hist = [], sel = null, loud = 1, tried = new Set(), before = null;
+
+function say(text, no) { fb3.textContent = text; fb3.classList.toggle("no", !!no); }
+function shake(el) { if (!Play.reduced && el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); } }
+
+function chip(s) {
+  const c = document.createElement("span");
+  c.className = "chip";
+  c.title = s.zh;
+  const n = document.createElement("span");
+  n.className = "n";
+  n.textContent = num(s.id);
+  const z = document.createElement("span");
+  z.lang = L === "en" ? "en" : "zh-CN";
+  z.className = L === "en" ? "ge" : "";
+  z.textContent = gist(s);
+  c.append(n, z);
+  return c;
+}
+function connector(cls, wavy) {
+  const sv = Play.svg("svg", { class: "conn", viewBox: "0 0 100 26", preserveAspectRatio: "none", "aria-hidden": "true" });
+  Play.svg("path", { class: cls, d: wavy ? "M50 0 Q42 4.3 50 8.7 T50 17.3 T50 26" : "M50 0 V26" }, sv);
+  return sv;
+}
+function target(id, cls, labelKey, items, extra) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tgt " + cls + (items.length ? " filled" : "") + (sel !== null ? " ready" : "") + (extra ? " " + extra : "");
+  b.dataset.target = id;
+  if (!items.length) { const l = document.createElement("span"); l.className = "lab"; l.textContent = P.t(labelKey); b.appendChild(l); }
+  items.forEach((s) => b.appendChild(chip(s)));
+  b.setAttribute("aria-label", P.t(labelKey) + (items.length ? ": " + items.map((s) => num(s.id) + " " + s.zh).join(" ") : ""));
+  b.addEventListener("click", () => {
+    if (step !== 1) return;
+    if (sel === null) { say(P.t("pickFirst")); return; }
+    tryPlace(sel, id);
+  });
+  return b;
+}
+
+function renderMeter() {
+  const h = holdUp(st);
+  meterEl.innerHTML = "";
+  const row = document.createElement("div");
+  row.className = "row";
+  const a = document.createElement("span");
+  a.textContent = P.t("meterL");
+  const v = document.createElement("b");
+  v.textContent = h.n ? P.t("meterV", { s: h.s, n: h.n, p: h.pct }) : P.t("meterZero");
+  row.append(a, v);
+  const tr = document.createElement("div");
+  tr.className = "track";
+  const f = document.createElement("div");
+  f.className = "fill";
+  f.style.width = Play.clamp(h.pct, 0, 100) + "%";
+  tr.appendChild(f);
+  meterEl.append(row, tr);
+  return h;
+}
+
+function renderMap() {
+  mapEl.innerHTML = "";
+  if (step === 0) {
+    const claim = { id: 0, zh: "我坚信中学生应该每天户外活动一小时，这一点毫无疑问" + "！".repeat(loud), g: null };
+    const b = document.createElement("div");
+    b.className = "tgt claim filled";
+    const c = document.createElement("span");
+    c.className = "chip";
+    c.lang = "zh-CN";
+    c.textContent = claim.zh;
+    b.appendChild(c);
+    mapEl.appendChild(b);
+    const cols = document.createElement("div");
+    cols.className = "cols";
+    for (let i = 0; i < NCOL; i++) {
+      const col = document.createElement("div");
+      col.className = "col";
+      col.appendChild(connector("none"));
+      const r = document.createElement("div"); r.className = "tgt reason dim"; r.innerHTML = '<span class="lab"></span>'; r.firstChild.textContent = "? " + P.t("reasonL");
+      col.appendChild(r);
+      col.appendChild(connector("none"));
+      const e = document.createElement("div"); e.className = "tgt evid dim"; e.innerHTML = '<span class="lab"></span>'; e.firstChild.textContent = "? " + P.t("evidL");
+      col.appendChild(e);
+      cols.appendChild(col);
+    }
+    mapEl.appendChild(cols);
+    return;
+  }
+  mapEl.appendChild(target("claim", "claim", "claimL", st.claim === null ? [] : [byId(st.claim)]));
+  const cols = document.createElement("div");
+  cols.className = "cols";
+  st.cols.forEach((c, i) => {
+    const col = document.createElement("div");
+    col.className = "col";
+    const has = c.reason !== null, sup = has && c.evid.length > 0;
+    col.appendChild(connector(!has ? "none" : sup ? "solid" : "weak", has && !sup));
+    col.appendChild(target("r" + i, "reason", "reasonL", has ? [byId(c.reason)] : [], has && !sup ? "wobble" : ""));
+    col.appendChild(connector(c.evid.length ? "solid" : "none"));
+    col.appendChild(target("e" + i, "evid", "evidL", c.evid.map(byId)));
+    const hg = document.createElement("div");
+    hg.className = "hang";
+    hg.textContent = has && !sup ? "↑ " + P.t("hang") : "";
+    col.appendChild(hg);
+    cols.appendChild(col);
+  });
+  mapEl.appendChild(cols);
+}
+
+function renderBins() {
+  binsEl.innerHTML = "";
+  [["rep", "repL", st.rep], ["off", "offL", st.off]].forEach(([id, key, ids]) => {
+    const b = target(id, "bin", key, []);
+    b.innerHTML = "";
+    const l = document.createElement("span"); l.className = "lab"; l.textContent = P.t(key); b.appendChild(l);
+    const cs = document.createElement("span"); cs.className = "chips"; ids.forEach((x) => cs.appendChild(chip(byId(x)))); b.appendChild(cs);
+    if (ids.length) b.classList.add("filled");
+    binsEl.appendChild(b);
+  });
+}
+
+function sentCard(s, extra) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "sent" + (extra ? " " + extra : "");
+  b.dataset.i = s.id;
+  const n = document.createElement("span");
+  n.className = "n";
+  n.textContent = num(s.id);
+  const body = document.createElement("span");
+  const z = document.createElement("span");
+  z.className = "zh";
+  z.lang = "zh-CN";
+  z.textContent = s.zh;
+  body.appendChild(z);
+  if (s.demo) { body.appendChild(document.createTextNode(" ")); const d = document.createElement("span"); d.className = "demo"; d.textContent = P.t("demo"); body.appendChild(d); }
+  if (L === "en") { const e = document.createElement("span"); e.className = "en"; e.lang = "en"; e.textContent = s.en; body.appendChild(e); }
+  b.append(n, body);
+  return b;
+}
+
+function renderTray() {
+  trayEl.innerHTML = "";
+  if (step === 1) {
+    const used = new Set(placedIds(st));
+    const left = SENTS.filter((s) => !used.has(s.id));
+    const hd = document.createElement("div");
+    hd.className = "hd";
+    hd.textContent = P.t("progress", { k: SENTS.length - left.length, t: SENTS.length });
+    trayEl.appendChild(hd);
+    left.forEach((s) => {
+      const b = sentCard(s, sel === s.id ? "sel" : "");
+      b.setAttribute("aria-pressed", sel === s.id ? "true" : "false");
+      b.addEventListener("click", () => {
+        if (b.dataset.dragged) { delete b.dataset.dragged; return; }
+        sel = sel === s.id ? null : s.id;
+        say(sel === null ? "" : P.t("selected", { n: num(s.id) }));
+        render();
+        const again = trayEl.querySelector('[data-i="' + s.id + '"]');
+        if (again) again.focus();
+      });
+      dragify(b, s.id);
+      trayEl.appendChild(b);
+    });
+  } else if (step === 2) {
+    const col = st.cols.find((c) => c.reason !== null && byId(c.reason).key === "C");
+    POOL.forEach((p) => {
+      const chosen = col && col.evid.includes(p.id);
+      const b = sentCard(p, chosen ? "sel" : tried.has(p.id) ? "tried" : "");
+      b.setAttribute("aria-pressed", chosen ? "true" : "false");
+      b.addEventListener("click", () => {
+        const r = pickPool(st, p.id);
+        if (r.res === "ok") { if (r.st !== st) { hist.push(st); st = r.st; } say(P.t(p.why === "obs" ? "fbObs" : "fbData")); }
+        else { tried.add(p.id); say(P.t(p.why === "off" ? "fbOff" : "fbLoud"), true); }
+        render();
+        const again = trayEl.querySelector('[data-i="' + p.id + '"]');
+        if (again) { again.focus(); if (r.res !== "ok") shake(again); }
+      });
+      trayEl.appendChild(b);
+    });
+  }
+}
+
+function tryPlace(id, tgt) {
+  const r = place(st, id, tgt);
+  const s = byId(id);
+  if (r.res === "ok") {
+    hist.push(st);
+    st = r.st;
+    sel = null;
+    const left = SENTS.length - placedIds(st).length;
+    if (!left) {
+      const h = holdUp(st);
+      say(P.t("done", { t: SENTS.length, d: h.dangling.map(num).join(" "), s: h.s, n: h.n }));
+    } else say(P.t("ok", { n: num(id) }));
+  } else {
+    let g = "", h = "";
+    if (r.res === "wrongReason") { g = gist(byId(SENTS.find((x) => x.role === "reason" && x.key === s.of).id)); h = gist(byId(st.cols[+tgt.slice(1)].reason)); }
+    say(P.t(r.res, { n: num(id), g, h }), true);
+  }
+  render();
+  if (r.res !== "ok") {
+    const c = trayEl.querySelector('[data-i="' + id + '"]');
+    if (c) { c.focus(); shake(c); }
+  } else {
+    const t = mapEl.querySelector('[data-target="' + tgt + '"]') || binsEl.querySelector('[data-target="' + tgt + '"]');
+    if (t) t.focus();
+  }
+  return r.res;
+}
+
+// Pointer drag from the tray onto a target (mouse and touch); a plain tap still selects.
+function dragify(b, id) {
+  let start = null, ghost = null, over = null;
+  b.addEventListener("pointerdown", (e) => { start = { x: e.clientX, y: e.clientY }; try { b.setPointerCapture(e.pointerId); } catch (_) { /* ok */ } });
+  b.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    if (!ghost && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) {
+      ghost = chip(byId(id));
+      ghost.classList.add("ghost");
+      document.body.appendChild(ghost);
+    }
+    if (!ghost) return;
+    ghost.style.left = e.clientX + "px";
+    ghost.style.top = e.clientY + "px";
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const t = el && el.closest("[data-target]");
+    if (over && over !== t) over.classList.remove("over");
+    over = t;
+    if (over) over.classList.add("over");
+  });
+  const end = (cancel) => {
+    if (!start) return;
+    start = null;
+    if (!ghost) return;
+    ghost.remove(); ghost = null;
+    b.dataset.dragged = "1";
+    setTimeout(() => delete b.dataset.dragged, 0);
+    if (over) over.classList.remove("over");
+    const t = over;
+    over = null;
+    if (!cancel && t) tryPlace(id, t.dataset.target);
+  };
+  b.addEventListener("pointerup", () => end(false));
+  b.addEventListener("pointercancel", () => end(true));
+}
+
+function legend() {
+  const lg = $("legend");
+  lg.innerHTML = "";
+  [["k", "legK"], ["r", "legR"], ["e", "legE"]].forEach(([c, k]) => {
+    const s = document.createElement("span");
+    s.innerHTML = '<span class="dot ' + c + '"></span>';
+    s.appendChild(document.createTextNode(P.t(k)));
+    lg.appendChild(s);
+  });
+}
+
+function render() {
+  if (step === 0) {
+    meterEl.innerHTML = "";
+    const tmp = st; st = emptyState(); renderMeter(); st = tmp;
+    $("louderN").textContent = P.t("louderN", { r: loud });
+  } else renderMeter();
+  renderMap();
+  $("louderRow").hidden = step !== 0;
+  binsEl.hidden = step !== 1;
+  if (step === 1) renderBins();
+  renderTray();
+  trayEl.hidden = step === 0;
+  $("undo").hidden = step === 0;
+  const h = holdUp(st);
+  $("rule").hidden = $("nums").hidden = step !== 2;
+  if (step === 2) {
+    $("rule").textContent = P.t("rule");
+    const b = before || h;
+    $("nums").textContent = P.t("nums", { s0: b.s, p0: b.pct, s: h.s, n: h.n, p: h.pct, r: 1 + st.rep.length });
+  }
+  Play.live(liveEl, step === 0 ? P.t("louderN", { r: loud }) : h.n ? P.t("meterV", { s: h.s, n: h.n, p: h.pct }) : P.t("meterZero"));
+}
+
+$("louder").addEventListener("click", () => { loud = Math.min(loud + 1, 12); render(); });
+$("undo").addEventListener("click", () => { if (hist.length) { st = hist.pop(); sel = null; say(""); render(); } });
+trayEl.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  const bs = [...trayEl.querySelectorAll("button")];
+  const i = bs.indexOf(document.activeElement);
+  if (i < 0) return;
+  bs[Play.clamp(i + (e.key === "ArrowDown" ? 1 : -1), 0, bs.length - 1)].focus();
+  e.preventDefault();
+});
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  sel = null;
+  say("");
+  if (i === 2) {
+    // Step 3 starts from the finished map; remember how well it held before the fix.
+    const pool = new Set(POOL.map((p) => p.id));
+    const full = placedIds(st).filter((x) => !pool.has(x)).length === SENTS.length;
+    if (!full) { hist = []; st = solved(); }
+    const base = clone(st);
+    base.cols.forEach((c) => (c.evid = c.evid.filter((x) => !pool.has(x))));
+    before = holdUp(base);
+  }
+  if (i === 1) {
+    // Leaving step 3: drop pool evidence so the map shows only the passage.
+    const pool = new Set(POOL.map((p) => p.id));
+    if (placedIds(st).some((x) => pool.has(x))) { st = clone(st); st.cols.forEach((c) => (c.evid = c.evid.filter((x) => !pool.has(x)))); hist = []; }
+  }
+  render();
+});
+$("reset").addEventListener("click", () => {
+  st = emptyState(); hist = []; sel = null; loud = 1; tried = new Set(); before = null;
+  pr.reset(); say(""); steps.go(0);
+});
+legend();
+render();
+</script>
+</body>
+</html>

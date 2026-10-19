@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The skeleton of a long sentence</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .board { padding: 16px 14px 14px; display: flex; flex-direction: column; gap: 12px; min-height: 360px; }
+  .pickrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .pickrow button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .sent { font-family: var(--serif); font-size: 20px; line-height: 2.35; overflow-wrap: anywhere; }
+  .sent .wd { white-space: nowrap; }
+  .ck { border: 2px solid var(--line); border-radius: 7px; padding: 1px 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; cursor: pointer; }
+  .ck:hover { background: var(--soft); }
+  .ck > .tg { font-family: var(--font); font-size: 13px; font-weight: 700; margin-right: 3px; vertical-align: 2px; }
+  .ck.rel { border-color: var(--h); } .ck.rel > .tg { color: var(--h); }
+  .ck.pp { border-color: var(--b); } .ck.pp > .tg { color: var(--b); }
+  .ck.part { border-color: var(--hl); } .ck.part > .tg { color: var(--fg); }
+  .ck.adv, .ck.advc { border-color: var(--muted); border-style: dotted; } .ck.adv > .tg, .ck.advc > .tg { color: var(--muted); }
+  .ck.off { border-style: dashed; opacity: .75; font-family: var(--font); font-size: 13px; padding: 2px 7px; }
+  .ck.static { cursor: default; }
+  .ck.static:hover { background: transparent; }
+  .core { color: var(--a); font-weight: 750; text-decoration: underline 3px; text-underline-offset: 5px; cursor: pointer; }
+  .core.mv { background: var(--a); color: var(--surface); text-decoration: none; border-radius: 5px; padding: 0 4px; }
+  .core.off { color: var(--no); text-decoration: line-through 2px; opacity: .8; }
+  .vtrap { text-decoration: underline dashed 2px var(--no); text-underline-offset: 5px; }
+  .sent .q { font: inherit; padding: 0 2px; border-radius: 6px; border: 1px solid transparent; background: transparent; line-height: 1.6; }
+  .sent .q:hover { border-color: var(--a); }
+  .sent .q.good { background: var(--a); color: var(--surface); border-color: var(--a); }
+  .sent .q.bad { border-color: var(--no); color: var(--no); }
+  .shake { animation: shake .35s; display: inline-block; }
+  @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  @media (prefers-reduced-motion: reduce) { .shake { animation: none; } }
+  .readout { background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+  .readout .lab { font-size: 13px; color: var(--muted); }
+  .readout .now { font-family: var(--serif); font-size: 19px; line-height: 1.5; }
+  .readout .zh { font-size: 14px; color: var(--muted); }
+  .status { font-size: 14px; font-weight: 650; }
+  .status.no { color: var(--no); }
+  .tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+  .tree ul { margin-left: 10px; padding-left: 12px; border-left: 2px solid var(--line); }
+  .tree li { margin: 5px 0; font-size: 14px; line-height: 1.45; }
+  .tree .role { display: inline-block; font-size: 13px; font-weight: 750; color: var(--surface); background: var(--a); border-radius: 6px; padding: 0 7px; margin-right: 6px; }
+  .tree .w { font-family: var(--serif); font-size: 16px; }
+  .tree .cw { font-family: var(--serif); font-size: 16px; font-weight: 700; color: var(--a); }
+  .tree .ty { display: inline-block; font-size: 13px; border: 2px solid var(--line); border-radius: 999px; padding: 0 7px; margin-right: 6px; color: var(--muted); }
+  .tree .ty.rel { border-color: var(--h); } .tree .ty.pp { border-color: var(--b); } .tree .ty.part { border-color: var(--hl); }
+  .tree .ty.adv, .tree .ty.advc { border-style: dotted; }
+  .tree .gl { display: block; font-size: 13px; color: var(--muted); }
+  .tree li.dim > .w, .tree li.dim > .ty { opacity: .45; text-decoration: line-through; }
+  .ttl { font-size: 13px; font-weight: 650; color: var(--muted); }
+  .legend .dot { border: 2px solid; background: transparent; width: 11px; height: 11px; border-radius: 3px; }
+  .legend .dot.rel { border-color: var(--h); } .legend .dot.pp { border-color: var(--b); } .legend .dot.part { border-color: var(--hl); } .legend .dot.adv { border-color: var(--muted); border-style: dotted; } .legend .dot.core { background: var(--a); border-color: var(--a); }
+  .checklist { margin: 4px 0 10px; padding-left: 0; list-style: none; font-size: 14px; color: var(--muted); }
+  .checklist li { margin: 6px 0; padding-left: 26px; position: relative; }
+  .checklist li::before { content: "○"; position: absolute; left: 4px; color: var(--muted); }
+  .checklist li.done { color: var(--fg); }
+  .checklist li.done::before { content: "✓"; color: var(--a); font-weight: 800; }
+  .rules { display: flex; flex-direction: column; gap: 8px; }
+  .pair { border-bottom: 1px solid var(--line); padding-bottom: 6px; font-size: 14px; color: var(--muted); }
+  .pair b { font-family: var(--serif); font-size: 16px; color: var(--a); }
+  .fb3 { font-size: 14px; min-height: 1.4em; color: var(--fg) !important; }
+  .result .math { font-family: var(--serif); white-space: normal; }
+  @media (max-width: 560px) {
+    .sent { font-size: 18px; line-height: 2.3; }
+    .readout .now { font-size: 17px; }
+  }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="board" id="board" role="group" data-t-aria="boardAria">
+        <div class="pickrow" id="pick"><span data-t="pickLabel"></span></div>
+        <div class="sent" id="sent" lang="en"></div>
+        <div class="pickrow" id="tools2">
+          <button type="button" class="small" id="strip" aria-pressed="false" data-t="strip"></button>
+          <button type="button" class="small" id="say" data-t="say"></button>
+        </div>
+        <div class="readout" id="readout" aria-live="polite"></div>
+        <div id="outline"><div class="ttl" data-t="outlineT"></div><ul class="tree" id="tree"></ul></div>
+        <div class="rules" id="rules"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <ol class="checklist" id="checklist"></ol>
+      <p class="fb3" id="fb3" aria-live="polite"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// Original sentences written for this page. The English stays English in both UI languages.
+// core: the skeleton, in order — S subject, V main verb (with its auxiliaries), O object, C complement.
+// ch: chunks [type, exact text, head word it hangs on, Chinese gloss]. A chunk may sit inside another chunk;
+// its head is then a word of that bigger chunk. Types: rel relative clause, pp prepositional phrase,
+// part participle phrase, adv adverbial (adverb / time phrase), advc adverbial clause.
+// verbs: every verb form in the sentence (for the "which is the main verb?" questions).
+const SENTS = [
+  { text: "The young engineer who designed the new library on the hill finally won the city's top prize last year, after three earlier designs had been rejected by the council.",
+    core: [["S", "The young engineer"], ["V", "won"], ["O", "the city's top prize"]],
+    sk: "The young engineer won the city's top prize.", skZh: "年轻的工程师赢得了全市的最高奖。",
+    verbs: ["designed", "won", "rejected"],
+    ch: [["rel", "who designed the new library on the hill", "engineer", "设计了山上那座新图书馆的（工程师）"],
+      ["pp", "on the hill", "library", "在山上的（图书馆）"],
+      ["adv", "finally", "won", "终于"],
+      ["adv", "last year", "won", "去年"],
+      ["advc", ", after three earlier designs had been rejected by the council", "won", "在之前三份设计被市议会否决之后"],
+      ["pp", "by the council", "rejected", "被市议会（否决）"]] },
+  { text: "Having marched all day through the mountains, the soldiers who carried the heaviest packs fell asleep beside the fire before the cooks could serve dinner.",
+    core: [["S", "the soldiers"], ["V", "fell"], ["C", "asleep"]],
+    sk: "The soldiers fell asleep.", skZh: "士兵们睡着了。",
+    verbs: ["Having", "marched", "carried", "fell", "could", "serve"],
+    ch: [["part", "Having marched all day through the mountains ,", "fell", "（士兵们）在山里行军一整天之后"],
+      ["adv", "all day", "marched", "一整天"],
+      ["pp", "through the mountains", "marched", "穿过群山"],
+      ["rel", "who carried the heaviest packs", "soldiers", "背着最重背包的（士兵们）"],
+      ["pp", "beside the fire", "fell", "在火堆旁"],
+      ["advc", "before the cooks could serve dinner", "fell", "在厨师端上晚饭之前"]] },
+  { text: "The letters written by my great-grandmother during the war were found last month in a wooden box that had been hidden under the stairs of her old house.",
+    core: [["S", "The letters"], ["V", "were found"]],
+    sk: "The letters were found.", skZh: "那些信被找到了。",
+    verbs: ["written", "were", "found", "had", "been", "hidden"],
+    ch: [["part", "written by my great-grandmother during the war", "letters", "我曾祖母在战争期间写的（信）"],
+      ["pp", "by my great-grandmother", "written", "由我的曾祖母（写）"],
+      ["pp", "during the war", "written", "在战争期间"],
+      ["adv", "last month", "found", "上个月"],
+      ["pp", "in a wooden box that had been hidden under the stairs of her old house", "found", "在一个木盒子里"],
+      ["rel", "that had been hidden under the stairs of her old house", "box", "一直藏在她老房子楼梯下面的（木盒子）"],
+      ["pp", "under the stairs of her old house", "hidden", "在她老房子的楼梯下面"],
+      ["pp", "of her old house", "stairs", "她老房子的（楼梯）"]] },
+  { text: "When the rain finally stopped, the children whose kites had been stuck in the tall trees borrowed a long ladder from the old man living across the street.",
+    core: [["S", "the children"], ["V", "borrowed"], ["O", "a long ladder"]],
+    sk: "The children borrowed a long ladder.", skZh: "孩子们借了一架长梯子。",
+    verbs: ["stopped", "had", "been", "stuck", "borrowed", "living"],
+    ch: [["advc", "When the rain finally stopped ,", "borrowed", "雨终于停了的时候"],
+      ["adv", "finally", "stopped", "终于"],
+      ["rel", "whose kites had been stuck in the tall trees", "children", "风筝卡在高高的树上的（孩子们）"],
+      ["pp", "in the tall trees", "stuck", "在高高的树上"],
+      ["pp", "from the old man living across the street", "borrowed", "从街对面那位老人那里（借）"],
+      ["part", "living across the street", "man", "住在街对面的（老人）"],
+      ["pp", "across the street", "living", "在街对面"]] },
+  { text: "The museum guide, smiling at the nervous visitors, showed us a map of the old city that was drawn by hand more than three hundred years ago.",
+    core: [["S", "The museum guide"], ["V", "showed"], ["O", "us"], ["O", "a map"]],
+    sk: "The museum guide showed us a map.", skZh: "博物馆讲解员给我们看了一张地图。",
+    verbs: ["smiling", "showed", "was", "drawn"],
+    ch: [["part", ", smiling at the nervous visitors ,", "guide", "（讲解员）对紧张的参观者微笑着"],
+      ["pp", "at the nervous visitors", "smiling", "对着紧张的参观者"],
+      ["pp", "of the old city", "map", "老城的（地图）"],
+      ["rel", "that was drawn by hand more than three hundred years ago", "map", "三百多年前手工绘制的（地图）"],
+      ["pp", "by hand", "drawn", "用手（画）"],
+      ["adv", "more than three hundred years ago", "drawn", "三百多年前"]] },
+];
+// Quiz sentence for step 3 (not used in step 2).
+const QUIZ = { text: "Every Friday, the boy whose father works at the city zoo brings us photos of baby animals that most of us have never seen before.",
+  core: [["S", "the boy"], ["V", "brings"], ["O", "us"], ["O", "photos"]],
+  sk: "The boy brings us photos.", skZh: "那个男孩给我们带来照片。",
+  verbs: ["works", "brings", "have", "seen"],
+  ch: [["adv", "Every Friday ,", "brings", "每个星期五"],
+    ["rel", "whose father works at the city zoo", "boy", "爸爸在市动物园工作的（男孩）"],
+    ["pp", "at the city zoo", "works", "在市动物园"],
+    ["pp", "of baby animals that most of us have never seen before", "photos", "动物幼崽的（照片）"],
+    ["rel", "that most of us have never seen before", "animals", "我们大多数人从没见过的（动物幼崽）"]] };
+
+// ---- pure logic (also tested in node) ----
+const PUNCT = /^[,.;:]$/;
+function tokenize(s) {
+  const out = [];
+  s.split(/\s+/).filter(Boolean).forEach((p) => {
+    const m = p.match(/^([,.;:]*)(.*?)([,.;:]*)$/);
+    [...m[1]].forEach((c) => out.push(c));
+    if (m[2]) out.push(m[2]);
+    [...m[3]].forEach((c) => out.push(c));
+  });
+  return out;
+}
+function findSeq(toks, seq, from) {
+  const hits = [];
+  for (let i = from || 0; i + seq.length <= toks.length; i++) if (seq.every((w, j) => toks[i + j] === w)) hits.push(i);
+  return hits;
+}
+// Turn one authored sentence into token spans. Throws on data errors (tests rely on that).
+function build(s) {
+  const toks = tokenize(s.text);
+  const chunks = s.ch.map(([ty, text, head, zh]) => {
+    const seq = tokenize(text);
+    const hits = findSeq(toks, seq);
+    if (hits.length !== 1) throw new Error("chunk not unique: " + text + " (" + hits.length + ")");
+    const h = findSeq(toks, [head]);
+    if (h.length !== 1) throw new Error("head not unique: " + head);
+    return { ty, a: hits[0], b: hits[0] + seq.length - 1, head: h[0], zh, text };
+  });
+  const inChunk = (i) => chunks.some((c) => c.a <= i && i <= c.b);
+  let pos = 0;
+  const core = s.core.map(([r, text]) => {
+    const seq = tokenize(text);
+    const hit = findSeq(toks, seq, pos).find((i) => seq.every((_, j) => !inChunk(i + j)));
+    if (hit === undefined) throw new Error("core not found outside chunks: " + text);
+    pos = hit + seq.length;
+    return { r, a: hit, b: hit + seq.length - 1, text };
+  });
+  chunks.forEach((c) => {
+    const outer = chunks.filter((d) => d !== c && d.a <= c.a && c.b <= d.b);
+    c.parent = outer.length ? outer.reduce((x, y) => (y.b - y.a < x.b - x.a ? y : x)) : null;
+    c.depth = outer.length;
+  });
+  return { s, toks, chunks, core };
+}
+const coreRole = (m, i) => { const c = m.core.find((k) => k.a <= i && i <= k.b); return c ? c.r : null; };
+const inside = (c, i) => c.a <= i && i <= c.b;
+// Problems with the data; [] when everything is consistent.
+function validate(m) {
+  const errs = [], n = m.toks.length;
+  m.chunks.forEach((c, i) => m.chunks.forEach((d, j) => {
+    if (i < j && c.a <= d.b && d.a <= c.b && !(inside(c, d.a) && inside(c, d.b)) && !(inside(d, c.a) && inside(d, c.b))) errs.push("overlap: " + c.text + " / " + d.text);
+  }));
+  m.chunks.forEach((c) => {
+    for (let i = c.a; i <= c.b; i++) if (coreRole(m, i)) errs.push("core word inside chunk: " + m.toks[i]);
+    if (inside(c, c.head)) errs.push("head inside its own chunk: " + c.text);
+    if (c.parent ? !inside(c.parent, c.head) : !coreRole(m, c.head)) errs.push("head not in parent / core: " + c.text);
+  });
+  for (let i = 0; i < n; i++) {
+    if (PUNCT.test(m.toks[i]) || coreRole(m, i) || m.chunks.some((c) => inside(c, i))) continue;
+    errs.push("word in neither skeleton nor chunk: " + m.toks[i]);
+  }
+  if (!m.core.some((k) => k.r === "V") || !m.core.some((k) => k.r === "S")) errs.push("skeleton needs S and V");
+  m.s.verbs.forEach((v) => { if (!m.toks.includes(v)) errs.push("verb not in sentence: " + v); });
+  const words = m.toks.filter((t) => !PUNCT.test(t)).length;
+  if (words < 20 || words > 35) errs.push("length " + words);
+  if (visibleText(m, new Set(m.chunks.map((_, i) => i)), new Set()) !== m.s.sk) errs.push("skeleton text: " + visibleText(m, new Set(m.chunks.map((_, i) => i)), new Set()));
+  return errs;
+}
+function isVisible(m, i, hidC, hidW) { return !hidW.has(i) && !m.chunks.some((c, k) => hidC.has(k) && inside(c, i)); }
+function visibleText(m, hidC, hidW) {
+  let out = "";
+  m.toks.forEach((t, i) => { if (isVisible(m, i, hidC, hidW)) out += (PUNCT.test(t) || !out ? "" : " ") + t; });
+  out = out.replace(/^[\s,.;:]+/, "").replace(/,\s*([,.])/g, "$1").replace(/\s+/g, " ").trim();
+  return out ? out[0].toUpperCase() + out.slice(1) : "";
+}
+const wordCount = (m, hidC, hidW) => m.toks.filter((t, i) => !PUNCT.test(t) && isVisible(m, i, hidC, hidW)).length;
+function missingRoles(m, hidW) {
+  return [...new Set(m.core.filter((k) => { for (let i = k.a; i <= k.b; i++) if (hidW.has(i)) return true; return false; }).map((k) => k.r))];
+}
+// Outline: core items, each with the chunks hanging from it; chunks nest under their parent chunk.
+function outline(m) {
+  const kids = (pred) => m.chunks.map((c, k) => ({ c, k })).filter(({ c }) => pred(c)).sort((x, y) => x.c.a - y.c.a)
+    .map(({ c, k }) => ({ k, c, kids: kids((d) => d.parent === c) }));
+  return m.core.map((k) => ({ core: k, kids: kids((c) => !c.parent && inside(k, c.head)) }));
+}
+// Own text of a chunk with inner chunks replaced by "…".
+function ownText(m, c) {
+  const inner = m.chunks.filter((d) => d.parent === c);
+  let out = "", skip = -1;
+  for (let i = c.a; i <= c.b; i++) {
+    if (i <= skip) continue;
+    const d = inner.find((x) => x.a === i);
+    if (d) { if (!out.endsWith("…")) out += (out ? " " : "") + "…"; skip = d.b; continue; }
+    out += (PUNCT.test(m.toks[i]) || !out ? "" : " ") + m.toks[i];
+  }
+  return out.replace(/^[,\s]+|[,\s]+$/g, "");
+}
+// Outermost chunk around token i (or null).
+function outerAt(m, i) { let c = chunkAt(m, i); while (c && c.parent) c = c.parent; return c; }
+// Smallest chunk around token i (or null).
+function chunkAt(m, i) {
+  const cs = m.chunks.filter((c) => inside(c, i));
+  return cs.length ? cs.reduce((x, y) => (y.b - y.a < x.b - x.a ? y : x)) : null;
+}
+if (typeof module !== "undefined") { module.exports = { outerAt, SENTS, QUIZ, tokenize, build, validate, visibleText, wordCount, missingRoles, outline, ownText, chunkAt, coreRole }; }
+
+if (typeof document !== "undefined") (function () {
+const P = Play.setup({
+  en: {
+    title: "The skeleton of a long sentence", eyebrow: "English · Stage 3", h1: "A long sentence stands on its subject and main verb",
+    intro: "Long English sentences look scary, but most of the words are add-ons: clauses and phrases hanging from one word. Find the main verb first, then peel the add-ons away.",
+    reset: "Reset", boardAria: "Sentence board", pickLabel: "Sentence",
+    strip: "Hide all chunks", stripOn: "Show all chunks", say: "▶ Read aloud", outlineT: "Outline — each chunk hangs under the word it describes",
+    s1: "Guess", s2: "Bracket", s3: "Rule",
+    k1: "Predict first", t1: "Which word is the main verb?",
+    b1: "Read the sentence on the left once, from left to right. Then pick the verb the whole sentence stands on.",
+    k2: "Hands on", t2: "Hide the chunks, keep the skeleton",
+    b2: "Tap a bracketed chunk (or Tab to it and press Enter) to hide it; tap the small […] to bring it back. A chunk inside a chunk can be hidden on its own. Try tapping an underlined skeleton word too.",
+    k3: "The rule", t3: "Find the main verb first",
+    b3: "A long sentence stands on subject + main verb (+ object or complement). Every clause and phrase hangs from one word. Read it in this order:",
+    c1: "Find the main verb: skip verbs after who / which / that / whose / when / after…, and -ing / -ed forms that only describe a noun.",
+    c2: "Find its subject: ask “who or what + verb?” — the answer is outside every chunk.",
+    c3: "Find what comes after it (object or complement), then hang each chunk on the word it describes.",
+    q: "In this sentence, which word is the main verb — the one the whole sentence stands on?",
+    p_designed: "Reading left to right, “designed” is the first verb you meet — but it sits inside “who designed the new library on the hill”, a relative clause that only tells us which engineer. See step 2.",
+    p_won: "Yes. “won” is outside every chunk: The young engineer won the city's top prize. Everything else hangs on these words.",
+    p_rejected: "“rejected” sits inside “after three earlier designs had been rejected…”, an adverbial clause that says when. Its subject is “designs”, not the sentence's subject.",
+    after1: "Boxes: the chunks. Dashed red underline: verbs that belong to a chunk. Outside every box stands only the skeleton (underlined), with the main verb highlighted.",
+    rel: "relative clause", pp: "prepositional phrase", part: "participle phrase", adv: "adverbial", advc: "adverbial clause",
+    tg_rel: "rel", tg_pp: "prep", tg_part: "part", tg_adv: "adv", tg_advc: "adv cl",
+    S: "subject", V: "main verb", O: "object", C: "complement",
+    now: "Now it reads", about: "→ hangs on “{h}”",
+    ok: "✓ Still a sentence: {k} of {n} words left.", okFull: "✓ The full sentence: {n} words.",
+    okSkel: "✓ Only the skeleton is left: {k} of {n} words — and it is still a complete sentence.",
+    broken: "✗ Not a sentence any more — the {miss} is gone.", and: " and the ",
+    hideCore: "“{w}” is part of the skeleton (the {role}). Without it the sentence falls apart — tap it again to put it back.",
+    hidden: "Hidden: {ty} “{t}”.", shown: "Back: {ty}.",
+    quizV: "Quiz: tap the main verb of this new sentence.", quizS: "Good — “{v}” is the main verb. Now tap its subject.",
+    quizO: "Subject found: “{s}”. The skeleton is: {sk} Below, every chunk hangs on its word.",
+    qInChunk: "“{w}” is a verb, but it sits inside a {ty} (“{c}”). Look outside the brackets.",
+    qNotVerb: "“{w}” is not a verb. Look for the action word.",
+    qSubjChunk: "“{w}” is inside a {ty} (“{c}”), so it is not the subject of the whole sentence.",
+    qTrap: " Read left to right, “{w} {v}” looks like subject + verb — that is exactly the word-by-word trap.",
+    qSubjRole: "“{w}” is the {role}, not the subject. Who or what {v}?",
+    ruleLine: "Sentence {i}: {w} words → skeleton of {k} words: ",
+    ruleCount: "{n} sentences · {w} words in all · the skeletons use only {k} of them ({p}%) · {s} of {n} skeletons are complete sentences on their own.",
+    resultTitle: "What we found", resultMain: "subject + main verb (+ object / complement)",
+    resultNote: "Clauses and phrases add which, where, when and how; each hangs from one word. Find the main verb first — not the first verb you meet.",
+    explainK: "Explain it", explainQ: "Take a long sentence from something you read in English. Show a friend how you find its main verb, then its subject, then where each chunk hangs — and why the first verb you meet is often not the main one.",
+    homeK: "Try at home", homeQ: "Copy a long English sentence onto a strip of paper and cut it into chunks. Put the chunks aside one by one until only the skeleton is left, and read it aloud. Then swap sentences with someone.",
+    foot: "Chunks are named by form: relative clause (who / which / that / whose …), prepositional phrase (in / of / by …), participle phrase (an -ing or -ed form without its own subject), adverbial clause (when / after / before …); “adverbial” marks single adverbs and time phrases such as last year. A prepositional phrase can describe a noun (the stairs of her old house) or a verb (found in a box). The main verb includes its helping verbs (were found). Where a chunk could hang on two words, the outline shows the more likely reading. Chinese glosses explain each chunk; they are not word-for-word translations. All sentences are original. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "长句子的骨架", eyebrow: "英语 · 阶段 3", h1: "长句子靠主语和谓语动词立着",
+    intro: "英语长句看着吓人，其实大部分词都是挂件：从句和短语，各自挂在某一个词上。先找谓语动词，再把挂件一层层拿掉。",
+    reset: "重置", boardAria: "句子操作台", pickLabel: "句子",
+    strip: "藏起全部挂件", stripOn: "放回全部挂件", say: "▶ 读一读", outlineT: "大纲：每个挂件缩进在它修饰的词下面",
+    s1: "先猜", s2: "拆挂件", s3: "规律",
+    k1: "先猜一猜", t1: "哪个词是谓语动词？",
+    b1: "从左往右把左边的英文句子读一遍，再选出整句话靠它立着的那个动词。",
+    k2: "动手", t2: "藏起挂件，留下骨架",
+    b2: "点一个带框的挂件（或用 Tab 选中按回车）把它藏起来，点小小的 […] 再放回。挂件里面套的小挂件可以单独藏。也试试点一下带下划线的骨架词。",
+    k3: "规律", t3: "先找谓语动词",
+    b3: "长句子靠「主语 + 谓语动词（+ 宾语或表语）」立着，每个从句、短语都挂在某一个词上。按这个顺序读：",
+    c1: "找谓语动词：跳过 who / which / that / whose / when / after… 后面的动词，也跳过只修饰名词的 -ing / -ed 形式。",
+    c2: "找它的主语：问「谁 / 什么 + 这个动作？」，答案在所有挂件外面。",
+    c3: "找动词后面的宾语或表语，再把每个挂件挂到它修饰的词上。",
+    q: "这句话里，哪个词是谓语动词——整句话靠它立着？",
+    p_designed: "从左往右读，designed 是遇到的第一个动词，可它在 who designed the new library on the hill 里面。这是定语从句，只说明是哪位工程师。到第 2 步看看。",
+    p_won: "对。won 在所有挂件外面：The young engineer won the city's top prize. 其余的词都挂在这几个词上。",
+    p_rejected: "rejected 在 after three earlier designs had been rejected… 里面，这是状语从句，说明「什么时候」。它的主语是 designs，不是整句话的主语。",
+    after1: "方框里是挂件；红色虚线下划线的动词属于某个挂件。所有方框外面只剩骨架（带下划线），谓语动词加了底色。",
+    rel: "定语从句", pp: "介词短语", part: "分词短语", adv: "状语", advc: "状语从句",
+    tg_rel: "定从", tg_pp: "介短", tg_part: "分词", tg_adv: "状", tg_advc: "状从",
+    S: "主语", V: "谓语动词", O: "宾语", C: "表语",
+    now: "现在读作", about: "→ 挂在 “{h}” 上",
+    ok: "✓ 还是一句完整的话：剩 {k} / {n} 个词。", okFull: "✓ 完整的句子：{n} 个词。",
+    okSkel: "✓ 只剩骨架：{k} / {n} 个词，仍然是一句完整的话。",
+    broken: "✗ 不成句了：缺了{miss}。", and: "和",
+    hideCore: "“{w}” 是骨架上的词（{role}），去掉它句子就散了。再点一次放回来。",
+    hidden: "藏起：{ty} “{t}”。", shown: "放回：{ty}。",
+    quizV: "小测：点出这个新句子的谓语动词。", quizS: "对，“{v}” 是谓语动词。再点出它的主语。",
+    quizO: "主语找到了：“{s}”。骨架是：{sk} 下面每个挂件都挂到了它修饰的词上。",
+    qInChunk: "“{w}” 是动词，但它在{ty}（“{c}”）里面。到框外面去找。",
+    qNotVerb: "“{w}” 不是动词。找表示动作的词。",
+    qSubjChunk: "“{w}” 在{ty}（“{c}”）里面，所以不是整句话的主语。",
+    qTrap: "从左往右逐词读，“{w} {v}” 像是「主语 + 动词」——这正是逐词翻译的陷阱。",
+    qSubjRole: "“{w}” 是{role}，不是主语。是谁 / 什么 {v}？",
+    ruleLine: "第 {i} 句：{w} 个词 → 骨架 {k} 个词：",
+    ruleCount: "{n} 个句子 · 一共 {w} 个词 · 骨架只用了 {k} 个（{p}%）· {s} / {n} 个骨架单独就是完整的句子。",
+    resultTitle: "我们发现", resultMain: "主语 + 谓语动词（+ 宾语 / 表语）",
+    resultNote: "从句和短语补充「哪个、在哪、何时、怎样」，每个都挂在一个词上。先找谓语动词，而不是遇到的第一个动词。",
+    explainK: "说一说", explainQ: "从你读的英文材料里找一个长句，给同学演示：先找谓语动词，再找主语，再看每个挂件挂在哪个词上；再讲讲为什么遇到的第一个动词往往不是谓语。",
+    homeK: "家里做一做", homeQ: "把一个英语长句抄在纸条上，用剪刀剪成一块块挂件，一块一块拿开，直到只剩骨架，把它读出来。再和家人交换句子试试。",
+    foot: "挂件按形式命名：定语从句（who / which / that / whose …引导，也叫关系从句）、介词短语（in / of / by …）、分词短语（没有自己主语的 -ing 或 -ed 形式）、状语从句（when / after / before …）；「状语」标的是单个副词和 last year 这类时间短语。介词短语可以修饰名词（the stairs of her old house），也可以修饰动词（found in a box）。谓语动词包括助动词（were found）。一个挂件可能挂在两个词上时，大纲按更常见的理解。中文注释是解释，不是逐词翻译。所有例句均为原创。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const sentEl = $("sent"), readout = $("readout"), treeEl = $("tree"), rulesEl = $("rules"), fb3 = $("fb3"), liveEl = $("live");
+const MODELS = SENTS.map(build), QM = build(QUIZ);
+
+let step = 0, si = 0, guess = -1;
+let hidC = new Set(), hidW = new Set();
+let qPhase = 0, qVerb = -1, qBad = -1;
+
+function shake(el) { if (!Play.reduced && el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); } }
+const tyName = (ty) => P.t(ty);
+
+// Render tokens a..b of model m into box. mode: "edit" (step 2), "show" (static brackets), "plain", "quiz".
+function renderRange(m, box, a, b, mode, first, scope) {
+  let isFirst = first;
+  const sp = (i) => { if (!isFirst && !/^[,.;:]$/.test(m.toks[i])) box.appendChild(document.createTextNode(" ")); isFirst = false; };
+  for (let i = a; i <= b; i++) {
+    const c = mode === "edit" || mode === "show" ? m.chunks.find((d) => d.a === i && d.parent === scope) : null;
+    if (c) {
+      sp(i);
+      const k = m.chunks.indexOf(c);
+      const el = document.createElement("span");
+      el.className = "ck " + c.ty + (mode === "show" ? " static" : "");
+      if (mode === "edit") {
+        el.tabIndex = 0;
+        el.setAttribute("role", "button");
+        el.dataset.k = k;
+        el.setAttribute("aria-pressed", hidC.has(k) ? "false" : "true");
+        el.setAttribute("aria-label", tyName(c.ty) + ": " + ownText(m, c));
+      }
+      if (mode === "edit" && hidC.has(k)) {
+        el.classList.add("off");
+        el.textContent = "[… " + P.t("tg_" + c.ty) + "]";
+      } else {
+        const tg = document.createElement("span");
+        tg.className = "tg";
+        tg.textContent = P.t("tg_" + c.ty);
+        tg.setAttribute("aria-hidden", "true");
+        el.appendChild(tg);
+        renderRange(m, el, c.a, c.b, mode, true, c);
+      }
+      box.appendChild(el);
+      i = c.b;
+      continue;
+    }
+    sp(i);
+    const t = m.toks[i], r = coreRole(m, i);
+    if (mode === "quiz") {
+      if (/^[,.;:]$/.test(t)) { box.appendChild(document.createTextNode(t)); continue; }
+      const q = document.createElement("button");
+      q.type = "button";
+      q.className = "q" + ((qPhase >= 1 && i === qVerb) || (qPhase >= 2 && r === "S") ? " good" : i === qBad ? " bad" : "");
+      q.dataset.i = i;
+      q.textContent = t;
+      box.appendChild(q);
+      continue;
+    }
+    const w = document.createElement("span");
+    w.className = "wd";
+    w.textContent = t;
+    if (r && mode !== "plain") {
+      w.classList.add("core");
+      if (mode === "edit") {
+        w.tabIndex = 0;
+        w.setAttribute("role", "button");
+        w.dataset.w = i;
+        w.setAttribute("aria-label", t + " · " + P.t(r));
+        if (hidW.has(i)) w.classList.add("off");
+      }
+    } else if (mode === "show" && m.s.verbs.includes(t) && chunkAt(m, i)) w.classList.add("vtrap");
+    box.appendChild(w);
+  }
+}
+function drawSentence(m, box, mode) { box.innerHTML = ""; renderRange(m, box, 0, m.toks.length - 1, mode, true, null); }
+
+function drawTree(m, hc) {
+  treeEl.innerHTML = "";
+  const node = (n, ul, off) => {
+    const li = document.createElement("li");
+    const dim = off || hc.has(n.k);
+    if (dim) li.classList.add("dim");
+    const ty = document.createElement("span");
+    ty.className = "ty " + n.c.ty;
+    ty.textContent = tyName(n.c.ty);
+    const w = document.createElement("span");
+    w.className = "w";
+    w.lang = "en";
+    w.textContent = ownText(m, n.c);
+    const gl = document.createElement("span");
+    gl.className = "gl";
+    if (L === "zh") gl.textContent = n.c.zh;
+    else gl.textContent = P.t("about", { h: m.toks[n.c.head] });
+    li.append(ty, w, gl);
+    if (n.kids.length) { const u = document.createElement("ul"); n.kids.forEach((x) => node(x, u, dim)); li.appendChild(u); }
+    ul.appendChild(li);
+  };
+  outline(m).forEach((o) => {
+    const li = document.createElement("li");
+    const r = document.createElement("span");
+    r.className = "role";
+    r.textContent = P.t(o.core.r);
+    const w = document.createElement("span");
+    w.className = "cw";
+    w.lang = "en";
+    w.textContent = o.core.text;
+    li.append(r, w);
+    if (o.kids.length) { const u = document.createElement("ul"); o.kids.forEach((x) => node(x, u)); li.appendChild(u); }
+    treeEl.appendChild(li);
+  });
+}
+
+function setReadout(text, status, cls, zh) {
+  readout.innerHTML = "";
+  const lab = document.createElement("div"); lab.className = "lab"; lab.textContent = P.t("now");
+  const nw = document.createElement("div"); nw.className = "now"; nw.lang = "en"; nw.textContent = text || "…";
+  const st = document.createElement("div"); st.className = "status " + cls; st.textContent = status;
+  readout.append(lab, nw, st);
+  if (zh) { const z = document.createElement("div"); z.className = "zh"; z.lang = "zh-CN"; z.textContent = zh; readout.appendChild(z); }
+}
+
+// ---- picker ----
+const pick = $("pick");
+const pickBtns = MODELS.map((m, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small"; b.textContent = String(i + 1);
+  b.setAttribute("aria-label", m.s.text);
+  b.addEventListener("click", () => { si = i; hidC = new Set(); hidW = new Set(); fb3.textContent = ""; render(); });
+  pick.appendChild(b);
+  return b;
+});
+
+function renderEdit() {
+  const m = MODELS[si];
+  drawSentence(m, sentEl, "edit");
+  drawTree(m, hidC);
+  const n = wordCount(m, new Set(), new Set()), k = wordCount(m, hidC, hidW);
+  const miss = missingRoles(m, hidW);
+  const text = visibleText(m, hidC, hidW);
+  const topOff = m.chunks.every((c, j) => c.parent || hidC.has(j));
+  if (miss.length) setReadout(text, P.t("broken", { miss: miss.map((r) => P.t(r)).join(P.t("and")) }), "no", "");
+  else if (!hidC.size && !hidW.size) setReadout(text, P.t("okFull", { n }), "ok", "");
+  else if (topOff) setReadout(text, P.t("okSkel", { k, n }), "ok", L === "zh" ? m.s.skZh : "");
+  else setReadout(text, P.t("ok", { k, n }), "ok", "");
+  const strip = $("strip");
+  strip.setAttribute("aria-pressed", topOff ? "true" : "false");
+  strip.textContent = P.t(topOff ? "stripOn" : "strip");
+}
+
+function toggleChunk(k) {
+  const m = MODELS[si];
+  if (hidC.has(k)) { hidC.delete(k); Play.live(liveEl, P.t("shown", { ty: tyName(m.chunks[k].ty) })); }
+  else { hidC.add(k); Play.live(liveEl, P.t("hidden", { ty: tyName(m.chunks[k].ty), t: ownText(m, m.chunks[k]) })); }
+  render();
+  const el = sentEl.querySelector('[data-k="' + k + '"]');
+  if (el) el.focus();
+}
+function toggleCore(i) {
+  const m = MODELS[si];
+  if (hidW.has(i)) { hidW.delete(i); fb3.textContent = ""; }
+  else { hidW.add(i); fb3.textContent = P.t("hideCore", { w: m.toks[i], role: P.t(coreRole(m, i)) }); }
+  render();
+  const el = sentEl.querySelector('[data-w="' + i + '"]');
+  if (el) { el.focus(); if (hidW.has(i)) shake(el); }
+}
+
+// ---- quiz (step 3) ----
+function quizTap(i) {
+  const m = QM, t = m.toks[i], r = coreRole(m, i), c = chunkAt(m, i);
+  const vIdx = m.core.find((k) => k.r === "V").a;
+  qBad = -1;
+  if (qPhase === 0) {
+    if (r === "V") { qPhase = 1; qVerb = i; fb3.textContent = P.t("quizS", { v: t }); }
+    else if (m.s.verbs.includes(t) && c) { qBad = i; fb3.textContent = P.t("qInChunk", { w: t, ty: tyName(c.ty), c: ownText(m, c) }); }
+    else { qBad = i; fb3.textContent = P.t("qNotVerb", { w: t }); }
+  } else if (qPhase === 1) {
+    if (r === "S") { qPhase = 2; const s = m.core.find((k) => k.r === "S").text; fb3.textContent = P.t("quizO", { s, sk: m.s.sk }); }
+    else if (c) { const o = outerAt(m, i); qBad = i; fb3.textContent = P.t("qSubjChunk", { w: t, ty: tyName(o.ty), c: ownText(m, o) }) + (i === vIdx - 1 ? P.t("qTrap", { w: t, v: m.toks[vIdx] }) : ""); }
+    else if (r && r !== "V") { qBad = i; fb3.textContent = P.t("qSubjRole", { w: t, role: P.t(r), v: m.toks[vIdx] }); }
+    else return;
+  }
+  render();
+  const again = sentEl.querySelector('[data-i="' + i + '"]');
+  if (again) { again.focus(); if (qBad === i) shake(again); }
+}
+
+function renderRule() {
+  if (qPhase < 2) drawSentence(QM, sentEl, "quiz");
+  else { drawSentence(QM, sentEl, "show"); drawTree(QM, new Set()); }
+  if (qPhase === 2) setReadout(QM.s.sk, P.t("okSkel", { k: wordCount(QM, new Set(QM.chunks.map((_, j) => j)), new Set()), n: wordCount(QM, new Set(), new Set()) }), "ok", L === "zh" ? QM.s.skZh : "");
+  const cl = $("checklist");
+  cl.innerHTML = "";
+  ["c1", "c2", "c3"].forEach((key, j) => { const li = document.createElement("li"); li.textContent = P.t(key); if (qPhase > j || qPhase === 2) li.classList.add("done"); cl.appendChild(li); });
+  rulesEl.innerHTML = "";
+  let words = 0, kept = 0, whole = 0;
+  MODELS.forEach((m, i) => {
+    const all = new Set(m.chunks.map((_, j) => j));
+    const w = wordCount(m, new Set(), new Set()), k = wordCount(m, all, new Set());
+    words += w; kept += k;
+    if (!missingRoles(m, new Set()).length && visibleText(m, all, new Set()) === m.s.sk) whole++;
+    const d = document.createElement("div");
+    d.className = "pair";
+    d.appendChild(document.createTextNode(P.t("ruleLine", { i: i + 1, w, k })));
+    const b = document.createElement("b"); b.lang = "en"; b.textContent = visibleText(m, all, new Set());
+    d.appendChild(b);
+    if (L === "zh") d.appendChild(document.createTextNode("（" + m.s.skZh.replace("。", "") + "）"));
+    rulesEl.appendChild(d);
+  });
+  const c = document.createElement("div");
+  c.className = "status";
+  c.textContent = P.t("ruleCount", { n: MODELS.length, w: words, k: kept, p: Play.fmt((100 * kept) / words, 0), s: whole });
+  rulesEl.appendChild(c);
+}
+
+function renderGuess() {
+  const m = MODELS[0];
+  drawSentence(m, sentEl, guess < 0 ? "plain" : "show");
+  if (guess >= 0) {
+    const v = m.core.find((k) => k.r === "V");
+    sentEl.querySelectorAll(".wd").forEach((el) => { if (el.textContent === m.toks[v.a]) el.classList.add("mv"); });
+    setReadout(m.s.sk, P.t("after1"), "ok", L === "zh" ? m.s.skZh : "");
+  }
+}
+
+function legend() {
+  const lg = $("legend");
+  lg.innerHTML = "";
+  [["core", "V"], ["rel", "rel"], ["pp", "pp"], ["part", "part"], ["adv", "adv"]].forEach(([c, k]) => {
+    const s = document.createElement("span");
+    s.innerHTML = '<span class="dot ' + c + '"></span>';
+    s.appendChild(document.createTextNode(c === "core" ? P.t("S") + " / " + P.t("V") + " / " + P.t("O") : c === "adv" ? P.t("adv") + " / " + P.t("advc") : P.t(k)));
+    lg.appendChild(s);
+  });
+}
+
+function render() {
+  pickBtns.forEach((b, i) => b.setAttribute("aria-pressed", i === si ? "true" : "false"));
+  pick.hidden = step !== 1;
+  $("tools2").hidden = step !== 1;
+  readout.hidden = (step === 0 && guess < 0) || (step === 2 && qPhase < 2);
+  $("outline").hidden = !(step === 1 || (step === 2 && qPhase === 2));
+  rulesEl.hidden = step !== 2;
+  $("checklist").hidden = step !== 2;
+  if (step === 0) renderGuess();
+  else if (step === 1) renderEdit();
+  else renderRule();
+}
+
+// one delegated handler for clicks and keys on the sentence
+sentEl.addEventListener("click", (e) => {
+  const q = e.target.closest("[data-i]");
+  if (q && step === 2) { quizTap(+q.dataset.i); return; }
+  if (step !== 1) return;
+  const w = e.target.closest("[data-w]");
+  if (w) { toggleCore(+w.dataset.w); return; }
+  const c = e.target.closest("[data-k]");
+  if (c) toggleChunk(+c.dataset.k);
+});
+sentEl.addEventListener("keydown", (e) => {
+  const items = [...sentEl.querySelectorAll("[data-k],[data-w],[data-i]")];
+  const i = items.indexOf(document.activeElement);
+  if (i < 0) return;
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+    items[Play.clamp(i + (e.key === "ArrowRight" ? 1 : -1), 0, items.length - 1)].focus();
+    e.preventDefault();
+  } else if ((e.key === "Enter" || e.key === " ") && !document.activeElement.matches("button")) {
+    e.preventDefault();
+    document.activeElement.click();
+  }
+});
+$("strip").addEventListener("click", () => {
+  const m = MODELS[si];
+  const topOff = m.chunks.every((c, j) => c.parent || hidC.has(j));
+  hidC = topOff ? new Set() : new Set(m.chunks.map((c, j) => (c.parent ? -1 : j)).filter((j) => j >= 0));
+  fb3.textContent = "";
+  render();
+  Play.live(liveEl, visibleText(m, hidC, hidW));
+});
+$("say").addEventListener("click", () => Play.speak(visibleText(MODELS[si], hidC, hidW), "en-US"));
+
+const OPTS = ["designed", "won", "rejected"];
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: OPTS.map((w) => ({ label: w, right: w === MODELS[0].toks[MODELS[0].core.find((k) => k.r === "V").a] })),
+  right: P.t("p_won"), wrong: "",
+}, (i) => {
+  guess = i;
+  $("predict").querySelector(".fb").textContent = P.t("p_" + OPTS[i]);
+  render();
+});
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  fb3.textContent = i === 2 && qPhase < 2 ? P.t(qPhase ? "quizS" : "quizV", { v: qVerb >= 0 ? QM.toks[qVerb] : "" }) : "";
+  render();
+});
+$("reset").addEventListener("click", () => {
+  si = 0; guess = -1; hidC = new Set(); hidW = new Set(); qPhase = 0; qVerb = -1; qBad = -1;
+  pr.reset(); fb3.textContent = ""; st.go(0);
+});
+legend();
+render();
+})();
+</script>
+</body>
+</html>

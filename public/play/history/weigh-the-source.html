@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which source would you trust?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main#fig { height: auto; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize; }
+  .stage svg.main#fig.still { cursor: default; }
+  #fig text { font-size: 13px; }
+  #fig .lab { fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  #fig .tick { fill: var(--muted); }
+  #fig .head { fill: var(--muted); font-weight: 650; }
+  #fig .axis { stroke: var(--fg); stroke-width: 1.5px; }
+  #fig .grid { stroke: var(--line); stroke-width: 1px; }
+  #fig .sup { fill: var(--a); opacity: .22; stroke: var(--a); stroke-width: 1.5px; stroke-opacity: .9; }
+  #fig .peak { fill: var(--hl); opacity: .35; }
+  #fig .mk { stroke-width: 2.5px; stroke-linecap: round; fill: none; }
+  #fig .dotm { stroke-width: 2px; }
+  #fig .neutral { stroke: var(--fg); fill: var(--fg); }
+  #fig .fit { stroke: var(--a); fill: var(--a); }
+  #fig .bad { stroke: var(--no); fill: var(--no); }
+  #fig .hollow { fill: var(--surface); }
+  #fig .band { opacity: .35; }
+  #fig .cur { stroke: var(--hl); stroke-width: 3px; }
+  #fig .curPill { fill: var(--hl); }
+  #fig .curTxt { fill: var(--ink-panel); font-weight: 750; }
+  .srcTabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px 4px; }
+  .srcTabs button .ok { color: var(--a); font-weight: 800; margin-left: 4px; }
+  .srcTabs button.on .ok { color: var(--bg); }
+  .doc { margin: 8px 14px 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); padding: 10px 14px; }
+  .doc .dh { font-weight: 700; font-size: 14px; }
+  .doc .dm { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .doc blockquote { margin: 0; font-family: var(--serif); font-size: 14px; line-height: 1.6; white-space: pre-line; }
+  .tagbox { padding: 4px 14px 8px; font-size: 13px; }
+  .tagrow { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 5px 0; }
+  .tagrow .rl { font-weight: 700; min-width: 7.2em; color: var(--fg); }
+  @media (max-width: 560px) { .tagrow.wide .rl { flex: 0 0 100%; } }
+  .tagrow button { font-size: 13px; padding: 3px 9px; border-radius: 999px; }
+  .tagrow button.on { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .tagrow button.no { border-color: var(--no); color: var(--no); text-decoration: line-through; }
+  .tagbox .sub { font-weight: 700; color: var(--a); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; margin: 8px 0 2px; }
+  .tagbox .hint { color: var(--muted); min-height: 1.3em; font-size: 13px; }
+  .info { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 0 0 10px; }
+  .info div + div { margin-top: 5px; }
+  .info .rg { font-weight: 700; color: var(--fg); }
+  .info .it { color: var(--muted); }
+  .info .gp { font-weight: 750; color: var(--a); }
+  .info .no { color: var(--no); font-weight: 650; }
+  .info .l0 { color: var(--no); } .info .l1 { color: var(--b); } .info .l2 { color: var(--a); font-weight: 650; }
+  table.prof { border-collapse: collapse; width: 100%; font-size: 13px; margin: 0 0 10px; }
+  table.prof th, table.prof td { border-bottom: 1px solid var(--line); padding: 4px 4px; text-align: left; vertical-align: top; }
+  table.prof th { color: var(--muted); font-weight: 650; font-size: 12px; }
+  table.prof td.l0 { color: var(--no); } table.prof td.l1 { color: var(--b); } table.prof td.l2 { color: var(--a); font-weight: 700; }
+  table.prof td.unk { color: var(--muted); }
+  table.prof .you { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+  .aims { padding: 4px 14px 12px; font-size: 14px; }
+  .aims div { border-top: 1px solid var(--line); padding: 6px 0; }
+  .aims b { color: var(--a); }
+  #resMain { white-space: normal; }
+  .explain h3 { font-size: 14px; margin: 8px 0 4px; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+  <section class="stage">
+    <div class="visual">
+      <div class="srcTabs" id="tabs"></div>
+      <div id="docWrap"></div>
+      <div class="tagbox" id="tagbox"></div>
+      <div class="aims" id="aims" hidden></div>
+      <svg class="main" id="fig" viewBox="0 0 600 250" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctl">
+        <label for="est" data-t="estLabel"></label>
+        <input type="range" id="est" min="0" max="340" step="1" value="300">
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="info" id="info" hidden></div>
+      <div id="profWrap"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" id="resNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+/* Everything about Lowford is invented for this page: the town, the flood and all five sources. */
+const FLOOD = [1712, 3, 14];
+const HOUSES = 300;                       // houses the council says were destroyed
+const EMAX = 340;                         // death-toll axis 0..EMAX
+const MANY = 10;                          // our reading of the diary's "many": at least this many
+const TOL = 0.1;                          // a single number "fits" an estimate within ±10 %
+/* date: [y, m, d] or [y] (year only → counted from 1 July). claim types:
+   floor = at least v · ceiling = at most v · point = about v · range = lo..hi.
+   lin = line of evidence: sources built on another source count once. */
+const SRC = [
+  { id: "diary", date: [1712, 3, 14], who: "saw", why: "private", claim: { type: "floor", v: MANY, vague: 1 }, lin: "diary" },
+  { id: "council", date: [1712, 4, 15], who: "saw", why: "ask", claim: { type: "point", v: 120 }, lin: "council" },
+  { id: "ballad", date: [1752], who: "heard", why: "sell", claim: { type: "point", v: 300 }, lin: "ballad" },
+  { id: "museum", date: [2012], who: "heard", why: "teach", claim: { type: "range", lo: 60, hi: 80 }, lin: "register" },
+  { id: "register", date: [1712, 3, 30], who: "saw", why: "routine", claim: { type: "floor", v: 47 }, lin: "register" },
+];
+const QS = ["qEv", "qFe", "qNu"];         // what happened · how people felt · how many died
+const CATS = { who: ["saw", "heard"], when: ["same", "days", "month", "decades", "centuries"], why: ["private", "ask", "sell", "teach", "routine"] };
+/* points each tag adds to [what happened, how people felt, numbers] */
+const PTS = {
+  who: { saw: [1, 0, 0], heard: [0, 0, 0] },
+  when: { same: [1, 2, 0], days: [1, 0, 0], month: [1, 0, 0], decades: [-1, 0, -1], centuries: [0, -1, 0] },
+  why: { private: [0, 1, 0], ask: [-1, 0, -1], sell: [-1, 1, -1], teach: [1, 0, 1], routine: [-1, 0, 2] },
+};
+const W8 = [0.5, 1, 2];                   // weight of a number by its "numbers" level: low, some, high
+const W_CEIL = 2;                         // a number pushed UP by its maker's aim is a strong ceiling
+
+const EN = {
+  title: "Which source would you trust?", eyebrow: "History · Stage 3", h1: "Which source would you trust?",
+  intro: "A river town, a flood, five sources that disagree. Ask who made each one, when and why — and see what each can and cannot tell you.",
+  reset: "Reset", figAria: "Death-toll line from 0 to 340 with each source's claim and an estimate marker. Left and right arrows move the estimate by 1, Page Up and Page Down by 10.",
+  estLabel: "Your estimate of the dead",
+  s1: "Guess", s2: "Weigh", s3: "Rule",
+  k1: "Predict first", t1: "The great flood of Lowford, 1712",
+  b1: "Lowford is an invented river town. On the night of 14 March 1712 its river flooded. Here is one source about that night: a ballad.",
+  q: "The ballad says {b} people drowned. It is about 300 years old. Is it true because it is old?",
+  o1: "Yes — it is old, so it comes from that time", o2: "Not necessarily — check who made it, when and why", o3: "No — old sources are always wrong",
+  right: "Yes. The ballad was printed about {g} years after the flood, to be sold at market. And the other sources give numbers from {min} to {max}: they cannot all be right.",
+  wrong: "Not quite. Old does not mean from the time — this ballad was printed about {g} years after the flood, to sell. And old is not wrong either: the burial register is just as old and careful. The sources give {min} to {max}.",
+  spread: "Five sources, four numbers. The largest is {r}× the smallest — they cannot all be right.",
+  k2: "Hands on", t2: "Tag each source, then weigh the numbers",
+  b2: "Pick a source. First guess what it is useful for. Then tag who made it, when and why: the tags give it a profile, and the profile decides how much its number counts on the line below. Drag along the line to test an estimate.",
+  guessH: "1 · Your guess — useful for…", tagH: "2 · Tag it",
+  rl_who: "Who?", rl_when: "When?", rl_why: "Why?",
+  t_saw: "Saw it happen", t_heard: "Heard or read about it",
+  t_same: "Same day", t_days: "Days later", t_month: "About a month later", t_decades: "Decades later", t_centuries: "Centuries later",
+  t_private: "For himself", t_ask: "To ask for something", t_sell: "To entertain and sell", t_teach: "To explain to visitors", t_routine: "Routine record",
+  h_who: "Was the maker in Lowford that night? Look at the date and at what the text says they saw.",
+  h_when: "Count from 14 March 1712 to the date on the source.",
+  h_why: "Who was meant to read it, and what did the maker hope would happen?",
+  okTag: "Right: {tag}.", allTagged: "Tagged. Made {gap} after the flood.",
+  qEv: "What happened", qFe: "How people felt", qNu: "How many died", qAim: "What its maker wanted",
+  qEvS: "Events", qFeS: "Feelings", qNuS: "Numbers", qAimS: "Aim",
+  lv0: "low", lv1: "some", lv2: "high", lvU: "?", you: "you: {v}",
+  verdict: "{q}: {lv}", because: " ({r})", noPts: "no tag changes it",
+  profH: "Profile of each source", agree: "Your guesses match the tags in {k} of {n} cells.",
+  nameShort_diary: "Diary", nameShort_council: "Council", nameShort_ballad: "Ballad", nameShort_museum: "Museum", nameShort_register: "Register",
+  name_diary: "A cloth merchant's private diary", name_council: "The town council's letter to the king", name_ballad: "A printed ballad", name_museum: "A museum label", name_register: "The parish burial register",
+  doc_diary: "{date}, near midnight. I write this for myself alone. The river came in under the door while we sat at supper. We carried the cloth upstairs and watched from the window. A roof went past the inn. I heard people calling from the houses by the mill and could do nothing. Many must be drowned. My hands are still shaking.",
+  doc_council: "To His Majesty the King, from the Council of Lowford, {date}.\nThe flood of 14 March has destroyed {h} houses and drowned the whole of the spring sowing. {d} souls are lost. The town cannot pay this year's taxes, and the Council humbly begs Your Majesty to excuse them.",
+  doc_ballad: "Printed for sale at Lowford market, {date}. One penny.\n\nCome gather round, good people all,\nand hear of Lowford's fall:\nthe river rose at dead of night,\n{b} souls were lost from sight,\nand still the old folk tell it so —\nthe flood of long ago.",
+  doc_museum: "Lowford Town Museum, {date}. THE GREAT FLOOD OF 1712.\nOn the night of 14 March the river burst its banks. The parish burial register lists {r} people drowned and notes that others were never found. Historians estimate {lo} to {hi} deaths. The council's letter to the king claimed {c}, but it was written to win a tax pardon.",
+  doc_register: "Burials in the parish of Lowford, March 1712.\n16th — the miller and his wife, drowned in the great flood.\n16th — two children of the same house, drowned.\n17th — a carter, drowned. … (entries continue to the 30th)\nClerk's note at the foot of the page: {r} buried this month who were drowned in the flood; others missing and not found.",
+  made: "Made: {date}",
+  c_floor: "≥ {v}", c_ceiling: "≤ {v}", c_point: "{v}", c_range: "{lo}–{hi}", c_many: "“many”",
+  ifE: "If {e} died:", fitsL: "fits {list}", badL: "clashes with {list}", noneL: "nobody",
+  supL: "Support {s} — the best is {m}, for {bands}.", band: "{a}–{b}", orL: " or ",
+  sameLine: "The museum is built on the register, so together they count once.",
+  ceilNote: "The council wanted the number big, so its {v} counts as a ceiling: probably no more than {v}.",
+  unweighed: "Untagged sources count with weight 1 (hollow marks).",
+  k3: "The rule", t3: "Who, when, why — then use it for what it can show",
+  b3: "Every source was made by someone, at some time, for some purpose. Asking who, when and why tells you what it can show and what it cannot. Old is not the same as true — and a biased source is still useful, for its bias.",
+  filled: "Tags you skipped have been filled in.",
+  aimsH: "Every source is good evidence of something",
+  aim_diary: "how frightening that night was for one family",
+  aim_council: "that the council wanted the king to forgive its taxes — and since it wanted the toll big, even it said only {c}",
+  aim_ballad: "how the town told the story {g} years on (did {h} houses turn into {b} people?)",
+  aim_museum: "what historians conclude today, from the register",
+  aim_register: "the {r} people who were found and buried — a floor, not the whole toll",
+  resultTitle: "What we found", resMain: "Best supported: {a} to {b} dead — not {bal}",
+  resNote: "The register gives a careful floor ({r}); the council, which wanted a big number, still said only {c}. The ballad's {bal} rests on the ballad alone.",
+  explainK: "Explain it", explainQ: "A classmate says: “The ballad is about 300 years old, so {b} must be right.” Use two other sources from this page to answer them.",
+  homeK: "Try at home", homeQ: "Find two accounts of the same family event — a photo caption, a message, someone's memory. For each ask: who made it, when, and why? Where do they disagree, and which would you trust for what?",
+  foot: "Lowford, its flood and all five sources are invented for this page; no real people or events. Scoring: each tag adds or takes away points for each question (shown on the page); 0 or less = low, 1 = some, 2 or more = high. On the death-toll line a number weighs 0.5 / 1 / 2 by its numbers level; a number from a maker who wanted it big counts as a ceiling with weight 2; sources built on another source count once; “many” is read as at least 10; a single number fits within ±10 %. These are teaching rules, not a formula historians use. CC BY 4.0 · Boxi Yu",
+};
+const ZH = {
+  title: "你更相信哪份材料？", eyebrow: "历史 · 阶段 3", h1: "你更相信哪份材料？",
+  intro: "一座河边小镇，一场洪水，五份说法不一的材料。问问每份是谁、何时、为什么留下的，看看它能说明什么、不能说明什么。",
+  reset: "重置", figAria: "从 0 到 340 的死亡人数线，标着每份材料的说法和一个估计值。左右方向键每次移动 1，上翻页下翻页每次 10。",
+  estLabel: "你估计的死亡人数",
+  s1: "先猜", s2: "掂量", s3: "规律",
+  k1: "先猜一猜", t1: "1712 年洛福德镇大洪水",
+  b1: "洛福德是一座虚构的河边小镇。1712 年 3 月 14 日夜里，河水泛滥。下面是关于那一夜的一份材料：一首歌谣。",
+  q: "歌谣说淹死了 {b} 人。它大约有 300 年历史了。因为古老，所以它说的就是真的吗？",
+  o1: "是，它很古老，所以就是那个时候的", o2: "不一定，要查清是谁、何时、为什么写的", o3: "不是，古代材料总是错的",
+  right: "对。这首歌谣是洪水过去约 {g} 年后才印出来在集市上卖的。其他材料给的数字从 {min} 到 {max}，不可能都对。",
+  wrong: "不完全对。古老不等于就是当时的——这首歌谣是洪水约 {g} 年后为了卖钱才印的。古老也不等于错：下葬登记簿一样古老，而且很仔细。各份材料给的数字从 {min} 到 {max}。",
+  spread: "五份材料，四个数字。最大的是最小的 {r} 倍——不可能都对。",
+  k2: "动手", t2: "给每份材料贴标签，再掂量数字",
+  b2: "选一份材料。先猜它能用来说明什么，再给它贴上谁、何时、为什么三个标签：标签决定它的「用途画像」，画像决定它的数字在下面那条线上有多少分量。在线上左右拖，检验一个估计值。",
+  guessH: "1 · 你的猜测：它能说明……", tagH: "2 · 贴标签",
+  rl_who: "谁？", rl_when: "何时？", rl_why: "为什么？",
+  t_saw: "亲眼所见", t_heard: "听说或读到的",
+  t_same: "当天", t_days: "几天后", t_month: "约一个月后", t_decades: "几十年后", t_centuries: "几百年后",
+  t_private: "写给自己", t_ask: "为了求得某样东西", t_sell: "为了娱乐和卖钱", t_teach: "为了给参观者讲解", t_routine: "日常记录",
+  h_who: "写的人那天夜里在洛福德吗？看看日期，再看看文中说他看到了什么。",
+  h_when: "从 1712 年 3 月 14 日数到材料上的日期。",
+  h_why: "这是写给谁看的？写的人希望发生什么？",
+  okTag: "对：{tag}。", allTagged: "标签贴好了。写于洪水之后 {gap}。",
+  qEv: "发生了什么", qFe: "人们的感受", qNu: "死了多少人", qAim: "写的人想要什么",
+  qEvS: "经过", qFeS: "感受", qNuS: "人数", qAimS: "意图",
+  lv0: "弱", lv1: "中", lv2: "强", lvU: "？", you: "你猜：{v}",
+  verdict: "{q}：{lv}", because: "（{r}）", noPts: "没有标签改变它",
+  profH: "每份材料的用途画像", agree: "你的猜测和标签给出的结果在 {n} 格里吻合 {k} 格。",
+  nameShort_diary: "日记", nameShort_council: "议会信", nameShort_ballad: "歌谣", nameShort_museum: "展签", nameShort_register: "登记簿",
+  name_diary: "一位布商的私人日记", name_council: "镇议会写给国王的信", name_ballad: "一首印刷的歌谣", name_museum: "一块博物馆展签", name_register: "教区下葬登记簿",
+  doc_diary: "{date}，将近半夜。这些话只写给我自己看。我们正吃晚饭，河水从门缝下涌了进来。我们把布匹搬上楼，从窗口往外看。一座屋顶从客栈旁漂了过去。磨坊边的房子里有人在呼喊，我什么也做不了。一定淹死了很多人。我的手到现在还在抖。",
+  doc_council: "洛福德镇议会呈国王陛下，{date}。\n3 月 14 日的洪水冲毁房屋 {h} 座，春播的庄稼全部淹没，丧命者 {d} 人。本镇今年无力缴税，议会恳请陛下开恩免除。",
+  doc_ballad: "{date}印行，在洛福德集市出售，每张一便士。\n\n乡亲们哪围过来，\n听我唱唱洛福德：\n半夜河水涨上来，\n{b} 条人命没处找，\n老人至今还在讲，\n那年大水真正凶。",
+  doc_museum: "洛福德镇博物馆，{date}。1712 年大洪水。\n3 月 14 日夜里，河水冲破堤岸。教区下葬登记簿记下 {r} 名淹死者，并注明还有人始终没有找到。历史学家估计死亡 {lo} 到 {hi} 人。镇议会写给国王的信说是 {c} 人，但那封信是为了求免税而写的。",
+  doc_register: "洛福德教区下葬登记，1712 年 3 月。\n16 日——磨坊主夫妇，大洪水中淹死。\n16 日——同一户的两个孩子，淹死。\n17 日——一名车夫，淹死。……（记录一直到 30 日）\n页末书记员注：本月因洪水淹死而下葬者 {r} 人；另有失踪未寻获者。",
+  made: "写于：{date}",
+  c_floor: "≥ {v}", c_ceiling: "≤ {v}", c_point: "{v}", c_range: "{lo}–{hi}", c_many: "「很多」",
+  ifE: "如果死了 {e} 人：", fitsL: "符合：{list}", badL: "冲突：{list}", noneL: "没有",
+  supL: "支持度 {s}；最高是 {m}，在 {bands}。", band: "{a}–{b}", orL: " 或 ",
+  sameLine: "展签是根据登记簿写的，所以两者只算一条证据。",
+  ceilNote: "议会希望数字越大越好，所以它的 {v} 算作上限：多半不超过 {v}。",
+  unweighed: "还没贴标签的材料按分量 1 计（空心标记）。",
+  k3: "规律", t3: "谁、何时、为什么——再按它能说明的去用",
+  b3: "每份史料都是某人、在某时、为某个目的留下的。问清谁、何时、为什么，就知道它能说明什么、不能说明什么。古老不等于真实；有偏向的材料也有用——它正好说明了那份偏向。",
+  filled: "你没贴的标签已经补上了。",
+  aimsH: "每份材料都是某件事的好证据",
+  aim_diary: "那一夜对一个家庭来说有多可怕",
+  aim_council: "议会希望国王免掉它的税——正因为它想把数字说大，它也只说了 {c}",
+  aim_ballad: "{g} 年后镇上的人怎样讲这个故事（{h} 座房子是不是变成了 {b} 个人？）",
+  aim_museum: "今天的历史学家根据登记簿得出的结论",
+  aim_register: "被找到并下葬的 {r} 人——这是下限，不是全部",
+  resultTitle: "我们发现", resMain: "证据最支持 {a} 到 {b} 人死亡，不是 {bal}",
+  resNote: "登记簿给出一个仔细的下限（{r}）；想把数字说大的议会也只说了 {c}。歌谣的 {bal} 只有歌谣自己支持。",
+  explainK: "说一说", explainQ: "同学说：「这首歌谣有大约 300 年了，所以 {b} 一定是对的。」用本页另外两份材料回答他。",
+  homeK: "家里做一做", homeQ: "找两份讲同一件家庭往事的材料：一张照片的说明、一条消息、一个人的回忆。每份都问：谁留下的、什么时候、为什么？它们哪里说法不同？各自在哪方面更可信？",
+  foot: "洛福德镇、那场洪水和五份材料都是为本页虚构的，不涉及真实的人和事件。计分方法：每个标签给每个问题加分或减分（页面上会显示）；0 分及以下为弱，1 分为中，2 分及以上为强。死亡人数线上，数字的分量按「人数」一栏的强弱取 0.5 / 1 / 2；写的人希望数字大时，这个数字算作上限，分量 2；根据别的材料写成的材料和原材料只算一次；「很多」按至少 10 人理解；单个数字在 ±10% 以内算符合。这些是教学用的规则，不是历史学家使用的公式。CC BY 4.0 · Boxi Yu",
+};
+const P = Play.setup({ en: EN, zh: ZH });
+const ZHL = P.lang === "zh";
+const $ = (id) => document.getElementById(id);
+const byId = {}; SRC.forEach((s) => (byId[s.id] = s));
+
+/* ---------- pure logic ---------- */
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function dayNum(d) { return Date.UTC(d[0], (d[1] || 7) - 1, d[2] || 1) / 864e5; }
+function gapDays(s) { return Math.max(0, Math.round(dayNum(s.date) - dayNum(FLOOD))); }
+function gapYears(s) { return Math.round(gapDays(s) / 365.25); }
+function whenCat(days) {
+  if (!Number.isFinite(days) || days < 1) return "same";
+  if (days <= 20) return "days";
+  if (days <= 90) return "month";
+  if (days <= 100 * 365.25) return "decades";
+  return "centuries";
+}
+function keyTags(s) { return { who: s.who, when: whenCat(gapDays(s)), why: s.why }; }
+function complete(t) { return !!(t && t.who && t.when && t.why); }
+function points(t) {                      // [events, feelings, numbers] sums
+  const r = [0, 0, 0];
+  for (const c in CATS) if (t[c]) PTS[c][t[c]].forEach((v, i) => (r[i] += v));
+  return r;
+}
+const level = (p) => (p <= 0 ? 0 : p === 1 ? 1 : 2);
+function profile(t) { return points(t).map(level); }
+/* how a claim reads, given the tags we have (null = not yet weighed) */
+function claimOf(s, t) {
+  const c = Object.assign({}, s.claim);
+  if (complete(t) && t.why === "ask" && c.type === "point") c.type = "ceiling";   // maker wanted it big
+  return c;
+}
+function weightOf(s, t) {
+  if (!complete(t)) return 1;
+  const c = claimOf(s, t);
+  return c.type === "ceiling" ? W_CEIL : W8[profile(t)[2]];
+}
+function fits(c, e) {
+  if (!Number.isFinite(e)) return false;
+  if (c.type === "floor") return e >= c.v;
+  if (c.type === "ceiling") return e <= c.v;
+  if (c.type === "range") return e >= c.lo && e <= c.hi;
+  return Math.abs(e - c.v) <= TOL * c.v;
+}
+/* corroboration: each line of evidence counts once, with its best fitting member */
+function support(e, tags) {
+  const best = {};
+  SRC.forEach((s) => {
+    if (!fits(claimOf(s, tags[s.id]), e)) return;
+    best[s.lin] = Math.max(best[s.lin] || 0, weightOf(s, tags[s.id]));
+  });
+  return Object.values(best).reduce((a, b) => a + b, 0);
+}
+function curve(tags) { const r = []; for (let e = 0; e <= EMAX; e++) r.push(support(e, tags)); return r; }
+function peaks(cv) {
+  const m = Math.max(...cv), bands = [];
+  cv.forEach((v, e) => {
+    if (v !== m) return;
+    const last = bands[bands.length - 1];
+    if (last && last[1] === e - 1) last[1] = e; else bands.push([e, e]);
+  });
+  return { m, bands };
+}
+function numbers() {                      // every number some source states
+  const v = [];
+  SRC.forEach((s) => { const c = s.claim; if (c.vague) return; if (c.type === "range") v.push(c.lo, c.hi); else v.push(c.v); });
+  return { min: Math.min(...v), max: Math.max(...v) };
+}
+const KEY = {}; SRC.forEach((s) => (KEY[s.id] = keyTags(s)));
+if (typeof module !== "undefined") module.exports = { SRC, gapDays, gapYears, whenCat, keyTags, points, profile, claimOf, weightOf, fits, support, curve, peaks, numbers, KEY };
+
+/* ---------- state ---------- */
+const blankTags = () => { const o = {}; SRC.forEach((s) => (o[s.id] = { who: null, when: null, why: null })); return o; };
+const blankRates = () => { const o = {}; SRC.forEach((s) => (o[s.id] = [null, null, null])); return o; };
+let tags = blankTags(), rates = blankRates(), sel = 0, est = 300, answered = false, mode = 0;
+const hints = {};
+
+/* ---------- text helpers ---------- */
+const fmtN = (n) => String(Math.round(n));
+function dateText(d) {
+  if (d.length === 1) return ZHL ? d[0] + " 年" : String(d[0]);
+  return ZHL ? `${d[0]} 年 ${d[1]} 月 ${d[2]} 日` : `${d[2]} ${MONTHS[d[1] - 1]} ${d[0]}`;
+}
+function gapText(s) {
+  const g = gapDays(s);
+  if (g < 1) return ZHL ? "当天" : "the same day";
+  if (g < 365) return ZHL ? g + " 天" : g + " days";
+  return ZHL ? "约 " + gapYears(s) + " 年" : "about " + gapYears(s) + " years";
+}
+function claimText(s, t) {
+  const c = claimOf(s, t);
+  if (c.vague) return P.t("c_many");
+  return P.t("c_" + c.type, { v: c.v, lo: c.lo, hi: c.hi });
+}
+const nameS = (s) => P.t("nameShort_" + s.id);
+const join = (a) => a.join(ZHL ? "、" : ", ");
+const V = {
+  b: byId.ballad.claim.v, c: byId.council.claim.v, r: byId.register.claim.v,
+  lo: byId.museum.claim.lo, hi: byId.museum.claim.hi, h: HOUSES, g: gapYears(byId.ballad), bal: byId.ballad.claim.v,
+};
+function docText(s) { return P.t("doc_" + s.id, Object.assign({ date: dateText(s.date), d: s.claim.v }, V)); }
+
+/* ---------- source tabs, document, tags ---------- */
+const tabsEl = $("tabs"), docWrap = $("docWrap"), tagbox = $("tagbox");
+function buildTabs() {
+  tabsEl.innerHTML = "";
+  SRC.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = i === sel ? "on" : "";
+    b.setAttribute("aria-pressed", i === sel ? "true" : "false");
+    b.textContent = nameS(s);
+    if (complete(tags[s.id])) { const k = document.createElement("span"); k.className = "ok"; k.textContent = "✓"; b.appendChild(k); }
+    b.addEventListener("click", () => { sel = i; render(); tabsEl.querySelectorAll("button")[i].focus(); });
+    tabsEl.appendChild(b);
+  });
+}
+function buildDoc(s) {
+  docWrap.innerHTML = "";
+  const d = document.createElement("div"); d.className = "doc";
+  const h = document.createElement("div"); h.className = "dh"; h.textContent = P.t("name_" + s.id);
+  const m = document.createElement("div"); m.className = "dm"; m.textContent = P.t("made", { date: dateText(s.date) });
+  const q = document.createElement("blockquote"); q.textContent = docText(s);
+  d.append(h, m, q); docWrap.appendChild(d);
+}
+function chipRow(label, opts, isOn, onPick, cls) {
+  const row = document.createElement("div"); row.className = "tagrow" + (cls ? " wide" : "");
+  const l = document.createElement("span"); l.className = "rl"; l.textContent = label; row.appendChild(l);
+  opts.forEach((o) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = o.label;
+    const on = isOn(o.v);
+    b.className = (on ? "on" : "") + (cls && cls(o.v) ? " no" : "");
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.addEventListener("click", () => onPick(o.v, row, opts.indexOf(o)));
+    row.appendChild(b);
+  });
+  return row;
+}
+function refocus(row, idx) { const b = row && row.querySelectorAll("button")[idx]; if (b) b.focus(); }
+function buildTags(s) {
+  tagbox.innerHTML = "";
+  const t = tags[s.id], key = KEY[s.id], r = rates[s.id];
+  const sub = (k) => { const d = document.createElement("div"); d.className = "sub"; d.textContent = P.t(k); tagbox.appendChild(d); };
+  sub("guessH");
+  QS.forEach((q, qi) => {
+    tagbox.appendChild(chipRow(P.t(q), [0, 1, 2].map((v) => ({ v, label: P.t("lv" + v) })), (v) => r[qi] === v, (v, row, idx) => {
+      r[qi] = r[qi] === v ? null : v;
+      render(); refocus(tagbox.querySelectorAll(".tagrow")[qi], idx);
+    }));
+  });
+  sub("tagH");
+  const hint = document.createElement("div"); hint.className = "hint"; hint.setAttribute("aria-live", "polite");
+  Object.keys(CATS).forEach((c, ci) => {
+    const wrongs = (hints[s.id + c] || []);
+    tagbox.appendChild(chipRow(P.t("rl_" + c), CATS[c].map((v) => ({ v, label: P.t("t_" + v) })), (v) => t[c] === v, (v, row, idx) => {
+      if (t[c] === v) return;
+      if (v === key[c]) { t[c] = v; hints[s.id + "msg"] = complete(t) ? P.t("allTagged", { gap: gapText(s) }) : P.t("okTag", { tag: P.t("t_" + v) }); }
+      else { (hints[s.id + c] = wrongs).push(v); hints[s.id + "msg"] = P.t("h_" + c); }
+      render(); refocus(tagbox.querySelectorAll(".tagrow")[3 + ci], idx);
+    }, (v) => t[c] !== v && wrongs.includes(v)));
+  });
+  hint.textContent = hints[s.id + "msg"] || "";
+  tagbox.appendChild(hint);
+}
+
+/* ---------- death-toll line ---------- */
+const fig = $("fig");
+let W = 600, H = 250;
+const ML = 12, MR = 14, TOPC = 30, BOTC = 84, AX = 98, ROW0 = 126, RH = 30;
+const X = (e) => ML + (e / EMAX) * (W - ML - MR);
+function textW(s) { let w = 0; for (const ch of s) w += /[⺀-鿿＀-￯]/.test(ch) ? 13 : 7.4; return w; }
+function viewTags() { return mode === 2 ? KEY : tags; }
+function drawLine() {
+  fig.innerHTML = "";
+  const S = (tag, a) => Play.svg(tag, a, fig);
+  const T = viewTags();
+  const showAll = mode > 0 || answered;
+  const live = mode > 0;
+  H = ROW0 + SRC.length * RH + 6;
+  fig.classList.toggle("still", !live);
+  // support curve and peak bands
+  if (live) {
+    const cv = curve(T), pk = peaks(cv), top = Math.max(4.5, pk.m);
+    const Y = (v) => BOTC - (v / top) * (BOTC - TOPC);
+    pk.bands.forEach(([a, b]) => S("rect", { class: "peak", x: X(a), y: TOPC - 4, width: Math.max(3, X(b) - X(a)), height: AX - TOPC + 4 }));
+    let d = `M${X(0)} ${Y(0)}`;
+    cv.forEach((v, e) => { d += `L${X(e)} ${Y(v)}`; });
+    d += `L${X(EMAX)} ${Y(0)}Z`;
+    S("path", { class: "sup", d });
+    S("text", { class: "head", x: ML, y: TOPC + 6 }).textContent = ZHL ? "支持度" : "support";
+  }
+  // axis
+  S("line", { class: "axis", x1: X(0), x2: X(EMAX), y1: AX, y2: AX });
+  const step = (W - ML - MR) / EMAX * 50 >= 34 ? 50 : 100;
+  const dl = ZHL ? "死亡人数" : "deaths", room = X(EMAX) - textW(dl) - 6;
+  for (let n = 0; n <= EMAX; n += step) {
+    S("line", { class: "grid", x1: X(n), x2: X(n), y1: AX, y2: H - 4 });
+    if (X(n) + textW(String(n)) / 2 < room) S("text", { class: "tick", x: X(n), y: AX + 15, "text-anchor": "middle" }).textContent = n;
+  }
+  S("text", { class: "head", x: X(EMAX), y: AX + 15, "text-anchor": "end" }).textContent = dl;
+  // claims
+  SRC.forEach((s, i) => {
+    if (!showAll && s.id !== "ballad") return;
+    const y = ROW0 + i * RH, yl = y + 21, t = T[s.id], c = claimOf(s, t);
+    const col = live ? (fits(c, est) ? "fit" : "bad") : "neutral";
+    const hol = live && !complete(t) ? " hollow" : "";
+    if (c.type === "range") {
+      S("line", { class: "mk " + col, x1: X(c.lo), x2: X(c.hi), y1: yl, y2: yl, "stroke-width": 7 });
+    } else {
+      const x = X(c.v);
+      if (c.type === "floor") { S("line", { class: "mk " + col, x1: x, x2: X(EMAX), y1: yl, y2: yl }); S("path", { class: "dotm " + col, d: `M${X(EMAX)} ${yl}l-7 -4v8z` }); }
+      if (c.type === "ceiling") { S("line", { class: "mk " + col, x1: X(0), x2: x, y1: yl, y2: yl }); S("path", { class: "dotm " + col, d: `M${X(0)} ${yl}l7 -4v8z` }); }
+      if (c.type === "point") S("line", { class: "mk band " + col, x1: X(c.v * (1 - TOL)), x2: X(Math.min(EMAX, c.v * (1 + TOL))), y1: yl, y2: yl, "stroke-width": 7 });
+      S("circle", { class: "dotm " + col + hol, cx: x, cy: yl, r: 5 });
+    }
+    const lab = nameS(s) + " " + claimText(s, t), lw = textW(lab);
+    const x0 = c.type === "range" ? X(c.lo) : X(c.v);
+    const lx = Play.clamp(x0 - lw / 2, 2, W - lw - 2);
+    S("text", { class: "lab", x: lx, y: y + 10 }).textContent = lab;
+  });
+  // estimate marker
+  if (live) {
+    const cx = X(est);
+    S("line", { class: "cur", x1: cx, x2: cx, y1: 24, y2: H - 4 });
+    const lab = (ZHL ? "估计 " : "estimate ") + fmtN(est), lw = textW(lab) + 16;
+    const px = Play.clamp(cx - lw / 2, 1, W - lw - 1);
+    S("rect", { class: "curPill", x: px, y: 2, width: lw, height: 22, rx: 11 });
+    S("text", { class: "curTxt", x: px + lw / 2, y: 18, "text-anchor": "middle" }).textContent = lab;
+  }
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  fig.style.height = H + "px";
+}
+function resize() { const r = fig.getBoundingClientRect(); if (r.width < 10) return; W = Math.round(r.width); drawLine(); }
+if (window.ResizeObserver) new ResizeObserver(resize).observe(fig); else window.addEventListener("resize", resize);
+
+/* ---------- explain panel ---------- */
+function addDiv(box, cls, txt) { const d = document.createElement("div"); d.className = cls; d.textContent = txt; box.appendChild(d); return d; }
+function reasons(t, qi) {
+  const r = [];
+  for (const c in CATS) if (t[c]) { const v = PTS[c][t[c]][qi]; if (v) r.push((v > 0 ? "+" : "−") + Math.abs(v) + " " + P.t("t_" + t[c])); }
+  return r.length ? r.join(ZHL ? "，" : ", ") : P.t("noPts");
+}
+function estInfo(box) {
+  const T = viewTags(), f = [], b = [];
+  SRC.forEach((s) => (fits(claimOf(s, T[s.id]), est) ? f : b).push(nameS(s)));
+  const pk = peaks(curve(T));
+  addDiv(box, "rg", P.t("ifE", { e: fmtN(est) }));
+  addDiv(box, "gp", P.t("fitsL", { list: f.length ? join(f) : P.t("noneL") }));
+  if (b.length) addDiv(box, "no", P.t("badL", { list: join(b) }));
+  addDiv(box, "", P.t("supL", { s: support(est, T), m: pk.m, bands: pk.bands.map(([a, z]) => P.t("band", { a, b: z })).join(P.t("orL")) }));
+  if (complete(T.council)) addDiv(box, "it", P.t("ceilNote", { v: V.c }));
+  addDiv(box, "it", P.t("sameLine"));
+  if (SRC.some((s) => !complete(T[s.id]))) addDiv(box, "it", P.t("unweighed"));
+}
+function profTable(withAim) {
+  const wrap = $("profWrap"); wrap.innerHTML = "";
+  if (mode === 0) return;
+  const T = viewTags();
+  const h = document.createElement("h3"); h.textContent = P.t("profH"); wrap.appendChild(h);
+  const tb = document.createElement("table"); tb.className = "prof";
+  const hr = tb.insertRow(); hr.insertCell().outerHTML = "<th></th>";
+  const cols = withAim ? QS.concat("qAim") : QS;
+  cols.forEach((q) => { const th = document.createElement("th"); th.textContent = P.t(q + "S"); hr.appendChild(th); });
+  let k = 0, n = 0;
+  SRC.forEach((s) => {
+    const tr = tb.insertRow(), t = T[s.id], done = complete(t), pr = done ? profile(t) : null;
+    const nm = document.createElement("th"); nm.textContent = nameS(s); tr.appendChild(nm);
+    cols.forEach((q, qi) => {
+      const td = tr.insertCell();
+      if (q === "qAim") { td.className = "l2"; td.textContent = P.t("lv2"); return; }
+      const lv = done ? pr[qi] : null, mine = rates[s.id][qi];
+      td.className = done ? "l" + lv : "unk";
+      td.textContent = done ? P.t("lv" + lv) : P.t("lvU");
+      if (mine !== null) {
+        const y = document.createElement("span"); y.className = "you";
+        let mark = "";
+        if (done) { n++; if (mine === lv) { k++; mark = " ✓"; } }
+        y.textContent = P.t("you", { v: P.t("lv" + mine) }) + mark;
+        td.appendChild(y);
+      }
+    });
+  });
+  wrap.appendChild(tb);
+  if (n) addDiv(wrap, "note", P.t("agree", { k, n }));
+}
+function renderInfo() {
+  const box = $("info"); box.innerHTML = "";
+  if (mode === 0) {
+    box.hidden = !answered;
+    if (answered) {
+      const nm = numbers();
+      addDiv(box, "gp", P.t("spread", { r: Play.fmt(nm.max / nm.min, 1) }));
+      SRC.forEach((s) => addDiv(box, "", nameS(s) + (ZHL ? "：" : ": ") + claimText(s, null)));
+    }
+    return;
+  }
+  box.hidden = false;
+  if (mode === 1) {
+    const s = SRC[sel], t = tags[s.id];
+    addDiv(box, "rg", P.t("name_" + s.id));
+    if (complete(t)) {
+      const pr = profile(t);
+      QS.forEach((q, qi) => addDiv(box, "l" + pr[qi], P.t("verdict", { q: P.t(q), lv: P.t("lv" + pr[qi]) }) + P.t("because", { r: reasons(t, qi) })));
+    } else addDiv(box, "it", P.t("h_" + Object.keys(CATS).find((c) => !t[c])));
+    const hr = document.createElement("h3"); hr.textContent = P.t("estLabel"); box.appendChild(hr);
+  } else addDiv(box, "it", P.t("filled"));
+  estInfo(box);
+}
+
+/* ---------- result ---------- */
+const FINAL = peaks(curve(KEY));
+const FB = FINAL.bands[0];
+$("resMain").textContent = P.t("resMain", { a: FB[0], b: FB[1], bal: V.b });
+$("resNote").textContent = P.t("resNote", V);
+document.querySelector("[data-t=explainQ]").textContent = P.t("explainQ", V);
+
+function buildAims() {
+  const box = $("aims"); box.innerHTML = "";
+  const h = document.createElement("h3"); h.textContent = P.t("aimsH"); box.appendChild(h);
+  SRC.forEach((s) => {
+    const d = document.createElement("div");
+    const b = document.createElement("b"); b.textContent = nameS(s) + (ZHL ? "：" : ": ");
+    d.append(b, document.createTextNode(P.t("aim_" + s.id, V)));
+    box.appendChild(d);
+  });
+}
+
+/* ---------- render ---------- */
+function render() {
+  const s = mode === 0 ? byId.ballad : SRC[sel];
+  tabsEl.hidden = mode !== 1;
+  tagbox.hidden = mode !== 1;
+  docWrap.hidden = mode === 2;
+  $("aims").hidden = mode !== 2;
+  $("ctl").hidden = mode === 0;
+  if (mode === 1) { buildTabs(); buildTags(s); }
+  if (mode !== 2) buildDoc(s);
+  $("est").value = est;
+  drawLine();
+  renderInfo();
+  profTable(mode === 2);
+  document.querySelector(".result").hidden = mode === 0 && !answered;
+}
+function setEst(e) {
+  est = Math.round(Play.clamp(Number.isFinite(e) ? e : 300, 0, EMAX));
+  drawLine(); renderInfo(); profTable(mode === 2);
+  $("est").value = est;
+  const T = viewTags(), f = SRC.filter((x) => fits(claimOf(x, T[x.id]), est)).map(nameS);
+  Play.live($("live"), P.t("ifE", { e: est }) + " " + P.t("fitsL", { list: f.length ? join(f) : P.t("noneL") }));
+}
+$("est").addEventListener("input", () => setEst(+$("est").value));
+
+let dragging = false;
+const toE = (ev) => { const r = fig.getBoundingClientRect(); return ((ev.clientX - r.left) / r.width * W - ML) / (W - ML - MR) * EMAX; };
+fig.addEventListener("pointerdown", (ev) => {
+  if (mode === 0) return;
+  dragging = true;
+  try { fig.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+  setEst(toE(ev));
+});
+fig.addEventListener("pointermove", (ev) => { if (dragging) setEst(toE(ev)); });
+["pointerup", "pointercancel"].forEach((t) => fig.addEventListener(t, () => (dragging = false)));
+fig.addEventListener("keydown", (ev) => {
+  if (mode === 0) return;
+  const d = { ArrowLeft: -1, ArrowRight: 1, ArrowDown: -1, ArrowUp: 1, PageDown: -10, PageUp: 10 }[ev.key];
+  if (d) setEst(est + (ev.shiftKey ? d * 10 : d));
+  else if (ev.key === "Home") setEst(0);
+  else if (ev.key === "End") setEst(EMAX);
+  else return;
+  ev.preventDefault();
+});
+
+const NUM = numbers();
+const pr = Play.predict($("predict"), {
+  q: P.t("q", V),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right", Object.assign({}, V, NUM)),
+  wrong: P.t("wrong", Object.assign({}, V, NUM)),
+}, () => { answered = true; render(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  mode = i;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  if (i === 2) { SRC.forEach((s) => (tags[s.id] = Object.assign({}, KEY[s.id]))); buildAims(); }
+  render();
+  resize();
+});
+
+$("reset").addEventListener("click", () => {
+  tags = blankTags(); rates = blankRates(); sel = 0; est = 300; answered = false;
+  for (const k in hints) delete hints[k];
+  pr.reset(); st.go(0);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Same atoms, different stuff</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main { height: auto; max-height: 470px; user-select: none; -webkit-user-select: none; cursor: grab; outline: none; }
+  .stage svg.main:active { cursor: grabbing; }
+  .stage svg.main:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .result .math { white-space: normal; }
+  .at-C { fill: var(--muted); stroke: var(--fg); }
+  .at-O { fill: var(--no); stroke: var(--fg); }
+  .atom { stroke-width: 1.2; }
+  .atom.hi { fill: var(--a); stroke: var(--fg); stroke-width: 2; }
+  .bond { stroke: var(--fg); stroke-linecap: round; }
+  .bond.hi { stroke: var(--a); }
+  .bond.cut { stroke: var(--no); }
+  .bond.half { stroke-dasharray: 4 4; }
+  .weak { stroke: var(--c); stroke-width: 1.5; stroke-dasharray: 2 5; opacity: .8; }
+  .bg { fill: var(--soft); stroke: var(--line); stroke-width: 1.5; }
+  .lens { fill: var(--surface); stroke: var(--fg); stroke-width: 2; }
+  .obj { fill: var(--surface); stroke: var(--fg); stroke-width: 2; stroke-linejoin: round; }
+  .lead { fill: var(--muted); }
+  .wood { fill: var(--hl); stroke: var(--fg); stroke-width: 2; stroke-linejoin: round; }
+  .gem { fill: color-mix(in srgb, var(--c) 18%, var(--surface)); stroke: var(--fg); stroke-width: 2; stroke-linejoin: round; }
+  .facet { stroke: var(--fg); stroke-width: 1; fill: none; opacity: .6; }
+  .link { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .q { fill: var(--muted); font: 700 44px var(--serif); }
+  .lbl { fill: var(--fg); font: 650 15px var(--font); }
+  .lbl-m { fill: var(--muted); font: 13px var(--font); }
+  .arrow { stroke: var(--a); stroke-width: 4; stroke-linecap: round; fill: none; }
+  .arrowhead { fill: var(--a); }
+  .viewbar { display: flex; gap: 5px; flex-wrap: wrap; width: 100%; }
+  .viewbar button { font-size: 13px; padding: 5px 11px; color: var(--fg); }
+  .viewbar button.on { color: var(--bg); }
+  .hint { font-size: 13px; color: var(--muted); width: 100%; margin: 0; }
+  .pushrow { display: flex; align-items: center; gap: 10px; width: 100%; flex-wrap: wrap; }
+  .pushrow input { flex: 1 1 140px; }
+  .msg { font-size: 14px !important; color: var(--fg) !important; min-height: 1.5em; }
+  .msg.bad { color: var(--no) !important; font-weight: 650; }
+  .msg.win { color: var(--a) !important; font-weight: 650; }
+  table.cmp { border-collapse: collapse; width: 100%; font-size: 13px; margin: 2px 0 10px; }
+  table.cmp th, table.cmp td { text-align: left; padding: 4px 5px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.cmp th { color: var(--muted); font-weight: 600; }
+  table.cmp thead th { color: var(--fg); font-weight: 700; }
+  table.cmp td.n { font-family: var(--math); font-size: 15px; font-weight: 700; color: var(--a); }
+  .bonus { border: 1px solid var(--line); border-left: 4px solid var(--a); border-radius: 10px; padding: 8px 12px; margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+  .bonus strong { color: var(--fg); }
+  .explain p.rule { font-family: var(--serif); font-size: 18px; color: var(--fg); margin: 2px 0 10px; line-height: 1.5; }
+  .vtag { font-size: 12px !important; }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="spin" aria-pressed="false"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 560 400" tabindex="0" role="img"></svg>
+      <div class="controls">
+        <div class="viewbar" id="viewbar" role="group" data-t-aria="viewAria"></div>
+        <div class="pushrow" id="pushrow">
+          <label for="push" data-t="pushLabel"></label>
+          <input type="range" id="push" min="0" max="100" value="0">
+          <span class="val" id="pushVal"></span>
+        </div>
+        <p class="hint" data-t="hint"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="msg" id="live"></p>
+      <div id="bonus" class="bonus" hidden></div>
+      <div id="tableBox"><table class="cmp" id="cmp"></table></div>
+      <div id="ruleBox">
+        <p class="rule" data-t="ruleLine"></p>
+        <table class="cmp" id="oxy"></table>
+      </div>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — pure geometry, no DOM (checked in node). Lengths in Å.
+const LAT = { dia: 3.567, gra: 2.461, grc: 6.708 };   // diamond cubic a; graphite hexagonal a, c
+const U_G = 1.66054e-24, M_C = 12.011, PHI = (1 + Math.sqrt(5)) / 2, OUTER_C = 4;
+const BOND = { C: [1.2, 1.7], O: [1.0, 1.5] };        // cutoff window that counts as a bond
+const sub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
+const norm = (v) => Math.hypot(v[0], v[1], v[2]);
+const dist = (p, q) => norm(sub(p, q));
+function bondsIn(pos, w) {
+  const out = [];
+  for (let i = 0; i < pos.length; i++) for (let j = i + 1; j < pos.length; j++) {
+    const d = dist(pos[i], pos[j]);
+    if (d > w[0] && d < w[1]) out.push([i, j]);
+  }
+  return out;
+}
+function degrees(n, bonds) { const d = new Array(n).fill(0); bonds.forEach(([i, j]) => { d[i]++; d[j]++; }); return d; }
+// Bonds per atom in the endless crystal: count neighbours over the 27 surrounding cells.
+function crystalBonds(basis, cell, w) {
+  return basis.map((p) => {
+    let n = 0;
+    basis.forEach((q) => {
+      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (let k = -1; k <= 1; k++) {
+        const r = [0, 1, 2].map((c) => q[c] + i * cell[0][c] + j * cell[1][c] + k * cell[2][c]);
+        const d = dist(p, r);
+        if (d > w[0] && d < w[1]) n++;
+      }
+    });
+    return n;
+  });
+}
+const det3 = (c) => c[0][0] * (c[1][1] * c[2][2] - c[1][2] * c[2][1]) - c[0][1] * (c[1][0] * c[2][2] - c[1][2] * c[2][0]) + c[0][2] * (c[1][0] * c[2][1] - c[1][1] * c[2][0]);
+const density = (n, cell) => n * M_C * U_G / (Math.abs(det3(cell)) * 1e-24);   // g/cm³
+function diamondCell() {
+  const a = LAT.dia, basis = [];
+  [[0, 0, 0], [0, .5, .5], [.5, 0, .5], [.5, .5, 0]].forEach((p) => { basis.push(p.map((x) => x * a)); basis.push(p.map((x) => (x + .25) * a)); });
+  return { basis, cell: [[a, 0, 0], [0, a, 0], [0, 0, a]] };
+}
+// Graphite sheets lie in the x–z plane and stack along y (up). AB stacking: sheet B is shifted one bond length along z.
+function graphiteCell(sheets) {
+  const a = LAT.gra, c = LAT.grc, d = a / Math.sqrt(3);
+  const a1 = [a, 0, 0], a2 = [a / 2, 0, a * Math.sqrt(3) / 2];
+  const A = [[0, 0, 0], [0, 0, d]], B = [[0, c / 2, d], [0, c / 2, 2 * d]];
+  return { basis: sheets === 1 ? A : A.concat(B), cell: [a1, [0, sheets === 1 ? 30 : c, 0], a2], a1, a2, d };
+}
+function prune(pos, w, minDeg) {   // drop dangling edge atoms
+  for (;;) {
+    const d = degrees(pos.length, bondsIn(pos, w)), q = pos.filter((_, i) => d[i] >= minDeg);
+    if (q.length === pos.length) return pos;
+    pos = q;
+  }
+}
+function diamondPiece(R) {
+  const { basis } = diamondCell(), a = LAT.dia, pos = [];
+  for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) for (let k = -2; k <= 2; k++) basis.forEach((p) => {
+    const r = [p[0] + i * a, p[1] + j * a, p[2] + k * a];
+    if (norm(r) < R && !pos.some((q) => dist(q, r) < 1e-6)) pos.push(r);
+  });
+  return prune(pos, BOND.C, 2);
+}
+// One hexagonal patch centred on a ring (R = 3.9 Å gives the 24-atom coronene shape).
+function sheetPatch(R, y, dz) {
+  const g = graphiteCell(1), out = [];
+  for (let i = -6; i <= 6; i++) for (let j = -6; j <= 6; j++) g.basis.forEach((p) => {
+    const x = p[0] + i * g.a1[0] + j * g.a2[0], z = p[2] + i * g.a1[2] + j * g.a2[2];
+    if (Math.hypot(x, z + g.d) < R) out.push([x, y, z + g.d + dz]);
+  });
+  return out;
+}
+function graphitePiece(nSheets) {
+  const d = LAT.gra / Math.sqrt(3), pos = [], layer = [];
+  for (let k = 0; k < nSheets; k++) sheetPatch(3.9, k * LAT.grc / 2, k % 2 ? d : 0).forEach((p) => { pos.push(p); layer.push(k); });
+  return { pos, layer };
+}
+function c60() {   // truncated icosahedron: cyclic permutations of three generators (edge 2), scaled to 1.42 Å
+  const out = [], s = [-1, 1], k = 1.42 / 2;
+  [[0, 1, 3 * PHI], [1, 2 + PHI, 2 * PHI], [PHI, 2, 2 * PHI + 1]].forEach((g) => s.forEach((x) => s.forEach((y) => s.forEach((z) => {
+    const v = [g[0] * x, g[1] * y, g[2] * z];
+    for (let c = 0; c < 3; c++) {
+      const r = [v[c], v[(c + 1) % 3], v[(c + 2) % 3]].map((t) => t * k);
+      if (!out.some((q) => dist(q, r) < 1e-6)) out.push(r);
+    }
+  }))));
+  return out;
+}
+function ozone() {   // O–O 1.278 Å, angle 116.8°
+  const h = 116.8 / 2 * Math.PI / 180, r = 1.278;
+  return [[-r * Math.sin(h), -r * Math.cos(h) / 2, 0], [0, r * Math.cos(h) / 2, 0], [r * Math.sin(h), -r * Math.cos(h) / 2, 0]];
+}
+const oxygen = () => [[-1.207 / 2, 0, 0], [1.207 / 2, 0, 0]];
+// Bonds that cross the horizontal plane y = y0 (they would have to break for the top to slide).
+const crossing = (pos, bonds, y0) => bonds.filter(([i, j]) => (pos[i][1] - y0) * (pos[j][1] - y0) < 0);
+// Faces of a closed cage with 3 bonds per atom from Euler (V − E + F = 2); rings of 5 and 6 only ⇒ Σ(6 − n) = 12.
+function cageFaces(V, E) { const F = 2 - V + E, p = 12; return { F, p, h: F - p }; }
+function project(p, yaw, pitch, F) {
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const x1 = p[0] * cy - p[2] * sy, z1 = p[0] * sy + p[2] * cy;
+  const y2 = p[1] * cp - z1 * sp, z2 = p[1] * sp + z1 * cp;
+  const k = F / (F + z2);
+  return { x: x1 * k, y: -y2 * k, z: z2, k };
+}
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "Same atoms, different stuff", eyebrow: "Chemistry · Stage 3", h1: "Diamond and pencil lead are made of the same atoms",
+    intro: "Zoom into a pencil and a diamond, turn the atom models with your finger, and push on them. Only the arrangement differs.",
+    reset: "Reset", spinOn: "Spin", spinOff: "Pause spin", viewAria: "Which arrangement to show",
+    hint: "Drag the model to turn it. Keyboard: focus the picture and use the arrow keys (Shift for bigger turns).",
+    pushLabel: "Push the top sideways",
+    s1: "Guess", s2: "Turn & push", s3: "Rule",
+    k1: "Predict first", t1: "Pencil lead vs diamond",
+    b1: "One is soft enough to leave a grey line on paper. The other is the hardest natural material. Pick an answer to zoom in.",
+    q: "What is different between the 'lead' in a pencil and a diamond?",
+    opt1: "They are made of different atoms", opt2: "Same carbon atoms, arranged differently", opt3: "Diamond has extra-hard atoms in it",
+    right: "Yes. Both are pure carbon (pencil lead is graphite mixed with clay). Step 2 shows how the atoms are joined.",
+    wrong: "Look at the zoomed views: both are carbon atoms and nothing else. The difference must be in how they are joined.",
+    k2: "Hands on", t2: "Turn the models, then push",
+    b2: "Turn each model and count the bonds on the highlighted atom. Then push the top sideways and watch which one gives way.",
+    k3: "The rule", t3: "Arrangement, not atoms",
+    b3: "A single atom is not hard, soft, black or clear. Those are properties of how many atoms are joined together. Oxygen shows the same thing.",
+    ruleLine: "Same atoms + different arrangement → different substance with different properties.",
+    vDia: "Diamond", vGra: "Graphite", vGrn: "Graphene", vBuck: "C₆₀",
+    figQ: "A pencil and a diamond with magnifying circles", figQ2: "Zoomed in: both are carbon atoms only",
+    fig3D: "{name}: {n} carbon atoms, {b} bonds. The highlighted atom has {h} bonds.", figOx: "An oxygen molecule O₂ and an ozone molecule O₃",
+    pencil: "pencil lead", diamond: "diamond", graphiteIs: "graphite: C only", diamondIs: "diamond: C only",
+    hiTag: "highlighted atom: {h} bonds",
+    o2: "oxygen O₂", o3: "ozone O₃",
+    thProp: "", thDia: "Diamond", thGra: "Graphite",
+    rAtoms: "Atoms", carbonOnly: "carbon only",
+    rBonds: "Bonds per atom (from the model)", rSpare: "Outer electrons left over (4 − bonds)",
+    rShape: "Shape", shDia: "one 3-D network", shGra: "flat sheets, stacked",
+    rCross: "Bonds across a sliding plane (this piece)",
+    rDist: "Spacing", dDia: "C–C {d} Å", dGra: "C–C {d} Å in a sheet, {g} Å between sheets",
+    rRho: "Density (from the model)", rho: "{r} g/cm³",
+    rMohs: "Mohs hardness", rElec: "Electricity", eDia: "insulator", eGra: "conducts along the sheets",
+    rLook: "Looks", lDia: "clear, sparkles", lGra: "grey-black, shiny, greasy",
+    bGrn: "<strong>Graphene</strong>: a single graphite sheet, one atom thick. Here {n} atoms; in the endless sheet every atom has {b} bonds. First pulled off graphite with sticky tape in 2004 (Nobel Prize in Physics 2010). Very strong within its plane and conducts electricity.",
+    bBuck: "<strong>C₆₀ (buckminsterfullerene)</strong>: {n} carbon atoms, {e} bonds, {b} per atom, closed into a ball of {p} pentagons and {h} hexagons, like a football. Discovered in 1985 (Nobel Prize in Chemistry 1996). Still nothing but carbon.",
+    mGra: "Each sheet slid {x} Å over the one below. Bonds broken: {n}. Only weak forces held the sheets together.",
+    mGra0: "Between the sheets there are no bonds, only weak attraction (dotted lines).",
+    mDia: "Nothing moves. {n} bonds cross the sliding plane in this small piece; all of them would have to break.",
+    mBonus: "Push works on diamond and graphite.",
+    ruleMsg: "O₂: {a} atoms per molecule, O₃: {b}. Both are pure oxygen.",
+    thO2: "O₂ oxygen", thO3: "O₃ ozone", oAtoms: "Atoms per molecule (from the model)", oShape: "Shape", oS2: "straight pair", oS3: "bent, {g}°",
+    oColour: "Colour (gas)", oC2: "colourless", oC3: "pale blue", oSmell: "Smell", oSm2: "none", oSm3: "sharp, like after a thunderstorm",
+    oBp: "Boiling point", oBp2: "−183 °C", oBp3: "−112 °C", oLife: "For us", oL2: "we breathe it", oL3: "harmful to breathe; high in the sky it blocks UV",
+    resultTitle: "What we found", resultMain: "Carbon with 4 bonds each → diamond · with 3 bonds each, in sheets → graphite",
+    resultNote: "Hardness, colour and conducting belong to the arrangement. An atom on its own has none of them.",
+    explainK: "Explain it", explainQ: "A friend says diamond is hard because diamond atoms are hard. Use graphite to show why that cannot be right.",
+    homeK: "Try at home", homeQ: "Rub a soft pencil (2B or softer) on paper until there is a dark patch, then rub it with your finger. Feel how slippery it is: sheets of carbon sliding off. Then try to scratch glass with the pencil tip (careful): nothing happens.",
+    foot: "Models are built from lattice constants: diamond cubic a = 3.567 Å; graphite hexagonal a = 2.461 Å, c = 6.708 Å (AB stacking, sheets 3.354 Å apart); C₆₀ drawn with all bonds 1.42 Å (real: 1.40 and 1.45 Å); O₂ 1.207 Å; O₃ 1.278 Å and 116.8°. Bond counts, spacings and densities are computed from these coordinates (carbon 12.011 u). Measured densities: diamond 3.51 g/cm³, graphite 2.09–2.23 g/cm³ (real graphite has gaps and defects). Mohs hardness: diamond 10, graphite 1–2. Graphite slides easily in air; in a vacuum it is a much poorer lubricant, because adsorbed water and gas help the sheets glide. Pencil 'lead' is graphite mixed with clay; it never contained lead. C₆₀: Kroto, Curl, Smalley and co-workers, 1985. Graphene: Geim and Novoselov, 2004. Boiling points at 1 atm. Projection is a simple perspective drawing, not to scale with the atoms' real size. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "同样的原子，不同的物质", eyebrow: "化学 · 阶段 3", h1: "金刚石和铅笔芯是同一种原子",
+    intro: "放大看铅笔和钻石，用手指转动原子模型，再推一推。不同的只有原子的排列。",
+    reset: "重置", spinOn: "旋转", spinOff: "停止旋转", viewAria: "选择要看的排列",
+    hint: "拖动模型可以转动它。键盘：选中图，用方向键转动（按住 Shift 转得更多）。",
+    pushLabel: "把上面往旁边推",
+    s1: "先猜", s2: "转一转、推一推", s3: "规律",
+    k1: "先猜一猜", t1: "铅笔芯和钻石",
+    b1: "一个软到能在纸上留下灰线，一个是天然最硬的材料。选一个答案，就能放大看。",
+    q: "铅笔芯和钻石（金刚石）的区别在哪里？",
+    opt1: "它们由不同的原子组成", opt2: "都是碳原子，只是排列不同", opt3: "金刚石里有特别硬的原子",
+    right: "对。两者都是纯碳（铅笔芯是石墨掺了黏土）。第 2 步看看原子是怎么连的。",
+    wrong: "看放大图：两边都只有碳原子。区别只能在原子怎么连接上。",
+    k2: "动手", t2: "转动模型，再推一推",
+    b2: "转动每个模型，数一数高亮原子连了几根键。再把上面往旁边推，看哪一个会滑开。",
+    k3: "规律", t3: "看排列，不看原子",
+    b3: "单个原子谈不上硬、软、黑或透明，这些是许多原子连在一起之后才有的性质。氧也是一样。",
+    ruleLine: "同样的原子 + 不同的排列 → 不同的物质，性质也不同。",
+    vDia: "金刚石", vGra: "石墨", vGrn: "石墨烯", vBuck: "C₆₀",
+    figQ: "铅笔和钻石，各有一个放大圈", figQ2: "放大后：两边都只有碳原子",
+    fig3D: "{name}：{n} 个碳原子，{b} 根键。高亮原子连了 {h} 根键。", figOx: "一个氧气分子 O₂ 和一个臭氧分子 O₃",
+    pencil: "铅笔芯", diamond: "钻石", graphiteIs: "石墨：只有 C", diamondIs: "金刚石：只有 C",
+    hiTag: "高亮原子：{h} 根键",
+    o2: "氧气 O₂", o3: "臭氧 O₃",
+    thProp: "", thDia: "金刚石", thGra: "石墨",
+    rAtoms: "原子", carbonOnly: "只有碳",
+    rBonds: "每个原子的键数（由模型算出）", rSpare: "剩下的最外层电子（4 − 键数）",
+    rShape: "形状", shDia: "一整块立体网", shGra: "平的层，一层层叠起来",
+    rCross: "穿过滑动面的键（这一小块）",
+    rDist: "间距", dDia: "C–C {d} Å", dGra: "层内 C–C {d} Å，层间 {g} Å",
+    rRho: "密度（由模型算出）", rho: "{r} g/cm³",
+    rMohs: "莫氏硬度", rElec: "导电", eDia: "绝缘", eGra: "沿着层导电",
+    rLook: "样子", lDia: "透明、闪亮", lGra: "灰黑色、有光泽、滑腻",
+    bGrn: "<strong>石墨烯</strong>：单独一层石墨，只有一个原子厚。这里有 {n} 个原子；在无限大的一层里每个原子连 {b} 根键。2004 年第一次用胶带从石墨上撕下来（2010 年诺贝尔物理学奖）。在层面内非常结实，而且导电。",
+    bBuck: "<strong>C₆₀（足球烯）</strong>：{n} 个碳原子、{e} 根键，每个原子 {b} 根，合成一个由 {p} 个五边形和 {h} 个六边形组成的球，像足球。1985 年发现（1996 年诺贝尔化学奖）。仍然只有碳。",
+    mGra: "每一层在下面一层上滑动了 {x} Å。断掉的键：{n} 根。层和层之间只靠很弱的吸引力。",
+    mGra0: "层与层之间没有键，只有很弱的吸引（虚线）。",
+    mDia: "纹丝不动。在这一小块里有 {n} 根键穿过滑动面，要滑动就得把它们全部扯断。",
+    mBonus: "「推一推」只用于金刚石和石墨。",
+    ruleMsg: "O₂ 每个分子 {a} 个原子，O₃ 有 {b} 个。两者都是纯氧。",
+    thO2: "O₂ 氧气", thO3: "O₃ 臭氧", oAtoms: "每个分子的原子数（由模型算出）", oShape: "形状", oS2: "直的一对", oS3: "弯的，{g}°",
+    oColour: "颜色（气体）", oC2: "无色", oC3: "淡蓝色", oSmell: "气味", oSm2: "无", oSm3: "刺鼻，像雷雨后的气味",
+    oBp: "沸点", oBp2: "−183 °C", oBp3: "−112 °C", oLife: "对我们", oL2: "用来呼吸", oL3: "吸入有害；在高空能挡住紫外线",
+    resultTitle: "我们发现", resultMain: "每个碳连 4 根键 → 金刚石 · 每个碳连 3 根键、排成层 → 石墨",
+    resultNote: "硬度、颜色、导电属于排列方式。单个原子身上，这些性质一样也没有。",
+    explainK: "说一说", explainQ: "朋友说：金刚石硬，是因为金刚石的原子硬。用石墨说明为什么这说不通。",
+    homeK: "家里做一做", homeQ: "用软铅笔（2B 或更软）在纸上涂出一块黑，用手指搓一搓，感受它有多滑：那是一层层碳在滑落。再用笔尖去划玻璃（小心）：什么也划不出来。",
+    foot: "模型按晶格常数搭建：金刚石立方晶胞 a = 3.567 Å；石墨六方晶胞 a = 2.461 Å、c = 6.708 Å（AB 堆叠，层间距 3.354 Å）；C₆₀ 的键都画成 1.42 Å（实际为 1.40 和 1.45 Å）；O₂ 1.207 Å；O₃ 1.278 Å、键角 116.8°。键数、间距和密度都由这些坐标算出（碳 12.011 u）。实测密度：金刚石 3.51 g/cm³，石墨 2.09–2.23 g/cm³（真实石墨有空隙和缺陷）。莫氏硬度：金刚石 10，石墨 1–2。石墨在空气里很滑；在真空中润滑效果差得多，因为吸附的水和气体帮助层间滑动。铅笔芯是石墨掺黏土，从来不含铅。C₆₀：Kroto、Curl、Smalley 等人，1985 年。石墨烯：Geim 和 Novoselov，2004 年。沸点为 1 个大气压下。投影是简单的透视画法，原子大小不按真实比例。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- build the models once ---------- */
+const $ = (id) => document.getElementById(id);
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent);
+const fmt = Play.fmt;
+function centre(pos) {
+  const c = [0, 1, 2].map((k) => pos.reduce((s, p) => s + p[k], 0) / pos.length);
+  return pos.map((p) => sub(p, c));
+}
+function model(pos, el, extra) {
+  const bonds = bondsIn(pos, BOND[el]), deg = degrees(pos.length, bonds);
+  return Object.assign({ pos, el, bonds, deg, R: Math.max(...pos.map(norm)) + 0.4 }, extra || {});
+}
+const DIA = (() => {
+  const raw = diamondPiece(3.6), hi = raw.findIndex((p) => norm(p) < 1e-6);
+  const bonds = bondsIn(raw, BOND.C), plane = LAT.dia / 8;     // atoms sit at y = k·a/4; plane between two of them
+  const m = model(centre(raw), "C", { hi });
+  m.cut = crossing(raw, bonds, plane).map(([i, j]) => i + "-" + j);
+  return m;
+})();
+const GRA = (() => {
+  const g = graphitePiece(3), pos = centre(g.pos), m = model(pos, "C", { layer: g.layer });
+  const top = pos.map((p, i) => (g.layer[i] === 2 ? Math.hypot(p[0], p[2]) : 1e9));
+  m.hi = top.indexOf(Math.min(...top));
+  m.cut = [];
+  for (let k = 0; k < 2; k++) {
+    const y0 = (pos.find((_, i) => g.layer[i] === k)[1] + pos.find((_, i) => g.layer[i] === k + 1)[1]) / 2;
+    m.cut = m.cut.concat(crossing(pos, m.bonds, y0));
+  }
+  m.weak = [];   // atoms lying straight above another atom in the next sheet
+  pos.forEach((p, i) => pos.forEach((q, j) => { if (g.layer[j] === g.layer[i] + 1 && Math.hypot(p[0] - q[0], p[2] - q[2]) < 0.1) m.weak.push([i, j]); }));
+  m.slide = 5;       // Å the top sheet moves relative to the bottom one at full push
+  m.R += m.slide / 4;
+  return m;
+})();
+const GRN = (() => { const pos = centre(sheetPatch(3.9, 0, 0)); return model(pos, "C", { hi: pos.findIndex((p) => norm(p) < 1.5) }); })();
+const BUCK = model(c60(), "C", { hi: 0 });
+const OX2 = model(oxygen(), "O", { order: 2 }), OX3 = model(ozone(), "O", { order: 1.5 });
+const DC = diamondCell(), GC = graphiteCell(2), G1 = graphiteCell(1);
+const FACT = {
+  diaBonds: crystalBonds(DC.basis, DC.cell, BOND.C), graBonds: crystalBonds(GC.basis, GC.cell, BOND.C), grnBonds: crystalBonds(G1.basis, G1.cell, BOND.C),
+  diaRho: density(DC.basis.length, DC.cell), graRho: density(GC.basis.length, GC.cell),
+  diaCC: dist(DC.basis[0], DC.basis[1]), graCC: dist(GC.basis[0], GC.basis[1]), graGap: GC.basis[2][1] - GC.basis[0][1],
+};
+const allSame = (a) => a.every((x) => x === a[0]);
+const bondsPer = (a) => (allSame(a) ? a[0] : NaN);
+const BUCKF = cageFaces(BUCK.pos.length, BUCK.bonds.length);
+const o3angle = (() => { const p = OX3.pos, u = sub(p[0], p[1]), v = sub(p[2], p[1]); return Math.acos((u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / (norm(u) * norm(v))) * 180 / Math.PI; })();
+
+/* ---------- state ---------- */
+const VIEWS = ["dia", "gra", "grn", "buck"];
+const VMODEL = { dia: DIA, gra: GRA, grn: GRN, buck: BUCK };
+const VNAME = { dia: "vDia", gra: "vGra", grn: "vGrn", buck: "vBuck" };
+const DEF = { yaw: -0.5, pitch: 0.38 }, VPITCH = { dia: 0.38, gra: 0.3, grn: 0.95, buck: 0.38 };
+const st8 = { step: 0, view: "dia", yaw: DEF.yaw, pitch: DEF.pitch, push: 0, answered: false, spin: false };
+let W = 560, H = 400, fig = $("fig");
+
+function fitSize() {
+  const narrow = (fig.clientWidth || 560) < 480, w = narrow ? 360 : 560, h = narrow ? 420 : 400;
+  if (w === W && h === H && fig.dataset.sized) return;
+  W = w; H = h; fig.dataset.sized = 1;
+  fig.setAttribute("viewBox", "0 0 " + W + " " + H);
+  fig.style.aspectRatio = W + " / " + H;
+}
+
+/* ---------- 3-D drawing ---------- */
+// Draw model m centred at (cx, cy) so that radius m.R fits into rad pixels.
+function draw3D(m, cx, cy, rad, opt) {
+  opt = opt || {};
+  const sc = rad / m.R, F = m.R * 4, yaw = st8.yaw, pitch = st8.pitch;
+  const shift = (i) => (m.layer && opt.push ? (m.layer[i] / 2 - 0.5) * m.slide * opt.push : 0);
+  const pts = m.pos.map((p, i) => project([p[0] + shift(i), p[1], p[2]], yaw, pitch, F));
+  const zs = pts.map((p) => p.z), zmin = Math.min(...zs), zmax = Math.max(...zs), span = zmax - zmin || 1;
+  const fade = (z) => 1 - 0.5 * (z - zmin) / span;
+  const items = [];
+  const hiSet = new Set(m.hi != null && opt.hi !== false ? m.bonds.filter(([i, j]) => i === m.hi || j === m.hi).map(([i, j]) => i + "-" + j) : []);
+  const cut = new Set(opt.showCut ? m.cut : []);
+  if (opt.weak && m.weak) m.weak.forEach(([i, j]) => items.push({ z: (pts[i].z + pts[j].z) / 2 + 0.01, kind: "w", i, j }));
+  m.bonds.forEach(([i, j]) => items.push({ z: (pts[i].z + pts[j].z) / 2, kind: "b", i, j, key: i + "-" + j }));
+  pts.forEach((p, i) => items.push({ z: p.z - 0.05, kind: "a", i }));
+  items.sort((a, b) => b.z - a.z);
+  const ar = { C: 0.34, O: 0.42 }[m.el];
+  items.forEach((it) => {
+    const A = pts[it.i];
+    if (it.kind === "a") {
+      const hi = opt.hi !== false && it.i === m.hi;
+      S("circle", { class: "atom at-" + m.el + (hi ? " hi" : ""), cx: cx + A.x * sc, cy: cy + A.y * sc, r: Math.max(3, ar * sc * A.k), opacity: fade(A.z) }, fig);
+      return;
+    }
+    const B = pts[it.j], x1 = cx + A.x * sc, y1 = cy + A.y * sc, x2 = cx + B.x * sc, y2 = cy + B.y * sc;
+    if (it.kind === "w") { S("line", { class: "weak", x1, y1, x2, y2 }, fig); return; }
+    const w = Math.max(2, 0.13 * sc * (A.k + B.k) / 2), cls = "bond" + (cut.has(it.key) ? " cut" : hiSet.has(it.key) ? " hi" : "");
+    const op = fade(it.z), order = m.order || 1;
+    if (order === 1) { S("line", { class: cls, x1, y1, x2, y2, "stroke-width": cut.has(it.key) ? w * 1.6 : w, opacity: op }, fig); return; }
+    const L = Math.hypot(x2 - x1, y2 - y1) || 1, nx = -(y2 - y1) / L * w * 0.9, ny = (x2 - x1) / L * w * 0.9;
+    S("line", { class: cls, x1: x1 + nx, y1: y1 + ny, x2: x2 + nx, y2: y2 + ny, "stroke-width": w * 0.7, opacity: op }, fig);
+    S("line", { class: cls + (order < 2 ? " half" : ""), x1: x1 - nx, y1: y1 - ny, x2: x2 - nx, y2: y2 - ny, "stroke-width": w * 0.7, opacity: op }, fig);
+  });
+  return m.hi != null ? m.deg[m.hi] : null;
+}
+function text(cls, x, y, s, anchor) { S("text", { class: cls, x, y, "text-anchor": anchor || "middle" }, fig).textContent = s; }
+
+function drawGuess() {
+  const narrow = W < 480, xs = narrow ? [92, 268] : [140, 420], r = narrow ? 76 : 100, cy = narrow ? 262 : 258, oy = narrow ? 76 : 76;
+  S("rect", { class: "bg", x: 2, y: 2, width: W - 4, height: H - 4, rx: 14 }, fig);
+  // pencil (left)
+  const px = xs[0], g = S("g", { transform: "translate(" + px + "," + oy + ") rotate(-20)" }, fig);
+  S("rect", { class: "wood", x: -60, y: -9, width: 90, height: 18, rx: 2 }, g);
+  S("path", { class: "obj", d: "M30,-9 L56,0 L30,9 Z" }, g);
+  S("path", { class: "lead", d: "M47,-3 L56,0 L47,3 Z" }, g);
+  // diamond (right)
+  const gx = xs[1], gy = oy, gw = narrow ? 34 : 40;
+  S("path", { class: "gem", d: `M${gx - gw},${gy - 10} L${gx - gw / 2},${gy - 26} L${gx + gw / 2},${gy - 26} L${gx + gw},${gy - 10} L${gx},${gy + 30} Z` }, fig);
+  S("path", { class: "facet", d: `M${gx - gw},${gy - 10} L${gx + gw},${gy - 10} M${gx - gw / 2},${gy - 26} L${gx - gw / 4},${gy - 10} L${gx},${gy + 30} L${gx + gw / 4},${gy - 10} L${gx + gw / 2},${gy - 26}` }, fig);
+  const tip = [px + 50, oy - 14];
+  [[tip, xs[0]], [[gx, gy + 32], xs[1]]].forEach(([p, x]) => {
+    S("line", { class: "link", x1: p[0], y1: p[1] + 8, x2: x - r * 0.6, y2: cy - r * 0.8 }, fig);
+    S("line", { class: "link", x1: p[0], y1: p[1] + 8, x2: x + r * 0.6, y2: cy - r * 0.8 }, fig);
+    S("circle", { class: "lens", cx: x, cy, r }, fig);
+  });
+  text("lbl-m", xs[0], oy - 36, P.t("pencil"));
+  text("lbl-m", xs[1], oy - 36, P.t("diamond"));
+  if (!st8.answered) { xs.forEach((x) => text("q", x, cy + 16, "?")); fig.setAttribute("aria-label", P.t("figQ")); return; }
+  draw3D(GRA, xs[0], cy, r * 1.15, { hi: false });
+  draw3D(DIA, xs[1], cy, r * 0.9, { hi: false });
+  text("lbl", xs[0], cy + r + 22, P.t("graphiteIs"));
+  text("lbl", xs[1], cy + r + 22, P.t("diamondIs"));
+  fig.setAttribute("aria-label", P.t("figQ2"));
+}
+function drawExplore() {
+  const m = VMODEL[st8.view], canPush = st8.view === "dia" || st8.view === "gra";
+  S("rect", { class: "bg", x: 2, y: 2, width: W - 4, height: H - 4, rx: 14 }, fig);
+  const top = 40, rad = Math.min(W, H - top - 10) * 0.46;
+  const h = draw3D(m, W / 2, top + (H - top) / 2, rad, {
+    push: st8.view === "gra" ? st8.push : 0, showCut: st8.view === "dia" && st8.push > 0, weak: st8.view === "gra" && st8.push === 0,
+  });
+  text("lbl", 16, 26, P.t(VNAME[st8.view]), "start");
+  if (h != null) text("lbl-m", W - 16, 26, P.t("hiTag", { h }), "end");
+  if (canPush && st8.push > 0) {   // push arrow at the top
+    const len = 20 + 50 * st8.push, y = 48, x0 = 16;
+    S("line", { class: "arrow", x1: x0, y1: y, x2: x0 + len, y2: y }, fig);
+    S("path", { class: "arrowhead", d: `M${x0 + len + 10},${y} L${x0 + len - 2},${y - 7} L${x0 + len - 2},${y + 7} Z` }, fig);
+  }
+  fig.setAttribute("aria-label", P.t("fig3D", { name: P.t(VNAME[st8.view]), n: m.pos.length, b: m.bonds.length, h: h == null ? "—" : h }));
+}
+function drawRule() {
+  S("rect", { class: "bg", x: 2, y: 2, width: W - 4, height: H - 4, rx: 14 }, fig);
+  const narrow = W < 480, xs = narrow ? [W * 0.27, W * 0.73] : [W * 0.3, W * 0.7], cy = H * 0.48, rad = narrow ? 70 : 105;
+  // same scale for both molecules so sizes compare honestly
+  const R = Math.max(OX2.R, OX3.R), a = Object.assign({}, OX2, { R }), b = Object.assign({}, OX3, { R });
+  draw3D(a, xs[0], cy, rad);
+  draw3D(b, xs[1], cy, rad);
+  text("lbl", xs[0], cy + rad + 36, P.t("o2"));
+  text("lbl", xs[1], cy + rad + 36, P.t("o3"));
+  fig.setAttribute("aria-label", P.t("figOx"));
+}
+
+/* ---------- panel ---------- */
+function row(tb, cells, numCols) {
+  const tr = document.createElement("tr");
+  cells.forEach((c, i) => { const td = document.createElement(i === 0 ? "th" : "td"); td.textContent = c; if (numCols && numCols.includes(i)) td.className = "n"; tr.appendChild(td); });
+  tb.appendChild(tr);
+}
+function head(tb, cells) {
+  const th = document.createElement("thead"), tr = document.createElement("tr");
+  cells.forEach((c) => { const x = document.createElement("th"); x.textContent = c; tr.appendChild(x); });
+  th.appendChild(tr); tb.appendChild(th);
+}
+function fillTables() {
+  const tb = $("cmp"), dB = bondsPer(FACT.diaBonds), gB = bondsPer(FACT.graBonds);
+  tb.innerHTML = "";
+  head(tb, [P.t("thProp"), P.t("thDia"), P.t("thGra")]);
+  row(tb, [P.t("rAtoms"), P.t("carbonOnly"), P.t("carbonOnly")]);
+  row(tb, [P.t("rBonds"), fmt(dB), fmt(gB)], [1, 2]);
+  row(tb, [P.t("rSpare"), fmt(OUTER_C - dB), fmt(OUTER_C - gB)], [1, 2]);
+  row(tb, [P.t("rShape"), P.t("shDia"), P.t("shGra")]);
+  row(tb, [P.t("rCross"), fmt(DIA.cut.length), fmt(GRA.cut.length)], [1, 2]);
+  row(tb, [P.t("rDist"), P.t("dDia", { d: fmt(FACT.diaCC, 2) }), P.t("dGra", { d: fmt(FACT.graCC, 2), g: fmt(FACT.graGap, 2) })]);
+  row(tb, [P.t("rRho"), P.t("rho", { r: fmt(FACT.diaRho, 2) }), P.t("rho", { r: fmt(FACT.graRho, 2) })]);
+  row(tb, [P.t("rMohs"), "10", "1–2"]);
+  row(tb, [P.t("rElec"), P.t("eDia"), P.t("eGra")]);
+  row(tb, [P.t("rLook"), P.t("lDia"), P.t("lGra")]);
+  const ox = $("oxy");
+  ox.innerHTML = "";
+  head(ox, ["", P.t("thO2"), P.t("thO3")]);
+  row(ox, [P.t("oAtoms"), fmt(OX2.pos.length), fmt(OX3.pos.length)], [1, 2]);
+  row(ox, [P.t("oShape"), P.t("oS2"), P.t("oS3", { g: fmt(o3angle, 1) })]);
+  row(ox, [P.t("oColour"), P.t("oC2"), P.t("oC3")]);
+  row(ox, [P.t("oSmell"), P.t("oSm2"), P.t("oSm3")]);
+  row(ox, [P.t("oBp"), P.t("oBp2"), P.t("oBp3")]);
+  row(ox, [P.t("oLife"), P.t("oL2"), P.t("oL3")]);
+}
+function message() {
+  if (st8.step === 2) return [P.t("ruleMsg", { a: OX2.pos.length, b: OX3.pos.length }), "win"];
+  if (st8.step !== 1) return ["", ""];
+  if (st8.view === "gra") return st8.push > 0 ? [P.t("mGra", { x: fmt(GRA.slide * st8.push / 2, 1), n: GRA.cut.length }), "win"] : [P.t("mGra0"), ""];
+  if (st8.view === "dia") return st8.push > 0 ? [P.t("mDia", { n: DIA.cut.length }), "bad"] : ["", ""];
+  return ["", ""];
+}
+function renderPanel() {
+  const b = $("bonus"), v = st8.view;
+  b.hidden = !(st8.step === 1 && (v === "grn" || v === "buck"));
+  if (v === "grn") b.innerHTML = P.t("bGrn", { n: GRN.pos.length, b: fmt(bondsPer(FACT.grnBonds)) });
+  if (v === "buck") b.innerHTML = P.t("bBuck", { n: BUCK.pos.length, e: BUCK.bonds.length, b: fmt(bondsPer(BUCK.deg)), p: BUCKF.p, h: BUCKF.h });
+  const canPush = v === "dia" || v === "gra";
+  $("pushrow").hidden = st8.step !== 1 || !canPush;
+  $("push").disabled = !canPush;
+  $("pushVal").textContent = fmt(st8.push * 100) + "%";
+  $("viewbar").hidden = st8.step !== 1;
+  document.querySelectorAll("#viewbar button").forEach((x) => { const on = x.dataset.v === v; x.classList.toggle("on", on); x.setAttribute("aria-pressed", on); });
+  $("tableBox").hidden = st8.step !== 1;
+  $("ruleBox").hidden = st8.step !== 2;
+  const [msg, cls] = message(), lv = $("live");
+  if (lv.textContent !== msg) Play.live(lv, msg);
+  lv.className = "msg" + (cls ? " " + cls : "");
+  $("spin").textContent = P.t(st8.spin ? "spinOff" : "spinOn");
+  $("spin").setAttribute("aria-pressed", st8.spin);
+}
+function render() {
+  fitSize();
+  fig.innerHTML = "";
+  if (st8.step === 0) drawGuess(); else if (st8.step === 1) drawExplore(); else drawRule();
+  renderPanel();
+}
+
+/* ---------- input ---------- */
+VIEWS.forEach((v) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.dataset.v = v; b.textContent = P.t(VNAME[v]);
+  b.addEventListener("click", () => { st8.view = v; st8.push = 0; st8.yaw = DEF.yaw; st8.pitch = VPITCH[v]; $("push").value = 0; render(); });
+  $("viewbar").appendChild(b);
+});
+$("push").addEventListener("input", (e) => { st8.push = Play.clamp(+e.target.value / 100, 0, 1); render(); });
+const turn = (dyaw, dpitch) => { st8.yaw += dyaw; st8.pitch = Play.clamp(st8.pitch + dpitch, -1.5, 1.5); render(); };
+let drag = null;
+fig.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY }; try { fig.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ } e.preventDefault(); fig.focus({ preventScroll: true }); });
+fig.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const k = 0.01 * 560 / (fig.clientWidth || 560);
+  turn((e.clientX - drag.x) * k, (e.clientY - drag.y) * k);
+  drag = { x: e.clientX, y: e.clientY };
+});
+const endDrag = () => { drag = null; };
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", endDrag);
+fig.addEventListener("keydown", (e) => {
+  const a = e.shiftKey ? 0.5 : 0.15;
+  const m = { ArrowLeft: [-a, 0], ArrowRight: [a, 0], ArrowUp: [0, -a], ArrowDown: [0, a] }[e.key];
+  if (!m) return;
+  turn(m[0], m[1]);
+  e.preventDefault();
+});
+let raf = 0, last = 0;
+function loop(t) {
+  if (!st8.spin) { raf = 0; return; }
+  const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+  last = t;
+  if (!drag) { st8.yaw += dt * 0.6; render(); }
+  raf = requestAnimationFrame(loop);
+}
+function setSpin(on) {
+  st8.spin = on;
+  if (on && !raf) { last = 0; raf = requestAnimationFrame(loop); }
+  renderPanel();
+}
+$("spin").addEventListener("click", () => setSpin(!st8.spin));
+addEventListener("resize", () => render());
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("opt1") }, { label: P.t("opt2"), right: true }, { label: P.t("opt3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { st8.answered = true; render(); });
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  st8.step = i;
+  if (i > 0) st8.answered = true;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  setSpin(false);
+  Object.assign(st8, { view: "dia", yaw: DEF.yaw, pitch: DEF.pitch, push: 0, answered: false });
+  $("push").value = 0;
+  pr.reset();
+  steps.go(0);
+});
+fillTables();
+render();
+</script>
+</body>
+</html>

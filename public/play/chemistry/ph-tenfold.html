@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pH: every step is ten times</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 560 / 450; max-height: 480px; }
+  .result .math { white-space: normal; }
+  .lbl { fill: var(--fg); font: 600 22px var(--font); }
+  .lbl-m { fill: var(--muted); font: 22px var(--font); }
+  .big { fill: var(--fg); font: 700 30px var(--math); }
+  .num { fill: var(--fg); font: 600 22px var(--math); }
+  .qmark { fill: var(--muted); font: 700 64px var(--serif); }
+  .cube { fill: var(--soft); stroke: var(--fg); stroke-width: 1.5; }
+  .cube-back { fill: none; stroke: var(--line); stroke-width: 1.5; }
+  .ion { fill: var(--no); }
+  .glass { fill: none; stroke: var(--fg); stroke-width: 2.5; stroke-linejoin: round; }
+  .liquid { stroke: none; }
+  .strip { fill: var(--surface); stroke: var(--fg); stroke-width: 1.2; }
+  .water { fill: var(--c); fill-opacity: .35; stroke: var(--c); stroke-width: 1; }
+  .part { stroke: var(--fg); stroke-width: 1; }
+  .tick { stroke: var(--fg); stroke-width: 1.5; }
+  .marker { fill: var(--fg); }
+  .lead { stroke: var(--muted); stroke-width: 1; }
+  .lead.on-a { stroke: var(--a); stroke-width: 2.5; }
+  .lead.on-b { stroke: var(--c); stroke-width: 2.5; }
+  .sub { cursor: pointer; }
+  .sub:focus { outline: none; }
+  .sub:focus-visible .sublbl { text-decoration: underline; }
+  .sublbl { fill: var(--fg); font: 21px var(--font); }
+  .sublbl.on-a { fill: var(--a); font-weight: 700; }
+  .sublbl.on-b { fill: var(--c); font-weight: 700; }
+  .pin-a { fill: var(--a); } .pin-b { fill: var(--c); }
+  .brk { stroke: var(--fg); stroke-width: 2; fill: none; }
+  .sel { display: inline-flex; align-items: center; gap: 6px; }
+  .controls select { border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 5px 8px; max-width: 100%; }
+  .controls .vs { color: var(--fg); font-weight: 650; }
+  table.hist { border-collapse: collapse; width: 100%; font-size: 13px; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  table.hist th, table.hist td { text-align: right; padding: 3px 5px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table.hist th:first-child, table.hist td:first-child { text-align: left; }
+  table.hist tr.cur td { color: var(--fg); font-weight: 700; }
+  table.hist td { color: var(--muted); }
+  .livebox { font-size: 14px !important; color: var(--fg) !important; }
+  .safety { border-left: 3px solid var(--no); padding-left: 10px; }
+  @media (max-width: 560px) { table.hist { font-size: 12px; } table.hist th, table.hist td { padding: 3px 3px; } }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 560 450" role="img"></svg>
+      <div class="controls" id="dilCtl">
+        <button type="button" id="dil" data-t="dilBtn"></button>
+        <label for="n" data-t="nLabel"></label>
+        <input type="range" id="n" min="0" max="8" step="1" value="0">
+        <span class="val" id="nVal"></span>
+        <button type="button" class="small" id="fresh" data-t="fresh"></button>
+      </div>
+      <div class="controls" id="cmpCtl">
+        <span class="sel"><span class="dot" style="background:var(--a)"></span><select id="selA" data-t-aria="selA"></select></span>
+        <span class="vs" data-t="vs"></span>
+        <span class="sel"><span class="dot" style="background:var(--c)"></span><select id="selB" data-t-aria="selB"></select></span>
+        <button type="button" class="small" id="swap" data-t="swap"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="histBox"></div>
+      <p class="livebox" id="live"></p>
+      <p class="note" id="extra"></p>
+      <p class="note safety" id="safety" data-t="safety"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — pure chemistry, no DOM (checked in node)
+const KW = 1.0e-14;            // ion product of water at 25 °C, (mol/L)²
+const NA = 6.02214076e23;      // Avogadro constant, 1/mol
+const C0 = 0.01;               // starting strong acid, mol/L (pH 2)
+const NMAX = 8;                // dilutions allowed
+const finitePos = (x) => (Number.isFinite(x) && x > 0 ? x : 0);
+// Strong monoprotic acid at concentration c plus water's own ions:
+// [H+] = c + [OH-] and [H+][OH-] = Kw  =>  [H+] = c/2 + sqrt(c²/4 + Kw)
+function hPlus(c) { c = finitePos(c); return c / 2 + Math.sqrt(c * c / 4 + KW); }
+const pHof = (h) => -Math.log10(Math.max(h, 1e-300));
+const hOfpH = (p) => Math.pow(10, -p);
+// The dot cube: a fixed tiny volume chosen so a pH-2 acid shows 1000 H+ ions.
+const DOT_N = 1000;
+const VOL_L = DOT_N / (C0 * NA);                          // litres
+const CUBE_NM = Math.cbrt(VOL_L * 1e-3) * 1e9;            // edge of that cube, nm
+const ions = (h) => finitePos(h) * VOL_L * NA;            // mean H+ count in the cube
+function dilution(n) {
+  n = Math.round(Math.min(NMAX, Math.max(0, Number.isFinite(n) ? n : 0)));
+  const rows = [];
+  for (let k = 0; k <= n; k++) {
+    const c = C0 * Math.pow(10, -k), h = hPlus(c);
+    rows.push({ k, c, h, p: pHof(h), ions: ions(h), ratio: k ? rows[k - 1].h / h : 1 });
+  }
+  return rows;
+}
+// Typical, approximate pH values (vary with brand, strength and temperature).
+const SUBST = [
+  { key: "lemon", lo: 2, hi: 2 },
+  { key: "vinegar", lo: 2.5, hi: 3 },
+  { key: "coffee", lo: 5, hi: 5 },
+  { key: "water", lo: 7, hi: 7 },
+  { key: "soda", lo: 8.3, hi: 8.3 },
+  { key: "ammonia", lo: 11, hi: 11 },
+  { key: "bleach", lo: 12.5, hi: 12.5 },
+];
+const typ = (s) => (s.lo + s.hi) / 2;
+// How many times more H+ the lower-pH one has.
+function compare(pa, pb) {
+  const d = Math.abs(pa - pb);
+  return { d, factor: Math.pow(10, d), aMore: pa < pb, same: d < 1e-9 };
+}
+// Universal indicator, approximate colours at pH 0…14 (brands differ).
+const UI = ["#d0213a", "#e0352b", "#ea4f24", "#f07a22", "#f6a623", "#f5cf1f", "#c8d628", "#5db84a",
+  "#2fa66a", "#1f9a9a", "#2a6fb5", "#3b4fa8", "#5b3d9a", "#6e2f8a", "#6b2370"];
+function indicator(p) {
+  p = Math.min(14, Math.max(0, Number.isFinite(p) ? p : 7));
+  const i = Math.min(13, Math.floor(p)), t = p - i;
+  const rgb = (h) => [1, 3, 5].map((j) => parseInt(h.slice(j, j + 2), 16));
+  const a = rgb(UI[i]), b = rgb(UI[i + 1]);
+  return "rgb(" + a.map((v, j) => Math.round(v + (b[j] - v) * t)).join(",") + ")";
+}
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+const sup = (n) => String(n).split("").map((ch) => SUP[ch] || ch).join("");
+function sci(x, d) {
+  if (!Number.isFinite(x) || x <= 0) return "—";
+  let e = Math.floor(Math.log10(x)), m = x / Math.pow(10, e);
+  if (+m.toFixed(d) >= 10) { m /= 10; e += 1; }
+  return m.toFixed(d) + " × 10" + sup(e);
+}
+const group = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+function sig2(x) {               // two significant figures, as a number
+  if (!Number.isFinite(x) || x <= 0) return 0;
+  const e = Math.floor(Math.log10(x)) - 1;
+  return Math.round(x / Math.pow(10, e)) * Math.pow(10, e);
+}
+// "×N" text: exact power of ten when the gap is whole, else 2 significant figures.
+function factorText(d) {
+  if (!Number.isFinite(d) || d < 0) return "—";
+  const whole = Math.abs(d - Math.round(d)) < 1e-9;
+  const f = Math.pow(10, d);
+  if (whole) return Math.round(d) <= 6 ? group(f) : "10" + sup(Math.round(d));
+  if (f < 1e6) { const s = sig2(f); return s < 10 ? s.toFixed(1) : group(s); }
+  return sci(f, 1);
+}
+// If the weaker one were drawn 1 mm tall, how tall is the stronger one?
+function lengthText(d, lang) {
+  const mm = sig2(Math.pow(10, Math.max(0, Number.isFinite(d) ? d : 0)));
+  const u = lang === "zh" ? { mm: "毫米", cm: "厘米", m: "米", km: "千米" } : { mm: "mm", cm: "cm", m: "m", km: "km" };
+  const num = (v) => (v < 10 ? +v.toFixed(1) : group(v));
+  if (mm < 10) return num(mm) + " " + u.mm;
+  if (mm < 1000) return num(mm / 10) + " " + u.cm;
+  if (mm < 1e6) return num(mm / 1000) + " " + u.m;
+  return num(mm / 1e6) + " " + u.km;
+}
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "pH: every step is ten times", eyebrow: "Chemistry · Stage 3", h1: "One step on the pH scale is ten times the acid",
+    intro: "Guess, then dilute an acid ten times over and over, then line up things from the kitchen. Count the hydrogen ions, not the pH numbers.",
+    reset: "Reset", s1: "Guess", s2: "Dilute", s3: "Compare",
+    figGuess: "Two equal tiny cubes of liquid, one at pH 5 and one at pH 3, with their hydrogen ions drawn as dots",
+    figDil: "A beaker of acid with pH paper, a cube showing its hydrogen ions as dots, and a universal indicator colour bar",
+    figCmp: "A pH ruler from 0 to 14 coloured like universal indicator, with typical household substances marked",
+    k1: "Predict first", t1: "Is pH 3 a little more acidic than pH 5?",
+    b1: "Pick an answer. Then the two cubes show the hydrogen ions (H⁺) in the same tiny volume of each liquid.",
+    q: "One acid is at pH 5, another at pH 3. How many times more hydrogen ions does the pH 3 one have?",
+    o1: "About 2× (it is two steps lower)", o2: "100×", o3: "About 1.5× (3 is a bit smaller than 5)",
+    right: "Yes. Each step down is ×10, so two steps is 10 × 10 = 100.",
+    wrong: "That would be true on an ordinary ruler. Look at the cubes: the pH scale counts powers of ten.",
+    k2: "Hands on", t2: "Dilute it ten times, again and again",
+    b2: "The beaker holds a strong acid (hydrochloric acid, 0.01 mol/L). Each press keeps 1 part and adds 9 parts water: a tenfold dilution. Watch the pH and the ions in the cube.",
+    k3: "The rule", t3: "pH counts powers of ten",
+    b3: "pH = −log₁₀[H⁺]: the pH is minus the power of ten in the H⁺ concentration. So each step down the scale means ten times more H⁺. Pick two substances, or tap them on the ruler.",
+    dilBtn: "+ Add 9 parts water", nLabel: "Dilutions", fresh: "Fresh acid",
+    selA: "First substance", selB: "Second substance", vs: "vs", swap: "Swap",
+    partsLbl: "1 part + 9 parts water", paper: "pH paper",
+    cubeLbl: "H⁺ in a cube {s} nm wide", ionsN: "{n} H⁺ ions", ionsN1: "1 H⁺ ion", ionsFew: "on average {n} H⁺ ion", ionsFew2: "about 1 ion in every {k} cubes",
+    fewer: "H⁺ ÷{r} since the last step", start: "the starting acid",
+    hk: "Diluted", hc: "[H⁺] mol/L", hp: "pH", hr: "vs before",
+    liveDil: "After {n} dilutions: [H⁺] = {h} mol/L, pH {p}. Since the start, H⁺ fell {f} times, but the pH only rose by {dp}.",
+    liveDil0: "Pure acid from the bottle: [H⁺] = {h} mol/L, pH {p}. The cube holds {i} H⁺ ions. Press the button.",
+    near7: "Water itself makes 1.0 × 10⁻⁷ mol/L of H⁺, so the dilution no longer divides the H⁺ by 10: the pH creeps up to 7 but never passes it. Diluting an acid never turns it into a base.",
+    phLbl: "pH", hLbl: "[H⁺]",
+    guess5: "pH 5", guess3: "pH 3", reveal: "{a} ÷ {b} = {r} times as many",
+    liveGuess: "In the cube, pH 5 has {a} H⁺ and pH 3 has {b}. That is {r} times as many, from a gap of only 2 on the scale.",
+    lemon: "Lemon juice", vinegar: "Vinegar", coffee: "Black coffee", water: "Pure water (25 °C)", soda: "Baking soda solution", ammonia: "Household ammonia", bleach: "Bleach",
+    cmpLine1: "{a} vs {b}: pH gap {d}", cmpLine2: "{m} has {f} times the H⁺", cmpSame: "Same pH: the same H⁺",
+    liveCmp: "{m} (pH ≈ {pm}) has {f} times as many H⁺ ions as {l} (pH ≈ {pl}). If {l}'s H⁺ were drawn as a bar 1 mm tall, {m2}'s would be about {len} tall.",
+    liveSame: "Both are at pH ≈ {p}, so they have about the same H⁺.",
+    approx: "≈ {v}",
+    safety: "Safety: never taste lab or household chemicals, and never mix them. Bleach mixed with ammonia or with acids such as vinegar gives off toxic gas.",
+    resultTitle: "What we found", resultMain: "pH = −log₁₀[H⁺]   ·   1 step down = ×10 H⁺",
+    resultNote: "pH 3 is not \"a little\" more acidic than pH 4: it has ten times as many hydrogen ions. A gap of 5 on the scale is 100,000 times.",
+    explainK: "Explain it", explainQ: "Normal rain is about pH 5.6. A lake at pH 4.6 has trouble keeping fish alive. Explain to a friend why a change of just 1 is a big deal.",
+    homeK: "Try at home", homeQ: "With an adult: chop red cabbage, soak it in hot water, let it cool and strain it. Add a spoon of this purple indicator to lemon juice, vinegar, tap water and baking-soda water, then line the cups up by colour and compare with the ruler. Use one clean spoon per cup and never mix cleaning products.",
+    foot: "Model: a strong acid that gives one H⁺ per molecule, with water's own ions included: [H⁺] = c/2 + √(c²/4 + K_w), K_w = 1.0 × 10⁻¹⁴ (mol/L)² at 25 °C; strictly, pH uses activity, which equals concentration closely only in dilute solutions. Cube: chosen to hold 1000 H⁺ at pH 2, using the Avogadro constant 6.022 × 10²³ /mol. Substance pH values are typical approximations from textbook pH charts; real samples vary with brand and strength, and for a range (vinegar 2.5–3) the comparison uses the middle. Vinegar is a weak acid, so it does not follow the strong-acid model. Indicator colours are approximate and differ between brands. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "pH：每差一级就是十倍", eyebrow: "化学 · 阶段 3", h1: "pH 每差一级，酸就差十倍",
+    intro: "先猜一猜，再把酸一次次稀释十倍，最后把厨房里的东西排一排。数氢离子，别只看 pH 的数字。",
+    reset: "重置", s1: "先猜", s2: "稀释", s3: "比较",
+    figGuess: "两个一样大的小液体立方，一个 pH 5、一个 pH 3，氢离子画成小点",
+    figDil: "一杯酸和 pH 试纸，旁边的立方里用小点画出氢离子，下面是通用指示剂色条",
+    figCmp: "从 0 到 14 的 pH 尺，按通用指示剂上色，标出常见物质",
+    k1: "先猜一猜", t1: "pH 3 只比 pH 5 酸一点点吗？",
+    b1: "先选一个答案。然后两个立方会显示同样一小份液体里的氢离子（H⁺）。",
+    q: "一种酸 pH 5，另一种 pH 3。pH 3 那种的氢离子是它的几倍？",
+    o1: "约 2 倍（低了两级）", o2: "100 倍", o3: "约 1.5 倍（3 比 5 小一点）",
+    right: "对。每降一级就是 ×10，降两级就是 10 × 10 = 100。",
+    wrong: "在普通的尺子上是这样。看两个立方：pH 数的是 10 的几次方。",
+    k2: "动手", t2: "稀释十倍，一次又一次",
+    b2: "杯里是强酸（盐酸，0.01 mol/L）。每按一次，留 1 份、加 9 份水，就是稀释 10 倍。看 pH 和立方里的离子怎么变。",
+    k3: "规律", t3: "pH 数的是 10 的几次方",
+    b3: "pH = −log₁₀[H⁺]：pH 就是 H⁺ 浓度里 10 的次方数取负号。所以 pH 每降 1，H⁺ 就多 10 倍。选两种物质，或者直接点尺上的名字。",
+    dilBtn: "+ 加 9 份水", nLabel: "稀释次数", fresh: "换一杯新酸",
+    selA: "第一种物质", selB: "第二种物质", vs: "对比", swap: "交换",
+    partsLbl: "1 份 + 9 份水", paper: "pH 试纸",
+    cubeLbl: "边长 {s} 纳米的立方里的 H⁺", ionsN: "{n} 个 H⁺", ionsN1: "1 个 H⁺", ionsFew: "平均 {n} 个 H⁺", ionsFew2: "约 {k} 个这样的立方才有 1 个",
+    fewer: "H⁺ 比上一步 ÷{r}", start: "原来的酸",
+    hk: "稀释", hc: "[H⁺] mol/L", hp: "pH", hr: "比上一步",
+    liveDil: "稀释 {n} 次后：[H⁺] = {h} mol/L，pH {p}。和开始比，H⁺ 少到 1/{f}，pH 却只升了 {dp}。",
+    liveDil0: "瓶里的原酸：[H⁺] = {h} mol/L，pH {p}。立方里有 {i} 个 H⁺。按按钮试试。",
+    near7: "水自己就有 1.0 × 10⁻⁷ mol/L 的 H⁺，所以再稀释，H⁺ 不再按 10 倍减少：pH 慢慢靠近 7，但不会超过 7。酸再怎么稀释也不会变成碱。",
+    phLbl: "pH", hLbl: "[H⁺]",
+    guess5: "pH 5", guess3: "pH 3", reveal: "{a} ÷ {b} = {r} 倍",
+    liveGuess: "立方里，pH 5 有 {a} 个 H⁺，pH 3 有 {b} 个。尺上只差 2，离子却是 {r} 倍。",
+    lemon: "柠檬汁", vinegar: "白醋", coffee: "黑咖啡", water: "纯水（25 °C）", soda: "小苏打水", ammonia: "家用氨水", bleach: "漂白水",
+    cmpLine1: "{a} 对比 {b}：pH 差 {d}", cmpLine2: "{m}的 H⁺ 是另一种的 {f} 倍", cmpSame: "pH 相同：H⁺ 一样多",
+    liveCmp: "{m}（pH ≈ {pm}）的 H⁺ 是{l}（pH ≈ {pl}）的 {f} 倍。如果把{l}的 H⁺ 画成 1 毫米高的柱子，{m2}的就有约 {len}高。",
+    liveSame: "两者都是 pH ≈ {p}，H⁺ 差不多一样多。",
+    approx: "≈ {v}",
+    safety: "安全：实验室和家里的化学品都不要尝，也不要混在一起。漂白水和氨水或醋之类的酸混合会放出有毒气体。",
+    resultTitle: "我们发现", resultMain: "pH = −log₁₀[H⁺]   ·   降 1 级 = H⁺ ×10",
+    resultNote: "pH 3 不是只比 pH 4「酸一点点」：氢离子多 10 倍。尺上差 5，就是 100,000 倍。",
+    explainK: "说一说", explainQ: "正常雨水约 pH 5.6。湖水到了 pH 4.6，鱼就很难活。跟朋友讲讲：为什么只差 1 就是大事？",
+    homeK: "家里做一做", homeQ: "请大人一起：把紫甘蓝切碎，用热水泡，放凉后滤出紫色的汁。各舀一勺加到柠檬汁、白醋、自来水、小苏打水里，按颜色排好队，再和 pH 尺对一对。每杯用干净的勺子，清洁剂不要混在一起。",
+    foot: "模型：每个分子放出一个 H⁺ 的强酸，并算上水自己的离子：[H⁺] = c/2 + √(c²/4 + K_w)，25 °C 时 K_w = 1.0 × 10⁻¹⁴ (mol/L)²；严格说 pH 用的是活度，只在稀溶液里才和浓度很接近。立方：大小取 pH 2 时正好装 1000 个 H⁺，阿伏伽德罗常数 6.022 × 10²³ /mol。物质的 pH 是常见 pH 表里的典型近似值，实际随品牌和浓度变化；给出范围的（白醋 2.5–3）比较时取中间值。醋是弱酸，不符合上面的强酸模型。指示剂颜色是近似色，不同品牌略有差别。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent);
+const T = (tag, attrs, text, parent) => { const e = S(tag, attrs, parent || fig); e.textContent = text; return e; };
+const f2 = (x) => Play.fmt(x, 2);
+const state = { step: 0, revealed: false, n: 0, a: 0, b: 3, next: "b" };
+
+// Jittered grid of 1024 cells, shuffled once, so any first-N subset spreads over the whole cube.
+function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+const SPOTS = (() => {
+  const rnd = seeded(5), out = [];
+  for (let r = 0; r < 32; r++) for (let c = 0; c < 32; c++) out.push([(c + 0.2 + 0.6 * rnd()) / 32, (r + 0.2 + 0.6 * rnd()) / 32]);
+  for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+  return out;
+})();
+function cubeDots(x, y, w, count) {
+  S("path", { class: "cube-back", d: `M${x},${y} l14,-14 h${w} v${w} l-14,14` }, fig);
+  S("line", { class: "cube-back", x1: x + w, y1: y, x2: x + w + 14, y2: y - 14 }, fig);
+  S("rect", { class: "cube", x, y, width: w, height: w }, fig);
+  const k = Math.min(SPOTS.length, Math.round(count));
+  const r = k > 300 ? 2.6 : k > 30 ? 3.6 : 5;
+  for (let i = 0; i < k; i++) S("circle", { class: "ion", cx: x + 4 + SPOTS[i][0] * (w - 8), cy: y + 4 + SPOTS[i][1] * (w - 8), r }, fig);
+}
+function ionsText(c) {
+  if (c >= 0.5) return [Math.round(c) === 1 ? P.t("ionsN1") : P.t("ionsN", { n: group(c) }), ""];
+  return [P.t("ionsFew", { n: c >= 0.095 ? c.toFixed(1) : c.toFixed(2) }), P.t("ionsFew2", { k: group(sig2(1 / c)) })];
+}
+function colourBar(x, y, w, h, p) {
+  const id = "uigrad";
+  const defs = S("defs", {}, fig);
+  const g = S("linearGradient", { id, x1: 0, x2: 1, y1: 0, y2: 0 }, defs);
+  UI.forEach((c, i) => S("stop", { offset: i / 14, "stop-color": c }, g));
+  S("rect", { x, y, width: w, height: h, rx: 4, fill: `url(#${id})` }, fig);
+  [0, 7, 14].forEach((v) => T("text", { class: "lbl-m", x: x + (w * v) / 14, y: y + h + 26, "text-anchor": v === 0 ? "start" : v === 14 ? "end" : "middle" }, String(v)));
+  if (p !== undefined) {
+    const mx = x + (w * Math.min(14, Math.max(0, p))) / 14;
+    S("path", { class: "marker", d: `M${mx - 9},${y - 14} L${mx + 9},${y - 14} L${mx},${y - 1} Z` }, fig);
+  }
+}
+
+/* ---------- step 1: two cubes ---------- */
+function drawGuess() {
+  fig.setAttribute("aria-label", P.t("figGuess"));
+  fig.innerHTML = "";
+  const c5 = ions(hOfpH(5)), c3 = ions(hOfpH(3));
+  [[5, 40, c5, "guess5"], [3, 300, c3, "guess3"]].forEach(([p, x, c, key]) => {
+    S("rect", { x, y: 28, width: 34, height: 34, rx: 6, fill: indicator(p), stroke: "var(--fg)", "stroke-width": 1 }, fig);
+    T("text", { class: "big", x: x + 46, y: 56 }, P.t(key));
+    cubeDots(x, 98, 210, state.revealed ? c : 0);
+    if (!state.revealed) T("text", { class: "qmark", x: x + 105, y: 225, "text-anchor": "middle" }, "?");
+    else T("text", { class: "num", x: x + 105, y: 346, "text-anchor": "middle" }, ionsText(c)[0]);
+  });
+  T("text", { class: "lbl-m", x: 280, y: 386, "text-anchor": "middle" }, P.t("cubeLbl", { s: Math.round(CUBE_NM) }));
+  if (state.revealed) T("text", { class: "lbl", x: 280, y: 428, "text-anchor": "middle" }, P.t("reveal", { a: group(c3), b: group(c5), r: group(c3 / c5) }));
+  Play.live($("live"), state.revealed ? P.t("liveGuess", { a: group(c5), b: group(c3), r: group(c3 / c5) }) : "");
+}
+
+/* ---------- step 2: dilution lab ---------- */
+function drawDil() {
+  fig.setAttribute("aria-label", P.t("figDil"));
+  fig.innerHTML = "";
+  const rows = dilution(state.n), cur = rows[rows.length - 1], col = indicator(cur.p);
+  // 1 part + 9 parts water
+  for (let i = 0; i < 10; i++) S("rect", i === 0 ? { class: "part", x: 20 + i * 21, y: 18, width: 18, height: 22, rx: 3, fill: col } : { class: "water", x: 20 + i * 21, y: 18, width: 18, height: 22, rx: 3 }, fig);
+  T("text", { class: "lbl-m", x: 20, y: 66 }, P.t("partsLbl"));
+  // beaker with indicator-coloured liquid
+  T("text", { class: "big", x: 92, y: 116, "text-anchor": "middle" }, "pH " + f2(cur.p));
+  S("rect", { class: "liquid", x: 32, y: 190, width: 120, height: 128, fill: col, "fill-opacity": 0.85 }, fig);
+  S("path", { class: "glass", d: "M24,136 L30,142 L30,320 Q30,330 40,330 L144,330 Q154,330 154,320 L154,142 L160,136" }, fig);
+  // pH paper
+  S("rect", { class: "strip", x: 184, y: 150, width: 30, height: 150, rx: 3 }, fig);
+  S("rect", { x: 186, y: 232, width: 26, height: 66, fill: col }, fig);
+  T("text", { class: "lbl-m", x: 199, y: 330, "text-anchor": "middle" }, P.t("paper"));
+  // the dot cube
+  T("text", { class: "lbl-m", x: 405, y: 28, "text-anchor": "middle" }, P.t("cubeLbl", { s: Math.round(CUBE_NM) }));
+  cubeDots(300, 54, 210, cur.ions);
+  const it = ionsText(cur.ions);
+  T("text", { class: "num", x: 405, y: 292, "text-anchor": "middle" }, it[0]);
+  if (it[1]) T("text", { class: "lbl-m", x: 405, y: 320, "text-anchor": "middle" }, it[1]);
+  T("text", { class: "lbl", x: 405, y: 356, "text-anchor": "middle" }, cur.k ? P.t("fewer", { r: Play.fmt(cur.ratio, 1) }) : P.t("start"));
+  colourBar(20, 380, 520, 20, cur.p);
+  // table: last 5 rows
+  const box = $("histBox");
+  box.innerHTML = "";
+  const tb = document.createElement("table");
+  tb.className = "hist";
+  const tr0 = tb.insertRow();
+  ["hk", "hc", "hp", "hr"].forEach((k) => { const th = document.createElement("th"); th.textContent = P.t(k); tr0.appendChild(th); });
+  rows.slice(-5).forEach((r) => {
+    const tr = tb.insertRow();
+    if (r === cur) tr.className = "cur";
+    [String(r.k), sci(r.h, 1), f2(r.p), r.k ? "÷" + Play.fmt(r.ratio, 1) : "—"].forEach((v) => (tr.insertCell().textContent = v));
+  });
+  box.appendChild(tb);
+  $("n").value = state.n;
+  $("nVal").textContent = state.n;
+  $("dil").disabled = state.n >= NMAX;
+  Play.live($("live"), cur.k ? P.t("liveDil", { n: cur.k, h: sci(cur.h, 1), p: f2(cur.p), f: factorText(Math.log10(rows[0].h / cur.h)), dp: f2(cur.p - rows[0].p) })
+    : P.t("liveDil0", { h: sci(cur.h, 1), p: f2(cur.p), i: group(cur.ions) }));
+  $("extra").textContent = cur.k && cur.ratio < 9.5 ? P.t("near7") : "";
+  $("extra").hidden = !$("extra").textContent;
+}
+
+/* ---------- step 3: log ruler + compare ---------- */
+const RY0 = 40, RY1 = 352;
+const yOf = (p) => RY0 + ((RY1 - RY0) * p) / 14;
+const pTxt = (s) => (s.lo === s.hi ? String(s.lo) : s.lo + "–" + s.hi);
+function pick(i) {
+  if (state.next === "a") { state.a = i; state.next = "b"; } else { state.b = i; state.next = "a"; }
+  render();
+}
+function drawCmp() {
+  fig.setAttribute("aria-label", P.t("figCmp"));
+  fig.innerHTML = "";
+  const defs = S("defs", {}, fig);
+  const g = S("linearGradient", { id: "uiv", x1: 0, x2: 0, y1: 0, y2: 1 }, defs);
+  UI.forEach((c, i) => S("stop", { offset: i / 14, "stop-color": c }, g));
+  S("rect", { x: 130, y: RY0, width: 26, height: RY1 - RY0, rx: 4, fill: "url(#uiv)" }, fig);
+  T("text", { class: "lbl-m", x: 120, y: 20, "text-anchor": "end" }, P.t("phLbl"));
+  T("text", { class: "lbl-m", x: 62, y: 20, "text-anchor": "end" }, P.t("hLbl"));
+  for (let p = 0; p <= 14; p++) {
+    const y = yOf(p);
+    S("line", { class: "tick", x1: 124, x2: 130, y1: y, y2: y }, fig);
+    if (p % 2 === 0) {
+      T("text", { class: "num", x: 120, y: y + 7, "text-anchor": "end" }, String(p));
+      T("text", { class: "lbl-m", x: 74, y: y + 7, "text-anchor": "end" }, p === 0 ? "1" : "10" + sup(-p));
+    }
+  }
+  // labels pushed apart so they never overlap
+  const ly = SUBST.map((s) => yOf(typ(s)) + 7);
+  for (let i = 1; i < ly.length; i++) ly[i] = Math.max(ly[i], ly[i - 1] + 26);
+  SUBST.forEach((s, i) => {
+    const on = i === state.a ? "on-a" : i === state.b ? "on-b" : "";
+    const gg = S("g", { class: "sub", tabindex: 0, role: "button", "aria-label": P.t(s.key) + " pH " + pTxt(s) }, fig);
+    const y = yOf(typ(s));
+    if (s.hi > s.lo) S("rect", { x: 158, y: yOf(s.lo), width: 6, height: yOf(s.hi) - yOf(s.lo), fill: "var(--fg)" }, gg);
+    S("path", { class: "lead " + on, d: `M156,${y} L190,${y} L210,${ly[i] - 7} L218,${ly[i] - 7}`, fill: "none" }, gg);
+    S("rect", { x: 216, y: ly[i] - 22, width: 330, height: 26, fill: "transparent" }, gg);
+    T("text", { class: "sublbl " + on, x: 222, y: ly[i] }, P.t(s.key) + " " + P.t("approx", { v: pTxt(s) }), gg);
+    gg.addEventListener("click", () => pick(i));
+    gg.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(i); const el = fig.querySelectorAll(".sub")[i]; if (el) el.focus(); } });
+  });
+  // bracket between the two picks
+  const A = SUBST[state.a], B = SUBST[state.b], ya = yOf(typ(A)), yb = yOf(typ(B));
+  [[ya, "pin-a"], [yb, "pin-b"]].forEach(([y, c]) => S("circle", { class: c, cx: 143, cy: y, r: 7, stroke: "var(--surface)", "stroke-width": 2 }, fig));
+  if (Math.abs(ya - yb) > 1) S("path", { class: "brk", d: `M106,${ya} L96,${ya} L96,${yb} L106,${yb}` }, fig);
+  const C = compare(typ(A), typ(B));
+  const name = (s) => P.t(s.key);
+  const mid = (s) => (P.lang === "en" ? name(s).charAt(0).toLowerCase() + name(s).slice(1) : name(s));
+  T("text", { class: "lbl-m", x: 280, y: 394, "text-anchor": "middle" }, P.t("cmpLine1", { a: name(A), b: mid(B), d: +C.d.toFixed(2) }));
+  const more = C.aMore ? A : B, less = C.aMore ? B : A;
+  T("text", { class: "lbl", x: 280, y: 430, "text-anchor": "middle" }, C.same ? P.t("cmpSame") : P.t("cmpLine2", { m: name(more), f: factorText(C.d) }));
+  Play.live($("live"), C.same ? P.t("liveSame", { p: pTxt(A) })
+    : P.t("liveCmp", { m: name(more), m2: mid(more), pm: pTxt(more), l: mid(less), pl: pTxt(less), f: factorText(C.d), len: lengthText(C.d, P.lang) }));
+  $("selA").value = state.a; $("selB").value = state.b;
+}
+
+function render() {
+  $("dilCtl").hidden = state.step !== 1;
+  $("cmpCtl").hidden = state.step !== 2;
+  $("histBox").hidden = state.step !== 1;
+  $("safety").hidden = state.step !== 2;
+  if (state.step !== 1) { $("extra").textContent = ""; $("extra").hidden = true; }
+  if (state.step === 0) drawGuess(); else if (state.step === 1) drawDil(); else drawCmp();
+}
+
+["selA", "selB"].forEach((id) => {
+  const s = $(id);
+  SUBST.forEach((x, i) => { const o = document.createElement("option"); o.value = i; o.textContent = P.t(x.key) + " (" + pTxt(x) + ")"; s.appendChild(o); });
+});
+$("selA").addEventListener("change", (e) => { state.a = +e.target.value; render(); });
+$("selB").addEventListener("change", (e) => { state.b = +e.target.value; render(); });
+$("swap").addEventListener("click", () => { [state.a, state.b] = [state.b, state.a]; render(); });
+$("dil").addEventListener("click", () => { state.n = Math.min(NMAX, state.n + 1); render(); if ($("dil").disabled) $("n").focus(); });
+$("fresh").addEventListener("click", () => { state.n = 0; render(); });
+$("n").addEventListener("input", (e) => { state.n = Play.clamp(Math.round(+e.target.value) || 0, 0, NMAX); render(); });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { state.revealed = true; render(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  state.step = i;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  Object.assign(state, { revealed: false, n: 0, a: 0, b: 3, next: "b" });
+  pr.reset(); st.go(0);
+});
+</script>
+</body>
+</html>

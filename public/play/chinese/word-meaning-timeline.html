@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a word's meaning moves through time</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .han { font-family: "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", "Songti SC", serif; }
+  .vwrap { padding: 14px 14px 12px; }
+  .wpick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .wpick button { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; padding: 5px 10px; min-width: 52px; }
+  .wpick button .w { font-size: 20px; }
+  .wpick button .p { font-size: 13px; color: var(--muted); }
+  .wpick button .ok { font-size: 12px; color: var(--a); height: 14px; }
+  .wpick button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .wpick button[aria-pressed=true] .p, .wpick button[aria-pressed=true] .ok { color: var(--bg); }
+  .tl { position: relative; touch-action: pan-y; cursor: pointer; user-select: none; -webkit-user-select: none; padding-top: 2px; }
+  .tl .colhl { position: absolute; top: 0; bottom: 0; width: calc(100% / 6); background: color-mix(in srgb, var(--hl) 22%, transparent); border-left: 2px solid var(--hl); border-right: 2px solid var(--hl); border-radius: 8px; pointer-events: none; transition: left .2s; }
+  .tl.noanim .colhl { transition: none; }
+  .mrow { position: relative; margin-bottom: 4px; }
+  .mlab { font-size: 14px; position: relative; }
+  .mlab .han { font-size: 17px; }
+  .mlab .py { color: var(--muted); font-size: 13px; }
+  .mlab .lv { float: right; font-size: 13px; color: var(--muted); }
+  .bandbox { height: 34px; position: relative; }
+  .bandbox svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .band0 { fill: var(--c); } .band1 { fill: var(--a); }
+  .base { stroke: var(--line); stroke-width: 1; }
+  .eras { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); text-align: center; font-size: 13px; color: var(--muted); line-height: 1.25; margin-top: 4px; position: relative; }
+  .eras div { padding: 2px 1px; overflow-wrap: anywhere; }
+  .eras .on { color: var(--fg); font-weight: 700; }
+  .eras .pin { display: block; color: var(--a); font-size: 12px; font-weight: 700; }
+  .slrow { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; font-size: 13px; color: var(--muted); }
+  .slrow input { flex: 1 1 auto; }
+  .readout { font-size: 14px; background: var(--soft); border-radius: 10px; padding: 8px 12px; margin: 6px 0 12px; }
+  .readout b { color: var(--fg); }
+  .approx { font-size: 12px; color: var(--muted); }
+  .ccard { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 12px; background: var(--bg); }
+  .ccard .src { font-size: 13px; color: var(--muted); }
+  .sent { display: flex; flex-wrap: wrap; row-gap: 4px; margin: 6px 0 8px; }
+  .tk { display: inline-flex; flex-direction: column; align-items: center; min-width: 1.6em; padding: 0 1px; border-radius: 6px; }
+  .tk .py { font-family: var(--font); font-size: 13px; color: var(--muted); line-height: 1.3; min-height: 1.3em; }
+  .tk .hz { font-size: 24px; line-height: 1.3; }
+  .tk.p { min-width: .9em; }
+  .tk.tgt .hz { color: var(--a); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  .tk.ev { background: color-mix(in srgb, var(--c) 20%, transparent); }
+  .tk.ev .hz { color: var(--c); font-weight: 700; }
+  .ccard .q { font-size: 14px; font-weight: 650; margin-bottom: 6px; }
+  .ccard .choices button.right { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .ccard .choices button.wrong { background: var(--no); border-color: var(--no); color: var(--surface); }
+  .ccard .fb { font-size: 14px; }
+  .ccard .fb .v { font-weight: 700; }
+  .ccard .fb .v.ok { color: var(--a); } .ccard .fb .v.no { color: var(--no); }
+  .ccard .tr { font-size: 13px; color: var(--muted); font-style: italic; margin-top: 6px; }
+  .ccard .alive { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .quiz .ccard { margin-bottom: 10px; }
+  .quiz .ccard .n { font-weight: 750; color: var(--a); margin-right: 6px; }
+  .qact { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+  .qscore { font-size: 15px; font-weight: 700; }
+  table.sum { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 10px; }
+  table.sum td, table.sum th { border-bottom: 1px solid var(--line); padding: 4px 4px; text-align: left; vertical-align: top; }
+  table.sum th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  table.sum td.w { font-size: 20px; white-space: nowrap; }
+  table.sum td.k { color: var(--a); font-weight: 700; text-align: center; }
+  .result .math { white-space: normal; line-height: 1.35; }
+  .result .score { font-size: 13px; color: var(--on-panel-muted); margin-top: 6px; }
+  @media (max-width: 560px) {
+    .vwrap { padding: 12px 8px 10px; }
+    .tk .hz { font-size: 22px; }
+    .wpick button { min-width: 44px; padding: 4px 7px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .tl .colhl { transition: none; } }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="vwrap" id="v1"><div class="ccard" id="story"></div></div>
+      <div class="vwrap" id="v2" hidden>
+        <div class="wpick" id="wpick" role="group" data-t-aria="pickAria"></div>
+        <div class="tl" id="tl" role="img" data-t-aria="tlAria"></div>
+        <div class="slrow"><label for="era" data-t="eraLabel"></label><input type="range" id="era" min="0" max="5" step="1" value="0"></div>
+        <div class="readout" id="readout" aria-live="polite"></div>
+        <div class="ccard" id="card"></div>
+      </div>
+      <div class="vwrap quiz" id="v3" hidden>
+        <div id="quiz"></div>
+        <div class="qact">
+          <button type="button" id="qcheck" data-t="qCheck"></button>
+          <button type="button" class="small" id="qnew" data-t="qNew"></button>
+          <span class="qscore" id="qscore" aria-live="polite"></span>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="sumbox" hidden></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div><div class="score" id="rscore"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// ---------- data ----------
+// Eras (columns of the timeline). Dates: conventional period boundaries.
+const ERAS = [
+  { zh: "先秦", en: "pre-Qin", full: { zh: "先秦（前 221 年以前）", en: "pre-Qin 先秦 (before 221 BCE)" } },
+  { zh: "秦汉", en: "Qin–​Han", full: { zh: "秦汉（前 221–公元 220）", en: "Qin–Han 秦汉 (221 BCE–220 CE)" } },
+  { zh: "魏晋南北朝", en: "Wei–​Jin", full: { zh: "魏晋南北朝（220–589）", en: "Wei, Jin & N/S dynasties 魏晋南北朝 (220–589)" } },
+  { zh: "隋唐宋", en: "Tang–​Song", full: { zh: "隋唐宋（581–1279）", en: "Sui, Tang & Song 隋唐宋 (581–1279)" } },
+  { zh: "元明清", en: "Yuan–​Qing", full: { zh: "元明清（1271–1912）", en: "Yuan, Ming & Qing 元明清 (1271–1912)" } },
+  { zh: "现代", en: "today", full: { zh: "现代（20 世纪至今）", en: "today 现代 (20th century on)" } },
+];
+// Sentence markup: {x} = the word being asked about, [x] = the words that prove its meaning.
+// py: one syllable per Han character, in order (punctuation has none).
+// lv: rough commonness in writing of each era, 0 = not (yet / any more) in normal use … 3 = the main meaning. Approximate.
+const WORDS = [
+  { w: "走", py: "zǒu",
+    m: [{ zh: "跑", py: "pǎo", en: "run", lv: [3, 3, 3, 2, 1, 0] }, { zh: "行走", py: "xíngzǒu", en: "walk", lv: [0, 0, 0, 1, 3, 3] }],
+    alive: { zh: "奔走、不胫而走", en: "奔走 bēnzǒu 'rush about', 不胫而走 'runs off without legs' (news spreading)" },
+    c: { s: "宋人有耕者，田中有株，兔{走}[触株]，[折颈而死]。", py: "sòng rén yǒu gēng zhě tián zhōng yǒu zhū tù zǒu chù zhū zhé jǐng ér sǐ",
+      src: { zh: "《韩非子·五蠹》", en: "Han Feizi, 'Five Vermin' 《韩非子·五蠹》" }, era: 0,
+      why: { zh: "「触株」是撞上树桩，「折颈而死」是折断脖子死了——慢慢走可撞不断脖子。兔子是在跑：这里的「走」= 跑。",
+        en: "触株 'crashed into the stump' and 折颈而死 'broke its neck and died': a walking rabbit does not break its neck. It was running, so 走 here means run." },
+      tr: { zh: "宋国有个种田的人，田里有个树桩。一只兔子跑来撞在树桩上，折断脖子死了。", en: "A farmer of Song had a tree stump in his field. A rabbit ran into the stump, broke its neck and died." } } },
+  { w: "去", py: "qù",
+    m: [{ zh: "离开", py: "líkāi", en: "leave", lv: [3, 3, 3, 2, 1, 0] }, { zh: "前往", py: "qiánwǎng", en: "go to", lv: [0, 0, 1, 2, 3, 3] }],
+    alive: { zh: "去世、拂袖而去", en: "去世 qùshì 'leave the world' (die), 拂袖而去 'sweep out of the room'" },
+    c: { s: "[城]非不高也，池非不深也……[委]而{去}[之]", py: "chéng fēi bù gāo yě chí fēi bù shēn yě wěi ér qù zhī",
+      src: { zh: "《孟子·公孙丑下》", en: "Mencius, Gongsun Chou II 《孟子·公孙丑下》" }, era: 0,
+      why: { zh: "「委」是丢下，「之」指他们正在守的城。人本来就在城里，谈不上「前往」它——是丢下城离开了。「去」= 离开。",
+        en: "委 means 'abandon', and 之 'it' is the city they were defending. You can't 'go to' a city you are already standing in: they abandoned it and left. 去 = leave." },
+      tr: { zh: "不是城墙不高，不是护城河不深……可守城的人还是丢下城离开了。", en: "It is not that the walls are not high or the moat not deep… yet they abandon the city and leave it." } } },
+  { w: "汤", py: "tāng",
+    m: [{ zh: "热水", py: "rèshuǐ", en: "hot water", lv: [3, 3, 3, 2, 1, 0] }, { zh: "菜汤", py: "càitāng", en: "soup", lv: [0, 0, 1, 2, 3, 3] }],
+    alive: { zh: "赴汤蹈火", en: "赴汤蹈火 fù tāng dǎo huǒ 'rush into boiling water, tread on fire'" },
+    c: { s: "日初出[沧沧凉凉]，及其日中如[探]{汤}", py: "rì chū chū cāng cāng liáng liáng jí qí rì zhōng rú tàn tāng",
+      src: { zh: "《列子·汤问》", en: "Liezi, 'Questions of Tang' 《列子·汤问》" }, era: 2,
+      why: { zh: "小孩拿早上的「沧沧凉凉」和中午比，争的是冷热：中午像「探汤」——把手伸进热水里。（上古说菜汤，一般用「羹」。）",
+        en: "The child contrasts the morning, 沧沧凉凉 'cool and chilly', with noon. The argument is about heat: at noon it is like 探汤, 'putting your hand into hot water'. (In early texts soup was usually 羹 gēng.)" },
+      tr: { zh: "太阳刚出来时清清凉凉，到了中午就像把手伸进热水里。", en: "When the sun first rises it is cool and chilly; at noon it is like putting your hand into hot water." } } },
+  { w: "涕", py: "tì",
+    m: [{ zh: "眼泪", py: "yǎnlèi", en: "tears", lv: [3, 3, 2, 2, 1, 0] }, { zh: "鼻涕", py: "bítì", en: "nasal mucus", lv: [0, 1, 2, 2, 3, 3] }],
+    alive: { zh: "感激涕零、痛哭流涕", en: "感激涕零 'so grateful the tears fall', 痛哭流涕 'weep bitterly'" },
+    c: { s: "临表{涕}[零]，[不知所言]。", py: "lín biǎo tì líng bù zhī suǒ yán",
+      src: { zh: "诸葛亮《出师表》（三国）", en: "Zhuge Liang, 'Memorial on Sending Out the Troops' 《出师表》 (Three Kingdoms)" }, era: 2,
+      why: { zh: "「零」是像雨点一样落下，「不知所言」说明他激动得不知说了什么。激动时落下的是眼泪——「涕」= 眼泪。",
+        en: "零 means 'fall like raindrops', and 不知所言 'I don't know what I am saying' shows how moved he is. What falls when you are moved is tears: 涕 = tears." },
+      tr: { zh: "面对这份奏表，我泪落不止，不知道说了些什么。", en: "Facing this memorial, my tears fall, and I do not know what I am saying." } } },
+  { w: "兵", py: "bīng",
+    m: [{ zh: "兵器", py: "bīngqì", en: "weapon", lv: [3, 2, 2, 1, 1, 1] }, { zh: "士兵", py: "shìbīng", en: "soldier", lv: [1, 2, 3, 3, 3, 3] }],
+    alive: { zh: "兵器、短兵相接", en: "兵器 bīngqì 'weapon', 短兵相接 'fight hand to hand' (short weapons meet)" },
+    c: { s: "[弃甲][曳]{兵}而走", py: "qì jiǎ yè bīng ér zǒu",
+      src: { zh: "《孟子·梁惠王上》", en: "Mencius, King Hui of Liang I 《孟子·梁惠王上》" }, era: 0,
+      why: { zh: "「弃甲」和「曳兵」是一对：盔甲和兵器，是战士身上带的两样东西。「曳」是拖着，拖的是手里的东西；在逃跑的才是士兵。「兵」= 兵器。（这里的「走」也是跑！）",
+        en: "弃甲 'throw off armour' and 曳兵 'drag ___' are a pair: armour and weapons, the two things a fighter carries. 曳 'drag' needs something in your hand; the soldiers are the ones running away. 兵 = weapon. (And 走 here means run again!)" },
+      tr: { zh: "丢掉盔甲，拖着兵器逃跑。", en: "They throw off their armour and run, dragging their weapons." } } },
+  { w: "闻", py: "wén",
+    m: [{ zh: "听见", py: "tīngjiàn", en: "hear", lv: [3, 3, 3, 3, 2, 1] }, { zh: "用鼻子闻", py: "yòng bízi wén", en: "smell", lv: [1, 1, 1, 2, 2, 3] }],
+    alive: { zh: "新闻、耳闻、闻名", en: "新闻 xīnwén 'news' (newly heard), 耳闻 'hear of', 闻名 'well known'" },
+    c: { s: "阡陌[交通]，[鸡犬][相]{闻}。", py: "qiān mò jiāo tōng jī quǎn xiāng wén",
+      src: { zh: "陶渊明《桃花源记》（东晋）", en: "Tao Yuanming, 'Peach Blossom Spring' 《桃花源记》 (Eastern Jin)" }, era: 2,
+      why: { zh: "鸡叫狗吠是声音；「阡陌交通」说田间小路四通八达，人家挨得近，鸡犬的声音「相闻」——互相听得见。「闻」= 听见。",
+        en: "Roosters crow and dogs bark: those are sounds. 阡陌交通 'the field paths connect' means the farms are close, so the animals 相闻, 'hear each other'. 闻 = hear." },
+      tr: { zh: "田间小路交错相通，村落之间鸡鸣狗叫都听得见。", en: "Paths criss-cross the fields, and the chickens and dogs of one farm can be heard from the next." } } },
+  { w: "妻子", py: "qī zǐ",
+    m: [{ zh: "妻和子（妻子儿女）", py: "qī hé zǐ", en: "wife and children", lv: [3, 3, 3, 2, 1, 0] }, { zh: "妻子（qīzi）", py: "qīzi", en: "wife", lv: [0, 0, 1, 2, 3, 3] }],
+    alive: { zh: "妻离子散（妻、子分开说）", en: "妻离子散 'wife and children scattered': 妻 and 子 still two people" },
+    c: { s: "[仰]足以事[父母]，[俯]足以畜{妻子}", py: "yǎng zú yǐ shì fù mǔ fǔ zú yǐ xù qī zǐ",
+      src: { zh: "《孟子·梁惠王上》", en: "Mencius, King Hui of Liang I 《孟子·梁惠王上》" }, era: 0,
+      why: { zh: "这是一组对句：「仰」对「父母」——父和母，上一辈两种人；「俯」对「妻子」——妻和子，下面要养的一家人。「妻子」= 妻子和儿女。",
+        en: "The sentence is a pair: 仰 'looking up' to 父母, father and mother (two kinds of people, the generation above); 俯 'looking down' to 妻子, 妻 wife and 子 children, the family you feed. 妻子 = wife and children." },
+      tr: { zh: "对上足够侍奉父母，对下足够养活妻子儿女。", en: "Enough, looking up, to serve one's parents, and, looking down, to feed one's wife and children." } } },
+  { w: "牺牲", py: "xīshēng",
+    m: [{ zh: "祭祀用的牲畜", py: "jìsì yòng de shēngchù", en: "animals offered in sacrifice", lv: [3, 3, 3, 3, 2, 0] }, { zh: "舍弃生命", py: "shěqì shēngmìng", en: "give one's life", lv: [0, 0, 0, 0, 1, 3] }],
+    alive: { zh: "今天几乎只用新义", en: "today almost only the new meaning" },
+    c: { s: "{牺牲}[玉帛]，[弗敢加]也，必以信。", py: "xī shēng yù bó fú gǎn jiā yě bì yǐ xìn",
+      src: { zh: "《左传·庄公十年》", en: "Zuo Zhuan, Duke Zhuang year 10 《左传·庄公十年》" }, era: 0,
+      why: { zh: "「牺牲」和「玉帛」排在一起，都是祭祀的供品；「弗敢加」是不敢虚报多说。供品可以数、可以多报；舍弃生命谈不上「多报」。「牺牲」= 祭祀用的牲畜。",
+        en: "牺牲 sits in a list with 玉帛 'jade and silk', offerings to the spirits, and 弗敢加 means 'I dare not overstate them'. You can count offerings and inflate the count; you cannot inflate 'giving your life'. 牺牲 = sacrificial animals." },
+      tr: { zh: "「祭祀用的牛羊、玉器和丝绸，我从不敢虚报，一定按实情说。」", en: "'The animals, jade and silk I offer, I never dare overstate; I always keep faith.'" } } },
+];
+// Quiz: new sentences; w = index into WORDS, the right answer is the old meaning (m[0]).
+const QUIZ = [
+  { w: 1, s: "太丘[舍]{去}，[去后乃至]。", py: "tài qiū shě qù qù hòu nǎi zhì",
+    src: { zh: "刘义庆《世说新语·方正》（南朝宋）", en: "Liu Yiqing, A New Account of Tales of the World 《世说新语·方正》 (5th c.)" }, era: 2,
+    why: { zh: "「舍」是不再等，「去后乃至」是他走了以后朋友才到——陈太丘是离开了约好的地方。「去」= 离开。", en: "舍 'gave up waiting', and 去后乃至 'only after he had gone did the friend arrive': Chen Taiqiu left the meeting place. 去 = leave." },
+    tr: { zh: "陈太丘不再等候就离开了，他离开后朋友才到。", en: "Chen Taiqiu gave up and left; only after he had gone did his friend arrive." } },
+  { w: 6, s: "自云先世[避秦时乱]，[率]{妻子}[邑人]来此绝境", py: "zì yún xiān shì bì qín shí luàn shuài qī zǐ yì rén lái cǐ jué jìng",
+    src: { zh: "陶渊明《桃花源记》（东晋）", en: "Tao Yuanming, 'Peach Blossom Spring' 《桃花源记》 (Eastern Jin)" }, era: 2,
+    why: { zh: "先人是为「避秦时乱」逃难，「率」是带领一群人，还带着「邑人」同乡。逃难要带上全家——「妻子」= 妻子和儿女。", en: "The ancestors were fleeing war (避秦时乱) and 率 'led' a group that included the 邑人 'fellow villagers'. People fleeing a war take the whole family: 妻子 = wife and children." },
+    tr: { zh: "他们说祖先为躲避秦时的战乱，带领妻子儿女和同乡来到这与世隔绝的地方。", en: "They said their ancestors, fleeing the turmoil of Qin times, led their wives, children and fellow villagers to this cut-off place." } },
+  { w: 2, s: "见善如不及，见不善如[探]{汤}。", py: "jiàn shàn rú bù jí jiàn bù shàn rú tàn tāng",
+    src: { zh: "《论语·季氏》", en: "Analects, Ji Shi 《论语·季氏》" }, era: 0,
+    why: { zh: "两句相对：见到善，像怕追不上一样去追；见到不善，像把手伸进「汤」里一样赶紧缩回。让人立刻缩手的是滚烫的热水。「汤」= 热水。", en: "Two halves: chase the good as if you could not catch up; pull back from the bad as if you had put (探) your hand into 汤. What makes you snatch your hand back is boiling water: 汤 = hot water." },
+    tr: { zh: "看见善行，就像怕追不上一样努力；看见恶行，就像手碰到滚水一样赶快避开。", en: "Seeing good, strive as if you could not catch up; seeing evil, pull back as if you had touched boiling water." } },
+  { w: 3, s: "念天地之悠悠，独[怆然]而{涕}[下]。", py: "niàn tiān dì zhī yōu yōu dú chuàng rán ér tì xià",
+    src: { zh: "陈子昂《登幽州台歌》（唐）", en: "Chen Zi'ang, 'Song on Climbing the Youzhou Terrace' 《登幽州台歌》 (Tang)" }, era: 3,
+    why: { zh: "「怆然」是悲伤；悲伤时流「下」来的是眼泪。「涕」= 眼泪。", en: "怆然 means 'grief-stricken', and what runs down (下) when you grieve is tears. 涕 = tears." },
+    tr: { zh: "想到天地无穷无尽，我独自悲伤，流下泪来。", en: "Thinking how endless heaven and earth are, I alone, grief-stricken, shed tears." } },
+  { w: 5, s: "春眠不觉晓，处处{闻}[啼鸟]。", py: "chūn mián bù jué xiǎo chù chù wén tí niǎo",
+    src: { zh: "孟浩然《春晓》（唐）", en: "Meng Haoran, 'Spring Morning' 《春晓》 (Tang)" }, era: 3,
+    why: { zh: "「啼鸟」是鸣叫的鸟，是声音；诗人还躺在床上，到处都听得见。「闻」= 听见。", en: "啼鸟 are birds calling: a sound. Still in bed, the poet hears them everywhere. 闻 = hear." },
+    tr: { zh: "春天睡得香，不知不觉天亮了，到处都能听到鸟叫。", en: "Sleeping in spring, I missed the dawn; everywhere I hear birds calling." } },
+  { w: 4, s: "填然鼓之，{兵}[刃]既[接]", py: "tián rán gǔ zhī bīng rèn jì jiē",
+    src: { zh: "《孟子·梁惠王上》", en: "Mencius, King Hui of Liang I 《孟子·梁惠王上》" }, era: 0,
+    why: { zh: "「刃」是刀口，「接」是碰上：开战时刀刃相交。「兵刃」就是兵器的锋刃，「兵」= 兵器。", en: "刃 is a blade and 接 'meet': the battle starts when blades cross. 兵刃 = the edges of weapons, so 兵 = weapon." },
+    tr: { zh: "咚咚地擂起战鼓，兵器的刀锋已经相交。", en: "The drums boom, and the blades of the weapons cross." } },
+];
+const QSETS = [[0, 1, 2], [3, 4, 5]];
+
+// ---------- pure logic ----------
+const HAN = /\p{Script=Han}/u;
+function parseS(s, py) {
+  const syl = py.split(/\s+/).filter(Boolean), out = [];
+  let tgt = false, ev = false, k = 0;
+  for (const ch of s) {
+    if (ch === "{") tgt = true; else if (ch === "}") tgt = false;
+    else if (ch === "[") ev = true; else if (ch === "]") ev = false;
+    else if (HAN.test(ch)) out.push({ c: ch, py: syl[k++] || "", tgt, ev });
+    else out.push({ c: ch, py: "", tgt: false, ev: false, p: true });
+  }
+  return { tokens: out, ok: k === syl.length };
+}
+function levelWord(lv, i) {
+  const v = lv[i];
+  if (v > 0) return ["", "occasional", "common", "main"][v];
+  return lv.slice(i + 1).some((x) => x > 0) ? "notyet" : "gone";
+}
+// Smooth band: half-thickness h(level) at each column centre, cubic joins between them.
+function bandPath(lv, W, H) {
+  const n = lv.length, cx = (i) => ((i + 0.5) / n) * W, mid = H / 2, half = (v) => (v / 3) * (H / 2 - 1);
+  const pts = lv.map((v, i) => [cx(i), half(v)]);
+  let top = `M0 ${mid - pts[0][1]} L${pts[0][0]} ${mid - pts[0][1]}`;
+  for (let i = 1; i < n; i++) { const xm = (pts[i - 1][0] + pts[i][0]) / 2; top += ` C${xm} ${mid - pts[i - 1][1]} ${xm} ${mid - pts[i][1]} ${pts[i][0]} ${mid - pts[i][1]}`; }
+  top += ` L${W} ${mid - pts[n - 1][1]} L${W} ${mid + pts[n - 1][1]} L${pts[n - 1][0]} ${mid + pts[n - 1][1]}`;
+  for (let i = n - 2; i >= 0; i--) { const xm = (pts[i + 1][0] + pts[i][0]) / 2; top += ` C${xm} ${mid + pts[i + 1][1]} ${xm} ${mid + pts[i][1]} ${pts[i][0]} ${mid + pts[i][1]}`; }
+  return top + ` L0 ${mid + pts[0][1]} Z`;
+}
+function dominant(lvs, i) { // index of the meaning most common in era i (ties → the older one)
+  let best = 0;
+  lvs.forEach((lv, j) => { if (lv[i] > lvs[best][i]) best = j; });
+  return best;
+}
+function eraFromX(x, width) { const v = Math.floor((x / Math.max(1, width)) * 6); return Number.isFinite(v) ? Play.clamp(v, 0, 5) : 0; }
+function quizScore(set, ans) { return set.reduce((a, qi) => a + (ans[qi] === 0 ? 1 : 0), 0); }
+
+const P = Play.setup({
+  en: {
+    title: "How a word's meaning moves through time", eyebrow: "Chinese · Stage 3",
+    h1: "Meanings drift: in old texts 走 meant 'run' and 去 meant 'leave'",
+    intro: "Read an old sentence with today's meaning and it can turn into nonsense. Slide through 2,500 years, see which meanings were common when, and let the sentence prove the old meaning.",
+    reset: "Reset", pickAria: "Choose a word", tlAria: "Timeline: how common each meaning of the word was in each era (approximate)",
+    eraLabel: "Era", s1: "Guess", s2: "Timeline", s3: "Rule",
+    k1: "Predict first", t1: "Did the rabbit walk or run?", b1: "This is the start of the story of the farmer who waited by the stump (守株待兔). Pick an answer, then look at the rest of the sentence.",
+    k2: "Hands on", t2: "Slide through time, then read the old sentence",
+    b2: "Pick a word. Drag the slider (or tap a column, or use ← →) to see which meanings were common in each era: the thicker the band, the more common. Then choose the meaning that fits the old sentence on the card.",
+    k3: "The rule", t3: "Read an old text with the meaning of its time — and prove it from the sentence",
+    b3: "A character can carry several meanings, and the common one changes over time. Today's meaning is only the latest. Try three new sentences: choose each meaning, then press Check.",
+    q: "宋人有耕者，田中有株，兔走触株，折颈而死。 What did the rabbit do?",
+    o1: "It walked into the stump — 走 means walk", o2: "It ran into the stump", o3: "Can't tell — 走 has only one meaning, so it walked slowly",
+    right: "Yes. 触株，折颈而死 'hit the stump and broke its neck': only a running rabbit does that. In old texts 走 means run.",
+    wrong: "Look at the rest: 触株，折颈而死 'hit the stump, broke its neck and died'. A walking rabbit doesn't break its neck. In old texts 走 meant run — slide the timeline in step 2.",
+    lvmain: "the main meaning", lvcommon: "common", lvoccasional: "occasional", lvnotyet: "not yet in use", lvgone: "rare now; lives on in set phrases",
+    readout: "{era}: most common meaning — {dom}.", cardQ: "In this sentence, {w} means…", written: "Written in: {era}",
+    pin: "◆ card", okV: "✓ Right.", noV: "✗ Not here.", evNote: "The highlighted words prove it.",
+    aliveL: "Old meaning still alive in: {x}", trL: "Translation: {x}",
+    liveCard: "You chose {m}. {v}", solved: "Cards solved: {k} of {n}.",
+    qCheck: "Check", qNew: "New sentences", qScore: "Score: {k} / {n}", qNeed: "Answer all {n} first ({k} answered).",
+    sumW: "Word", sumOld: "Old → today", sumAlive: "Still alive in", sumOk: "Card",
+    sumNote: "You solved {k} of {n} timeline cards. In every card the old meaning was the one the sentence proves; today's meaning would make nonsense of it.",
+    resultTitle: "What we found", resultMain: "A word has a history: read 走 as 跑, 去 as 离开 — and point to the words that prove it.",
+    resultNote: "Old meanings don't vanish: they survive in set phrases like 奔走, 去世, 赴汤蹈火, 感激涕零, 新闻. Check the context before reaching for today's meaning.",
+    rscore: "Cards solved {k}/{n} · Quiz {q}",
+    explainK: "Explain it", explainQ: "A friend reads 弃甲曳兵而走 as 'they threw off their armour, dragged the soldiers and walked off'. Tell them which two words they read with today's meaning, what the words mean here, and which other words in the sentence prove it.",
+    homeK: "Try at home", homeQ: "Ask an older family member for a word that meant something different when they were young, or look up 走, 去 or 闻 in a dictionary and count how many meanings it lists. Which meaning is listed first, and why?",
+    foot: "Quotations (all public domain): 韩非子·五蠹; 孟子·公孙丑下 and 梁惠王上; 列子·汤问 (the received text of 列子 is generally dated to the Wei–Jin period, so its card sits there); 诸葛亮《出师表》(227); 陶渊明《桃花源记》; 左传·庄公十年; 世说新语·方正; 论语·季氏; 陈子昂《登幽州台歌》; 孟浩然《春晓》. 「……」 marks an omitted stretch of text. The bands are approximate: they summarise the usual account in standard 古代汉语 textbooks and dictionaries (古今异义) and are not counts from a corpus; when a new meaning appeared is debated for several words. In old texts 妻子 is two words, read qī zǐ; the modern word 'wife' is read qīzi. 闻 meaning 'smell' already appears in early texts but 'hear' was the main meaning; 新闻, 听闻 keep it today. Pinyin: Putonghua citation tones (no sandhi for 不). Translations are our own. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "文言词义演变时间线", eyebrow: "语文 · 阶段 3",
+    h1: "词义会走动：古文里「走」是跑，「去」是离开",
+    intro: "拿今天的意思读古文，句子可能就读不通。拖着时间线走过两千五百年，看每个意思在哪个时代常用，再让句子自己证明古义。",
+    reset: "重置", pickAria: "选一个词", tlAria: "时间线：这个词的每个意思在各个时代有多常用（示意）",
+    eraLabel: "时代", s1: "先猜", s2: "时间线", s3: "规律",
+    k1: "先猜一猜", t1: "兔子是走过去的，还是跑过去的？", b1: "这是「守株待兔」故事的开头。先选一个答案，再看看句子后半截。",
+    k2: "动手", t2: "拖动时间，再读古句",
+    b2: "选一个词，拖滑块（或点某一列，或按 ← →）看各个时代常用哪个意思：色带越粗越常用。然后在下面的卡片里，选出放进这句古文里读得通的意思。",
+    k3: "规律", t3: "读古文要用当时的意思，并从句子里找证据",
+    b3: "一个字可以有好几个意思，常用的那个会随时间变；今天的意思只是最新的一个。试三句新的：每句选一个意思，再按「检查」。",
+    q: "宋人有耕者，田中有株，兔走触株，折颈而死。兔子是怎么撞上树桩的？",
+    o1: "走过去撞上的——「走」就是走路", o2: "跑过去撞上的", o3: "说不准——「走」只有一个意思，那就是慢慢走",
+    right: "对。「触株，折颈而死」——撞上树桩、折断脖子，只有跑着才会这样。古文里「走」是跑。",
+    wrong: "看后半句：「触株，折颈而死」，撞上树桩、折断脖子死了。慢慢走可撞不断脖子。古文里「走」是跑——第 2 步拖时间线看看。",
+    lvmain: "主要意思", lvcommon: "常用", lvoccasional: "偶尔用", lvnotyet: "还没有这个意思", lvgone: "今天少用，留在成语里",
+    readout: "{era}：最常用的意思是「{dom}」。", cardQ: "这句里的「{w}」是什么意思？", written: "写于：{era}",
+    pin: "◆ 卡片", okV: "✓ 对。", noV: "✗ 放在这里读不通。", evNote: "标出来的字就是证据。",
+    aliveL: "古义今天还留在：{x}", trL: "译文：{x}",
+    liveCard: "你选了「{m}」。{v}", solved: "已读懂卡片：{n} 张里 {k} 张。",
+    qCheck: "检查", qNew: "换三句", qScore: "得分：{k} / {n}", qNeed: "先把 {n} 句都选上（已选 {k} 句）。",
+    sumW: "词", sumOld: "古义 → 今义", sumAlive: "古义还留在", sumOk: "卡片",
+    sumNote: "时间线卡片你读懂了 {n} 张里的 {k} 张。每一张里，句子证明的都是古义；换成今天的意思就读不通。",
+    resultTitle: "我们发现", resultMain: "词有历史：「走」读作跑，「去」读作离开——还要指出句中哪几个字能证明。",
+    resultNote: "古义不会凭空消失，它留在「奔走、去世、赴汤蹈火、感激涕零、新闻」这样的词里。读古文先看上下文，别急着套今天的意思。",
+    rscore: "卡片读懂 {k}/{n} · 小测 {q}",
+    explainK: "说一说", explainQ: "同学把「弃甲曳兵而走」讲成「丢掉盔甲，拖着士兵，走开了」。告诉他哪两个字用了今天的意思，在这里应该是什么意思，句子里还有哪几个字能证明。",
+    homeK: "家里做一做", homeQ: "问问家里长辈：有没有哪个词，他们小时候的意思和现在不一样？或者翻字典查「走、去、闻」，数数各列了几个意思。排在第一个的是哪个意思，为什么？",
+    foot: "引文均为公有领域古籍：《韩非子·五蠹》；《孟子·公孙丑下》《梁惠王上》；《列子·汤问》（今本《列子》一般认为成书于魏晋，卡片就放在魏晋）；诸葛亮《出师表》（227 年）；陶渊明《桃花源记》；《左传·庄公十年》；《世说新语·方正》；《论语·季氏》；陈子昂《登幽州台歌》；孟浩然《春晓》。「……」表示中间有省略。色带只是示意：概括的是古代汉语教材和字典里通行的「古今异义」说法，不是语料统计；有几个词的新义从何时出现，学界说法不一。古文里的「妻子」是两个词，读 qī zǐ；今天表示「wife」的「妻子」读 qīzi。「闻」表示嗅也很早就有，但古代主要是听见，今天「新闻、听闻」还保留着。拼音为普通话单字本调（「不」不标变调）。译文为本站自译。CC BY 4.0 · Boxi Yu",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+// meaning label in the current language: zh "跑"; en "run (跑 pǎo)"
+const mLabel = (m) => (L === "zh" ? m.zh : m.en + " (" + m.zh.replace(/（.*）/, "") + " " + m.py + ")");
+const eraName = (i) => ERAS[i].full[L];
+
+let step = 0, cur = 0, era = 0, quizSet = 0, quizChecked = false, predicted = false;
+let cardAns = WORDS.map(() => null);           // index of chosen meaning per word
+let quizAns = QUIZ.map(() => null);
+let quizBest = 0;
+
+// ---------- sentence rendering ----------
+function sentenceEl(s, py, showEv) {
+  const { tokens } = parseS(s, py);
+  const box = el("div", "sent han");
+  box.lang = "zh-CN";
+  tokens.forEach((t) => {
+    const tk = el("span", "tk" + (t.p ? " p" : "") + (t.tgt ? " tgt" : "") + (showEv && t.ev ? " ev" : ""));
+    tk.appendChild(el("span", "py", t.py || " "));
+    tk.appendChild(el("span", "hz", t.c));
+    box.appendChild(tk);
+  });
+  return box;
+}
+
+// ---------- step 1 ----------
+function renderStory() {
+  const c = WORDS[0].c, box = $("story");
+  box.innerHTML = "";
+  box.appendChild(el("div", "src", c.src[L] + " · " + eraName(c.era)));
+  box.appendChild(sentenceEl(c.s, c.py, predicted));
+  if (predicted) box.appendChild(el("div", "tr", P.t("trL", { x: c.tr[L] })));
+}
+
+// ---------- step 2 ----------
+const pickBtns = WORDS.map((w, i) => {
+  const b = el("button");
+  b.type = "button";
+  b.append(el("span", "w han", w.w), el("span", "p", w.py), el("span", "ok", ""));
+  b.addEventListener("click", () => { cur = i; renderWord(); });
+  $("wpick").appendChild(b);
+  return b;
+});
+
+function renderTimeline() {
+  const w = WORDS[cur], tl = $("tl");
+  tl.innerHTML = "";
+  const hl = el("div", "colhl");
+  hl.style.left = (era / 6) * 100 + "%";
+  tl.appendChild(hl);
+  w.m.forEach((m, j) => {
+    const row = el("div", "mrow");
+    const lab = el("div", "mlab");
+    const hz = el("span", "han", m.zh.replace(/（.*）/, ""));
+    lab.append(hz, document.createTextNode(" "), el("span", "py", m.py));
+    if (L === "en") lab.append(document.createTextNode(" · " + m.en));
+    lab.appendChild(el("span", "lv", P.t("lv" + levelWord(m.lv, era))));
+    const bb = el("div", "bandbox");
+    const svg = Play.svg("svg", { viewBox: "0 0 600 34", preserveAspectRatio: "none", "aria-hidden": "true" }, bb);
+    Play.svg("line", { x1: 0, x2: 600, y1: 17, y2: 17, class: "base", "vector-effect": "non-scaling-stroke" }, svg);
+    Play.svg("path", { d: bandPath(m.lv, 600, 34), class: "band" + j, opacity: 0.85 }, svg);
+    row.append(lab, bb);
+    tl.appendChild(row);
+  });
+  const eras = el("div", "eras");
+  ERAS.forEach((e, i) => {
+    const d = el("div", i === era ? "on" : "", L === "zh" ? e.zh : e.en);
+    if (i === w.c.era) d.appendChild(el("span", "pin", P.t("pin")));
+    eras.appendChild(d);
+  });
+  tl.appendChild(eras);
+  $("era").value = era;
+  $("era").setAttribute("aria-valuetext", eraName(era));
+  const dom = w.m[dominant(w.m.map((m) => m.lv), era)];
+  const ro = $("readout");
+  ro.innerHTML = "";
+  ro.appendChild(document.createTextNode(P.t("readout", { era: eraName(era), dom: mLabel(dom) })));
+}
+
+function renderCard() {
+  const w = WORDS[cur], c = w.c, box = $("card"), ans = cardAns[cur];
+  box.innerHTML = "";
+  box.appendChild(el("div", "src", c.src[L] + " · " + P.t("written", { era: eraName(c.era) })));
+  box.appendChild(sentenceEl(c.s, c.py, ans === 0));
+  box.appendChild(el("div", "q", P.t("cardQ", { w: w.w })));
+  box.appendChild(choiceRow(w, ans, (j) => {
+    cardAns[cur] = j;
+    renderCard(); renderPicks(); renderScore();
+    Play.live($("live"), P.t("liveCard", { m: mLabel(w.m[j]), v: j === 0 ? P.t("okV") : P.t("noV") }) + " " + P.t("solved", { k: solvedCount(), n: WORDS.length }));
+    const b = $("card").querySelectorAll(".choices button")[j];
+    if (b) b.focus();
+  }));
+  if (ans != null) box.appendChild(feedbackEl(ans === 0, c.why, c.tr, w));
+}
+// Two meaning buttons; order alternates by word so the old meaning is not always first.
+function choiceRow(w, ans, onPick, flip) {
+  const row = el("div", "choices");
+  const order = (flip != null ? flip : WORDS.indexOf(w) % 2) ? [1, 0] : [0, 1];
+  order.forEach((j) => {
+    const b = el("button", ans === j ? "on " + (j === 0 ? "right" : "wrong") : "", mLabel(w.m[j]));
+    b.type = "button";
+    b.setAttribute("aria-pressed", ans === j ? "true" : "false");
+    b.addEventListener("click", () => onPick(j));
+    row.appendChild(b);
+  });
+  return row;
+}
+function feedbackEl(ok, why, tr, w, reveal) {
+  const fb = el("div", "fb");
+  fb.setAttribute("aria-live", "polite");
+  fb.appendChild(el("span", "v " + (ok ? "ok" : "no"), (ok ? P.t("okV") : P.t("noV")) + " "));
+  if (ok) {
+    fb.appendChild(document.createTextNode(why[L] + " " + P.t("evNote")));
+    const wrap = el("div");
+    wrap.appendChild(el("div", "tr", P.t("trL", { x: tr[L] })));
+    wrap.appendChild(el("div", "alive", P.t("aliveL", { x: w.alive[L] })));
+    fb.appendChild(wrap);
+  } else {
+    fb.appendChild(document.createTextNode(L === "zh"
+      ? "把「" + w.m[1].zh.replace(/（.*）/, "") + "」放进句子里读一读，再看看句中其他的字。"
+      : "Put '" + w.m[1].en + "' into the sentence and read it again; then look at the other words around " + w.w + "."));
+    if (reveal) fb.appendChild(el("div", "tr", why[L] + " " + P.t("evNote")));
+  }
+  return fb;
+}
+const solvedCount = () => cardAns.filter((a) => a === 0).length;
+function renderPicks() {
+  pickBtns.forEach((b, i) => {
+    b.setAttribute("aria-pressed", i === cur ? "true" : "false");
+    b.querySelector(".ok").textContent = cardAns[i] === 0 ? "✓" : "";
+    b.setAttribute("aria-label", WORDS[i].w + " " + WORDS[i].py + (cardAns[i] === 0 ? " ✓" : ""));
+  });
+}
+function renderWord() { renderPicks(); renderTimeline(); renderCard(); }
+function setEra(i) {
+  i = Play.clamp(Math.round(i), 0, 5);
+  if (!Number.isFinite(i) || i === era) return;
+  era = i;
+  renderTimeline();
+}
+$("era").addEventListener("input", (e) => setEra(+e.target.value));
+(function () {
+  const tl = $("tl");
+  let down = false;
+  const at = (e) => { const r = tl.getBoundingClientRect(); setEra(eraFromX(e.clientX - r.left, r.width)); };
+  tl.addEventListener("pointerdown", (e) => { down = true; at(e); });
+  tl.addEventListener("pointermove", (e) => { if (down) at(e); });
+  addEventListener("pointerup", () => { down = false; });
+  addEventListener("pointercancel", () => { down = false; });
+  if (Play.reduced) tl.classList.add("noanim");
+})();
+
+// ---------- step 3 ----------
+function renderQuiz() {
+  const box = $("quiz");
+  box.innerHTML = "";
+  QSETS[quizSet].forEach((qi, n) => {
+    const q = QUIZ[qi], w = WORDS[q.w], ans = quizAns[qi];
+    const card = el("div", "ccard");
+    const head = el("div", "src");
+    head.append(el("span", "n", String(n + 1)), document.createTextNode(q.src[L] + " · " + eraName(q.era)));
+    card.appendChild(head);
+    card.appendChild(sentenceEl(q.s, q.py, quizChecked && ans != null));
+    card.appendChild(el("div", "q", P.t("cardQ", { w: w.w })));
+    card.appendChild(choiceRow(w, quizChecked ? ans : null, (j) => {
+      quizAns[qi] = j; quizChecked = false; renderQuiz(); $("qscore").textContent = "";
+      const b = $("quiz").querySelectorAll(".ccard")[n].querySelectorAll(".choices button");
+      b.forEach((x) => { if (x.textContent === mLabel(w.m[j])) x.focus(); });
+    }, (qi + 1) % 2));
+    if (!quizChecked && ans != null) {
+      const bs = card.querySelectorAll(".choices button");
+      bs.forEach((x) => { if (x.textContent === mLabel(w.m[ans])) { x.classList.add("on"); x.setAttribute("aria-pressed", "true"); } });
+    }
+    if (quizChecked && ans != null) card.appendChild(feedbackEl(ans === 0, q.why, q.tr, w, true));
+    box.appendChild(card);
+  });
+}
+$("qcheck").addEventListener("click", () => {
+  const set = QSETS[quizSet], k = set.filter((qi) => quizAns[qi] != null).length;
+  if (k < set.length) { Play.live($("qscore"), P.t("qNeed", { n: set.length, k })); return; }
+  quizChecked = true;
+  const s = quizScore(set, quizAns);
+  quizBest = Math.max(quizBest, s);
+  renderQuiz();
+  Play.live($("qscore"), P.t("qScore", { k: s, n: set.length }));
+  renderScore();
+});
+$("qnew").addEventListener("click", () => {
+  quizSet = (quizSet + 1) % QSETS.length;
+  QSETS[quizSet].forEach((qi) => { quizAns[qi] = null; });
+  quizChecked = false; $("qscore").textContent = ""; renderQuiz();
+});
+function renderSummary() {
+  const box = $("sumbox");
+  box.innerHTML = "";
+  const t = el("table", "sum");
+  const hr = el("tr");
+  ["sumW", "sumOld", "sumAlive", "sumOk"].forEach((k) => hr.appendChild(el("th", "", P.t(k))));
+  t.appendChild(hr);
+  WORDS.forEach((w, i) => {
+    const tr = el("tr");
+    const old = w.m[0], now = w.m[1];
+    tr.append(el("td", "w han", w.w),
+      el("td", "", (L === "zh" ? old.zh : old.en) + " → " + (L === "zh" ? now.zh.replace(/（.*）/, "") : now.en)),
+      el("td", "han", w.w === "牺牲" ? "—" : w.alive.zh.replace(/（.*）/, "")),
+      el("td", "k", cardAns[i] === 0 ? "✓" : "·"));
+    t.appendChild(tr);
+  });
+  box.appendChild(t);
+  box.appendChild(el("p", "note", P.t("sumNote", { k: solvedCount(), n: WORDS.length })));
+}
+function renderScore() {
+  const q = quizChecked ? quizScore(QSETS[quizSet], quizAns) + "/3" : (quizBest ? quizBest + "/3" : "—");
+  $("rscore").textContent = P.t("rscore", { k: solvedCount(), n: WORDS.length, q });
+}
+
+// ---------- steps ----------
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { predicted = true; renderStory(); });
+const steps = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("v1").hidden = i !== 0; $("v2").hidden = i !== 1; $("v3").hidden = i !== 2;
+  $("sumbox").hidden = i !== 2;
+  Play.live($("live"), "");
+  if (i === 0) renderStory();
+  if (i === 1) renderWord();
+  if (i === 2) { renderQuiz(); renderSummary(); }
+});
+$("reset").addEventListener("click", () => {
+  cur = 0; era = 0; quizSet = 0; quizChecked = false; predicted = false; quizBest = 0;
+  cardAns = WORDS.map(() => null); quizAns = QUIZ.map(() => null);
+  $("qscore").textContent = "";
+  pr.reset(); renderScore(); steps.go(0);
+});
+renderScore();
+</script>
+</body>
+</html>

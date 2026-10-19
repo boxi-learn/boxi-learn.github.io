@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What travelled the Silk Roads?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main#fig { height: auto; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  #fig text { font-size: 13px; }
+  #fig .lab { fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  #fig .lab.dim { fill: var(--muted); }
+  #fig .tag { fill: var(--muted); font-weight: 700; }
+  #fig .eL { stroke: var(--a); stroke-width: 2.5px; fill: none; opacity: .45; stroke-linecap: round; }
+  #fig .eS { stroke: var(--c); stroke-width: 2.5px; fill: none; opacity: .5; stroke-dasharray: 6 5; stroke-linecap: round; }
+  #fig .eL.on, #fig .eS.on { opacity: 1; stroke-width: 4px; }
+  #fig .eL.done, #fig .eS.done { stroke: var(--hl); opacity: 1; stroke-width: 5px; }
+  #fig .nd { fill: var(--surface); stroke: var(--fg); stroke-width: 2px; }
+  #fig .nd.on { fill: var(--fg); }
+  #fig .nd.hit { cursor: pointer; }
+  #fig .tok { fill: var(--hl); stroke: var(--ink-panel); stroke-width: 2px; }
+  #fig .bdg { fill: var(--ink-panel); }
+  #fig .bdgT { fill: var(--on-panel); font-weight: 750; font-size: 13px; }
+  #fig .myth { fill: var(--no); font-weight: 700; }
+  .deck { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px 4px; align-items: center; }
+  .deck .lead { width: 100%; font-size: 13px; color: var(--muted); }
+  .deck .sep { width: 100%; height: 0; }
+  .deck button[disabled] { opacity: .4; cursor: not-allowed; }
+  .controls input[type=range] { flex: 1 1 140px; }
+  .info { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 0 0 10px; }
+  .info div + div { margin-top: 5px; }
+  .info .rg { font-weight: 700; color: var(--fg); }
+  .info .it { color: var(--muted); }
+  .info .gp { font-weight: 750; color: var(--a); }
+  .info .calc { font-family: var(--math); overflow-wrap: anywhere; }
+  .info .demo { display: inline-block; font-size: 11px; font-weight: 700; color: var(--b); border: 1px solid currentColor; border-radius: 999px; padding: 0 8px; }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+  .vs > div { background: var(--surface); border-radius: 10px; padding: 6px 10px; }
+  .vs .big { font-size: 22px; font-weight: 800; color: var(--a); line-height: 1.2; }
+  .vs .no .big { color: var(--no); }
+  .vs .sm { font-size: 12px; color: var(--muted); }
+  #resMain { white-space: normal; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="deck" id="deck"></div>
+      <svg class="main" id="fig" viewBox="0 0 600 330" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctl">
+        <button type="button" class="small" id="play"></button>
+        <button type="button" class="small" id="prev" data-t="prev"></button>
+        <button type="button" class="small" id="next" data-t="next"></button>
+        <label for="mk" data-t="mkLabel"></label>
+        <input type="range" id="mk" min="0" max="100" step="5" value="25">
+        <span class="val" id="mkVal"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="info" id="info" hidden></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" data-t="resNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+/* ---------- the schematic network ----------
+   u = west (0) → east (1), v = north (0) → south (1). NOT a map projection: positions only keep the order of places.
+   lw / lp = label side in landscape / portrait: n s e w. */
+const NODES = {
+  CON: { u: 0.03, v: 0.08, lw: "n", lp: "e" },
+  ANT: { u: 0.12, v: 0.30, lw: "n", lp: "e" },
+  ALE: { u: 0.06, v: 0.62, lw: "s", lp: "w" },
+  CTE: { u: 0.26, v: 0.32, lw: "s", lp: "w" },
+  MER: { u: 0.40, v: 0.22, lw: "s", lp: "e" },
+  SAM: { u: 0.50, v: 0.10, lw: "n", lp: "e" },
+  GAN: { u: 0.55, v: 0.42, lw: "s", lp: "e" },
+  KAS: { u: 0.64, v: 0.18, lw: "n", lp: "e" },
+  DUN: { u: 0.80, v: 0.12, lw: "n", lp: "e" },
+  CHA: { u: 0.97, v: 0.28, lw: "s", lp: "e" },
+  GUA: { u: 0.92, v: 0.66, lw: "n", lp: "w" },
+  MAL: { u: 0.74, v: 0.95, lw: "s", lp: "w" },
+  CAL: { u: 0.52, v: 0.82, lw: "s", lp: "w" },
+  ADE: { u: 0.28, v: 0.85, lw: "s", lp: "w" },
+};
+/* [a, b, km, type, bend]: rough route lengths in km (rounded), "L" overland, "S" by sea.
+   Two Dunhuang–Kashgar edges: north and south of the Taklamakan desert. */
+const EDGES = [
+  ["CON", "ANT", 1100, "L", 0], ["ANT", "CTE", 900, "L", 0], ["ANT", "ALE", 750, "L", 0], ["CON", "ALE", 1300, "S", 0.18],
+  ["CTE", "MER", 1700, "L", 0], ["MER", "SAM", 600, "L", 0], ["SAM", "KAS", 800, "L", 0], ["SAM", "GAN", 900, "L", 0],
+  ["GAN", "KAS", 900, "L", 0], ["KAS", "DUN", 2300, "L", -0.22], ["KAS", "DUN", 2100, "L", 0.22], ["DUN", "CHA", 1700, "L", 0],
+  ["CHA", "GUA", 1600, "L", 0], ["GUA", "MAL", 2700, "S", 0], ["MAL", "CAL", 3200, "S", 0], ["CAL", "ADE", 3300, "S", 0],
+  ["ADE", "ALE", 2400, "S", 0], ["CAL", "CTE", 3000, "S", -0.12],
+];
+/* Illustrative travel model (not historical data). */
+const M = { landKmDay: 30, seaKmDay: 150, seaWait: 30, landRisk: 0.02, seaRisk: 0.03 };
+/* goods and ideas; era "e" = early (Han–Roman), "l" = later (Tang–Mongol); idea = not sold, so no markup */
+const GOODS = [
+  { id: "silk", era: "e", routes: { L: ["CHA", "DUN", "KAS", "SAM", "MER", "CTE", "ANT"], S: ["CHA", "GUA", "MAL", "CAL", "ADE", "ALE"] } },
+  { id: "glass", era: "e", routes: { L: ["ANT", "CTE", "MER", "SAM", "KAS", "DUN", "CHA"], S: ["ALE", "ADE", "CAL", "MAL", "GUA", "CHA"] } },
+  { id: "horse", era: "e", routes: { L: ["SAM", "KAS", "DUN", "CHA"] } },
+  { id: "pepper", era: "e", routes: { S: ["CAL", "ADE", "ALE"] } },
+  { id: "budd", era: "e", idea: 1, routes: { L: ["GAN", "KAS", "DUN", "CHA"] } },
+  { id: "paper", era: "l", idea: 1, routes: { L: ["CHA", "DUN", "KAS", "SAM", "MER", "CTE"] } },
+  { id: "gunp", era: "l", idea: 1, routes: { L: ["CHA", "DUN", "KAS", "SAM", "MER", "CTE"] } },
+];
+const ENDS = ["ANT", "ALE", "CON"];
+
+/* ---------- pure logic ---------- */
+function edgeOf(a, b) { return EDGES.find((e) => (e[0] === a && e[1] === b) || (e[0] === b && e[1] === a)); }
+function legDays(e) { return e[3] === "S" ? e[2] / M.seaKmDay + M.seaWait : e[2] / M.landKmDay; }
+function legRisk(e) { return 1 - Math.pow(1 - (e[3] === "S" ? M.seaRisk : M.landRisk), e[2] / 1000); }
+/* one trader per leg; price is multiplied by (1 + markup) every time it is sold on */
+function chain(path, markup) {
+  const m = Number.isFinite(markup) ? Math.max(0, markup) : 0;
+  const legs = [];
+  let km = 0, days = 0, ok = 1;
+  for (let i = 0; i + 1 < path.length; i++) {
+    const e = edgeOf(path[i], path[i + 1]);
+    if (!e) return null;
+    const d = legDays(e);
+    legs.push({ a: path[i], b: path[i + 1], e, km: e[2], days: d, t0: days });
+    km += e[2]; days += d; ok *= 1 - legRisk(e);
+  }
+  const n = legs.length;
+  return {
+    legs, n, km, days, arrive: ok,
+    mult: Math.pow(1 + m, n),
+    longestLeg: legs.reduce((x, l) => Math.max(x, l.days), 0),
+    priceAfter: (k) => Math.pow(1 + m, Number.isFinite(k) ? Play.clamp(Math.floor(k), 0, n) : 0),
+  };
+}
+/* number of different routes (edge sequences, no city twice) from a to any of the targets */
+function countRoutes(a, targets) {
+  let n = 0;
+  const seen = new Set([a]);
+  (function go(x) {
+    if (targets.includes(x)) { n++; return; }
+    EDGES.forEach((e) => {
+      const y = e[0] === x ? e[1] : e[1] === x ? e[0] : null;
+      if (y && !seen.has(y)) { seen.add(y); go(y); seen.delete(y); }
+    });
+  })(a);
+  return n;
+}
+if (typeof module !== "undefined") module.exports = { NODES, EDGES, GOODS, M, chain, countRoutes, edgeOf, legDays, legRisk };
+
+/* ---------- strings ---------- */
+const EN = {
+  title: "What travelled the Silk Roads?", eyebrow: "History · Stage 3", h1: "What travelled the Silk Roads?",
+  intro: "Guess how silk got from China to the Mediterranean, then pass goods and ideas along a chain of traders and count the hands.",
+  reset: "Reset", figAria: "Schematic network of Silk Road routes. Land routes are solid, sea routes dashed. In step 2, right and left arrows pass the goods on or back one city, space plays or pauses.",
+  s1: "Guess", s2: "Pass it on", s3: "Rule",
+  k1: "Predict first", t1: "Who carried the silk?",
+  b1: "Silk made around Chang'an ended up in Antioch, on the Mediterranean, and from there in Rome. The network shows the main hubs, on land and by sea.",
+  q: "How did a bale of silk most likely get from Chang'an to the Mediterranean?",
+  o1: "One merchant carried it the whole way", o2: "It was sold on city by city, through many traders", o3: "Roman ships sailed to China to fetch it",
+  right: "Yes. Almost nobody went the whole way: each trader carried goods one stretch, sold them and went home. Step 2 lets you watch it.",
+  wrong: "That is the popular picture, but it was rare. Roman ships sailed regularly to India, not to China, and caravans traded city to city. Most goods changed hands many times. Step 2 lets you watch it.",
+  k2: "Hands on", t2: "Pass it on",
+  b2: "Pick something to send and a route. Each trader carries it one stretch, then sells it on with a markup. Press play, or step from city to city (arrow keys work on the map; tap a city on the route to jump there).",
+  deckLead: "What travels?", routeLead: "Which way?",
+  g_silk: "Silk", g_glass: "Glass", g_horse: "Horses", g_pepper: "Pepper", g_budd: "Buddhism", g_paper: "Papermaking", g_gunp: "Gunpowder (the knowledge)",
+  d_silk: "Silk, east → west. From Han times (2nd–1st c. BCE) Chinese silk reached Parthia and the Roman world.",
+  d_glass: "Glass, west → east. Roman and later Persian glassware has been found in Chinese tombs (c. 1st–6th c. CE).",
+  d_horse: "Horses, west → east. Han China sought the strong horses of the Ferghana valley (near Samarkand here), c. 100 BCE.",
+  d_pepper: "Pepper, India → west. By the 1st c. CE ships used the monsoon winds to carry Indian pepper towards the Roman world.",
+  d_budd: "Buddhism, into China. Monks and merchants from the north-west of India and Central Asia brought it; it was in China by about the 1st c. CE.",
+  d_paper: "Papermaking, east → west. It was made in Samarkand by about the 8th c. CE and in Baghdad by about 800.",
+  d_gunp: "Knowledge of gunpowder, east → west. Invented in China; known in the Islamic world and Europe by the late 13th c.",
+  rL: "Overland", rS: "By sea", resL: "overland", resS: "by sea", rNo: "{r}: not on this map for this one",
+  play: "▶ Play", pause: "❚❚ Pause", again: "↺ Again", prev: "◀ Back", next: "Next city ▶",
+  mkLabel: "Markup at each sale", mkVal: "+{m}%",
+  carried: "People who carried it", myth: "In the myth",
+  soFar: "so far, of {n}", one: "one merchant, all the way",
+  legsLine: "Each one travels about {km} km on average ({d} days), sells, and turns for home.",
+  mythLine: "One merchant all the way: {d} days on the road, about {y} years there and back.",
+  price: "Price at the end: × {x}", priceNow: "Price now: × {x}", priceCalc: "(1 + {m}%) ^ {n} sales = {x}",
+  idea: "Ideas are not sold with a markup. They spread when people meet, talk, copy and convert, so the chain is people teaching people.",
+  road: "Time on the road: about {d} days ({km} km).", seaNote: "Sea legs include about {w} days waiting in port for the right season's winds.",
+  risk: "Chance a load gets through: about {p}%.", illus: "Illustrative numbers",
+  liveAt: "{c}: handed to trader {k} of {n}. Price × {x}.", liveAtIdea: "{c}: passed to person {k} of {n}.", liveEnd: "Arrived at {c} after {n} hands, about {d} days.",
+  k3: "The rule", t3: "A web of routes, a relay of people",
+  b3: "The Silk Roads were a web of land and sea routes. Goods, ideas, religions and inventions travelled hand to hand along chains of traders, and few people travelled the whole way.",
+  ways: "Even this simplified map has {n} different ways from Chang'an to the Mediterranean without visiting a city twice.",
+  name1: "Nobody at the time called it “the Silk Road”. The German geographer Ferdinand von Richthofen coined the name (Seidenstraße) in 1877.",
+  name2: "Han China opened contacts westward in the 2nd c. BCE through Zhang Qian's missions; traffic flourished again in the Tang period (7th–9th c.). Some people did make very long journeys, like the monk Xuanzang, who walked from Chang'an to India and back in the 7th c., but they were rare.",
+  resultTitle: "What we found",
+  resGood: "{g}, {r}: {n} carriers, not 1 · price × {x} · about {d} days",
+  resIdea: "{g}, {r}: passed on by {n} people, not 1 · about {d} days",
+  resNote: "Few people ever travelled the whole way. Each stretch had its own traders, and every sale added to the price. The name “Silk Road” itself dates only from 1877.",
+  dot: "·", pct: "%",
+  n_CON_e: "Byzantium", n_CON_l: "Constantinople", n_ANT: "Antioch", n_ALE: "Alexandria", n_CTE_e: "Ctesiphon", n_CTE_l: "Baghdad",
+  n_MER: "Merv", n_SAM: "Samarkand", n_GAN: "Gandhara", n_KAS: "Kashgar", n_DUN: "Dunhuang", n_CHA: "Chang'an (Xi'an)",
+  n_GUA: "Guangzhou", n_MAL: "Strait of Malacca", n_CAL: "Calicut", n_ADE: "Aden (Red Sea)",
+  tagS: "schematic, not to scale", tagL: "— land", tagSea: "- - sea",
+  explainK: "Explain it", explainQ: "A friend says “a merchant took silk along the Silk Road from China to Rome”. Use the trader counter and the price from this page to explain what really happened, and why the price went up so much.",
+  homeK: "Try at home", homeQ: "Play “pass it on” with your family: whisper a short message along a line of people, or pass a cup of rice and let each person keep one spoonful as their “fee”. How much arrives at the end of 3 people? Of 6?",
+  foot: "The map is schematic: positions keep only the rough order of places, not distances or directions. Ctesiphon was the Parthian and Sasanian capital; Baghdad was founded nearby in 762 CE, so later goods show Baghdad. Byzantium was renamed Constantinople in 330 CE. Calicut stands for the Malabar coast ports (earlier, Muziris). Routes, distances (rough, rounded) and the travel model are illustrative: caravans about 30 km a day, ships about 150 km a day plus about 30 days waiting for the monsoon per sea leg, risk 2% (land) or 3% (sea) per 1,000 km, one trader per stretch, the same markup at every sale. Real trade varied enormously. Dates follow standard reference works and are approximate. CC BY 4.0 · Boxi Yu",
+};
+const ZH = {
+  title: "丝绸之路上走的是什么？", eyebrow: "历史 · 阶段 3", h1: "丝绸之路上走的是什么？",
+  intro: "先猜丝绸是怎么从中国到地中海的，再让货物和思想沿着一串商人传下去，数一数经过了几双手。",
+  reset: "重置", figAria: "丝绸之路路网示意图。陆路是实线，海路是虚线。第 2 步里，左右方向键把货物往下一城传或退回一城，空格键播放或暂停。",
+  s1: "先猜", s2: "传下去", s3: "规律",
+  k1: "先猜一猜", t1: "丝绸是谁运的？",
+  b1: "长安一带织出的丝绸，最后到了地中海边的安条克，再从那里到罗马。图上是陆路和海路的主要枢纽。",
+  q: "一包丝绸最可能是怎么从长安到地中海的？",
+  o1: "一个商人从头运到尾", o2: "一城一城地转卖，经过许多商人", o3: "罗马船开到中国来取",
+  right: "对。几乎没有人走完全程：每个商人只运一段，卖掉就回家。第 2 步可以亲眼看看。",
+  wrong: "这是常见的想象，但很少见。罗马船常去的是印度，不是中国；商队是一城一城做买卖的。多数货物要转很多次手。第 2 步可以亲眼看看。",
+  k2: "动手", t2: "传下去",
+  b2: "选一样要送的东西和一条路。每个商人只运一段，然后加价卖给下一个。点播放，或一城一城地走（图上可用方向键；点路线上的城市可以直接跳过去）。",
+  deckLead: "送什么？", routeLead: "走哪条路？",
+  g_silk: "丝绸", g_glass: "玻璃", g_horse: "马", g_pepper: "胡椒", g_budd: "佛教", g_paper: "造纸术", g_gunp: "火药（的知识）",
+  d_silk: "丝绸，由东向西。汉代起（公元前 2—前 1 世纪），中国丝绸传到帕提亚和罗马世界。",
+  d_glass: "玻璃，由西向东。中国的墓葬里出土过罗马和后来波斯的玻璃器（约公元 1—6 世纪）。",
+  d_horse: "马，由西向东。约公元前 100 年，汉朝求购费尔干纳盆地（图上撒马尔罕附近）的良马。",
+  d_pepper: "胡椒，由印度向西。到公元 1 世纪，船只借季风把印度胡椒运往罗马世界。",
+  d_budd: "佛教，传入中国。来自印度西北和中亚的僧人、商人把它带来；约公元 1 世纪已到中国。",
+  d_paper: "造纸术，由东向西。约 8 世纪撒马尔罕已能造纸，约 800 年巴格达也能造纸。",
+  d_gunp: "火药的知识，由东向西。火药在中国发明；到 13 世纪后期，伊斯兰世界和欧洲已经知道它。",
+  rL: "陆路", rS: "海路", resL: "陆路", resS: "海路", rNo: "{r}：本图上这一样不走这条路",
+  play: "▶ 播放", pause: "❚❚ 暂停", again: "↺ 再来", prev: "◀ 退回", next: "下一城 ▶",
+  mkLabel: "每次转卖加价", mkVal: "+{m}%",
+  carried: "经手的人", myth: "想象中",
+  soFar: "到目前，共 {n}", one: "一个商人走完全程",
+  legsLine: "每人平均只走约 {km} 公里（{d} 天），卖掉就往回走。",
+  mythLine: "一个商人走完全程：路上约 {d} 天，往返约 {y} 年。",
+  price: "到终点的价格：× {x}", priceNow: "现在的价格：× {x}", priceCalc: "(1 + {m}%) ^ {n} 次转卖 = {x}",
+  idea: "思想不靠加价出售。人们相遇、交谈、模仿、皈依，它就传开了，所以这条链是人教人。",
+  road: "路上时间：约 {d} 天（{km} 公里）。", seaNote: "每段海路含约 {w} 天在港口等合适季节的季风。",
+  risk: "一批货能平安到达的机会：约 {p}%。", illus: "示意数字",
+  liveAt: "{c}：交给第 {k} 个商人（共 {n} 个）。价格 × {x}。", liveAtIdea: "{c}：传到第 {k} 个人（共 {n} 个）。", liveEnd: "经过 {n} 双手，约 {d} 天，到达{c}。",
+  k3: "规律", t3: "一张路网，一场接力",
+  b3: "丝绸之路是一张陆路加海路的路网。货物、思想、宗教和发明经过一段段商人接力传递，很少有人走完全程。",
+  ways: "就连这张简化图上，从长安到地中海、不重复经过同一城市的走法也有 {n} 种。",
+  name1: "当时没有人叫它「丝绸之路」。这个名字（Seidenstraße）是德国地理学家李希霍芬在 1877 年起的。",
+  name2: "公元前 2 世纪，汉朝通过张骞出使打开了向西的联系；到唐代（7—9 世纪）往来又一次繁荣。确实有人走过很远的路，比如 7 世纪的玄奘从长安走到印度又回来，但这样的人很少。",
+  resultTitle: "我们发现",
+  resGood: "{g}，{r}：{n} 个人经手，不是 1 个 · 价格 × {x} · 约 {d} 天",
+  resIdea: "{g}，{r}：经 {n} 个人传递，不是 1 个 · 约 {d} 天",
+  resNote: "很少有人走完全程。每一段都有自己的商人，每转卖一次价格就涨一次。「丝绸之路」这个名字本身 1877 年才出现。",
+  dot: "·", pct: "%",
+  n_CON_e: "拜占庭", n_CON_l: "君士坦丁堡", n_ANT: "安条克", n_ALE: "亚历山大港", n_CTE_e: "泰西封", n_CTE_l: "巴格达",
+  n_MER: "木鹿", n_SAM: "撒马尔罕", n_GAN: "犍陀罗", n_KAS: "喀什", n_DUN: "敦煌", n_CHA: "长安（西安）",
+  n_GUA: "广州", n_MAL: "马六甲海峡", n_CAL: "卡利卡特", n_ADE: "亚丁（红海）",
+  tagS: "示意图，不按比例", tagL: "— 陆路", tagSea: "- - 海路",
+  explainK: "说一说", explainQ: "朋友说：「一个商人沿着丝绸之路把丝绸从中国运到了罗马。」用本页的经手人数和价格，跟他讲讲实际是怎样的，价格为什么涨了那么多。",
+  homeK: "家里做一做", homeQ: "和家人玩「传下去」：沿一排人悄悄传一句话；或者传一杯米，每人留一勺当「辛苦费」。经过 3 个人还剩多少？6 个人呢？",
+  foot: "地图是示意图：位置只保留各地大致的先后关系，不代表距离和方向。泰西封是帕提亚和萨珊的都城；巴格达 762 年建在它附近，所以较晚的东西显示巴格达。拜占庭在 330 年改名君士坦丁堡。卡利卡特代表马拉巴尔海岸的港口（更早是穆吉里斯）。路线、距离（粗略取整）和旅行模型都是示意：商队每天约 30 公里，船每天约 150 公里，每段海路另加约 30 天等季风；风险每 1000 公里陆路 2%、海路 3%；每段一个商人，每次转卖加价相同。真实的贸易差别很大。年代采用通行参考书的说法，都是大致年代。CC BY 4.0 · Boxi Yu",
+};
+GOODS.forEach((g) => { if (!EN["g_" + g.id] || !ZH["g_" + g.id]) console.error("missing good " + g.id); });
+const P = Play.setup({ en: EN, zh: ZH });
+const ZHL = P.lang === "zh";
+const $ = (id) => document.getElementById(id);
+const num = (x, d) => (ZHL || x < 1000 ? Play.fmt(x, d || 0) : Math.round(x).toLocaleString("en"));
+
+/* ---------- state ---------- */
+let step = 0, good = GOODS[0], route = "L", markup = 0.25, prog = 0, playing = false, raf = 0, last = 0;
+let W = 600, H = 330, portrait = false;
+const fig = $("fig");
+function cur() { return chain(good.routes[route], markup); }
+function era() { return step === 1 ? good.era : "e"; }
+function nodeName(id, er) {
+  if (id === "CON" || id === "CTE") return P.t("n_" + id + "_" + (er || era()));
+  return P.t("n_" + id);
+}
+function textW(s) { let w = 0; for (const ch of s) w += /[⺀-鿿＀-￯]/.test(ch) ? 13 : 7.3; return w; }
+
+/* ---------- layout ---------- */
+function pos(id) {
+  const n = NODES[id];
+  if (portrait) return { x: 22 + n.v * (W - 44), y: 40 + (1 - n.u) * (H - 74) };
+  return { x: 22 + n.u * (W - 44), y: 40 + n.v * (H - 80) };
+}
+function edgeCtrl(e) {
+  const p = pos(e[0]), q = pos(e[1]);
+  const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2, dx = q.x - p.x, dy = q.y - p.y;
+  return { p, q, c: { x: mx - dy * e[4], y: my + dx * e[4] } };
+}
+function onEdge(e, from, t) {         // point at fraction t from node "from"
+  const g = edgeCtrl(e);
+  const tt = e[0] === from ? t : 1 - t, s = 1 - tt;
+  return { x: s * s * g.p.x + 2 * s * tt * g.c.x + tt * tt * g.q.x, y: s * s * g.p.y + 2 * s * tt * g.c.y + tt * tt * g.q.y };
+}
+
+function draw() {
+  portrait = W < 520;
+  H = portrait ? 560 : 330;
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  fig.style.height = H + "px";
+  fig.innerHTML = "";
+  const ch = step === 1 ? cur() : null;
+  const path = ch ? good.routes[route] : [];
+  const done = Math.floor(prog);
+  const active = new Map();             // edge → "on" | "done"
+  if (ch) ch.legs.forEach((l, i) => active.set(l.e, i < done ? "done" : "on"));
+  // edges
+  EDGES.forEach((e) => {
+    const g = edgeCtrl(e);
+    const cls = (e[3] === "S" ? "eS" : "eL") + (active.has(e) ? " " + active.get(e) : "");
+    Play.svg("path", { class: cls, d: `M${g.p.x} ${g.p.y}Q${g.c.x} ${g.c.y} ${g.q.x} ${g.q.y}` }, fig);
+  });
+  // corner tags
+  const t1 = P.t("tagS");
+  Play.svg("text", { class: "tag", x: W - 6, y: H - 8, "text-anchor": "end" }, fig).textContent = t1;
+  Play.svg("text", { class: "tag", x: 6, y: H - 8 }, fig).textContent = P.t("tagL") + "   " + P.t("tagSea");
+  // nodes and labels
+  Object.keys(NODES).forEach((id) => {
+    const p = pos(id), n = NODES[id];
+    const onPath = path.includes(id);
+    const c = Play.svg("circle", { class: "nd" + (onPath && path.indexOf(id) <= done ? " on" : "") + (onPath ? " hit" : ""), cx: p.x, cy: p.y, r: onPath ? 7 : 5.5 }, fig);
+    if (onPath) {
+      c.dataset.k = path.indexOf(id);
+      // bigger invisible touch target
+      Play.svg("circle", { cx: p.x, cy: p.y, r: 18, fill: "transparent", class: "hit" }, fig).dataset.k = path.indexOf(id);
+    }
+    const s = nodeName(id), tw = textW(s);
+    const side = portrait ? n.lp : n.lw;
+    let x = p.x, y = p.y + 4, anchor = "middle";
+    if (side === "n") y = p.y - 11;
+    if (side === "s") y = p.y + 21;
+    if (side === "e") { x = p.x + 11; anchor = "start"; }
+    if (side === "w") { x = p.x - 11; anchor = "end"; }
+    if (anchor === "middle") x = Play.clamp(x, 3 + tw / 2, W - 3 - tw / 2);
+    else if (anchor === "start") x = Math.min(x, W - 3 - tw);
+    else x = Math.max(x, 3 + tw);
+    Play.svg("text", { class: "lab" + (ch && !onPath ? " dim" : ""), x, y, "text-anchor": anchor }, fig).textContent = s;
+  });
+  if (!ch) return;
+  // trader badges on finished legs, token on the current one
+  ch.legs.forEach((l, i) => {
+    if (i >= done) return;
+    const m = onEdge(l.e, l.a, 0.5);
+    Play.svg("circle", { class: "bdg", cx: m.x, cy: m.y, r: 10 }, fig);
+    Play.svg("text", { class: "bdgT", x: m.x, y: m.y + 4.5, "text-anchor": "middle" }, fig).textContent = i + 1;
+  });
+  const k = Math.min(done, ch.n - 1), f = prog >= ch.n ? 1 : prog - done;
+  const tp = onEdge(ch.legs[k].e, ch.legs[k].a, prog >= ch.n ? 1 : f);
+  Play.svg("circle", { class: "tok", cx: tp.x, cy: tp.y, r: 9 }, fig);
+}
+
+/* ---------- step 2 panel ---------- */
+function carriers(ch) { return prog >= ch.n ? ch.n : Math.floor(prog) + 1; }
+function daysAt(ch) {
+  if (prog >= ch.n) return ch.days;
+  const k = Math.floor(prog);
+  return ch.legs[k].t0 + (prog - k) * ch.legs[k].days;
+}
+function panel() {
+  const box = $("info");
+  box.innerHTML = "";
+  box.hidden = step === 0;
+  if (step === 0) return;
+  const add = (cls, txt, parent) => { const d = document.createElement("div"); d.className = cls; d.textContent = txt; (parent || box).appendChild(d); return d; };
+  if (step === 2) {
+    add("gp", P.t("ways", { n: countRoutes("CHA", ENDS) }));
+    add("", P.t("name1"));
+    add("it", P.t("name2"));
+    return;
+  }
+  const ch = cur();
+  add("rg", P.t("d_" + good.id));
+  const vs = document.createElement("div"); vs.className = "vs"; box.appendChild(vs);
+  const a = add("", "", vs), b = add("no", "", vs);
+  add("big", String(carriers(ch)), a); add("sm", P.t("carried") + " · " + P.t("soFar", { n: ch.n }), a);
+  add("big", "1", b); add("sm", P.t("myth") + " · " + P.t("one"), b);
+  add("", P.t("legsLine", { km: num(ch.km / ch.n), d: num(ch.days / ch.n) }));
+  if (good.idea) add("it", P.t("idea"));
+  else {
+    const xNow = Play.fmt(ch.priceAfter(prog >= ch.n ? ch.n : Math.floor(prog)), 2);
+    add("gp", prog >= ch.n ? P.t("price", { x: Play.fmt(ch.mult, 2) }) : P.t("priceNow", { x: xNow }));
+    add("calc", P.t("priceCalc", { m: Math.round(markup * 100), n: ch.n, x: Play.fmt(ch.mult, 2) }));
+  }
+  const dm = document.createElement("div"); box.appendChild(dm);
+  const tg = document.createElement("span"); tg.className = "demo"; tg.textContent = P.t("illus"); dm.appendChild(tg);
+  add("", P.t("road", { d: num(ch.days), km: num(ch.km) }));
+  if (ch.legs.some((l) => l.e[3] === "S")) add("it", P.t("seaNote", { w: M.seaWait }));
+  add("", P.t("risk", { p: Math.round(ch.arrive * 100) }));
+  add("it", P.t("mythLine", { d: num(ch.days), y: Play.fmt((2 * ch.days) / 365, 1) }));
+}
+function result() {
+  const ch = chain(good.routes[route], markup);
+  const r = P.t(route === "L" ? "resL" : "resS");
+  $("resMain").textContent = good.idea
+    ? P.t("resIdea", { g: P.t("g_" + good.id), r, n: ch.n, d: num(ch.days) })
+    : P.t("resGood", { g: P.t("g_" + good.id), r, n: ch.n, x: Play.fmt(ch.mult, 2), d: num(ch.days) });
+}
+let answered = false;
+function showResult() { document.querySelector(".result").hidden = step === 0 && !answered; }
+
+/* ---------- deck: goods and route ---------- */
+const deck = $("deck");
+function buildDeck() {
+  deck.innerHTML = "";
+  const lead = (k) => { const d = document.createElement("div"); d.className = "lead"; d.textContent = P.t(k); deck.appendChild(d); };
+  lead("deckLead");
+  GOODS.forEach((g) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small" + (g === good ? " on" : "");
+    b.setAttribute("aria-pressed", g === good ? "true" : "false");
+    b.textContent = P.t("g_" + g.id);
+    b.addEventListener("click", () => {
+      good = g;
+      if (!good.routes[route]) route = good.routes.L ? "L" : "S";
+      restart(); buildDeck(); deck.querySelectorAll("button")[GOODS.indexOf(g)].focus();
+    });
+    deck.appendChild(b);
+  });
+  lead("routeLead");
+  ["L", "S"].forEach((r) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small" + (r === route ? " on" : "");
+    b.setAttribute("aria-pressed", r === route ? "true" : "false");
+    const ok = !!good.routes[r];
+    b.disabled = !ok;
+    b.textContent = ok ? P.t("r" + r) : P.t("rNo", { r: P.t("r" + r) });
+    b.addEventListener("click", () => { route = r; restart(); buildDeck(); deck.querySelectorAll("button")[GOODS.length + (r === "L" ? 0 : 1)].focus(); });
+    deck.appendChild(b);
+  });
+}
+
+/* ---------- animation and stepping ---------- */
+const LEG_MS = 1100;
+function setProg(x, announce) {
+  const ch = cur();
+  const old = prog;
+  prog = Play.clamp(Number.isFinite(x) ? x : 0, 0, ch.n);
+  if (announce !== false && Math.floor(prog) !== Math.floor(old)) say(ch);
+  render();
+}
+function say(ch) {
+  const k = Math.floor(prog);
+  const c = nodeName(good.routes[route][Math.min(k, ch.n)]);
+  if (prog >= ch.n) Play.live($("live"), P.t("liveEnd", { c, n: ch.n, d: num(ch.days) }));
+  else if (good.idea) Play.live($("live"), P.t("liveAtIdea", { c, k: k + 1, n: ch.n }));
+  else Play.live($("live"), P.t("liveAt", { c, k: k + 1, n: ch.n, x: Play.fmt(ch.priceAfter(k), 2) }));
+}
+function setPlaying(on) {
+  playing = on;
+  cancelAnimationFrame(raf);
+  if (on) {
+    if (prog >= cur().n) prog = 0;
+    last = performance.now();
+    raf = requestAnimationFrame(tick);
+  }
+  playBtn();
+}
+function tick(t) {
+  const dt = Math.min(100, t - last); last = t;
+  const ch = cur();
+  setProg(prog + dt / LEG_MS);
+  if (prog >= ch.n) { setPlaying(false); return; }
+  raf = requestAnimationFrame(tick);
+}
+function playBtn() { $("play").textContent = P.t(playing ? "pause" : prog >= cur().n ? "again" : "play"); }
+function restart() {
+  setPlaying(false);
+  prog = 0;
+  render();
+  say(cur());
+  if (step === 1 && !Play.reduced) setPlaying(true);
+}
+function render() { draw(); if (step === 1) panel(); result(); playBtn(); }
+$("play").addEventListener("click", () => setPlaying(!playing));
+$("next").addEventListener("click", () => { setPlaying(false); setProg(Math.floor(prog) + 1); });
+$("prev").addEventListener("click", () => { setPlaying(false); setProg(Math.ceil(prog) - 1); });
+const mk = $("mk");
+function setMarkup() { markup = +mk.value / 100; $("mkVal").textContent = P.t("mkVal", { m: mk.value }); render(); }
+mk.addEventListener("input", setMarkup);
+fig.addEventListener("keydown", (ev) => {
+  if (step !== 1) return;
+  if (ev.key === "ArrowRight" || ev.key === "ArrowDown") { setPlaying(false); setProg(Math.floor(prog) + 1); }
+  else if (ev.key === "ArrowLeft" || ev.key === "ArrowUp") { setPlaying(false); setProg(Math.ceil(prog) - 1); }
+  else if (ev.key === " " || ev.key === "Enter") setPlaying(!playing);
+  else if (ev.key === "Home") { setPlaying(false); setProg(0); }
+  else if (ev.key === "End") { setPlaying(false); setProg(cur().n); }
+  else return;
+  ev.preventDefault();
+});
+fig.addEventListener("pointerdown", (ev) => {
+  if (step !== 1) return;
+  const k = ev.target && ev.target.dataset ? ev.target.dataset.k : undefined;
+  if (k === undefined) return;
+  setPlaying(false); setProg(+k);
+});
+
+function resize() {
+  const r = fig.getBoundingClientRect();
+  if (r.width < 10) return;
+  const w = Math.round(r.width);
+  if (w !== W) { W = w; draw(); }
+}
+if (window.ResizeObserver) new ResizeObserver(resize).observe(fig); else window.addEventListener("resize", resize);
+
+/* ---------- steps and predict ---------- */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { answered = true; showResult(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  deck.hidden = i !== 1;
+  $("ctl").hidden = i !== 1;
+  showResult();
+  setPlaying(false);
+  if (i === 1) { buildDeck(); restart(); }
+  else { Play.live($("live"), ""); render(); panel(); }
+});
+
+$("reset").addEventListener("click", () => {
+  setPlaying(false);
+  good = GOODS[0]; route = "L"; prog = 0; answered = false;
+  mk.value = 25; setMarkup();
+  pr.reset(); st.go(0);
+});
+setMarkup();
+st.go(0);
+resize();
+</script>
+</body>
+</html>

@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How old is it? Tree rings and radiocarbon</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .stage svg.main#fig { height: 440px; user-select: none; -webkit-user-select: none; }
+  @media (max-width: 560px) { .stage svg.main#fig { height: 430px; } }
+  #fig.drag { cursor: ew-resize; }
+  #fig.dragv { cursor: ns-resize; }
+  #fig text { font-size: 13px; fill: var(--fg); }
+  #fig .mut { fill: var(--muted); }
+  #fig .acc { fill: var(--a); font-weight: 700; }
+  #fig .bold { font-weight: 700; }
+  #fig .big { font-size: 15px; font-weight: 700; }
+  #fig .on { fill: var(--a); }
+  #fig .off { fill: var(--soft); stroke: var(--line); stroke-width: 1px; }
+  #fig .ax { stroke: var(--muted); stroke-width: 1px; fill: none; }
+  #fig .grid { stroke: var(--line); stroke-width: 1px; }
+  #fig .curve { stroke: var(--fg); stroke-width: 2px; fill: none; }
+  #fig .sim { stroke: var(--a); stroke-width: 2px; fill: none; }
+  #fig .cur { stroke: var(--hl); stroke-width: 2px; }
+  #fig .curDot { fill: var(--hl); stroke: var(--surface); stroke-width: 2px; }
+  #fig .limit { fill: var(--no); opacity: .1; }
+  #fig .limitT { fill: var(--no); font-weight: 700; }
+  #fig .ring { stroke: var(--b); stroke-width: 1.6px; fill: none; }
+  #fig .ringB { stroke: var(--a); stroke-width: 1.6px; fill: none; }
+  #fig .ov { fill: var(--hl); opacity: .16; }
+  #fig .ovMatch { fill: var(--a); opacity: .16; }
+  #fig .beamBox { fill: var(--soft); opacity: .6; }
+  #fig .scoreBg { fill: var(--soft); }
+  #fig .scoreFg { fill: var(--a); }
+  #fig .scoreLow { fill: var(--no); }
+  #fig .arrow { stroke: var(--muted); stroke-width: 1.5px; fill: none; }
+  #fig .stair { fill: var(--a); opacity: .8; }
+  #fig .stairBase { fill: var(--soft); }
+  #fig .diag { stroke: var(--muted); stroke-width: 1.5px; stroke-dasharray: 5 4; fill: none; }
+  #fig .band { fill: var(--hl); opacity: .25; }
+  #fig .hit { fill: var(--hl); }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .controls .val { font-family: var(--font); font-size: 13px; color: var(--fg); min-width: 0; }
+  .controls button { min-width: 38px; }
+  .info { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 0 0 10px; }
+  .info div + div { margin-top: 4px; }
+  .info .gp { font-weight: 750; color: var(--a); font-size: 16px; }
+  .info .calc { font-family: var(--math); color: var(--fg); font-size: 16px; }
+  .info .warn { color: var(--no); font-weight: 650; }
+  .info .dt { color: var(--muted); font-size: 13px; }
+  #resMain { white-space: normal; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 440" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlDecay" hidden>
+        <label for="frac" data-t="fracLabel"></label>
+        <input type="range" id="frac" min="0" max="1000" step="1" value="0">
+        <span class="val" id="fracVal"></span>
+        <button type="button" class="small" id="play" data-t="play"></button>
+        <button type="button" class="small" id="newS" data-t="newS"></button>
+      </div>
+      <div class="controls" id="ctlRing" hidden>
+        <button type="button" id="bL" data-t-aria="bL">◀</button>
+        <input type="range" id="last" min="1819" max="2024" step="1" value="1960" data-t-aria="lastLabel">
+        <button type="button" id="bR" data-t-aria="bR">▶</button>
+        <span class="val" id="lastVal"></span>
+      </div>
+      <div class="controls" id="ctlCal" hidden>
+        <label for="lab" data-t="labLabel"></label>
+        <input type="range" id="lab" min="0" max="1000" step="1" value="280">
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="info" id="info" hidden></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" id="resNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+const P = Play.setup({
+  en: {
+    title: "How old is it? Tree rings and radiocarbon", eyebrow: "History · Stage 3",
+    h1: "How old is it? A clock inside once-living things",
+    intro: "Guess an age, then run the carbon-14 clock and match tree rings to see how real dates are measured.",
+    reset: "Reset",
+    figAria: "Interactive figure. In the decay step, drag across the graph or use the slider; in the tree-ring step, drag the beam or use the arrow keys; in the rule step, drag up and down.",
+    s1: "Guess", s2: "Decay clock", s3: "Tree rings", s4: "The rule",
+    k1: "Predict first", t1: "How old is the charcoal?",
+    b1: "A living tree keeps taking in carbon, including a tiny share of radioactive carbon-14. When it dies, no new carbon-14 comes in, and what is there slowly decays. A piece of charcoal from an old campfire has 1/4 of the carbon-14 of a living tree.",
+    q: "How old is the charcoal?", o1: "About {a} years", o2: "About {b} years", o3: "About {c} years", o4: "Nobody can really know — scientists just guess",
+    right: "Yes. 1/4 = 1/2 × 1/2: two half-lives, so 2 × {h} = {b} years.",
+    wrong: "Not a guess — count the halvings. 1 → 1/2 → 1/4 is two half-lives, so 2 × {h} = {b} years. After {a} years about {pa}% would be left; after {c} years only 1/16.",
+    gLiving: "Living tree", gChar: "Charcoal", gAtoms: "{n} C-14 atoms", gHalf: "−½ every {h} yrs", gPick: "Pick an answer.",
+    k2: "Hands on", t2: "Run the carbon-14 clock",
+    b2: "Each dot is a carbon-14 atom. In every small time step each atom has the same small chance to decay, so no one can say which atom goes next — yet the total follows the smooth curve. Drag the slider (or across the graph) to set how much is left and read off the age.",
+    fracLabel: "Fraction left", play: "▶ Run", pause: "❚❚ Pause", newS: "New sample",
+    k3: "Hands on", t3: "Match the tree rings",
+    b3: "Trees grow one ring a year: wide in good years, narrow in bad ones. All trees in a region share the same pattern of good and bad years. Slide the old beam until its rings line up with the living tree, whose years we know by counting back from today.",
+    k4: "The rule", t4: "Count halvings, then calibrate with tree rings",
+    b4: "The amount of carbon-14 halves every 5,730 years, so the fraction left tells the age. But the air did not always hold the same amount of carbon-14, so a raw radiocarbon age is not yet a calendar date. Scientists measured carbon-14 in thousands of tree rings whose exact years are known from ring counting. The result is an international calibration curve (IntCal), and every radiocarbon date is converted with it. Drag the lab result up and down: because the curve wiggles, one result can match more than one stretch of calendar time, which is why dates come as ranges.",
+    labLabel: "Lab result",
+    axAtoms: "C-14 atoms left", axYears: "years since death", tooLittle: "too little left",
+    curveLab: "N = N₀ · (½)^(t / {h})", simLab: "random atoms",
+    infoLeft: "Left: {f} of the carbon-14", infoAge: "Age ≈ {t} years", infoDate: "Died: {d}", infoNow: "just now, like a living tree",
+    infoCalc: "t = {h} × log₂(N₀ / N) = {h} × {l}", infoAtoms: "In this sample: {k} of {n} atoms left (curve says {e})",
+    infoLimit: "Too little left to measure. Beyond about {lim} years less than {pl}% remains — under one of these {n} atoms. That is the practical limit of radiocarbon dating.",
+    liveDecay: "{f} left, about {t} years",
+    rLive: "Living tree · cored in {y}", rBeam: "Old beam from a barn · years unknown", rBeamK: "Old beam · rings {a}–{b}",
+    score: "Match score r = {r}", overlap: "{n} years overlap", noOverlap: "Overlap too short to compare",
+    infoRing: "Beam's last ring placed at {y}.", infoMatch: "Match! The patterns line up (r = {r}, the best of all {m} positions). The beam's rings run {a}–{b}.",
+    infoFell: "The last ring sits just under the bark, so the tree was felled in {b}. This is an exact year, not a guess.",
+    infoNo: "Look for the same narrow rings (bad years) in both lines.",
+    liveRing: "Beam ends in {y}, match score {r}",
+    bL: "Move beam one year earlier", bR: "Move beam one year later", lastLabel: "Year of the beam's last ring",
+    stTitle: "Every {h} years, half", stYrs: "{t} yrs",
+    calX: "calendar age (from tree rings) →", calY: "radiocarbon age →", calDiag: "if air C-14 never changed", calCurve: "calibration curve (schematic)",
+    calRanges: "This lab result fits {n} calendar range(s).",
+    infoRule: "Rule: t = {h} × log₂(N₀ / N). Then convert t with the tree-ring calibration curve.",
+    infoCal: "The curve shape here is a made-up sketch; real curves (IntCal) are built from measured tree rings.",
+    resultTitle: "What we found", resNote: "Not a guess: {f} left → about {t} years. Half is gone every {h} years; tree rings correct the clock.",
+    explainK: "Explain it", explainQ: "A friend says “archaeologists just guess the age of bones and charcoal.” Explain, with one number from this page, how the carbon-14 clock works and why tree rings are needed to check it.",
+    homeK: "Try at home", homeQ: "Look at a tree stump or a log end. Count the rings from bark to centre, and find the narrow ones. Then take 64 coins, shake them in a box and remove the tails; repeat. How many shakes until about 1/4, 1/16 are left?",
+    foot: "Half-life of carbon-14: 5,730 ± 40 years (modern value; labs report conventional ages with Libby's older 5,568 years, then calibrate). Radiocarbon works only for things that were once alive (wood, charcoal, bone, seeds, cloth); its practical limit is about 50,000 years. The simulated atoms, ring widths and the calibration curve on this page are generated in code for teaching, not real measurements. Calibration: IntCal curves (IntCal20, 2020). CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "它有多老？树轮和放射性碳", eyebrow: "历史 · 阶段 3",
+    h1: "它有多老？曾经活着的东西里有一只钟",
+    intro: "先猜一个年龄，再让碳-14 的钟走起来、对一对树轮，看看真实的年代是怎么测出来的。",
+    reset: "重置",
+    figAria: "互动图。衰变一步：在图上横向拖或用滑块；树轮一步：拖动木梁或用方向键；规律一步：上下拖动。",
+    s1: "先猜", s2: "衰变的钟", s3: "对树轮", s4: "规律",
+    k1: "先猜一猜", t1: "这块木炭有多老？",
+    b1: "活着的树不断吸收碳，其中有极少量是有放射性的碳-14。树死后就不再有新的碳-14 进来，原有的会慢慢衰变。一堆古代篝火里的木炭，碳-14 只剩活树的 1/4。",
+    q: "这块木炭大约有多老？", o1: "约 {a} 年", o2: "约 {b} 年", o3: "约 {c} 年", o4: "没人真能知道——科学家只是猜的",
+    right: "对。1/4 = 1/2 × 1/2：两个半衰期，所以 2 × {h} = {b} 年。",
+    wrong: "不是猜的——数一数减半了几次。1 → 1/2 → 1/4 是两个半衰期，所以 2 × {h} = {b} 年。过 {a} 年还剩约 {pa}%；过 {c} 年只剩 1/16。",
+    gLiving: "活树", gChar: "木炭", gAtoms: "{n} 个碳-14 原子", gHalf: "每 {h} 年减半", gPick: "选一个答案。",
+    k2: "动手", t2: "让碳-14 的钟走起来",
+    b2: "每个点是一个碳-14 原子。每过一小段时间，每个原子衰变的机会都一样小，所以没人知道下一个是哪个——但总数却跟着那条光滑的曲线走。拖滑块（或在图上横向拖）设定剩下多少，读出年龄。",
+    fracLabel: "剩下的比例", play: "▶ 运行", pause: "❚❚ 暂停", newS: "换一批",
+    k3: "动手", t3: "对上树轮",
+    b3: "树一年长一圈：年景好圈宽，年景差圈窄。同一地区的树，好年坏年的花纹是一样的。拖动古木梁，让它的年轮和活树对齐——活树的年份从今天往回数就知道。",
+    k4: "规律", t4: "数减半次数，再用树轮校准",
+    b4: "碳-14 每 5730 年减少一半，所以剩下的比例就告诉我们年龄。但空气里的碳-14 并不总是一样多，所以直接算出的「放射性碳年龄」还不是日历年份。科学家测了成千上万个年份确定的树轮里的碳-14（年份靠数年轮知道），做成国际通用的校准曲线（IntCal），每个碳-14 测年结果都要用它换算。上下拖动实验室结果：曲线有起伏，一个结果可能对上不止一段日历时间，所以年代常给成一个范围。",
+    labLabel: "实验室结果",
+    axAtoms: "剩下的碳-14 原子", axYears: "死后经过的年数", tooLittle: "剩得太少",
+    curveLab: "N = N₀ · (½)^(t / {h})", simLab: "随机原子",
+    infoLeft: "剩下：碳-14 的 {f}", infoAge: "年龄 ≈ {t} 年", infoDate: "死亡年代：{d}", infoNow: "刚死不久，和活树一样",
+    infoCalc: "t = {h} × log₂(N₀ / N) = {h} × {l}", infoAtoms: "这一批：{n} 个原子还剩 {k} 个（曲线给出 {e}）",
+    infoLimit: "剩得太少，测不准了。超过约 {lim} 年，剩下不到 {pl}%——这 {n} 个原子里连 1 个都不到。这就是放射性碳测年的实际上限。",
+    liveDecay: "剩 {f}，约 {t} 年",
+    rLive: "活树 · {y} 年取样", rBeam: "谷仓里的古木梁 · 年份未知", rBeamK: "古木梁 · 年轮 {a}—{b}",
+    score: "吻合度 r = {r}", overlap: "重叠 {n} 年", noOverlap: "重叠太短，没法比",
+    infoRing: "木梁最外一圈放在 {y} 年。", infoMatch: "对上了！两条花纹吻合（r = {r}，在全部 {m} 个位置里最高）。木梁的年轮是 {a}—{b} 年。",
+    infoFell: "最外一圈紧贴树皮，所以这棵树是 {b} 年砍伐的。这是精确到年的结果，不是猜的。",
+    infoNo: "找两条线上同样窄的圈（坏年景）。",
+    liveRing: "木梁止于 {y} 年，吻合度 {r}",
+    bL: "木梁往前移一年", bR: "木梁往后移一年", lastLabel: "木梁最外一圈的年份",
+    stTitle: "每 {h} 年减一半", stYrs: "{t} 年",
+    calX: "日历年龄（来自树轮）→", calY: "放射性碳年龄 →", calDiag: "假如空气中碳-14 从不变", calCurve: "校准曲线（示意）",
+    calRanges: "这个结果对上 {n} 段日历时间。",
+    infoRule: "规律：t = {h} × log₂(N₀ / N)，再用树轮校准曲线换算 t。",
+    infoCal: "这里的曲线形状是示意，不是真实数据；真实曲线（IntCal）由实测的树轮做成。",
+    resultTitle: "我们发现", resNote: "不是猜的：剩 {f} → 约 {t} 年。每 {h} 年少一半，树轮来校准这只钟。",
+    explainK: "说一说", explainQ: "朋友说「考古学家只是猜骨头和木炭有多老」。用本页的一个数字给他讲清楚：碳-14 的钟怎么走，为什么还要用树轮来校准。",
+    homeK: "家里做一做", homeQ: "找一个树桩或木头的断面，从树皮往中心数年轮，找出窄的那几圈。再拿 64 枚硬币放进盒子里摇，拿掉反面朝上的，重复。摇几次后大约剩 1/4、1/16？",
+    foot: "碳-14 半衰期：5730 ± 40 年（现代测定值；实验室按惯例先用利比的旧值 5568 年报出「常规年龄」，再校准）。放射性碳只能测曾经活着的东西（木头、木炭、骨头、种子、布）；实际上限约 5 万年。本页的原子、年轮宽度和校准曲线都由代码生成，用于教学，不是实测数据。校准曲线：IntCal（IntCal20，2020 年）。CC BY 4.0 · Boxi Yu",
+  },
+});
+const ZHL = P.lang === "zh";
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent || fig);
+const T = (x, y, s, cls, anchor, parent) => { const t = S("text", { x, y, class: cls || "", "text-anchor": anchor || "start" }, parent); t.textContent = s; return t; };
+
+/* ---------- constants and pure logic ---------- */
+const HL = 5730, N0 = 400, SPH = 100, SMAX = 1000, DT = HL / SPH, LIMIT = 50000;
+const PSTEP = 1 - Math.pow(0.5, 1 / SPH);           // chance an atom decays in one step
+const TODAY = new Date().getFullYear();
+const num = (n) => (ZHL ? String(n) : n.toLocaleString("en-US"));
+const fracAt = (s) => Math.pow(0.5, s / SPH);         // slider position → fraction left
+const ageOf = (n0, n) => (n > 0 && n0 > 0 ? HL * Math.log2(n0 / n) : Infinity);
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { let u = 0; while (u === 0) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); }
+function simulate(seed) {
+  const r = mulberry32(seed), die = new Array(N0), count = new Array(SMAX + 1).fill(0);
+  for (let i = 0; i < N0; i++) { let s = 1; while (s <= SMAX && r() >= PSTEP) s++; die[i] = s; }   // decays during step s
+  for (let i = 0; i < N0; i++) for (let s = 0; s < Math.min(die[i], SMAX + 1); s++) count[s]++;
+  return { die, count };
+}
+function pctText(f) {
+  const p = f * 100;
+  const d = p >= 10 ? 1 : p >= 1 ? 2 : 3;
+  return Play.fmt(p, d).replace(/\.?0+$/, "") + "%";
+}
+function fracText(s) { return s % SPH === 0 ? (s === 0 ? "1" : "1/" + num(Math.pow(2, s / SPH))) + " (" + pctText(fracAt(s)) + ")" : pctText(fracAt(s)); }
+function roundAge(t) { return t < 100 ? Math.round(t) : Math.round(t / 10) * 10; }
+function dateText(age) {
+  const y = TODAY - Math.round(age);                 // astronomical year (0 = 1 BCE)
+  if (age < 50) return P.t("infoNow");
+  if (y >= 1) { const c = Math.round(y / 10) * 10; return ZHL ? "约公元 " + c + " 年" : "c. " + c + " CE"; }
+  const b0 = 1 - y, b = b0 < 2000 ? Math.round(b0 / 10) * 10 : Math.round(b0 / 100) * 100;
+  return ZHL ? "约公元前 " + b + " 年" : "c. " + num(b) + " BCE";
+}
+
+/* tree rings: one shared climate signal, two trees with their own noise */
+const LIVE0 = 1800, LIVE1 = 2024, BLEN = 169, TRUE_LAST = 1858, MINOV = 20;
+const LAST_MIN = LIVE0 + MINOV - 1, LAST_MAX = LIVE1;
+const RING = (() => {
+  const r = mulberry32(11), c = {};
+  let prev = 0;
+  for (let y = 1600; y <= LIVE1; y++) { prev = 0.3 * prev + gauss(r); c[y] = prev; }
+  const live = [], beam = [];
+  for (let y = LIVE0; y <= LIVE1; y++) live.push(Math.max(0.15, 1.5 + 0.42 * (c[y] + 0.45 * gauss(r))));
+  for (let y = TRUE_LAST - BLEN + 1; y <= TRUE_LAST; y++) beam.push(Math.max(0.15, 2.2 + 0.6 * (c[y] + 0.45 * gauss(r))));
+  return { live, beam };
+})();
+function ringScore(last) {
+  const b0 = last - BLEN + 1, a = Math.max(b0, LIVE0), z = Math.min(last, LIVE1), n = z - a + 1;
+  if (n < MINOV) return { n: Math.max(0, n), r: NaN, a, z };
+  let mx = 0, my = 0;
+  for (let y = a; y <= z; y++) { mx += RING.live[y - LIVE0]; my += RING.beam[y - b0]; }
+  mx /= n; my /= n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let y = a; y <= z; y++) { const dx = RING.live[y - LIVE0] - mx, dy = RING.beam[y - b0] - my; sxy += dx * dy; sxx += dx * dx; syy += dy * dy; }
+  return { n, r: sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : 0, a, z };
+}
+const BEST = (() => { let b = LAST_MIN, br = -2; for (let l = LAST_MIN; l <= LAST_MAX; l++) { const s = ringScore(l); if (s.r > br) { br = s.r; b = l; } } return { last: b, r: br }; })();
+const NPOS = LAST_MAX - LAST_MIN + 1;
+
+/* schematic calibration curve: radiocarbon age as a wiggly function of calendar age (both 0..1) */
+const calY = (x) => x + 0.045 * Math.sin(x * 30) + 0.012 * Math.sin(x * 71 + 1);
+const CAL_ERR = 0.018;
+function calRanges(y0) {
+  const out = []; let start = null; const n = 400;
+  for (let i = 0; i <= n; i++) {
+    const x = i / n, ok = Math.abs(calY(x) - y0) <= CAL_ERR;
+    if (ok && start === null) start = x;
+    if ((!ok || i === n) && start !== null) { out.push([start, ok ? x : (i - 1) / n]); start = null; }
+  }
+  return out;
+}
+
+/* ---------- state ---------- */
+let step = 0, guessed = false, seed = 7, sim = simulate(seed), sPos = 0, playing = 0, beamLast = 1960, labPos = 280;
+let W = 600, H = 440;
+const charOrder = (() => { const r = mulberry32(3), a = [...Array(N0).keys()]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; })();
+
+/* ---------- drawing ---------- */
+function dotGrid(x0, y0, c, isOn) {
+  const g = S("g", {});
+  for (let i = 0; i < N0; i++) {
+    const cx = x0 + (i % 20) * c + c / 2, cy = y0 + Math.floor(i / 20) * c + c / 2;
+    S("circle", { cx, cy, r: Math.max(1.2, c * 0.36), class: isOn(i) ? "on" : "off" }, g);
+  }
+  return g;
+}
+
+function drawGuess() {
+  const wide = W >= 520, c = Math.min(wide ? 10 : 7.5, (W - 60) / 40);
+  const gw = 20 * c, gap = Math.max(20, (W - 2 * gw) / 3);
+  const x1 = gap, x2 = 2 * gap + gw, y0 = 70;
+  const quarter = new Set(charOrder.slice(0, N0 / 4));
+  T(x1 + gw / 2, 40, P.t("gLiving"), "big", "middle");
+  T(x2 + gw / 2, 40, P.t("gChar"), "big", "middle");
+  dotGrid(x1, y0, c, () => true);
+  dotGrid(x2, y0, c, (i) => quarter.has(i));
+  T(x1 + gw / 2, y0 + gw + 22, P.t("gAtoms", { n: N0 }), "mut", "middle");
+  T(x2 + gw / 2, y0 + gw + 22, P.t("gAtoms", { n: N0 / 4 }), "mut", "middle");
+  const yc = y0 + gw + 70;
+  if (!guessed) { T(W / 2, yc + 20, P.t("gPick"), "mut", "middle"); return; }
+  // the halving chain 400 → 200 → 100
+  const xs = [W * 0.17, W * 0.5, W * 0.83];
+  [N0, N0 / 2, N0 / 4].forEach((n, k) => {
+    T(xs[k], yc, num(n), "big", "middle");
+    T(xs[k], yc + 20, k === 0 ? "0" : num(k * HL) + (ZHL ? " 年" : " yrs"), "mut", "middle");
+    if (k) {
+      S("path", { class: "arrow", d: `M${xs[k - 1] + 26} ${yc - 5}H${xs[k] - 26}m-6 -5l6 5l-6 5` });
+      T((xs[k - 1] + xs[k]) / 2, yc - 14, "×½", "acc", "middle");
+    }
+  });
+  T(W / 2, yc + 52, "2 × " + num(HL) + " = " + num(2 * HL) + (ZHL ? " 年" : " years"), "acc", "middle");
+}
+
+function drawDecay() {
+  const wide = W >= 600, f = fracAt(sPos), t = sPos * DT, k = sim.count[sPos];
+  let c, gx, gy, L, R, Tp, B;
+  if (wide) { c = Math.min(10, (H - 120) / 20); gx = 16; gy = 54; L = gx + 20 * c + 64; R = W - 18; Tp = 40; B = H - 50; }
+  else { c = Math.min(7, (W - 40) / 20); gx = 16; gy = 30; L = 50; R = W - 14; Tp = gy + 20 * c + 34; B = H - 46; }
+  dotGrid(gx, gy, c, (i) => sim.die[i] > sPos);
+  const tx = wide ? gx : gx + 20 * c + 12, ty = wide ? gy + 20 * c + 24 : gy + 14;
+  T(tx, ty, num(k) + " / " + num(N0), "big");
+  T(tx, ty + 18, P.t("axAtoms"), "mut");
+  // chart
+  const tMax = SMAX * DT, X = (v) => L + (v / tMax) * (R - L), Y = (n) => B - (n / N0) * (B - Tp);
+  S("rect", { class: "limit", x: X(LIMIT), y: Tp, width: R - X(LIMIT), height: B - Tp });
+  T(R - 4, Tp + 14, P.t("tooLittle"), "limitT", "end");
+  for (let h = 1; h * HL <= tMax; h++) S("line", { class: "grid", x1: X(h * HL), x2: X(h * HL), y1: Tp, y2: B });
+  [N0, N0 / 2, N0 / 4, N0 / 8].forEach((n) => {
+    S("line", { class: "grid", x1: L, x2: R, y1: Y(n), y2: Y(n) });
+    T(L - 6, Y(n) + 4, num(n), "mut", "end");
+  });
+  S("path", { class: "ax", d: `M${L} ${Tp}V${B}H${R}` });
+  const stepK = (R - L) < 360 ? 20000 : 10000;
+  for (let v = 0; v <= tMax; v += stepK) {
+    const s = v === 0 ? "0" : ZHL ? v / 10000 + "万" : num(v);
+    T(X(v), B + 17, s, "mut", "middle");
+  }
+  T(R, B + 36, P.t("axYears"), "mut", "end");
+  T(L, Tp - 10, P.t("axAtoms"), "mut");
+  let d = "";
+  for (let i = 0; i <= 200; i++) { const v = (i / 200) * tMax; d += (i ? "L" : "M") + X(v).toFixed(1) + " " + Y(N0 * Math.pow(0.5, v / HL)).toFixed(1); }
+  S("path", { class: "curve", d });
+  let ds = "";
+  for (let s = 0; s <= sPos; s++) ds += (s ? "L" : "M") + X(s * DT).toFixed(1) + " " + Y(sim.count[s]).toFixed(1);
+  S("path", { class: "sim", d: ds });
+  S("line", { class: "cur", x1: X(t), x2: X(t), y1: Tp, y2: B });
+  S("circle", { class: "curDot", cx: X(t), cy: Y(N0 * f), r: 5 });
+  // legend
+  const lx = wide ? L + 14 : L + 8, ly = Tp + 14;
+  S("line", { class: "curve", x1: lx, x2: lx + 18, y1: ly - 4, y2: ly - 4 });
+  T(lx + 24, ly, P.t("curveLab", { h: num(HL) }), "");
+  S("line", { class: "sim", x1: lx, x2: lx + 18, y1: ly + 14, y2: ly + 14 });
+  T(lx + 24, ly + 18, P.t("simLab"), "");
+  fig.dataset.chart = [L, R, tMax].join(",");
+}
+
+function ringPath(arr, y0, x0, X, top, bot) {
+  const mn = Math.min(...arr), mx = Math.max(...arr);
+  let d = "";
+  arr.forEach((w, i) => { d += (i ? "L" : "M") + X(x0 + i).toFixed(1) + " " + (bot - ((w - mn) / (mx - mn)) * (bot - top)).toFixed(1); });
+  return d;
+}
+function drawRings() {
+  const Y0 = 1645, Y1 = 2030, L = 14, R = W - 14, X = (y) => L + ((y - Y0) / (Y1 - Y0)) * (R - L);
+  const sc = ringScore(beamLast), b0 = beamLast - BLEN + 1, match = beamLast === BEST.last;
+  const topA = 46, botA = 136, axY = 158, topB = 228, botB = 318;
+  if (sc.n > 0) S("rect", { class: match ? "ovMatch" : "ov", x: X(sc.a - 0.5), y: topA - 6, width: X(sc.z + 0.5) - X(sc.a - 0.5), height: botB - topA + 12 });
+  T(X(LIVE0), 30, P.t("rLive", { y: LIVE1 }), "bold");
+  S("path", { class: "ring", d: ringPath(RING.live, 0, LIVE0, X, topA, botA) });
+  // axis
+  S("line", { class: "ax", x1: L, x2: R, y1: axY, y2: axY });
+  const stepY = (R - L) < 420 ? 100 : 50;
+  for (let y = Math.ceil(Y0 / stepY) * stepY; y <= Y1; y += stepY) {
+    S("line", { class: "ax", x1: X(y), x2: X(y), y1: axY - 4, y2: axY + 4 });
+    T(X(y), axY + 19, String(y), "mut", "middle");
+  }
+  S("rect", { class: "beamBox", x: X(b0 - 0.5), y: topB - 4, width: X(beamLast + 0.5) - X(b0 - 0.5), height: botB - topB + 8, rx: 6 });
+  const lab = match ? P.t("rBeamK", { a: b0, b: beamLast }) : P.t("rBeam");
+  const lw = lab.length * (ZHL ? 13 : 7.2);
+  T(Play.clamp(X(b0), L, R - lw), topB - 14, lab, match ? "acc" : "bold");
+  S("path", { class: "ringB", d: ringPath(RING.beam, 0, b0, X, topB, botB) });
+  // score bar
+  const sy = 362, bw = Math.min(260, R - L);
+  if (Number.isFinite(sc.r)) {
+    T(L, sy - 8, P.t("score", { r: Play.fmt(sc.r, 2) }) + " · " + P.t("overlap", { n: sc.n }), match ? "acc" : "bold");
+    S("rect", { class: "scoreBg", x: L, y: sy, width: bw, height: 12, rx: 6 });
+    S("rect", { class: sc.r > 0.5 ? "scoreFg" : "scoreLow", x: L, y: sy, width: Math.max(4, bw * Play.clamp(sc.r, 0, 1)), height: 12, rx: 6 });
+    T(L, sy + 30, "0", "mut"); T(L + bw, sy + 30, "1", "mut", "end");
+  } else T(L, sy, P.t("noOverlap"), "mut");
+}
+
+function drawRule() {
+  const L = 16, R = W - 16;
+  T(L, 26, P.t("stTitle", { h: num(HL) }), "big");
+  const n = W >= 480 ? 6 : 5, gap = 8, bw = (R - L - gap * (n - 1)) / n, top = 48, bot = 140;
+  for (let k = 0; k < n; k++) {
+    const x = L + k * (bw + gap), h = (bot - top) * Math.pow(0.5, k);
+    S("rect", { class: "stairBase", x, y: top, width: bw, height: bot - top, rx: 4 });
+    S("rect", { class: "stair", x, y: bot - h, width: bw, height: h, rx: 4 });
+    T(x + bw / 2, bot + 18, k ? "1/" + Math.pow(2, k) : "1", "bold", "middle");
+    T(x + bw / 2, bot + 35, bw >= 76 ? P.t("stYrs", { t: num(k * HL) }) : num(k * HL), "mut", "middle");
+  }
+  // calibration schematic
+  const cT = 210, cB = H - 34, cL = 34, cR = R, X = (x) => cL + x * (cR - cL), Y = (y) => cB - y * (cB - cT);
+  S("path", { class: "ax", d: `M${cL} ${cT}V${cB}H${cR}` });
+  T(cR, cB + 22, P.t("calX"), "mut", "end");
+  const ty = S("text", { x: cL - 12, y: cB, class: "mut", transform: `rotate(-90 ${cL - 12} ${cB})` }); ty.textContent = P.t("calY");
+  S("line", { class: "diag", x1: X(0), y1: Y(0), x2: X(1), y2: Y(1) });
+  let d = "";
+  for (let i = 0; i <= 200; i++) { const x = i / 200; d += (i ? "L" : "M") + X(x).toFixed(1) + " " + Y(Play.clamp(calY(x), 0, 1.05)).toFixed(1); }
+  S("path", { class: "curve", d });
+  T(X(0.03), cT + 4, P.t("calCurve"), "bold");
+  T(X(0.03), cT + 22, "- - " + P.t("calDiag"), "mut");
+  const y0 = 0.05 + (labPos / 1000) * 0.9;
+  S("rect", { class: "band", x: cL, y: Y(y0 + CAL_ERR), width: cR - cL, height: Y(y0 - CAL_ERR) - Y(y0 + CAL_ERR) });
+  S("line", { class: "cur", x1: cL, x2: cR, y1: Y(y0), y2: Y(y0) });
+  calRanges(y0).forEach(([a, b]) => S("rect", { class: "hit", x: X(a), y: cB - 5, width: Math.max(3, X(b) - X(a)), height: 10, rx: 3 }));
+  fig.dataset.cal = [cT, cB].join(",");
+}
+
+function draw() {
+  fig.innerHTML = "";
+  fig.classList.toggle("drag", step === 1 || step === 2);
+  fig.classList.toggle("dragv", step === 3);
+  [drawGuess, drawDecay, drawRings, drawRule][step]();
+}
+
+/* ---------- info panel + result ---------- */
+function line(cls, text) { const d = document.createElement("div"); d.className = cls; d.textContent = text; $("info").appendChild(d); }
+function decayNums() {
+  const f = fracAt(sPos), N = N0 * f, t = ageOf(N0, N);
+  return { f, t, l: Play.fmt(Math.log2(N0 / N), 2) };
+}
+function info() {
+  const box = $("info");
+  box.innerHTML = "";
+  if (step === 1) {
+    const d = decayNums(), k = sim.count[sPos];
+    $("fracVal").textContent = fracText(sPos);
+    line("", P.t("infoLeft", { f: fracText(sPos) }));
+    line("gp", P.t("infoAge", { t: num(roundAge(d.t)) }));
+    line("calc", P.t("infoCalc", { h: num(HL), l: d.l }));
+    line("dt", P.t("infoDate", { d: dateText(d.t) }));
+    line("dt", P.t("infoAtoms", { k: num(k), n: num(N0), e: Play.fmt(N0 * d.f, 1) }));
+    if (d.t > LIMIT) line("warn", P.t("infoLimit", { lim: num(LIMIT), pl: Play.fmt(100 * Math.pow(0.5, LIMIT / HL), 2), n: num(N0) }));
+    Play.live($("live"), P.t("liveDecay", { f: fracText(sPos), t: num(roundAge(d.t)) }));
+  } else if (step === 2) {
+    const sc = ringScore(beamLast), b0 = beamLast - BLEN + 1;
+    $("lastVal").textContent = beamLast;
+    if (beamLast === BEST.last) {
+      line("gp", P.t("infoMatch", { r: Play.fmt(sc.r, 2), m: NPOS, a: b0, b: beamLast }));
+      line("", P.t("infoFell", { b: beamLast }));
+    } else { line("", P.t("infoRing", { y: beamLast })); line("dt", P.t("infoNo")); }
+    Play.live($("live"), P.t("liveRing", { y: beamLast, r: Number.isFinite(sc.r) ? Play.fmt(sc.r, 2) : "—" }));
+  } else if (step === 3) {
+    const n = calRanges(0.05 + (labPos / 1000) * 0.9).length;
+    line("calc", P.t("infoRule", { h: num(HL) }));
+    line("gp", P.t("calRanges", { n }));
+    line("dt", P.t("infoCal"));
+    Play.live($("live"), P.t("calRanges", { n }));
+  }
+  const rs = sPos || 2 * SPH, d = { t: ageOf(N0, N0 * fracAt(rs)) };
+  $("resMain").textContent = "t = " + num(HL) + " × log₂(N₀ / N)";
+  $("resNote").textContent = P.t("resNote", { f: fracText(rs), t: num(roundAge(d.t)), h: num(HL) });
+}
+function update() { draw(); info(); }
+
+/* ---------- controls ---------- */
+function setS(v) { sPos = Play.clamp(Math.round(v), 0, SMAX); $("frac").value = sPos; update(); }
+function setLast(v) { beamLast = Play.clamp(Math.round(v), LAST_MIN, LAST_MAX); $("last").value = beamLast; update(); }
+function setLab(v) { labPos = Play.clamp(Math.round(v), 0, 1000); $("lab").value = labPos; update(); }
+function stopPlay() { cancelAnimationFrame(playing); playing = 0; $("play").textContent = P.t("play"); }
+function runPlay() {
+  if (playing) { stopPlay(); return; }
+  if (sPos >= SMAX) sPos = 0;
+  $("play").textContent = P.t("pause");
+  const tick = () => {
+    if (sPos >= SMAX) { stopPlay(); return; }
+    setS(sPos + (Play.reduced ? 25 : 4));
+    playing = requestAnimationFrame(tick);
+  };
+  playing = requestAnimationFrame(tick);
+}
+$("frac").addEventListener("input", (e) => { stopPlay(); setS(+e.target.value); });
+$("play").addEventListener("click", runPlay);
+$("newS").addEventListener("click", () => { seed = (seed * 31 + 17) % 100000; sim = simulate(seed); update(); });
+$("last").addEventListener("input", (e) => setLast(+e.target.value));
+$("bL").addEventListener("click", () => setLast(beamLast - 1));
+$("bR").addEventListener("click", () => setLast(beamLast + 1));
+$("lab").addEventListener("input", (e) => setLab(+e.target.value));
+
+let drag = null;
+fig.addEventListener("pointerdown", (ev) => {
+  if (step === 0) return;
+  const p = Play.pointer(fig, ev);
+  drag = { x: p.x, y: p.y, last: beamLast, lab: labPos };
+  try { fig.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+  if (step === 1) { stopPlay(); dragDecay(p); }
+  if (step === 3) dragCal(p);
+});
+function dragDecay(p) {
+  const [L, R, tMax] = (fig.dataset.chart || "0,1,1").split(",").map(Number);
+  if (R > L) setS(((Play.clamp(p.x, L, R) - L) / (R - L)) * tMax / DT);
+}
+function dragCal(p) {
+  const [cT, cB] = (fig.dataset.cal || "0,1").split(",").map(Number);
+  const y = (cB - Play.clamp(p.y, cT, cB)) / (cB - cT);
+  setLab(((y - 0.05) / 0.9) * 1000);
+}
+fig.addEventListener("pointermove", (ev) => {
+  if (!drag) return;
+  const p = Play.pointer(fig, ev);
+  if (step === 1) dragDecay(p);
+  else if (step === 2) { const ppy = (W - 28) / (2030 - 1645); setLast(drag.last + (p.x - drag.x) / ppy); }
+  else if (step === 3) dragCal(p);
+});
+const endDrag = () => { drag = null; };
+fig.addEventListener("pointerup", endDrag);
+fig.addEventListener("pointercancel", endDrag);
+fig.addEventListener("keydown", (ev) => {
+  const big = ev.shiftKey ? 10 : 1;
+  let d = 0;
+  if (ev.key === "ArrowLeft" || ev.key === "ArrowDown") d = -big;
+  else if (ev.key === "ArrowRight" || ev.key === "ArrowUp") d = big;
+  else return;
+  if (step === 1) { stopPlay(); setS(sPos + d * 10); }
+  else if (step === 2) setLast(beamLast + d);
+  else if (step === 3) setLab(labPos + d * 20);
+  else return;
+  ev.preventDefault();
+});
+
+/* ---------- predict + steps ---------- */
+const A = HL / 2, B2 = 2 * HL, C = 4 * HL;
+const pv = { a: num(A), b: num(B2), c: num(C), h: num(HL), pa: Play.fmt(100 * Math.pow(0.5, A / HL), 0) };
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1", pv) }, { label: P.t("o2", pv), right: true }, { label: P.t("o3", pv) }, { label: P.t("o4") }],
+  right: P.t("right", pv), wrong: P.t("wrong", pv),
+}, () => { guessed = true; showResult(); if (step === 0) draw(); });
+function showResult() { document.querySelector(".result").hidden = step === 0 && !guessed; }
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  if (i !== 1) stopPlay();
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("info").hidden = i === 0;
+  $("ctlDecay").hidden = i !== 1;
+  $("ctlRing").hidden = i !== 2;
+  $("ctlCal").hidden = i !== 3;
+  if (i === 0) Play.live($("live"), "");
+  showResult();
+  resize();
+});
+
+function resize() {
+  const r = fig.getBoundingClientRect();
+  if (r.width < 10 || r.height < 10) { info(); return; }
+  W = Math.round(r.width); H = Math.round(r.height);
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  update();
+}
+if (window.ResizeObserver) new ResizeObserver(resize).observe(fig); else window.addEventListener("resize", resize);
+
+$("reset").addEventListener("click", () => {
+  stopPlay();
+  guessed = false; seed = 7; sim = simulate(seed); sPos = 0; beamLast = 1960; labPos = 280;
+  $("frac").value = 0; $("last").value = beamLast; $("lab").value = labPos;
+  pr.reset(); st.go(0);
+});
+$("play").textContent = P.t("play");
+resize();
+</script>
+</body>
+</html>

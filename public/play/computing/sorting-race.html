@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The sorting race</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .pane { padding: 14px; display: grid; gap: 12px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 12px; color: var(--muted); font-weight: 650; margin-right: 2px; }
+  button.primary { background: var(--a); color: var(--surface); border-color: var(--a); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+  .msg.ok { font-weight: 650; }
+  .msg.ok::before { content: "✓ "; color: var(--a); font-weight: 800; }
+  .stat { font-size: 14px; color: var(--muted); }
+  .stat b { color: var(--fg); font-size: 18px; font-variant-numeric: tabular-nums; }
+  /* step 1: cards */
+  .deck { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 560px) { .deck { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .card8 { aspect-ratio: 3 / 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px; border-width: 2px; border-radius: 12px; background: var(--soft); }
+  .card8 .lt { font: 700 20px var(--serif); }
+  .card8 .vv { font: 15px var(--math); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .card8.sel { border-color: var(--a); background: var(--surface); box-shadow: 0 0 0 3px var(--a) inset; }
+  .card8.just { background: var(--hl); color: #1a2822; border-color: var(--hl); }
+  .card8.just .vv { color: #1a2822; }
+  .card8.won { background: var(--surface); border-color: var(--a); }
+  .card8.won .vv { color: var(--a); font-weight: 700; }
+  .ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: -6px; }
+  /* step 2: race */
+  .race { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-radius: 12px; }
+  .race:focus-visible { outline: 3px solid var(--hl); outline-offset: 3px; }
+  .lane { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px 8px; background: var(--bg); min-width: 0; }
+  .lane.fin { border-color: var(--a); }
+  .lh { display: flex; align-items: center; gap: 6px; font-size: 14px; flex-wrap: wrap; }
+  .lh .tag { margin-left: auto; font-size: 12px; color: var(--a); font-weight: 700; }
+  .lane svg { width: 100%; height: 96px; display: block; margin: 6px 0 4px; }
+  .lc { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .lc b { color: var(--fg); }
+  .bar { fill: var(--c); }
+  .bar.cmp { fill: var(--hl); }
+  .lane.fin .bar { fill: var(--a); }
+  .sl { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .sl input[type=range] { flex: 1 1 110px; }
+  .sl .val { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 3.6em; font-variant-numeric: tabular-nums; }
+  .preset.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  /* step 3: chart */
+  #chart { width: 100%; height: 340px; display: block; touch-action: none; cursor: crosshair; }
+  @media (max-width: 560px) { #chart { height: 300px; } }
+  #chart:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .ax { stroke: var(--line); stroke-width: 1; }
+  .axt { fill: var(--muted); font: 13px var(--font); }
+  .ref { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 5; }
+  .ser { fill: none; stroke-width: 2.5; stroke-linejoin: round; }
+  .guide { stroke: var(--fg); stroke-width: 1; stroke-dasharray: 2 4; opacity: .6; }
+  .reflab { fill: var(--muted); font: italic 13px var(--font); }
+  /* colours of the four sorts */
+  .k-bubble { --k: var(--no); } .k-insertion { --k: var(--b); } .k-selection { --k: var(--c); } .k-merge { --k: var(--a); }
+  .ser { stroke: var(--k); } .pt { fill: var(--k); stroke: var(--surface); stroke-width: 1.5; }
+  .dot.k { background: var(--k); }
+  .dash { display: inline-block; width: 16px; border-top: 2px dashed var(--muted); vertical-align: 4px; margin-right: 5px; }
+  .tw { overflow-x: auto; max-width: 100%; }
+  table.t { border-collapse: collapse; font-size: 13px; width: 100%; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  table.t th, table.t td { border-bottom: 1px solid var(--line); padding: 3px 5px; text-align: right; white-space: nowrap; }
+  table.t th { color: var(--muted); font-weight: 650; font-size: 12px; }
+  table.t th:first-child, table.t td:first-child { text-align: left; }
+  table.t tr.on td { background: var(--soft); font-weight: 700; }
+  table.t tr[data-n] { cursor: pointer; }
+  .big { font-family: var(--math); font-size: 18px; margin: 2px 0 10px; color: var(--fg); }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="pane" id="vCards">
+        <div class="deck" id="deck" role="group" data-t-aria="deckAria"></div>
+        <div class="ends"><span data-t="smallEnd"></span><span data-t="bigEnd"></span></div>
+        <div class="row"><span class="stat"><span data-t="cmpCount"></span> <b id="cCount">0</b></span><span style="flex:1"></span><button type="button" id="deal" data-t="deal"></button></div>
+        <p class="msg" id="cMsg"></p>
+      </div>
+      <div class="pane" id="vRace" hidden>
+        <div class="row" id="lists"><span class="lbl" data-t="listLbl"></span></div>
+        <div class="sl"><label for="nIn" data-t="nLbl"></label><input type="range" id="nIn" min="8" max="64" step="8" value="32"><span class="val" id="nVal"></span></div>
+        <div class="race" id="race" tabindex="0" data-t-aria="raceAria"></div>
+        <div class="row">
+          <button type="button" class="primary" id="play"></button>
+          <button type="button" id="stepBtn" data-t="stepBtn"></button>
+          <button type="button" id="finish" data-t="finish"></button>
+          <button type="button" id="restart" data-t="restart"></button>
+        </div>
+        <div class="sl"><label for="spIn" data-t="spLbl"></label><input type="range" id="spIn" min="0" max="100" value="45"><span class="val" id="spVal"></span></div>
+        <p class="msg" id="rMsg"></p>
+      </div>
+      <div class="pane" id="vChart" hidden>
+        <svg id="chart" tabindex="0" role="img" data-t-aria="chartAria"></svg>
+        <div class="legend" id="legend"></div>
+        <div class="row" id="kinds"><span class="lbl" data-t="kindLbl"></span></div>
+        <div class="row"><span class="lbl" data-t="scaleLbl"></span><button type="button" class="small preset" id="sLin" data-t="lin"></button><button type="button" class="small preset" id="sLog" data-t="log"></button></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p class="msg" id="pNums"></p>
+      <p id="stepBody"></p>
+      <div class="big" id="big"></div>
+      <div class="tw"><table class="t" id="table"></table></div>
+      <p class="note" id="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure sorting logic (no DOM), checked in node.
+   Every sort is a generator over an array a and a counter st = {cmp, mv}.
+   It adds 1 to st.cmp and yields [i, j] (the two positions being compared) right before it
+   reads the result of that comparison, so one next() = exactly one comparison. */
+function mulberry32(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/* A list of the numbers 1…n: shuffled (Fisher–Yates), sorted, reversed, or nearly sorted
+   (sorted, then about n/10 random neighbour swaps). */
+function makeList(n, seed, kind) {
+  const a = Array.from({ length: n }, (_, i) => i + 1);
+  if (kind === "sorted") return a;
+  if (kind === "reversed") return a.reverse();
+  const r = mulberry32(seed);
+  if (kind === "nearly") {
+    if (n < 2) return a;
+    const k = Math.max(1, Math.round(n / 10));
+    for (let t = 0; t < k; t++) { const i = Math.floor(r() * (n - 1)); [a[i], a[i + 1]] = [a[i + 1], a[i]]; }
+    return a;
+  }
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+/* Bubble sort: passes left to right swapping neighbours; each pass is one shorter;
+   stops after a pass with no swap. */
+function* bubble(a, st) {
+  for (let end = a.length - 1; end > 0; end--) {
+    let swapped = false;
+    for (let i = 0; i < end; i++) {
+      st.cmp++; yield [i, i + 1];
+      if (a[i] > a[i + 1]) { [a[i], a[i + 1]] = [a[i + 1], a[i]]; st.mv++; swapped = true; }
+    }
+    if (!swapped) return;
+  }
+}
+/* Insertion sort: take the next item and swap it left while its left neighbour is bigger. */
+function* insertion(a, st) {
+  for (let i = 1; i < a.length; i++) {
+    for (let j = i; j > 0; j--) {
+      st.cmp++; yield [j - 1, j];
+      if (a[j - 1] > a[j]) { [a[j - 1], a[j]] = [a[j], a[j - 1]]; st.mv++; } else break;
+    }
+  }
+}
+/* Selection sort: find the smallest of the rest, swap it to the front of the rest. */
+function* selection(a, st) {
+  for (let i = 0; i < a.length - 1; i++) {
+    let m = i;
+    for (let j = i + 1; j < a.length; j++) { st.cmp++; yield [m, j]; if (a[j] < a[m]) m = j; }
+    if (m !== i) { [a[i], a[m]] = [a[m], a[i]]; st.mv++; }
+  }
+}
+/* Merge sort (top-down): sort each half, then merge by comparing the two front items.
+   Drawn in place: when the right front item wins, the rest of the left half slides one
+   place right so both fronts stay visible. The comparisons are exactly those of the usual
+   merge; st.mv counts its writes (one per item placed). */
+function* merge(a, st) {
+  function* ms(lo, hi) {
+    if (hi <= lo) return;
+    const mid = (lo + hi) >> 1;
+    yield* ms(lo, mid);
+    yield* ms(mid + 1, hi);
+    let i = lo, m = mid, j = mid + 1;
+    while (i <= m && j <= hi) {
+      st.cmp++; yield [i, j];
+      if (a[j] < a[i]) { const v = a[j]; for (let t = j; t > i; t--) a[t] = a[t - 1]; a[i] = v; m++; j++; }
+      i++; st.mv++;
+    }
+    st.mv += (m - i + 1) + (hi - j + 1);
+  }
+  yield* ms(0, a.length - 1);
+}
+const SORTS = { bubble, insertion, selection, merge };
+const NAMES = ["bubble", "insertion", "selection", "merge"];
+/* Run one sort to the end on a copy; returns { cmp, mv, out }. */
+function count(name, list) {
+  const a = list.slice(), st = { cmp: 0, mv: 0 };
+  const g = SORTS[name](a, st);
+  while (!g.next().done);
+  return { cmp: st.cmp, mv: st.mv, out: a };
+}
+const isSorted = (a) => a.every((v, i) => i === 0 || a[i - 1] <= v);
+const NS_CHART = [8, 16, 32, 64, 128, 256, 512, 1024];
+const TRIALS = 3;
+/* Measured comparisons for each n (mean of TRIALS seeded lists; sorted/reversed need one). */
+function measure(kind) {
+  const tr = kind === "random" || kind === "nearly" ? TRIALS : 1;
+  const res = {};
+  NAMES.forEach((s) => (res[s] = []));
+  for (const n of NS_CHART) {
+    const sum = { bubble: 0, insertion: 0, selection: 0, merge: 0 };
+    for (let t = 0; t < tr; t++) {
+      const list = makeList(n, 1000 + 7919 * t + n, kind);
+      for (const s of NAMES) sum[s] += count(s, list).cmp;
+    }
+    for (const s of NAMES) res[s].push(Math.round(sum[s] / tr));
+  }
+  return res;
+}
+/* Fewest comparisons any method can promise for n items: ⌈log₂ n!⌉. */
+function lowerBound(n) { let s = 0; for (let k = 2; k <= n; k++) s += Math.log2(k); return Math.ceil(s - 1e-9); }
+const refSq = (n) => (n * n) / 2;
+const refNlog = (n) => n * Math.log2(n);
+/* Nice linear ticks from 0 to ≥ max. */
+function niceTicks(max, want) {
+  if (!(max > 0)) return [0, 1];
+  const raw = max / want, p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * p).find((s) => s >= raw);
+  const out = [];
+  for (let v = 0; v < max + step * 0.999; v += step) out.push(v);
+  return out;
+}
+if (typeof module !== "undefined") module.exports = { mulberry32, makeList, SORTS, NAMES, count, isSorted, measure, lowerBound, refSq, refNlog, niceTicks, NS_CHART };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "The sorting race", eyebrow: "Computing · Stage 3",
+    h1: "Same sorted list, very different amounts of work",
+    intro: "Sort some cards yourself, then race four classic sorting methods on the same list and count how many comparisons each one needs.",
+    reset: "Reset", s1: "Guess", s2: "Race", s3: "Rule",
+    k1: "Predict first", t1: "Sort 8 cards by comparing two at a time",
+    b1: "Each card hides a number. Tap two cards to compare them: if they are in the wrong order, they swap, so the smaller one is on the left. Keep going until the page says the row is sorted. Tip: compare neighbours from left to right, and repeat.",
+    k2: "Hands on", t2: "Four methods, one list",
+    b2: "All four lanes start from the same list. Each tick, every method makes one comparison; the yellow bars are the two being compared. Try the already sorted and the reversed list too.",
+    k3: "The rule", t3: "Simple sorts grow like n², merge sort like n·log₂ n",
+    b3: "Each dot is measured: the page really ran every sort (mean of 3 random lists). Dashed lines are the formulas n²/2 and n·log₂ n. Tap a column or use ← / → to read the numbers.",
+    q: "Bubble sort and merge sort both sort 100 items correctly. Which one needs fewer comparisons?",
+    oB: "Bubble sort", oM: "Merge sort", oS: "About the same: they both get it right",
+    right: "Yes. Merge sort needs far fewer.", wrong: "Both are right, but the work is not the same.",
+    pNums: "On a random list of 100: bubble sort {b} comparisons, merge sort {m}. That is {x} times as many. See it in step 2.",
+    deckAria: "Eight cards to sort", smallEnd: "← smallest", bigEnd: "biggest →",
+    cmpCount: "Comparisons:", deal: "New deal",
+    pickTwo: "Card {c} picked. Now tap another card.",
+    kept: "{l} < {r}: already in order, nothing moves.", swapped: "{l} > {r}: swapped, the smaller one goes left.",
+    sortedMsg: "Sorted, with {k} comparisons!",
+    cardAria: "Card {c}, position {p}", cardAriaV: "Card {c}, value {v}, position {p}",
+    thSort: "method", thCmp: "comparisons",
+    you: "you", bubble: "Bubble sort", insertion: "Insertion sort", selection: "Selection sort", merge: "Merge sort",
+    sh_bubble: "bubble", sh_insertion: "insertion", sh_selection: "selection", sh_merge: "merge",
+    lbNote: "No method can promise fewer than {lb} comparisons for 8 cards: there are 8! = {f} possible orders, and one comparison can at best split them in half.",
+    listLbl: "List:", lRandom: "New random", lSorted: "Already sorted", lReversed: "Reversed", lNearly: "Nearly sorted",
+    listNo: "list #{s}", nLbl: "Items n",
+    raceAria: "Four bar charts, one per sorting method. Enter plays or pauses, space does one step.",
+    play: "▶ Play", pause: "❚❚ Pause", stepBtn: "Step", finish: "Finish", restart: "⟲ Restart",
+    spLbl: "Speed", perSec: "{v}/s",
+    cmpL: "comparisons", swL: "swaps", wrL: "writes", done: "done #{r}",
+    raceDone: "All sorted! Fewest comparisons: {best} ({bc}). Most: {worst} ({wc}), {x} times as many.",
+    raceRun: "Tick {t}: every unfinished method has made {t} comparisons.",
+    hSorted: "Already sorted: bubble and insertion check each neighbour pair once ({n1}) and stop. Selection still compares everything.",
+    hReversed: "Reversed is the worst case for bubble and insertion: every comparison leads to a swap.",
+    hNearly: "Nearly sorted: insertion sort barely moves anything, so it beats even merge sort here.",
+    hRandom: "Random list: merge sort finishes long before the other three.", hSmall: "With so few items the difference is small. Make n bigger and race again.",
+    chartAria: "Line chart of comparisons against list size for four sorting methods",
+    kindLbl: "Lists:", kRandom: "random", kNearly: "nearly sorted", kReversed: "reversed",
+    scaleLbl: "Up axis:", lin: "plain", log: "log",
+    axN: "items n", axC: "comparisons",
+    bigRule: "n = {n}: {an} {b} vs {bn} {m}, {x}×",
+    atN: "At n = {n}, bubble sort makes {x} times as many comparisons as merge sort. Doubling n roughly quadruples the simple sorts' work but only a little more than doubles merge sort's.",
+    atNearly: "On nearly sorted lists insertion sort needs only about n comparisons ({i} for n = {n}): fewer than merge sort ({m}). Bubble sort does well too ({b}), because every item is at most a step or two from its place.",
+    atRev: "Reversed lists: bubble, insertion and selection all make exactly n(n−1)/2 = {s} comparisons for n = {n}.",
+    keys1: "Keyboard: ← / → move between cards, Enter or space picks one.",
+    keys2: "Keyboard: click the race, then Enter plays or pauses and space does one step.",
+    keys3: "Keyboard: click the chart, then ← / → choose n.",
+    resultTitle: "What we found", resultMain: "simple sorts grow like n², merge sort like n · log₂ n",
+    resultNote: "Every method gave the same sorted list. For 8 items the difference is small; for 1,000 items merge sort does dozens of times less work, and the gap keeps growing. A right answer is the minimum; how it scales decides whether a method is usable.",
+    explainK: "Explain it",
+    explainQ: "A friend says “bubble sort works, so it’s as good as any other.” Use the numbers for 1,000 items to explain why a programmer would still pick merge sort, and say when insertion sort is the smart choice.",
+    homeK: "Try at home",
+    homeQ: "Shuffle 8 playing cards face down. Sort them twice: once by comparing neighbours (bubble sort), once by sorting each half and then merging the two piles. Count the comparisons each time, with someone keeping a tally.",
+    foot: "Sorts as in Knuth, The Art of Computer Programming, Vol. 3 (Sorting and Searching). Bubble sort makes passes that get one shorter each time and stops after a pass with no swap; insertion sort swaps the new item left; selection sort swaps the smallest of the rest to the front; merge sort is top-down. A comparison is one look at two items. Every count on this page comes from running the code: lists are seeded shuffles of 1…n (mulberry32 generator), the chart averages 3 lists per n. Merge sort is drawn sliding the left half over; its write count is that of the usual version with a spare list. Lower bound ⌈log₂ n!⌉. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "排序比赛", eyebrow: "信息科技 · 阶段 3",
+    h1: "排出同样的结果，工作量可以差很多",
+    intro: "先亲手排几张牌，再让四种经典排序方法在同一串数上比赛，数一数各自比较了多少次。",
+    reset: "重置", s1: "先猜", s2: "比赛", s3: "规律",
+    k1: "先猜一猜", t1: "一次比两张，把 8 张牌排好",
+    b1: "每张牌背后藏着一个数。点两张牌比较：顺序反了就交换，小的到左边。一直做到页面说排好了为止。提示：从左到右比较相邻的两张，再来一遍。",
+    k2: "动手", t2: "四种方法，同一串数",
+    b2: "四条跑道从同一串数出发。每走一拍，每种方法比较一次；黄色的两根柱子就是正在比的两个。也试试「已经排好」和「倒序」。",
+    k3: "规律", t3: "简单排序按 n² 增长，归并排序按 n·log₂ n 增长",
+    b3: "每个点都是实测的：页面真的把每种排序跑了一遍（3 串随机数取平均）。虚线是公式 n²/2 和 n·log₂ n。点一列或按 ← / → 看具体数。",
+    q: "冒泡排序和归并排序都能把 100 个数排对。哪一种比较的次数更少？",
+    oB: "冒泡排序", oM: "归并排序", oS: "差不多：结果都对",
+    right: "对，归并排序少得多。", wrong: "结果都对，可工作量不一样。",
+    pNums: "一串 100 个随机数：冒泡排序比较 {b} 次，归并排序 {m} 次，是它的 {x} 倍。第 2 步亲眼看看。",
+    deckAria: "要排序的八张牌", smallEnd: "← 最小", bigEnd: "最大 →",
+    cmpCount: "比较次数：", deal: "重新发牌",
+    pickTwo: "选了 {c}。再点另一张。",
+    kept: "{l} < {r}：顺序对，不动。", swapped: "{l} > {r}：交换，小的到左边。",
+    sortedMsg: "排好了，比较了 {k} 次！",
+    cardAria: "牌 {c}，第 {p} 位", cardAriaV: "牌 {c}，数值 {v}，第 {p} 位",
+    thSort: "方法", thCmp: "比较",
+    you: "你", bubble: "冒泡排序", insertion: "插入排序", selection: "选择排序", merge: "归并排序",
+    sh_bubble: "冒泡", sh_insertion: "插入", sh_selection: "选择", sh_merge: "归并",
+    lbNote: "8 张牌，任何方法都不能保证少于 {lb} 次比较：8 张牌有 8! = {f} 种顺序，每比较一次最多排除一半。",
+    listLbl: "数列：", lRandom: "换一串随机数", lSorted: "已经排好", lReversed: "倒序", lNearly: "差不多排好",
+    listNo: "第 {s} 串", nLbl: "个数 n",
+    raceAria: "四个柱状图，每种排序方法一个。回车开始或暂停，空格走一步。",
+    play: "▶ 开始", pause: "❚❚ 暂停", stepBtn: "走一步", finish: "直接跑完", restart: "⟲ 从头来",
+    spLbl: "速度", perSec: "{v} 次/秒",
+    cmpL: "比较", swL: "交换", wrL: "写入", done: "第 {r} 名",
+    raceDone: "全部排好！比较最少：{best}（{bc} 次）。最多：{worst}（{wc} 次），是它的 {x} 倍。",
+    raceRun: "第 {t} 拍：还没完成的方法都已比较了 {t} 次。",
+    hSorted: "已经排好时，冒泡和插入把每对相邻的数各看一次（{n1} 次）就停了。选择排序还是要全部比一遍。",
+    hReversed: "倒序是冒泡和插入最糟的情况：每次比较都要交换。",
+    hNearly: "差不多排好时，插入排序几乎不用挪，这里连归并排序都赢了。",
+    hRandom: "随机数列：归并排序远远领先另外三种。", hSmall: "数这么少，差别不大。把 n 调大再比一次。",
+    chartAria: "四种排序方法的比较次数随数列长度变化的折线图",
+    kindLbl: "数列：", kRandom: "随机", kNearly: "差不多排好", kReversed: "倒序",
+    scaleLbl: "纵轴：", lin: "普通", log: "对数",
+    axN: "个数 n", axC: "比较次数",
+    bigRule: "n = {n}：{an} {b} 对 {bn} {m}，{x} 倍",
+    atN: "n = {n} 时，冒泡排序的比较次数是归并排序的 {x} 倍。n 翻一倍，简单排序的工作量差不多变成 4 倍，归并排序只比 2 倍多一点。",
+    atNearly: "差不多排好的数列上，插入排序只要大约 n 次比较（n = {n} 时 {i} 次），比归并排序（{m} 次）还少。冒泡排序这里也不错（{b} 次），因为每个数离自己的位置最多一两格。",
+    atRev: "倒序数列：冒泡、插入、选择三种都正好比较 n(n−1)/2 = {s} 次（n = {n}）。",
+    keys1: "键盘：← / → 在牌之间移动，回车或空格选中。",
+    keys2: "键盘：先点一下比赛区，回车开始或暂停，空格走一步。",
+    keys3: "键盘：先点一下图，← / → 选 n。",
+    resultTitle: "我们发现", resultMain: "简单排序按 n² 增长，归并排序按 n · log₂ n 增长",
+    resultNote: "每种方法排出的结果一模一样。8 个数时差别不大；1000 个数时归并排序的工作量只有几十分之一，而且差距越拉越大。结果对只是及格；规模变大时还快不快，才决定方法能不能用。",
+    explainK: "说一说",
+    explainQ: "朋友说：「冒泡排序能排对，所以跟别的方法一样好。」用 1000 个数的比较次数跟他解释，程序员为什么还是会选归并排序；再说说什么时候插入排序最划算。",
+    homeK: "家里做一做",
+    homeQ: "把 8 张扑克牌洗乱、背面朝上。排两次：一次只比较相邻的两张（冒泡排序），一次先把两半各自排好、再把两叠合并。请家人记下每次比较了多少回。",
+    foot: "排序方法依照 Knuth《计算机程序设计艺术》第 3 卷（排序与查找）。冒泡排序每遍短一格，某一遍没有交换就停；插入排序把新来的数往左换；选择排序把剩下最小的换到前面；归并排序自顶向下。一次比较 = 看一次两个数谁大。本页所有次数都是代码实际运行数出来的：数列是 1…n 用种子打乱（mulberry32 随机数），图上每个 n 取 3 串的平均。归并排序画成左半边整体右移的样子，写入次数按常见的「借一个空数组」版本计。下界 ⌈log₂ n!⌉。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const LOC = P.lang === "zh" ? "zh-CN" : "en-US";
+const nf = (x) => (Number.isFinite(x) ? Math.round(x).toLocaleString(LOC) : "—");
+const ratio = (a, b) => (b > 0 ? Play.fmt(a / b, a / b >= 10 ? 0 : 1) : "—");
+const LETTERS = "ABCDEFGH";
+let step = 0;
+
+/* ================= step 1: cards ================= */
+let deck = [], dealSeed = 1, cmpK = 0, sel = -1, just = [], solved = false, dealList = [];
+function deal(seed) {
+  dealSeed = seed;
+  const r = mulberry32(seed * 101 + 7), vals = new Set();
+  while (vals.size < 8) vals.add(1 + Math.floor(r() * 99));
+  const vs = [...vals];
+  deck = vs.map((v, i) => ({ c: LETTERS[i], v }));
+  dealList = vs.slice();
+  cmpK = 0; sel = -1; just = []; solved = isSorted(vs);
+  if (solved) return deal(seed + 1);   // never deal an already sorted row
+  setMsg($("cMsg"), "");
+  renderDeck();
+  if (step === 0) renderCardTable();
+}
+function renderDeck() {
+  const box = $("deck"), focusIdx = [...box.children].indexOf(document.activeElement);
+  box.innerHTML = "";
+  deck.forEach((d, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "card8";
+    b.classList.toggle("sel", i === sel);
+    b.classList.toggle("just", just.includes(i));
+    b.classList.toggle("won", solved);
+    b.innerHTML = '<span class="lt"></span><span class="vv"></span>';
+    b.firstChild.textContent = d.c;
+    b.lastChild.textContent = solved ? d.v : "?";
+    b.setAttribute("aria-label", P.t(solved ? "cardAriaV" : "cardAria", { c: d.c, v: d.v, p: i + 1 }));
+    b.setAttribute("aria-pressed", i === sel ? "true" : "false");
+    b.tabIndex = i === (focusIdx >= 0 ? focusIdx : 0) ? 0 : -1;
+    b.addEventListener("click", () => pickCard(i));
+    b.addEventListener("keydown", (e) => {
+      const k = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!k) return;
+      const j = Play.clamp(i + k, 0, 7);
+      [...box.children].forEach((x, m) => (x.tabIndex = m === j ? 0 : -1));
+      box.children[j].focus();
+      e.preventDefault();
+    });
+    box.appendChild(b);
+  });
+  if (focusIdx >= 0) box.children[focusIdx].focus();
+  $("cCount").textContent = cmpK;
+}
+function pickCard(i) {
+  if (solved) return;
+  if (sel < 0) { sel = i; just = []; setMsg($("cMsg"), P.t("pickTwo", { c: deck[i].c })); renderDeck(); return; }
+  if (sel === i) { sel = -1; setMsg($("cMsg"), ""); renderDeck(); return; }
+  const lo = Math.min(sel, i), hi = Math.max(sel, i);
+  cmpK++;
+  const L = deck[lo], R = deck[hi];
+  if (L.v > R.v) { deck[lo] = R; deck[hi] = L; setMsg($("cMsg"), P.t("swapped", { l: L.c, r: R.c })); }
+  else setMsg($("cMsg"), P.t("kept", { l: L.c, r: R.c }));
+  sel = -1; just = [lo, hi];
+  solved = isSorted(deck.map((d) => d.v));
+  if (solved) { just = []; setMsg($("cMsg"), P.t("sortedMsg", { k: cmpK }), "ok"); }
+  renderDeck();
+  renderCardTable();
+}
+function renderCardTable() {
+  const t = $("table");
+  t.innerHTML = "";
+  if (!solved) { $("big").textContent = ""; return; }
+  const rows = [[P.t("you"), cmpK, null]].concat(NAMES.map((s) => { const r = count(s, dealList); return [P.t(s), r.cmp, r.mv]; }));
+  addRow(t, [P.t("thSort"), P.t("thCmp")], "th");
+  rows.forEach((r, k) => addRow(t, [r[0], nf(r[1])], "td", k === 0));
+  $("big").textContent = "";
+  const p = document.createElement("p"); p.className = "note"; p.textContent = P.t("lbNote", { lb: lowerBound(8), f: nf([2, 3, 4, 5, 6, 7, 8].reduce((x, y) => x * y, 1)) });
+  const tr = document.createElement("tr"), td = document.createElement("td"); td.colSpan = 2; td.style.whiteSpace = "normal"; td.style.textAlign = "left"; td.appendChild(p); tr.appendChild(td); t.appendChild(tr);
+}
+function addRow(t, cells, tag, on) {
+  const tr = document.createElement("tr");
+  if (on) tr.className = "on";
+  cells.forEach((c) => { const x = document.createElement(tag); x.textContent = c; tr.appendChild(x); });
+  t.appendChild(tr);
+  return tr;
+}
+function setMsg(el, t, cls) { el.className = "msg" + (cls ? " " + cls : ""); Play.live(el, t); }
+
+/* ================= step 2: race ================= */
+let raceSeed = 1, raceKind = "random", raceN = 32, base = [], lanes = [], tick = 0, finCount = 0;
+let playing = false, raf = 0, lastT = 0, acc = 0;
+const raceBox = $("race");
+NAMES.forEach((s) => {
+  const lane = document.createElement("div");
+  lane.className = "lane k-" + s;
+  lane.innerHTML = '<div class="lh"><span class="dot k"></span><b></b><span class="tag"></span></div><svg preserveAspectRatio="none" aria-hidden="true"></svg><div class="lc"></div>';
+  lane.querySelector("b").textContent = P.t(s);
+  raceBox.appendChild(lane);
+  lanes.push({ s, el: lane, svg: lane.querySelector("svg"), tag: lane.querySelector(".tag"), lc: lane.querySelector(".lc"), rects: [] });
+});
+function speed() { return Math.round(Math.pow(10, 0.3 + (+$("spIn").value / 100) * 2.4)); }  // 2 … 500 comparisons a second
+function newRace() {
+  stop();
+  raceN = +$("nIn").value;
+  base = makeList(raceN, raceSeed, raceKind);
+  tick = 0; finCount = 0; acc = 0;
+  lanes.forEach((L) => {
+    L.a = base.slice(); L.st = { cmp: 0, mv: 0 }; L.g = SORTS[L.s](L.a, L.st); L.cur = null; L.done = false; L.rank = 0;
+    L.svg.setAttribute("viewBox", `0 0 ${raceN * 10} 100`);
+    L.svg.innerHTML = ""; L.rects = [];
+    for (let i = 0; i < raceN; i++) L.rects.push(Play.svg("rect", { class: "bar", x: i * 10 + 1, width: 8 }, L.svg));
+  });
+  $("nVal").textContent = raceN;
+  setMsg($("rMsg"), "");
+  renderLists();
+  renderRace();
+}
+function advance() {
+  if (finCount === lanes.length) return false;
+  tick++;
+  let finishedNow = [];
+  lanes.forEach((L) => {
+    if (L.done) return;
+    const r = L.g.next();
+    if (r.done) { L.done = true; L.cur = null; finishedNow.push(L); } else L.cur = r.value;
+  });
+  // Lanes that finish on the same tick made the same number of comparisons, so they share a rank.
+  if (finishedNow.length) { const r = finCount + 1; finishedNow.forEach((L) => (L.rank = r)); finCount += finishedNow.length; }
+  return true;
+}
+function renderRace() {
+  lanes.forEach((L) => {
+    const c = L.cur || [];
+    L.rects.forEach((rc, i) => {
+      const h = (L.a[i] / raceN) * 96;
+      rc.setAttribute("y", (100 - h).toFixed(2)); rc.setAttribute("height", h.toFixed(2));
+      rc.classList.toggle("cmp", i === c[0] || i === c[1]);
+    });
+    L.el.classList.toggle("fin", L.done);
+    L.tag.textContent = L.done ? "✓ " + P.t("done", { r: L.rank }) : "";
+    L.lc.innerHTML = "";
+    const b1 = document.createElement("b"); b1.textContent = nf(L.st.cmp);
+    const b2 = document.createElement("b"); b2.textContent = nf(L.st.mv);
+    L.lc.append(b1, " " + P.t("cmpL") + " · ", b2, " " + P.t(L.s === "merge" ? "wrL" : "swL"));
+  });
+  if (finCount === lanes.length) {
+    const by = lanes.slice().sort((x, y) => x.st.cmp - y.st.cmp), best = by[0], worst = by[by.length - 1];
+    let hint = { sorted: "hSorted", reversed: "hReversed", nearly: "hNearly", random: "hRandom" }[raceKind];
+    if (raceKind === "random" && best.s !== "merge") hint = "hSmall";
+    setMsg($("rMsg"), P.t("raceDone", { best: P.t(best.s), bc: nf(best.st.cmp), worst: P.t(worst.s), wc: nf(worst.st.cmp), x: ratio(worst.st.cmp, best.st.cmp) }) + " " + P.t(hint, { n1: nf(raceN - 1) }), "ok");
+  } else if (tick > 0 && !playing) setMsg($("rMsg"), P.t("raceRun", { t: nf(tick) }));
+  $("finish").disabled = $("stepBtn").disabled = finCount === lanes.length;
+}
+function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; playing = false; $("play").textContent = P.t("play"); }
+function play() {
+  if (playing) { stop(); renderRace(); return; }
+  if (finCount === lanes.length) newRace();
+  playing = true; $("play").textContent = P.t("pause"); lastT = performance.now(); acc = 0;
+  const frame = (now) => {
+    acc += ((now - lastT) / 1000) * speed(); lastT = now;
+    let k = Math.floor(acc); acc -= k;
+    while (k-- > 0) if (!advance()) break;
+    renderRace();
+    if (finCount === lanes.length) { stop(); renderRace(); return; }
+    raf = requestAnimationFrame(frame);
+  };
+  raf = requestAnimationFrame(frame);
+}
+function stepRace() { stop(); advance(); renderRace(); }
+function finishRace() { stop(); while (advance()); renderRace(); }
+const LISTS = [["lRandom", "random"], ["lSorted", "sorted"], ["lReversed", "reversed"], ["lNearly", "nearly"]];
+const listBtns = LISTS.map(([k, kind]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small preset"; b.textContent = P.t(k);
+  b.addEventListener("click", () => { if (kind === "random" || kind === "nearly") raceSeed = 1 + Math.floor(Math.random() * 9999); raceKind = kind; newRace(); });
+  $("lists").appendChild(b);
+  return [b, kind];
+});
+const seedTag = document.createElement("span"); seedTag.className = "lbl"; $("lists").appendChild(seedTag);
+function renderLists() {
+  listBtns.forEach(([b, kind]) => { b.classList.toggle("on", kind === raceKind); b.setAttribute("aria-pressed", kind === raceKind ? "true" : "false"); });
+  seedTag.textContent = raceKind === "random" || raceKind === "nearly" ? P.t("listNo", { s: raceSeed }) : "";
+}
+$("nIn").addEventListener("input", newRace);
+$("spIn").addEventListener("input", () => ($("spVal").textContent = P.t("perSec", { v: speed() })));
+$("play").addEventListener("click", play);
+$("stepBtn").addEventListener("click", stepRace);
+$("finish").addEventListener("click", finishRace);
+$("restart").addEventListener("click", newRace);
+raceBox.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") play(); else if (e.key === " ") stepRace(); else return;
+  e.preventDefault();
+});
+
+/* ================= step 3: chart ================= */
+const chart = $("chart"), cache = {};
+let chartKind = "random", logY = false, selN = NS_CHART.length - 1;
+function data() { return cache[chartKind] || (cache[chartKind] = measure(chartKind)); }
+function renderChart() {
+  const d = data();
+  const W = Math.max(300, Math.round(chart.getBoundingClientRect().width) || 600), H = Math.max(260, Math.round(chart.getBoundingClientRect().height) || 340);
+  chart.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  chart.innerHTML = "";
+  const L = W < 420 ? 52 : 70, R = 16, T = 34, B = 40;
+  const n0 = Math.log2(NS_CHART[0]), n1 = Math.log2(NS_CHART[NS_CHART.length - 1]);
+  const X = (n) => L + ((Math.log2(n) - n0) / (n1 - n0)) * (W - L - R);
+  let maxV = refSq(1024);
+  NAMES.forEach((s) => d[s].forEach((v) => (maxV = Math.max(maxV, v))));
+  const lo = 4, hi = Math.pow(10, Math.ceil(Math.log10(maxV)));
+  const ticks = logY ? [10, 100, 1e3, 1e4, 1e5, 1e6].filter((v) => v <= hi) : niceTicks(maxV, W < 420 ? 4 : 5);
+  const top = logY ? hi : ticks[ticks.length - 1];
+  const Y = logY ? (v) => H - B - ((Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(top) - Math.log10(lo))) * (H - B - T)
+                 : (v) => H - B - (v / top) * (H - B - T);
+  const short = (v) => P.lang === "zh" && v >= 1e4 ? v / 1e4 + "万" : v >= 1e6 ? v / 1e6 + "M" : v >= 1e3 ? v / 1e3 + "k" : String(v);
+  ticks.forEach((v) => {
+    Play.svg("line", { class: "ax", x1: L, x2: W - R, y1: Y(v), y2: Y(v) }, chart);
+    Play.svg("text", { class: "axt", x: L - 6, y: Y(v) + 4, "text-anchor": "end" }, chart).textContent = short(v);
+  });
+  NS_CHART.forEach((n, k) => {
+    const show = W >= 420 || k % 2 === 0 || n === 1024;
+    if (show) Play.svg("text", { class: "axt", x: X(n), y: H - B + 18, "text-anchor": "middle" }, chart).textContent = n;
+  });
+  Play.svg("text", { class: "axt", x: W - R, y: H - 4, "text-anchor": "end" }, chart).textContent = P.t("axN");
+  Play.svg("text", { class: "axt", x: 4, y: 16 }, chart).textContent = P.t("axC");
+  // reference curves
+  const curve = (f) => { const pts = []; for (let t = n0; t <= n1 + 1e-9; t += 0.05) { const n = Math.pow(2, t); pts.push(X(n).toFixed(1) + "," + Y(f(n)).toFixed(1)); } return pts.join(" "); };
+  Play.svg("polyline", { class: "ref", points: curve(refSq) }, chart);
+  Play.svg("polyline", { class: "ref", points: curve(refNlog) }, chart);
+  const lab = (txt, n, f, dy) => Play.svg("text", { class: "reflab", x: X(n) - 4, y: Y(f(n)) + dy, "text-anchor": "end" }, chart).textContent = txt;
+  lab("n²/2", logY ? 362 : 724, refSq, logY ? -10 : 0);
+  lab("n·log₂n", logY ? 362 : 1024, refNlog, logY ? 20 : -8);
+  // guide at the selected n
+  const sn = NS_CHART[selN];
+  Play.svg("line", { class: "guide", x1: X(sn), x2: X(sn), y1: T, y2: H - B }, chart);
+  NAMES.forEach((s) => {
+    const g = Play.svg("g", { class: "k-" + s }, chart);
+    Play.svg("polyline", { class: "ser", points: NS_CHART.map((n, k) => X(n).toFixed(1) + "," + Y(d[s][k]).toFixed(1)).join(" ") }, g);
+    NS_CHART.forEach((n, k) => Play.svg("circle", { class: "pt", cx: X(n), cy: Y(d[s][k]), r: k === selN ? 5.5 : 3.5 }, g));
+  });
+  chart.dataset.x = JSON.stringify(NS_CHART.map((n) => X(n) / W));
+  renderRule();
+}
+function renderRule() {
+  const d = data(), n = NS_CHART[selN], k = selN;
+  const [sa, sb] = chartKind === "nearly" ? ["merge", "insertion"] : ["bubble", "merge"];
+  $("big").textContent = P.t("bigRule", { n, an: P.t("sh_" + sa), bn: P.t("sh_" + sb), b: nf(d[sa][k]), m: nf(d[sb][k]), x: ratio(d[sa][k], d[sb][k]) });
+  const t = $("table");
+  t.innerHTML = "";
+  addRow(t, ["n"].concat(NAMES.map((s) => P.t("sh_" + s))), "th");
+  NS_CHART.forEach((nn, j) => {
+    const tr = addRow(t, [nn].concat(NAMES.map((s) => nf(d[s][j]))), "td", j === selN);
+    tr.dataset.n = j;
+    tr.addEventListener("click", () => { selN = j; renderChart(); });
+  });
+  let body = P.t("b3") + " " + P.t("atN", { n, x: ratio(d.bubble[k], d.merge[k]) });
+  if (chartKind === "nearly") body = P.t("b3") + " " + P.t("atNearly", { n, i: nf(d.insertion[k]), m: nf(d.merge[k]), b: nf(d.bubble[k]) });
+  if (chartKind === "reversed") body = P.t("b3") + " " + P.t("atRev", { n, s: nf((n * (n - 1)) / 2) });
+  $("stepBody").textContent = body;
+}
+function chartPick(e) {
+  const r = chart.getBoundingClientRect(), xs = JSON.parse(chart.dataset.x || "[]");
+  const src = e.touches ? e.touches[0] : e, f = (src.clientX - r.left) / r.width;
+  let best = 0;
+  xs.forEach((x, k) => { if (Math.abs(x - f) < Math.abs(xs[best] - f)) best = k; });
+  if (best !== selN) { selN = best; renderChart(); }
+}
+chart.addEventListener("pointerdown", chartPick);
+chart.addEventListener("pointermove", (e) => { if (e.buttons) chartPick(e); });
+chart.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  selN = Play.clamp(selN + (e.key === "ArrowRight" ? 1 : -1), 0, NS_CHART.length - 1);
+  renderChart(); e.preventDefault();
+});
+const KINDS = [["kRandom", "random"], ["kNearly", "nearly"], ["kReversed", "reversed"]];
+const kindBtns = KINDS.map(([k, kind]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "small preset"; b.textContent = P.t(k);
+  b.addEventListener("click", () => { chartKind = kind; renderKinds(); renderChart(); });
+  $("kinds").appendChild(b);
+  return [b, kind];
+});
+function renderKinds() {
+  kindBtns.forEach(([b, kind]) => { b.classList.toggle("on", kind === chartKind); b.setAttribute("aria-pressed", kind === chartKind ? "true" : "false"); });
+  $("sLin").classList.toggle("on", !logY); $("sLog").classList.toggle("on", logY);
+  $("sLin").setAttribute("aria-pressed", String(!logY)); $("sLog").setAttribute("aria-pressed", String(logY));
+}
+$("sLin").addEventListener("click", () => { logY = false; renderKinds(); renderChart(); });
+$("sLog").addEventListener("click", () => { logY = true; renderKinds(); renderChart(); });
+NAMES.forEach((s) => {
+  const sp = document.createElement("span"); sp.className = "k-" + s;
+  sp.innerHTML = '<span class="dot k"></span>'; sp.appendChild(document.createTextNode(P.t(s)));
+  $("legend").appendChild(sp);
+});
+const refL = document.createElement("span"); refL.innerHTML = '<span class="dash"></span>n²/2, n·log₂n'; $("legend").appendChild(refL);
+if ("ResizeObserver" in window) new ResizeObserver(() => { if (step === 2) renderChart(); }).observe(chart);
+
+/* ================= steps ================= */
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("oB") }, { label: P.t("oM"), right: true }, { label: P.t("oS") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => {
+  const list = makeList(100, 100, "random"), b = count("bubble", list).cmp, m = count("merge", list).cmp;
+  setMsg($("pNums"), P.t("pNums", { b: nf(b), m: nf(m), x: ratio(b, m) }));
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("keys").textContent = P.t("keys" + k);
+  $("predict").hidden = $("pNums").hidden = i !== 0;
+  $("vCards").hidden = i !== 0; $("vRace").hidden = i !== 1; $("vChart").hidden = i !== 2;
+  if (i !== 1) stop();
+  $("big").textContent = ""; $("table").innerHTML = "";
+  if (i === 0) renderCardTable();
+  if (i === 1) renderRace();
+  if (i === 2) { renderKinds(); renderChart(); }
+});
+$("deal").addEventListener("click", () => deal(dealSeed + 1));
+$("reset").addEventListener("click", () => {
+  stop(); pr.reset(); setMsg($("pNums"), "");
+  raceSeed = 1; raceKind = "random"; $("nIn").value = 32; $("spIn").value = 45;
+  $("spVal").textContent = P.t("perSec", { v: speed() });
+  chartKind = "random"; logY = false; selN = NS_CHART.length - 1;
+  deal(1); newRace(); st.go(0);
+});
+$("spVal").textContent = P.t("perSec", { v: speed() });
+deal(1);
+newRace();
+</script>
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read a place from its climate graph</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .visual { container-type: inline-size; }
+  .panes { display: grid; grid-template-columns: 1fr 1fr; }
+  .panes.one { grid-template-columns: 1fr; }
+  .panes.one .pane { max-width: 460px; margin: 0 auto; width: 100%; }
+  .pane { min-width: 0; padding: 4px 0 0; }
+  .pane + .pane { border-left: 1px solid var(--line); }
+  .pane svg { width: 100%; height: auto; display: block; touch-action: none; cursor: crosshair; }
+  .lb { font-size: 13px; fill: var(--muted); }
+  .lbf { font-size: 13px; fill: var(--fg); font-weight: 650; }
+  .ttl { font-size: 14px; fill: var(--fg); font-weight: 700; }
+  .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+  .picks { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px 10px 12px; justify-content: center; }
+  .picks button { font-size: 13px; padding: 3px 9px; }
+  .result .math { white-space: normal; font-size: 20px; }
+  table.cmp { border-collapse: collapse; width: 100%; font-size: 14px; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+  table.cmp th, table.cmp td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.cmp th { color: var(--muted); font-weight: 600; }
+  table.cmp thead th { color: var(--fg); }
+  .types { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+  .types button.right { background: var(--a); border-color: var(--a); color: var(--surface); }
+  .types button.wrong { background: var(--no); border-color: var(--no); color: var(--surface); }
+  .gfb { font-size: 14px; min-height: 1.4em; margin: 0 0 8px; }
+  .gfb strong { color: var(--fg); }
+  .grow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .key { display: grid; gap: 6px; margin: 4px 0 10px; }
+  .key > div { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 14px; }
+  .key > div.hit { border-color: var(--a); box-shadow: inset 4px 0 0 var(--a); }
+  .key b { color: var(--fg); }
+  .key span { color: var(--muted); display: block; }
+  .legend .sw { display: inline-block; width: 12px; height: 10px; margin-right: 5px; vertical-align: 0; border-radius: 2px; }
+  @container (max-width: 640px) {
+    .panes { grid-template-columns: 1fr; }
+    .pane { max-width: 440px; margin: 0 auto; width: 100%; }
+    .pane + .pane { border-left: 0; border-top: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="panes" id="panes">
+        <div class="pane" id="paneA">
+          <svg id="chA" viewBox="0 0 320 236" role="slider" tabindex="0" data-t-aria="chartAria"></svg>
+          <div class="picks" id="pickA"></div>
+        </div>
+        <div class="pane" id="paneB">
+          <svg id="chB" viewBox="0 0 320 236" role="slider" tabindex="0" data-t-aria="chartAria"></svg>
+          <div class="picks" id="pickB"></div>
+        </div>
+      </div>
+      <div class="controls legend">
+        <span><i class="sw" style="background:var(--c);opacity:.75"></i><span data-t="legRain"></span></span>
+        <span><i class="sw" style="background:var(--no);height:3px;vertical-align:3px"></i><span data-t="legTemp"></span></span>
+        <span data-t="legHint"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="game" hidden>
+        <div class="grow"><span id="gProg"></span><span id="gScore"></span></div>
+        <div class="types" id="gTypes"></div>
+        <p class="gfb" id="gFb" aria-live="polite"></p>
+        <button type="button" class="small" id="gNext"></button>
+      </div>
+      <table class="cmp" id="cmp"></table>
+      <p id="why" hidden></p>
+      <div class="key" id="key" hidden></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Read a place from its climate graph", eyebrow: "Geography · Stage 3",
+    h1: "Twelve bars of rain and one temperature line tell you the climate — and what grows there",
+    intro: "Compare real climate graphs, guess the climate type of mystery graphs, then learn the three things to look at.",
+    reset: "Reset", chartAria: "Climate graph. Use the left and right arrow keys, or drag, to read one month.",
+    legRain: "bars: rain per month (mm, right axis)", legTemp: "line: mean temperature (°C, left axis)", legHint: "Drag across a graph or use ← → to read a month.",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Beijing and Lisbon: same latitude, same climate?",
+    b1: "Beijing is at about 40°N and Lisbon at about 39°N, so they get almost the same sunshine through the year. Pick an answer to reveal their graphs.",
+    b1after: "Look at where the bars are tall. Beijing gets most of its rain in July and August; Lisbon is almost dry then and wet in winter. Beijing's winter is below freezing; Lisbon's never is. Try San Francisco (38°N) too: dry summers like Lisbon, but much cooler.",
+    k2: "Hands on", t2: "Guess the climate",
+    b2: "The name is hidden. Read the graph — how much rain in total, how big the temperature swing, which season is wet — and pick its type.",
+    k3: "The rule", t3: "Read three things",
+    b3: "Look at the temperature range, the rain total, and which season is wet. Latitude sets the sunshine, but the sea, the winds and the monsoon decide when the rain comes. Beijing is on the east side of Asia: dry winter winds blow out of Siberia, and the summer monsoon brings wet ocean air. Lisbon is on the west side of Europe: Atlantic winds bring rain in winter, and in summer a high-pressure zone keeps it dry. San Francisco is also on a west coast, but a cold ocean current keeps its summer near {sfJ} °C, against {liJ} °C in Lisbon.",
+    q: "Beijing (40°N) and Lisbon (39°N) are at the same latitude. Do they have the same climate?",
+    o1: "Yes — same latitude, same Sun, same climate", o2: "No — they get their rain in opposite seasons", o3: "Almost — Beijing is just a little wetter",
+    right: "Yes. Same Sun, very different rain. Check the graphs.",
+    wrong: "Many people think so. Look at the graphs: when does each city get its rain?",
+    hidden: "Pick an answer first", mystery: "Mystery graph", deg: "{v}°{h}",
+    months: "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec", ini: "J,F,M,A,M,J,J,A,S,O,N,D",
+    readM: "{m}: {t} °C, {r} mm",
+    cBj: "Beijing", cLi: "Lisbon", cSf: "San Francisco", cSg: "Singapore", cCa: "Cairo", cMo: "Moscow",
+    tyMed: "Mediterranean", tyMon: "Monsoon", tyDes: "Desert", tyEqu: "Equatorial", tyCon: "Continental", tyNone: "None of these",
+    rowTot: "Rain in a year", rowRange: "Temperature range", rowMinMax: "Coldest / hottest", rowWet: "Wettest month", rowDry: "Driest month", rowSeason: "Summer / winter rain", rowType: "Type",
+    vMm: "{v} mm", vC: "{v} °C", vMinMax: "{a} / {b} °C", vMonth: "{m} ({v} mm)", vSeason: "{s} / {w} mm",
+    rDes: "Only {tot} mm of rain a year (under 250 mm), so: desert.",
+    rEqu: "Every month is at least {min} °C, the range is only {rg} °C, and {tot} mm of rain falls: equatorial.",
+    rMed: "Winter brings {w} mm but summer only {s} mm, and winter stays above 0 °C: Mediterranean.",
+    rMon: "Summer brings {s} mm and winter only {w} mm — {x} times as much: monsoon.",
+    rCon: "Coldest month {min} °C, and rain spread through the year ({s} mm in summer, {w} mm in winter): continental.",
+    rNone: "It fits none of these five simple rules.",
+    gProg: "Graph {i} of {n}", gScore: "Right: {r} / {a}", gNext: "Next graph", gAgain: "Play again",
+    gRight: "Right — it's {city}. ", gWrong: "Not quite — it's {city} ({type}). ",
+    keyMed: "Mediterranean", keyMedR: "mild wet winter, dry hot or warm summer (winter rain ≥ 3× summer, winter above 0 °C)", keyMedG: "grows: olives, grapes, citrus, winter wheat",
+    keyMon: "Monsoon", keyMonR: "wet summer, dry winter (summer rain ≥ 10× winter)", keyMonG: "grows: rice where it is warm and wet; wheat and maize around Beijing",
+    keyDes: "Desert", keyDesR: "under 250 mm of rain a year", keyDesG: "grows: little without irrigation; dates, cotton and wheat along rivers like the Nile",
+    keyEqu: "Equatorial", keyEquR: "hot every month (all ≥ 18 °C, tiny range), lots of rain all year", keyEquG: "grows: rainforest; oil palm, rubber, cocoa",
+    keyCon: "Continental", keyConR: "winter below 0 °C, warm summer, rain all year with a summer peak", keyConG: "grows: conifer and mixed forest; wheat, rye, potatoes in a short summer",
+    liveRead: "{city}, {m}: {t} °C and {r} mm of rain.",
+    resultTitle: "What we found", resultMain: "temperature range + rain total + wet season → climate type → what grows",
+    resultNote: "Same latitude, different climates: Beijing gets {bjP}% of its {bjT} mm of rain in June–August, Lisbon only {liP}% of its {liT} mm.",
+    explainK: "Explain it", explainQ: "A friend says Beijing and Lisbon must have the same weather because both are near 40°N. Use the two graphs to explain why you would pack an umbrella for Lisbon in January but for Beijing in July.",
+    homeK: "Try at home", homeQ: "Find your own town's monthly rain and temperature on a weather service's climate page. Sketch its graph: 12 bars and one line on squared paper. Which of the five types is it closest to? What do farmers grow nearby?",
+    foot: "Data: approximate 1991–2020-style climate normals, rounded (temperature to 1 °C, rain to 5 mm, small amounts to 1 mm; Lisbon rain from the IPMA 1991–2020 normal for Lisboa/Gago Coutinho): Beijing 39.9°N, Lisbon 38.7°N, San Francisco (downtown) 37.8°N, Singapore 1.4°N, Cairo 30.1°N, Moscow 55.8°N. Summer = June–August, winter = December–February (all six are in the northern hemisphere). The five rules are a simplified teaching key checked in this order: desert, equatorial, Mediterranean, monsoon, continental — not the full Köppen classification (in Köppen, Lisbon and San Francisco are both Mediterranean: hot-summer Csa and warm-summer Csb). All totals, ranges and types on this page are computed from the monthly values. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "从气候图读出一个地方", eyebrow: "地理 · 阶段 3",
+    h1: "十二根降水柱加一条气温线，就能读出气候——还有那里长什么",
+    intro: "比较真实的气候图，猜一猜神秘气候图是哪种气候，再学会该看哪三样东西。",
+    reset: "重置", chartAria: "气候图。用左右方向键或拖动来读某个月。",
+    legRain: "柱：每月降水（毫米，右轴）", legTemp: "线：月平均气温（°C，左轴）", legHint: "在图上拖动或按 ← → 读某个月。",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "北京和里斯本：同一纬度，气候一样吗？",
+    b1: "北京约在北纬 40°，里斯本约在北纬 39°，一年里得到的阳光几乎一样。先选一个答案，再看它们的气候图。",
+    b1after: "看柱子在哪几个月高。北京的雨大多下在七八月；里斯本那时几乎不下雨，雨下在冬天。北京冬天在 0 °C 以下，里斯本从不。再点旧金山（北纬 38°）：夏天也干，但凉快得多。",
+    k2: "动手", t2: "猜猜是什么气候",
+    b2: "地名藏起来了。读这张图——一年下多少雨、气温相差多大、哪个季节下雨——选出它的气候类型。",
+    k3: "规律", t3: "看三样东西",
+    b3: "看气温年较差、年降水量、哪个季节多雨。纬度决定阳光，但海洋、风向和季风决定雨什么时候来。北京在亚洲东岸：冬季风从西伯利亚吹来，又冷又干；夏季风带来海上的湿空气。里斯本在欧洲西岸：冬天大西洋的西风带来雨，夏天被高压控制而干燥。旧金山也在西岸，但沿岸寒流让它的七月只有约 {sfJ} °C，里斯本是 {liJ} °C。",
+    q: "北京（北纬 40°）和里斯本（北纬 39°）在同一纬度。它们的气候一样吗？",
+    o1: "一样——同一纬度、同样的太阳、同样的气候", o2: "不一样——它们在相反的季节下雨", o3: "差不多——北京只是雨多一点",
+    right: "对。阳光一样，雨却差很多。看看两张图。",
+    wrong: "很多人这样想。看看两张图：每个城市在什么时候下雨？",
+    hidden: "先选一个答案", mystery: "神秘气候图", deg: "{h}纬{v}°",
+    months: "1月,2月,3月,4月,5月,6月,7月,8月,9月,10月,11月,12月", ini: "1,2,3,4,5,6,7,8,9,10,11,12",
+    readM: "{m}：{t} °C，{r} 毫米",
+    cBj: "北京", cLi: "里斯本", cSf: "旧金山", cSg: "新加坡", cCa: "开罗", cMo: "莫斯科",
+    tyMed: "地中海气候", tyMon: "季风气候", tyDes: "沙漠气候", tyEqu: "赤道气候", tyCon: "大陆性气候", tyNone: "都不是",
+    rowTot: "年降水量", rowRange: "气温年较差", rowMinMax: "最冷 / 最热月", rowWet: "最湿的月", rowDry: "最干的月", rowSeason: "夏 / 冬降水", rowType: "类型",
+    vMm: "{v} 毫米", vC: "{v} °C", vMinMax: "{a} / {b} °C", vMonth: "{m}（{v} 毫米）", vSeason: "{s} / {w} 毫米",
+    rDes: "一年只有 {tot} 毫米雨（不到 250 毫米），所以是沙漠气候。",
+    rEqu: "每个月都至少 {min} °C，年较差只有 {rg} °C，一年下 {tot} 毫米雨：赤道气候。",
+    rMed: "冬季 {w} 毫米，夏季只有 {s} 毫米，冬天也在 0 °C 以上：地中海气候。",
+    rMon: "夏季 {s} 毫米，冬季只有 {w} 毫米——是 {x} 倍：季风气候。",
+    rCon: "最冷月 {min} °C，雨分散在全年（夏季 {s} 毫米、冬季 {w} 毫米）：大陆性气候。",
+    rNone: "它不符合这五条简单规则中的任何一条。",
+    gProg: "第 {i} / {n} 张", gScore: "答对：{r} / {a}", gNext: "下一张", gAgain: "再玩一次",
+    gRight: "对——这是{city}。", gWrong: "不对——这是{city}（{type}）。",
+    keyMed: "地中海气候", keyMedR: "冬季温和多雨，夏季炎热或温暖干燥（冬雨 ≥ 夏雨的 3 倍，冬天高于 0 °C）", keyMedG: "长：油橄榄、葡萄、柑橘、冬小麦",
+    keyMon: "季风气候", keyMonR: "夏季多雨，冬季干燥（夏雨 ≥ 冬雨的 10 倍）", keyMonG: "长：温暖湿润处种水稻；北京一带种小麦、玉米",
+    keyDes: "沙漠气候", keyDesR: "年降水不到 250 毫米", keyDesG: "长：不灌溉就很少；尼罗河等河边种椰枣、棉花、小麦",
+    keyEqu: "赤道气候", keyEquR: "每月都热（都 ≥ 18 °C，年较差很小），全年多雨", keyEquG: "长：热带雨林；油棕、橡胶、可可",
+    keyCon: "大陆性气候", keyConR: "冬天低于 0 °C，夏天温暖，全年有雨、夏季稍多", keyConG: "长：针叶林和混交林；短暂夏季种小麦、黑麦、土豆",
+    liveRead: "{city}，{m}：{t} °C，降水 {r} 毫米。",
+    resultTitle: "我们发现", resultMain: "气温年较差 + 年降水量 + 雨季 → 气候类型 → 长什么",
+    resultNote: "同一纬度，不同气候：北京 {bjT} 毫米的年降水有 {bjP}% 下在 6–8 月，里斯本 {liT} 毫米里只有 {liP}%。",
+    explainK: "说一说", explainQ: "朋友说北京和里斯本都在北纬 40° 附近，天气一定一样。用两张气候图解释：为什么去里斯本要在一月带伞，去北京要在七月带伞？",
+    homeK: "家里做一做", homeQ: "在气象部门网站的「气候」页面查你家乡每个月的降水和气温，在方格纸上画出气候图：12 根柱、一条线。它最像五种里的哪一种？附近的农民种什么？",
+    foot: "数据：近似的 1991–2020 年气候平均值，已取整（气温到 1 °C，降水到 5 毫米，很小的值到 1 毫米；里斯本降水取自葡萄牙气象局 IPMA 里斯本 Gago Coutinho 站 1991–2020 年平均值）：北京 北纬39.9°，里斯本 北纬38.7°，旧金山（市区）北纬37.8°，新加坡 北纬1.4°，开罗 北纬30.1°，莫斯科 北纬55.8°。夏季 = 6–8 月，冬季 = 12–2 月（六个城市都在北半球）。五条规则是简化的教学判读表，按沙漠、赤道、地中海、季风、大陆性的顺序检查，不是完整的柯本分类（在柯本分类里里斯本和旧金山都是地中海气候：Csa 夏季炎热型、Csb 夏季温暖型）。页面上的总量、较差和类型都由月值算出。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- data: approximate 1991–2020-style normals, rounded ---------- */
+const CITIES = {
+  bj: { lat: 39.9, T: [-3, 0, 7, 15, 21, 25, 27, 26, 21, 13, 5, -1], R: [3, 6, 10, 22, 37, 80, 175, 135, 55, 28, 13, 3] },
+  li: { lat: 38.7, T: [12, 13, 15, 16, 19, 22, 24, 24, 22, 19, 15, 13], R: [95, 70, 65, 65, 50, 13, 3, 5, 35, 105, 115, 100] },
+  sf: { lat: 37.8, T: [11, 12, 13, 14, 15, 16, 17, 17, 18, 17, 14, 11], R: [115, 110, 80, 35, 15, 4, 0, 1, 3, 25, 70, 115] },
+  sg: { lat: 1.4, T: [27, 27, 28, 28, 28, 28, 28, 28, 28, 28, 27, 27], R: [250, 120, 180, 175, 170, 140, 155, 165, 145, 170, 260, 310] },
+  ca: { lat: 30.1, T: [14, 16, 18, 22, 25, 28, 29, 29, 27, 24, 20, 16], R: [5, 4, 4, 1, 0, 0, 0, 0, 0, 1, 4, 5] },
+  mo: { lat: 55.8, T: [-6, -6, -1, 7, 13, 17, 19, 17, 11, 5, -1, -4], R: [55, 45, 40, 35, 60, 80, 85, 80, 65, 70, 55, 50] },
+};
+const ORDER = ["bj", "li", "sf", "sg", "ca", "mo"];
+const NAMEK = { bj: "cBj", li: "cLi", sf: "cSf", sg: "cSg", ca: "cCa", mo: "cMo" };
+const TYPES = ["med", "mon", "des", "equ", "con"];
+const TYK = { med: "tyMed", mon: "tyMon", des: "tyDes", equ: "tyEqu", con: "tyCon", none: "tyNone" };
+const GAME = ["ca", "sg", "li", "mo", "bj", "sf"];
+
+/* ---------- pure logic ---------- */
+const sum = (a) => a.reduce((s, x) => s + x, 0);
+function features(c) {
+  const north = c.lat >= 0;
+  const summer = north ? [5, 6, 7] : [11, 0, 1], winter = north ? [11, 0, 1] : [5, 6, 7];
+  const minT = Math.min(...c.T), maxT = Math.max(...c.T);
+  let wet = 0, dry = 0;
+  c.R.forEach((r, i) => { if (r > c.R[wet]) wet = i; if (r < c.R[dry]) dry = i; });
+  const s = sum(summer.map((i) => c.R[i])), w = sum(winter.map((i) => c.R[i]));
+  return { tot: sum(c.R), minT, maxT, range: maxT - minT, wet, dry, s, w, mean: sum(c.T) / 12 };
+}
+function classify(f) {
+  if (f.tot < 250) return { type: "des", why: "rDes" };
+  if (f.minT >= 18 && f.tot >= 1500) return { type: "equ", why: "rEqu" };
+  if (f.w >= 3 * f.s && f.minT > 0) return { type: "med", why: "rMed" };
+  if (f.s >= 10 * Math.max(f.w, 1)) return { type: "mon", why: "rMon" };
+  if (f.minT < 0) return { type: "con", why: "rCon" };
+  return { type: "none", why: "rNone" };
+}
+
+/* ---------- state ---------- */
+const $ = (id) => document.getElementById(id);
+const MONTHS = P.t("months").split(","), INI = P.t("ini").split(",");
+const S = { step: 0, a: "bj", b: "li", m: 6, revealed: false };
+const G = { i: 0, pick: null, right: 0, asked: 0 };
+const latStr = (v) => P.t("deg", { v: Play.fmt(Math.abs(v), 1), h: P.lang === "zh" ? (v >= 0 ? "北" : "南") : v >= 0 ? "N" : "S" });
+const typeName = (k) => P.t(TYK[k]);
+const cname = (id) => P.t(NAMEK[id]);
+
+/* ---------- chart ---------- */
+const CH = { l: 38, r: 282, t: 48, b: 200, tMin: -10, tMax: 30, rMax: 400 };
+const bw = (CH.r - CH.l) / 12;
+const xM = (i) => CH.l + bw * (i + 0.5);
+const yT = (t) => CH.b - (CH.b - CH.t) * (Play.clamp(t, CH.tMin, CH.tMax) - CH.tMin) / (CH.tMax - CH.tMin);
+const yR = (r) => CH.b - (CH.b - CH.t) * Play.clamp(r, 0, CH.rMax) / CH.rMax;
+function txt(parent, x, y, s, cls, anchor) {
+  const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "start" }, parent);
+  t.textContent = s;
+  return t;
+}
+function drawChart(svg, id, mode) { // mode: "show" | "hidden" | "mystery"
+  svg.innerHTML = "";
+  const c = CITIES[id];
+  txt(svg, 160, 18, mode === "mystery" ? P.t("mystery") : mode === "hidden" ? "?" : cname(id) + " · " + latStr(c.lat), "ttl", "middle");
+  for (let k = 0; k <= 8; k++) {
+    const y = CH.b - (CH.b - CH.t) * k / 8;
+    Play.svg("line", { x1: CH.l, x2: CH.r, y1: y, y2: y, stroke: "var(--line)", "stroke-width": k === 2 ? 1.6 : 1 }, svg);
+    if (k % 2 === 0) {
+      txt(svg, CH.l - 5, y + 4, String(CH.tMin + 5 * k), "lb", "end");
+      txt(svg, CH.r + 5, y + 4, String(50 * k), "lb");
+    }
+  }
+  txt(svg, CH.l - 5, CH.t - 10, "°C", "lb", "end");
+  txt(svg, CH.r + 5, CH.t - 10, "mm", "lb");
+  for (let i = 0; i < 12; i++) txt(svg, xM(i), CH.b + 16, INI[i], "lb", "middle");
+  if (mode === "hidden") {
+    txt(svg, 160, (CH.t + CH.b) / 2 + 5, P.t("hidden"), "lbf halo", "middle");
+    svg.setAttribute("aria-valuetext", P.t("hidden"));
+    return;
+  }
+  Play.svg("rect", { x: CH.l + bw * S.m, y: CH.t, width: bw, height: CH.b - CH.t, fill: "var(--hl)", opacity: 0.22 }, svg);
+  c.R.forEach((r, i) => {
+    const y = yR(r);
+    Play.svg("rect", { x: xM(i) - bw * 0.36, y, width: bw * 0.72, height: Math.max(0, CH.b - y), fill: "var(--c)", opacity: 0.75 }, svg);
+  });
+  let d = "";
+  c.T.forEach((t, i) => (d += (i ? "L" : "M") + xM(i).toFixed(1) + " " + yT(t).toFixed(1)));
+  Play.svg("path", { d, fill: "none", stroke: "var(--no)", "stroke-width": 2.5, "stroke-linejoin": "round" }, svg);
+  c.T.forEach((t, i) => Play.svg("circle", { cx: xM(i), cy: yT(t), r: i === S.m ? 4.5 : 2.5, fill: "var(--no)", stroke: "var(--surface)", "stroke-width": 1 }, svg));
+  const read = P.t("readM", { m: MONTHS[S.m], t: c.T[S.m], r: c.R[S.m] });
+  txt(svg, 160, 36, read, "lbf", "middle");
+  svg.setAttribute("aria-valuemin", 1); svg.setAttribute("aria-valuemax", 12);
+  svg.setAttribute("aria-valuenow", S.m + 1); svg.setAttribute("aria-valuetext", read);
+}
+
+/* ---------- side panel ---------- */
+function cmpTable(ids, showType) {
+  const fs = ids.map((id) => features(CITIES[id]));
+  const rows = [
+    ["rowTot", (f) => P.t("vMm", { v: f.tot })],
+    ["rowRange", (f) => P.t("vC", { v: f.range })],
+    ["rowMinMax", (f) => P.t("vMinMax", { a: f.minT, b: f.maxT })],
+    ["rowSeason", (f) => P.t("vSeason", { s: f.s, w: f.w })],
+    ["rowWet", (f) => P.t("vMonth", { m: MONTHS[f.wet], v: CITIES[ids[fs.indexOf(f)]].R[f.wet] })],
+    ["rowDry", (f) => P.t("vMonth", { m: MONTHS[f.dry], v: CITIES[ids[fs.indexOf(f)]].R[f.dry] })],
+  ];
+  if (showType) rows.push(["rowType", (f) => "<b>" + typeName(classify(f).type) + "</b>"]);
+  const tb = $("cmp");
+  let h = "<thead><tr><th></th>" + ids.map((id, j) => "<th>" + (S.step === 1 && !G.pick ? P.t("mystery") : cname(id)) + "</th>").join("") + "</tr></thead><tbody>";
+  rows.forEach(([k, fn]) => (h += "<tr><th scope=\"row\">" + P.t(k) + "</th>" + fs.map((f) => "<td>" + fn(f) + "</td>").join("") + "</tr>"));
+  tb.innerHTML = h + "</tbody>";
+}
+function reason(f) {
+  const c = classify(f);
+  return P.t(c.why, { tot: f.tot, min: f.minT, rg: f.range, s: f.s, w: f.w, x: Play.fmt(f.s / Math.max(f.w, 1), 0) });
+}
+function drawKey(hits) {
+  const box = $("key");
+  box.innerHTML = "";
+  [["med", "keyMed"], ["mon", "keyMon"], ["des", "keyDes"], ["equ", "keyEqu"], ["con", "keyCon"]].forEach(([ty, k]) => {
+    const d = document.createElement("div");
+    if (hits.includes(ty)) d.className = "hit";
+    const b = document.createElement("b"); b.textContent = P.t(k);
+    const r = document.createElement("span"); r.textContent = P.t(k + "R");
+    const g = document.createElement("span"); g.textContent = P.t(k + "G");
+    d.append(b, r, g);
+    box.appendChild(d);
+  });
+}
+
+/* ---------- game ---------- */
+const typeBtns = TYPES.map((ty) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = typeName(ty);
+  b.addEventListener("click", () => {
+    if (G.pick) return;
+    G.pick = ty; G.asked++;
+    const f = features(CITIES[GAME[G.i]]), ans = classify(f).type;
+    if (ty === ans) G.right++;
+    render();
+  });
+  $("gTypes").appendChild(b);
+  return b;
+});
+$("gNext").addEventListener("click", () => {
+  if (G.i === GAME.length - 1) Object.assign(G, { i: 0, pick: null, right: 0, asked: 0 });
+  else { G.i++; G.pick = null; }
+  render();
+  typeBtns[0].focus();
+});
+function renderGame() {
+  const id = GAME[G.i], f = features(CITIES[id]), ans = classify(f).type;
+  $("gProg").textContent = P.t("gProg", { i: G.i + 1, n: GAME.length });
+  $("gScore").textContent = P.t("gScore", { r: G.right, a: G.asked });
+  typeBtns.forEach((b, j) => {
+    const ty = TYPES[j];
+    b.classList.toggle("right", !!G.pick && ty === ans);
+    b.classList.toggle("wrong", !!G.pick && ty === G.pick && ty !== ans);
+    b.setAttribute("aria-pressed", G.pick === ty ? "true" : "false");
+  });
+  $("gFb").textContent = G.pick ? (G.pick === ans ? P.t("gRight", { city: cname(id) }) : P.t("gWrong", { city: cname(id), type: typeName(ans) })) + reason(f) : "";
+  $("gNext").hidden = !G.pick;
+  $("gNext").textContent = G.i === GAME.length - 1 ? P.t("gAgain") : P.t("gNext");
+}
+
+/* ---------- city pickers ---------- */
+function pickers(box, slot) {
+  return ORDER.map((id) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small"; b.textContent = cname(id);
+    b.addEventListener("click", () => { S[slot] = id; render(); });
+    box.appendChild(b);
+    return b;
+  });
+}
+const pkA = pickers($("pickA"), "a"), pkB = pickers($("pickB"), "b");
+
+/* ---------- render ---------- */
+function render() {
+  const game = S.step === 1, hide = S.step === 0 && !S.revealed;
+  $("panes").classList.toggle("one", game);
+  $("paneB").hidden = game;
+  $("pickA").hidden = game || hide;
+  $("pickB").hidden = hide;
+  pkA.forEach((b, j) => { b.classList.toggle("on", ORDER[j] === S.a); b.setAttribute("aria-pressed", ORDER[j] === S.a ? "true" : "false"); });
+  pkB.forEach((b, j) => { b.classList.toggle("on", ORDER[j] === S.b); b.setAttribute("aria-pressed", ORDER[j] === S.b ? "true" : "false"); });
+  const aId = game ? GAME[G.i] : S.a;
+  drawChart($("chA"), aId, hide ? "hidden" : game && !G.pick ? "mystery" : "show");
+  if (!game) drawChart($("chB"), S.b, hide ? "hidden" : "show");
+  $("game").hidden = !game;
+  if (game) renderGame();
+  $("stepBody").textContent = S.step === 0 ? P.t(S.revealed ? "b1after" : "b1")
+    : S.step === 1 ? P.t("b2")
+    : P.t("b3", { sfJ: CITIES.sf.T[6], liJ: CITIES.li.T[6] });
+  $("cmp").hidden = hide;
+  if (!hide) cmpTable(game ? [aId] : [S.a, S.b], S.step === 2 || (game && !!G.pick));
+  $("key").hidden = $("why").hidden = S.step !== 2;
+  if (S.step === 2) $("why").innerHTML = [S.a, S.b].filter((id, j, a) => a.indexOf(id) === j)
+    .map((id) => "<strong>" + cname(id) + "</strong>" + (P.lang === "zh" ? "：" : ": ") + reason(features(CITIES[id]))).join("<br>");
+  if (S.step === 2) drawKey([S.a, S.b].map((id) => classify(features(CITIES[id])).type));
+  const live = hide ? "" : (game ? [aId] : [S.a, S.b]).map((id) =>
+    P.t("liveRead", { city: game && !G.pick ? P.t("mystery") : cname(id), m: MONTHS[S.m], t: CITIES[id].T[S.m], r: CITIES[id].R[S.m] })).join(" ");
+  Play.live($("live"), live);
+}
+function resultNote() {
+  const bj = features(CITIES.bj), li = features(CITIES.li);
+  $("resultNote").textContent = P.t("resultNote", {
+    bjT: bj.tot, liT: li.tot, bjP: Play.fmt(100 * bj.s / bj.tot, 0), liP: Play.fmt(100 * li.s / li.tot, 0),
+  });
+}
+
+/* ---------- month reading: drag / click / keys ---------- */
+[$("chA"), $("chB")].forEach((svg) => {
+  let drag = false;
+  const at = (e) => {
+    const p = Play.pointer(svg, e);
+    const m = Play.clamp(Math.floor((p.x - CH.l) / bw), 0, 11);
+    if (m !== S.m) { S.m = m; render(); }
+  };
+  svg.addEventListener("pointerdown", (e) => { drag = true; svg.setPointerCapture(e.pointerId); at(e); });
+  svg.addEventListener("pointermove", (e) => { if (drag) at(e); });
+  svg.addEventListener("pointerup", () => (drag = false));
+  svg.addEventListener("pointercancel", () => (drag = false));
+  svg.addEventListener("keydown", (e) => {
+    const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+    let m = S.m;
+    if (step) m = (S.m + step + 12) % 12;
+    else if (e.key === "Home") m = 0;
+    else if (e.key === "End") m = 11;
+    else return;
+    e.preventDefault();
+    S.m = m; render();
+  });
+});
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+}, () => { S.revealed = true; render(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  S.step = i;
+  if (i > 0) S.revealed = true;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("reset").addEventListener("click", () => {
+  Object.assign(S, { a: "bj", b: "li", m: 6, revealed: false });
+  Object.assign(G, { i: 0, pick: null, right: 0, asked: 0 });
+  pr.reset(); st.go(0);
+});
+resultNote();
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What a population pyramid tells you</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .lb { font-size: 13px; fill: var(--muted); }
+  .lbf { font-size: 13px; fill: var(--fg); font-weight: 650; }
+  .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+  .m { fill: var(--c); } .f { fill: var(--b); }
+  #fig { width: 100%; height: auto; display: block; touch-action: none; }
+  #fig.pick { cursor: pointer; }
+  #trend { width: 100%; height: auto; display: block; }
+  .seg { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+  .controls label { min-width: 7.5em; }
+  .controls .val { min-width: 2.6em; }
+  .tagline { padding: 10px 14px 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .read { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 6px 0 10px; font-size: 14px; }
+  .read dt { color: var(--muted); }
+  .read dd { margin: 0; font-variant-numeric: tabular-nums; color: var(--fg); }
+  .read dd.big { font-weight: 700; }
+  .result .math { white-space: normal; }
+  #momBtn { align-self: flex-start; margin: 2px 0 10px; }
+  @media (max-width: 560px) { .controls label { min-width: 0; } }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="tagline">
+        <span class="tag-demo" data-t="demoTag"></span>
+        <span class="seg" id="unitSeg">
+          <button type="button" class="small" data-unit="pct" data-t="uPct"></button>
+          <button type="button" class="small" data-unit="abs" data-t="uAbs"></button>
+        </span>
+      </div>
+      <svg id="fig" role="slider" tabindex="0" data-t-aria="figAria"></svg>
+      <div id="sim">
+        <div class="controls">
+          <span data-t="countryLabel"></span>
+          <span class="seg" id="countrySeg">
+            <button type="button" class="small" data-c="0"></button>
+            <button type="button" class="small" data-c="1"></button>
+            <button type="button" class="small" data-c="2"></button>
+          </span>
+        </div>
+        <div class="controls">
+          <label for="tfr" data-t="tfrLabel"></label>
+          <input type="range" id="tfr" min="1" max="6" step="0.1" value="5">
+          <span class="val" id="tfrVal"></span>
+        </div>
+        <div class="controls">
+          <button type="button" class="small" id="back" data-t="back"></button>
+          <button type="button" id="adv" data-t="adv"></button>
+          <button type="button" class="small" id="playBtn"></button>
+          <span class="val" id="yearVal"></span>
+        </div>
+        <svg id="trend" role="img" data-t-aria="trendAria"></svg>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <button type="button" id="momBtn" data-t="momBtn"></button>
+      <dl class="read" id="stats">
+        <dt data-t="rYear"></dt><dd id="oYear" class="big"></dd>
+        <dt data-t="rTot"></dt><dd id="oTot" class="big"></dd>
+        <dt data-t="rMed"></dt><dd id="oMed"></dd>
+        <dt data-t="rKids"></dt><dd id="oKids"></dd>
+        <dt data-t="rOld"></dt><dd id="oOld"></dd>
+        <dt data-t="rDep"></dt><dd id="oDep"></dd>
+        <dt data-t="rRep"></dt><dd id="oRep"></dd>
+      </dl>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "What a population pyramid tells you", eyebrow: "Geography · Stage 3",
+    h1: "A pyramid's shape shows today's births and deaths — and the next 30 years",
+    intro: "Compare two made-up countries, then push one forward in time, 5 years at a time, and watch its pyramid change shape.",
+    reset: "Reset", demoTag: "Illustrative countries · not real data", uPct: "% of total", uAbs: "People",
+    figAria: "Population pyramid: age groups from bottom to top, men on the left, women on the right. Up and down arrows pick an age group.",
+    trendAria: "Total population over the next 50 years.",
+    countryLabel: "Country", cName: "Country {c}", cA: "A · expanding", cB: "B · stationary", cC: "C · contracting",
+    tfrLabel: "Births per woman", back: "−5 years", adv: "+5 years", play: "Play", pause: "Pause", yearV: "year +{y}",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Which country has more people?",
+    b1: "Both pyramids are drawn as a percentage of each country's own people. Country A is wide at the bottom; Country C is narrow at the bottom.",
+    k2: "Hands on", t2: "Move a country forward in time",
+    b2: "Press +5 years. Every bar moves up one row (some people die on the way, many more at old ages), and new babies join at the bottom: women aged 15–49 × births per woman. The shaded rows are today's children — follow them for 25 years and they are the parents. Try each country, and change the births slider.",
+    k3: "The rule", t3: "Today's children are tomorrow's parents",
+    b3: "The shape is a record of past births and deaths, and a forecast: a wide base means many future parents. Press the button: Country A's births per woman drop from 5 to 2.1 today, even below its own replacement level of {rep} — yet its population keeps growing for {yrs} years, to {peak} (+{pct}%), because the children already born grow up and have children of their own. This is population momentum.",
+    momBtn: "Show it: Country A drops to 2.1",
+    q: "Country A has many more young people. Which country has more people in total?",
+    o1: "Country A — it has more young people", o2: "Country C — it has more adults", o3: "You can't tell from the shape",
+    right: "Right. Each pyramid is in percent, so each adds up to 100% whatever the size. Here the totals are equal: {a} and {c}.",
+    wrong: "The shape is in percent — each pyramid adds up to 100% whatever the size. The totals are now shown: {a} and {c}. Equal.",
+    total: "total {v}", totalQ: "total ?", men: "men", women: "women", pctNote: "each bar = % of that country's people",
+    axPct: "{v}%", ages: "Age", selPct: "Ages {g}: men {m}%, women {f}%", selAbs: "Ages {g}: men {m}, women {f}",
+    trendTitle: "Total population", trendLeg: "solid: so far · dashed: if births stay at {f}", yr: "+{y} yr",
+    rYear: "Year", rTot: "Total", rMed: "Median age", rKids: "Under 15", rOld: "65 and over", rDep: "Dependency ratio", rRep: "Replacement level here",
+    vYear: "today + {y} years", vMed: "{v} years", vPct: "{v}%", vDep: "{v} young and old per 100 aged 15–64", vRep: "{v} births per woman",
+    mil: "{v} million", mAx: "{v} M", kAx: "{v}k",
+    liveSum: "Country {c}, year +{y}: total {t}, median age {m}, under 15 {k}%, 65+ {o}%.",
+    resultTitle: "What we found", resultMain: "wide base today → many parents in 20–30 years → growth keeps going",
+    resultNote: "A pyramid shows shares, not size: two countries with the same shape can be very different in size, and the same total can hide very different futures.",
+    explainK: "Explain it", explainQ: "A friend says: “Country A only has more young people — that's all.” Use the words ‘parents’ and ‘in 25 years’ to explain what the wide base means for the future.",
+    homeK: "Try at home", homeQ: "List the ages of everyone in your extended family (grandparents to cousins). Sort them into 10-year groups and draw your family's own pyramid. Who will be the parents in 20 years?",
+    foot: "Countries A, B and C are illustrative: their numbers come from the model on this page, not from real countries, and each starts with 10 million people. Model: 5-year age groups (0–4 … 95–99, 100+), men and women separately. Every 5 years each group moves up one row times a survival rate from a Gompertz–Makeham mortality curve (women's life expectancy at birth about {eA} years in A and {eB} in B and C; men a few years lower). Births in 5 years = women aged 15–49 × births per woman ÷ 35 × 5 — a simplification, since real births peak in the late 20s; 105 boys per 100 girls; no migration. Replacement level = births per woman at which each generation of women exactly replaces itself; computed from the same survival rates (A ≈ {rA}, B and C ≈ {rB}). Dependency ratio = (ages 0–14 + 65+) ÷ ages 15–64 × 100. Median age is interpolated inside its age group. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "人口金字塔告诉你什么", eyebrow: "地理 · 阶段 3",
+    h1: "金字塔的形状反映今天的出生和死亡，也预示未来 30 年",
+    intro: "先比较两个虚构的国家，再让其中一个每次前进 5 年，看它的金字塔怎样变形。",
+    reset: "重置", demoTag: "示意国家 · 非真实数据", uPct: "占总人口 %", uAbs: "人数",
+    figAria: "人口金字塔：年龄组从下到上，左边男性、右边女性。上下方向键选年龄组。",
+    trendAria: "未来 50 年的总人口。",
+    countryLabel: "国家", cName: "{c} 国", cA: "A · 增长型", cB: "B · 稳定型", cC: "C · 缩减型",
+    tfrLabel: "每个妇女生育数", back: "−5 年", adv: "+5 年", play: "播放", pause: "暂停", yearV: "第 +{y} 年",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "哪个国家人更多？",
+    b1: "两个金字塔都按各自国家总人口的百分比画。A 国底部宽，C 国底部窄。",
+    k2: "动手", t2: "让一个国家向前走",
+    b2: "按「+5 年」。每根柱子上移一行（路上有人去世，老年组去世得多得多），底部加入新生儿：15–49 岁女性人数 × 每个妇女生育数。阴影行是今天的孩子——跟着他们走 25 年，他们就成了父母。三个国家都试试，再拖一拖生育数滑块。",
+    k3: "规律", t3: "今天的孩子是明天的父母",
+    b3: "形状记录了过去的出生和死亡，也是一份预报：底部宽，意味着将来的父母多。按下按钮：A 国的生育数今天就从 5 降到 2.1，甚至低于它自己的更替水平 {rep}——人口却还要再涨 {yrs} 年，到 {peak}（+{pct}%），因为已经出生的孩子会长大，再生下自己的孩子。这叫人口惯性。",
+    momBtn: "演示：A 国降到 2.1",
+    q: "A 国年轻人多得多。哪个国家总人口更多？",
+    o1: "A 国——年轻人多", o2: "C 国——成年人多", o3: "只看形状看不出来",
+    right: "对。每个金字塔都是百分比，不管国家多大，加起来都是 100%。这里两国总人口一样：{a} 和 {c}。",
+    wrong: "形状是百分比——不管国家多大，加起来都是 100%。总人口现在显示出来了：{a} 和 {c}，一样多。",
+    total: "总人口 {v}", totalQ: "总人口 ?", men: "男", women: "女", pctNote: "每根柱子 = 占该国总人口的 %",
+    axPct: "{v}%", ages: "年龄", selPct: "{g} 岁：男 {m}%，女 {f}%", selAbs: "{g} 岁：男 {m}，女 {f}",
+    trendTitle: "总人口", trendLeg: "实线：已走过 · 虚线：生育数保持 {f}", yr: "+{y}年",
+    rYear: "年份", rTot: "总人口", rMed: "年龄中位数", rKids: "15 岁以下", rOld: "65 岁及以上", rDep: "抚养比", rRep: "这里的更替水平",
+    vYear: "今天 + {y} 年", vMed: "{v} 岁", vPct: "{v}%", vDep: "每 100 个 15–64 岁的人对应 {v} 个老人和孩子", vRep: "每个妇女 {v} 个孩子",
+    mil: "{v} 万", mAx: "{v}万", kAx: "{v}万",
+    liveSum: "{c} 国，第 +{y} 年：总人口 {t}，年龄中位数 {m}，15 岁以下 {k}%，65 岁及以上 {o}%。",
+    resultTitle: "我们发现", resultMain: "今天底部宽 → 20–30 年后父母多 → 人口继续增长",
+    resultNote: "金字塔显示的是比例，不是大小：形状一样的两个国家可能大小差很多；总人口一样，未来也可能完全不同。",
+    explainK: "说一说", explainQ: "朋友说：「A 国只是年轻人多而已。」用「父母」和「25 年后」这两个词，讲讲底部宽对将来意味着什么。",
+    homeK: "家里做一做", homeQ: "列出大家庭里每个人的年龄（从祖父母到表兄弟姐妹），按 10 岁一组分好，画出你家自己的金字塔。20 年后谁会当父母？",
+    foot: "A、B、C 三国是示意：数字由本页的模型算出，不是真实国家，开始时都是 1000 万人。模型：5 岁一组（0–4 … 95–99、100+），男女分开。每过 5 年，每组上移一行，再乘上由 Gompertz–Makeham 死亡曲线算出的存活率（女性出生时预期寿命：A 国约 {eA} 岁，B、C 国约 {eB} 岁；男性低几岁）。5 年内出生数 = 15–49 岁女性 × 每个妇女生育数 ÷ 35 × 5——这是简化，真实生育高峰在 25–29 岁；出生性别比 105 男 : 100 女；不计迁移。更替水平 = 让每代女性恰好替换自己的生育数，用同样的存活率算出（A 国约 {rA}，B、C 国约 {rB}）。抚养比 =（0–14 岁 + 65 岁以上）÷ 15–64 岁 × 100。年龄中位数在所在年龄组内插值。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- model: pure functions ---------- */
+const NB = 21, W5 = 5, MALE = 105 / 205, MAXSTEP = 10, START = 1e7;
+function sched(m) { // 5-year survival from group i to i+1 (last: staying in 100+)
+  const s = (k) => Array.from({ length: NB }, (_, i) => {
+    const x = i < NB - 1 ? 5 * i + 5 : 102.5;
+    const mu = k * (m.a + m.b * Math.exp(0.085 * x));
+    return Math.exp(-5 * mu);
+  });
+  return { M: s(1.3), F: s(1), birth: m.birth };
+}
+const HIGH = sched({ a: 0.0025, b: 0.00007, birth: 0.94 }), LOW = sched({ a: 0.0004, b: 0.00005, birth: 0.996 });
+function lmid(s, birth) { const l = [birth]; for (let i = 1; i < NB; i++) l.push(l[i - 1] * s[i - 1]); return l; }
+function e0(s, birth) { const l = lmid(s, birth); let L = 0; for (let i = 0; i < NB - 1; i++) L += 5 * l[i]; return L + 5 * l[NB - 1] / Math.max(1e-9, 1 - s[NB - 1]); }
+function replacement(S) { const l = lmid(S.F, S.birth); let w = 0; for (let i = 3; i <= 9; i++) w += l[i]; return 7 / ((1 - MALE) * w); }
+const zeros = () => new Array(NB).fill(0);
+function step(p, S, tfr) {
+  const n = { M: zeros(), F: zeros() };
+  for (const k of ["M", "F"]) {
+    for (let i = 0; i < NB - 1; i++) n[k][i + 1] += p[k][i] * S[k][i];
+    n[k][NB - 1] += p[k][NB - 1] * S[k][NB - 1];
+  }
+  let w = 0;
+  for (let i = 3; i <= 9; i++) w += p.F[i]; // women 15–49
+  const b = w * tfr / 35 * 5 * S.birth;
+  n.M[0] = b * MALE; n.F[0] = b * (1 - MALE);
+  return n;
+}
+const sum = (a) => a.reduce((x, y) => x + y, 0);
+const total = (p) => sum(p.M) + sum(p.F);
+function scaleTo(p, T) { const k = T / Math.max(1e-9, total(p)); return { M: p.M.map((v) => v * k), F: p.F.map((v) => v * k) }; }
+function gen(S, plan) { let p = { M: new Array(NB).fill(1), F: new Array(NB).fill(1) }; for (const [t, n] of plan) for (let k = 0; k < n; k++) p = step(p, S, t); return scaleTo(p, START); }
+function stats(p) {
+  const T = total(p), g = p.M.map((v, i) => v + p.F[i]);
+  const kids = g[0] + g[1] + g[2], old = sum(g.slice(13)), work = T - kids - old;
+  let acc = 0, med = 0;
+  for (let i = 0; i < NB; i++) { if (acc + g[i] >= T / 2) { med = 5 * i + 5 * (T / 2 - acc) / Math.max(1e-9, g[i]); break; } acc += g[i]; }
+  return { T, med, kids: 100 * kids / T, old: 100 * old / T, dep: 100 * (kids + old) / Math.max(1e-9, work) };
+}
+const REP_HIGH = replacement(HIGH), REP_LOW = replacement(LOW);
+const COUNTRIES = [
+  { id: "A", S: HIGH, tfr: 5.0, p: gen(HIGH, [[5, 60]]) },
+  { id: "B", S: LOW, tfr: 2.1, p: gen(LOW, [[REP_LOW, 60]]) },
+  { id: "C", S: LOW, tfr: 1.4, p: gen(LOW, [[2.4, 50], [2.2, 1], [2.0, 1], [1.8, 1], [1.6, 2], [1.4, 3]]) },
+];
+function project(p, S, tfr, n) { const out = [p]; for (let k = 0; k < n; k++) out.push(step(out[k], S, tfr)); return out; }
+function momentum() { // Country A at 2.1 from today: peak year and size
+  const run = project(COUNTRIES[0].p, HIGH, 2.1, 20).map(total);
+  let k = 0; for (let i = 1; i < run.length; i++) if (run[i] > run[k]) k = i;
+  return { yrs: 5 * k, peak: run[k], pct: 100 * (run[k] / run[0] - 1) };
+}
+const MOM = momentum();
+
+/* ---------- formatting ---------- */
+const $ = (id) => document.getElementById(id);
+const zh = P.lang === "zh";
+const fmtTot = (v) => P.t("mil", { v: zh ? Play.fmt(v / 1e4, 0) : Play.fmt(v / 1e6, 1) });
+const fmtBand = (v) => (zh ? Play.fmt(v / 1e4, 1) + " 万" : (Math.round(v / 1000) * 1000).toLocaleString("en-US"));
+const grp = (i) => (i === NB - 1 ? "100+" : 5 * i + "–" + (5 * i + 4));
+const cName = (i) => P.t("cName", { c: COUNTRIES[i].id });
+function niceStep(max, n) { const raw = max / n, e = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / e; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * e; }
+function txt(parent, x, y, s, cls, anchor) { const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "start" }, parent); t.textContent = s; return t; }
+
+/* ---------- state ---------- */
+const S = { stepI: 0, answered: false, c: 0, tfr: 5, hist: [], unit: "pct", sel: 4 };
+function setCountry(i) { S.c = i; S.tfr = COUNTRIES[i].tfr; S.hist = [{ p: COUNTRIES[i].p, tfr: S.tfr }]; }
+setCountry(0);
+const cur = () => S.hist[S.hist.length - 1].p;
+const year = () => 5 * (S.hist.length - 1);
+
+/* ---------- pyramid ---------- */
+const fig = $("fig"), trend = $("trend");
+// draws one pyramid; values are per-sex shares (%) or people; returns geometry for hit-testing
+function pyramid(p, x0, w, top, rowH, axMax, unit, cohortShift, showSel) {
+  const T = total(p), cx = x0 + w / 2, half = w / 2 - 3;
+  const val = (v) => (unit === "pct" ? 100 * v / T : v);
+  const len = (v) => half * Play.clamp(val(v) / axMax, 0, 1);
+  const st = niceStep(axMax, 2);
+  for (let v = st; v <= axMax + 1e-9; v += st) [-1, 1].forEach((sg) => {
+    Play.svg("line", { x1: cx + sg * half * v / axMax, x2: cx + sg * half * v / axMax, y1: top, y2: top + NB * rowH, stroke: "var(--line)", "stroke-width": 1 }, fig);
+  });
+  for (let i = 0; i < NB; i++) {
+    const y = top + (NB - 1 - i) * rowH;
+    if (cohortShift >= 0 && i - cohortShift >= 0 && i - cohortShift <= 2) Play.svg("rect", { x: x0, y, width: w, height: rowH, fill: "var(--hl)", opacity: 0.3 }, fig);
+    if (showSel && i === S.sel) Play.svg("rect", { x: x0, y: y + 0.5, width: w, height: rowH - 1, fill: "none", stroke: "var(--fg)", "stroke-width": 1.2, rx: 2 }, fig);
+    const lm = len(p.M[i]), lf = len(p.F[i]);
+    Play.svg("rect", { class: "m", x: cx - 1 - lm, y: y + 1, width: lm, height: rowH - 2 }, fig);
+    Play.svg("rect", { class: "f", x: cx + 1, y: y + 1, width: lf, height: rowH - 2 }, fig);
+  }
+  Play.svg("line", { x1: cx, x2: cx, y1: top, y2: top + NB * rowH, stroke: "var(--muted)", "stroke-width": 1 }, fig);
+  return { st, cx, half };
+}
+function ageLabels(x, top, rowH) {
+  for (let i = 0; i < NB; i += 2) txt(fig, x, top + (NB - 1 - i) * rowH + rowH / 2 + 4.5, grp(i), "lb", "end");
+}
+function axisLabels(g, axMax, unit, y) {
+  const lab = (v) => (unit === "pct" ? P.t("axPct", { v: Play.fmt(v, v < 1 ? 1 : 0) }) : zh ? P.t("kAx", { v: Play.fmt(v / 1e4, 0) }) : v >= 1e6 ? P.t("mAx", { v: Play.fmt(v / 1e6, 1) }) : P.t("kAx", { v: Play.fmt(v / 1000, 0) }));
+  [-1, 1].forEach((sg) => txt(fig, g.cx + sg * g.half * (Math.floor(axMax / g.st) * g.st) / axMax, y, lab(Math.floor(axMax / g.st) * g.st), "lb", "middle"));
+  txt(fig, g.cx, y, "0", "lb", "middle");
+}
+let geo = null;
+function drawFig() {
+  const W = Math.max(280, Math.round(fig.getBoundingClientRect().width || 600));
+  const narrow = W < 520, rowH = narrow ? 13 : 15;
+  fig.innerHTML = "";
+  if (S.stepI === 0) {
+    const ageW = 44, gap = 14, pw = (W - ageW - gap - 8) / 2, top = 46, H = top + NB * rowH + 40;
+    fig.setAttribute("viewBox", `0 0 ${W} ${H}`); fig.style.height = H + "px";
+    const pa = COUNTRIES[0].p, pc = COUNTRIES[2].p;
+    const axMax = Math.max(8, Math.ceil(Math.max(...[pa, pc].flatMap((p) => p.M.concat(p.F).map((v) => 100 * v / total(p))))));
+    ageLabels(ageW - 6, top, rowH);
+    [[pa, 0], [pc, 2]].forEach(([p, ci], k) => {
+      const x0 = ageW + k * (pw + gap);
+      const g = pyramid(p, x0, pw, top, rowH, axMax, "pct", -1, false);
+      txt(fig, g.cx, 16, cName(ci), "lbf", "middle");
+      txt(fig, g.cx, 34, S.answered ? P.t("total", { v: fmtTot(total(p)) }) : P.t("totalQ"), S.answered ? "lbf" : "lb", "middle");
+      txt(fig, g.cx - 6, top + NB * rowH + 16, P.t("men"), "lb", "end");
+      txt(fig, g.cx + 6, top + NB * rowH + 16, P.t("women"), "lb", "start");
+    });
+    txt(fig, ageW + (W - ageW) / 2, top + NB * rowH + 34, P.t("pctNote"), "lb", "middle");
+    geo = null;
+    fig.classList.remove("pick");
+    fig.setAttribute("aria-valuetext", P.t("pctNote"));
+    return;
+  }
+  const ageW = 52, top = narrow ? 50 : 30, H = top + NB * rowH + 40, w = W - ageW - 10;
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`); fig.style.height = H + "px";
+  const p = cur(), T = total(p);
+  let axMax;
+  if (S.unit === "pct") axMax = Math.max(8, Math.ceil(Math.max(...p.M.concat(p.F).map((v) => 100 * v / T))));
+  else { const p0 = S.hist[0].p, m = Math.max(...p0.M, ...p0.F, ...p.M, ...p.F); const s = niceStep(m, 4); axMax = Math.ceil(m / s) * s; }
+  ageLabels(ageW - 6, top, rowH);
+  const g = pyramid(p, ageW, w, top, rowH, axMax, S.unit, S.hist.length - 1, true);
+  axisLabels(g, axMax, S.unit, top + NB * rowH + 16);
+  txt(fig, g.cx - 6, top + NB * rowH + 34, "← " + P.t("men"), "lb", "end");
+  txt(fig, g.cx + 6, top + NB * rowH + 34, P.t("women") + " →", "lb", "start");
+  const i = S.sel, sel = S.unit === "pct"
+    ? P.t("selPct", { g: grp(i), m: Play.fmt(100 * p.M[i] / T, 1), f: Play.fmt(100 * p.F[i] / T, 1) })
+    : P.t("selAbs", { g: grp(i), m: fmtBand(p.M[i]), f: fmtBand(p.F[i]) });
+  txt(fig, 8, 18, cName(S.c) + " · " + P.t("yearV", { y: year() }), "lbf");
+  if (narrow) txt(fig, 8, 38, sel, "lb"); else txt(fig, W - 8, 18, sel, "lb", "end");
+  geo = { top, rowH };
+  fig.classList.add("pick");
+  fig.setAttribute("aria-valuemin", 0); fig.setAttribute("aria-valuemax", NB - 1); fig.setAttribute("aria-valuenow", i);
+  fig.setAttribute("aria-valuetext", sel);
+}
+
+/* ---------- trend chart ---------- */
+function drawTrend() {
+  const W = Math.max(280, Math.round(trend.getBoundingClientRect().width || 600)), H = 160;
+  trend.setAttribute("viewBox", `0 0 ${W} ${H}`); trend.style.height = H + "px";
+  trend.innerHTML = "";
+  const L = zh ? 52 : 44, R = W - 14, T0 = 50, B = H - 22, ticks = W < 520 ? [0, 4, 6, 10] : [0, 2, 4, 6, 8, 10];
+  const solid = S.hist.map((h) => total(h.p));
+  const dash = project(cur(), COUNTRIES[S.c].S, S.tfr, MAXSTEP - (S.hist.length - 1)).map(total);
+  const mx = Math.max(...solid, ...dash, START * 1.2), st = niceStep(mx, 3), top = Math.ceil(mx / st) * st;
+  const X = (k) => L + (R - L) * k / MAXSTEP, Y = (v) => B - (B - T0) * v / top;
+  txt(trend, 14, 16, P.t("trendTitle"), "lbf");
+  txt(trend, 14, 32, P.t("trendLeg", { f: Play.fmt(S.tfr, 1) }), "lb");
+  for (let v = 0; v <= top + 1e-6; v += st) {
+    Play.svg("line", { x1: L, x2: R, y1: Y(v), y2: Y(v), stroke: "var(--line)" }, trend);
+    txt(trend, L - 5, Y(v) + 4, zh ? Play.fmt(v / 1e4, 0) : Play.fmt(v / 1e6, 0) + " M", "lb", "end");
+  }
+  for (const k of ticks) txt(trend, X(k), B + 16, P.t("yr", { y: 5 * k }), "lb", k === 0 ? "start" : k === MAXSTEP ? "end" : "middle");
+  Play.svg("line", { x1: X(6), x2: X(6), y1: T0, y2: B, stroke: "var(--muted)", "stroke-dasharray": "2 3" }, trend);
+  const off = S.hist.length - 1, path = (arr, o) => arr.map((v, k) => (k ? "L" : "M") + X(k + o).toFixed(1) + " " + Y(v).toFixed(1)).join("");
+  Play.svg("path", { d: path(dash, off), fill: "none", stroke: "var(--a)", "stroke-width": 2, "stroke-dasharray": "5 4", opacity: 0.8 }, trend);
+  Play.svg("path", { d: path(solid, 0), fill: "none", stroke: "var(--a)", "stroke-width": 3, "stroke-linejoin": "round" }, trend);
+  Play.svg("circle", { cx: X(off), cy: Y(solid[off]), r: 4.5, fill: "var(--a)", stroke: "var(--surface)", "stroke-width": 2 }, trend);
+}
+
+/* ---------- render ---------- */
+function render() {
+  drawFig();
+  const sim = S.stepI > 0;
+  $("sim").hidden = !sim; $("unitSeg").hidden = !sim; $("stats").hidden = !sim; $("momBtn").hidden = S.stepI !== 2;
+  if (!sim) { Play.live($("live"), ""); return; }
+  drawTrend();
+  $("tfr").value = S.tfr; $("tfrVal").textContent = Play.fmt(S.tfr, 1);
+  $("yearVal").textContent = P.t("yearV", { y: year() });
+  $("back").disabled = S.hist.length <= 1; $("adv").disabled = S.hist.length > MAXSTEP;
+  document.querySelectorAll("[data-c]").forEach((b) => b.classList.toggle("on", +b.dataset.c === S.c));
+  document.querySelectorAll("[data-unit]").forEach((b) => b.classList.toggle("on", b.dataset.unit === S.unit));
+  const s = stats(cur());
+  $("oYear").textContent = P.t("vYear", { y: year() });
+  $("oTot").textContent = fmtTot(s.T);
+  $("oMed").textContent = P.t("vMed", { v: Play.fmt(s.med, 1) });
+  $("oKids").textContent = P.t("vPct", { v: Play.fmt(s.kids, 1) });
+  $("oOld").textContent = P.t("vPct", { v: Play.fmt(s.old, 1) });
+  $("oDep").textContent = P.t("vDep", { v: Play.fmt(s.dep, 0) });
+  $("oRep").textContent = P.t("vRep", { v: Play.fmt(replacement(COUNTRIES[S.c].S), 2) });
+  Play.live($("live"), P.t("liveSum", { c: COUNTRIES[S.c].id, y: year(), t: fmtTot(s.T), m: Play.fmt(s.med, 1), k: Play.fmt(s.kids, 0), o: Play.fmt(s.old, 0) }));
+}
+
+/* ---------- interaction ---------- */
+let timer = 0;
+const playBtn = $("playBtn");
+function stop() { clearTimeout(timer); timer = 0; playBtn.textContent = P.t("play"); }
+function advance() { if (S.hist.length > MAXSTEP) return false; S.hist.push({ p: step(cur(), COUNTRIES[S.c].S, S.tfr), tfr: S.tfr }); return true; }
+function run() { if (advance()) { render(); timer = setTimeout(run, 650); } else stop(); }
+function start() { if (S.hist.length > MAXSTEP) { S.hist = S.hist.slice(0, 1); } playBtn.textContent = P.t("pause"); render(); timer = setTimeout(run, 400); }
+playBtn.addEventListener("click", () => (timer ? stop() : start()));
+$("adv").addEventListener("click", () => { stop(); advance(); render(); });
+$("back").addEventListener("click", () => { stop(); if (S.hist.length > 1) { S.hist.pop(); S.tfr = S.hist[S.hist.length - 1].tfr; } render(); });
+$("tfr").addEventListener("input", () => { S.tfr = Play.clamp(Math.round(+$("tfr").value * 10) / 10, 1, 6); S.hist[S.hist.length - 1].tfr = S.tfr; render(); });
+document.querySelectorAll("[data-c]").forEach((b) => {
+  const c = COUNTRIES[+b.dataset.c];
+  b.textContent = P.t("c" + c.id);
+  b.addEventListener("click", () => { stop(); setCountry(+b.dataset.c); render(); });
+});
+document.querySelectorAll("[data-unit]").forEach((b) => b.addEventListener("click", () => { S.unit = b.dataset.unit; render(); }));
+function pickRow(e) {
+  if (!geo) return;
+  const y = Play.pointer(fig, e).y, r = Math.floor((y - geo.top) / geo.rowH);
+  if (r >= 0 && r < NB) { S.sel = NB - 1 - r; drawFig(); }
+}
+fig.addEventListener("pointerdown", (e) => { pickRow(e); fig.setPointerCapture && fig.setPointerCapture(e.pointerId); });
+fig.addEventListener("pointermove", (e) => { if (e.buttons) pickRow(e); });
+fig.addEventListener("keydown", (e) => {
+  if (!geo) return;
+  const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 4, PageDown: -4 }[e.key];
+  if (d) { S.sel = Play.clamp(S.sel + d, 0, NB - 1); drawFig(); e.preventDefault(); }
+});
+$("momBtn").addEventListener("click", () => {
+  stop(); setCountry(0); S.tfr = 2.1; S.hist[0].tfr = 2.1;
+  if (Play.reduced) { while (advance()); render(); } else start();
+});
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right", { a: fmtTot(total(COUNTRIES[0].p)), c: fmtTot(total(COUNTRIES[2].p)) }),
+  wrong: P.t("wrong", { a: fmtTot(total(COUNTRIES[0].p)), c: fmtTot(total(COUNTRIES[2].p)) }),
+}, () => { S.answered = true; drawFig(); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  S.stepI = i;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k, { yrs: MOM.yrs, peak: fmtTot(MOM.peak), pct: Play.fmt(MOM.pct, 0), rep: Play.fmt(REP_HIGH, 1) });
+  $("predict").hidden = i !== 0;
+  render();
+});
+$("foot").textContent = P.t("foot", {
+  eA: Play.fmt(e0(HIGH.F, HIGH.birth), 0), eB: Play.fmt(e0(LOW.F, LOW.birth), 0),
+  rA: Play.fmt(REP_HIGH, 1), rB: Play.fmt(REP_LOW, 1),
+});
+$("reset").addEventListener("click", () => { stop(); setCountry(0); S.unit = "pct"; S.sel = 4; S.answered = false; pr.reset(); st.go(0); });
+if ("ResizeObserver" in window) { let w0 = 0; new ResizeObserver(() => { const w = fig.getBoundingClientRect().width; if (Math.abs(w - w0) > 1) { w0 = w; render(); } }).observe(fig.parentNode); }
+stop();
+render();
+</script>
+</body>
+</html>

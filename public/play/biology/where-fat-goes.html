@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where does fat go when you lose weight?</title>
+<link rel="stylesheet" href="../play.css">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<style>
+  .lbl { fill: var(--fg); font-size: 14px; }
+  .lbl.m { fill: var(--muted); font-size: 13px; }
+  .lbl.b { font-weight: 650; }
+  .lbl.big { font-size: 20px; font-weight: 700; }
+  .lbl.eq { font-family: var(--math); font-size: 16px; }
+  .lbl.eqs { font-family: var(--math); font-size: 13px; }
+  .q { fill: var(--a); font-size: 30px; font-weight: 750; }
+  .panel { fill: var(--soft); }
+  .body { fill: var(--soft); stroke: var(--muted); stroke-width: 2; }
+  .fat { fill: var(--hl); }
+  .barbg { fill: var(--line); opacity: .6; }
+  .bF { fill: var(--hl); } .bO { fill: var(--no); opacity: .6; } .bC { fill: var(--c); } .bW { fill: var(--a); }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .ah { fill: var(--muted); }
+  .wave { stroke: var(--no); stroke-width: 2; fill: none; opacity: .7; }
+  .aC { fill: var(--fg); opacity: .8; } .aH { fill: var(--b); } .aO { fill: var(--no); }
+  .aOair { fill: none; stroke: var(--no); stroke-width: 1.4; }
+  .bin { fill: var(--soft); stroke: var(--line); }
+  .controls .play-btn { min-width: 5.5em; }
+  #extra { font-size: 14px; }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlKg">
+        <label for="kg" data-t="kgLabel"></label>
+        <input type="range" id="kg" min="0" max="10" step="0.1" value="10">
+        <span class="val" id="kgVal"></span>
+      </div>
+      <div class="controls" id="ctlBurn">
+        <label for="burn" data-t="burnLabel"></label>
+        <input type="range" id="burn" min="0" max="100" step="1" value="0">
+        <span class="val" id="burnVal"></span>
+        <button type="button" class="small play-btn" id="playBtn"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="extra"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Where does fat go when you lose weight?", eyebrow: "Biology · Stage 3", h1: "Where does fat go when you lose weight?",
+    intro: "Guess first. Then weigh what goes in and out when fat is burned, and follow every one of its atoms out of the body.",
+    reset: "Reset", figAria: "A body with possible exits for fat, bars weighing the molecules of fat burning, and atoms of one fat molecule moving to CO₂ and water",
+    kgLabel: "Fat burned", burnLabel: "Burned", play: "Play", pause: "Pause",
+    s1: "Guess", s2: "Weigh", s3: "Atoms", s4: "Rule",
+    k1: "Predict first", t1: "Someone loses 10 kg of fat. Where did those 10 kg go?",
+    b1: "Pick one. Being wrong costs nothing: the next steps put every answer to the test.",
+    q: "Most of the mass of the lost fat leaves the body…", o1: "breathed out, through the lungs", o2: "in sweat and urine", o3: "turned into energy and heat", o4: "through the toilet",
+    right: "That is the surprising answer. Step 2 checks it with numbers.", wrong: "Keep your guess in mind; the next steps track every atom.",
+    fb1: "Most of it, yes. Step 2 weighs how much.",
+    fb2: "Part of it does leave as water, in urine, sweat and breath. Step 2 shows that this is the smaller part.",
+    fb3: "This was the most common answer when Meerman and Brown asked 150 doctors, dietitians and personal trainers. Energy is released, but energy does not carry atoms away: 10 kg of atoms must leave as atoms.",
+    fb4: "Faeces are mostly water, gut bacteria and food that was never digested, not fat that was burned. Step 3 follows the fat's atoms.",
+    k2: "Hands on · weigh it", t2: "Fat + oxygen → carbon dioxide + water",
+    b2: "Burning fat in the body is a chain of many reactions, but the overall result is the equation in the figure. Drag the slider: the code weighs every molecule from its atoms, so in and out always balance.",
+    x2: "Of the {kg} kg of fat, {fc} kg of its own atoms leave in CO₂ and {fw} kg in water. To burn it you breathe in {o2} kg of O₂, so the CO₂ you breathe out weighs {co2} kg. Breath estimate: one quiet breath carries about 0.04 g of CO₂, so that is about {br} breaths ({bpk} per kg of fat), or about {days} days of breathing at 12 breaths a minute if all of it came from fat.",
+    x2zero: "Drag the slider above 0 kg.",
+    live2: "{kg} kg fat + {o2} kg O₂ → {co2} kg CO₂ + {w} kg water. Fat's own mass: {fp}% out as CO₂, {wp}% as water.",
+    k3: "Hands on · follow the atoms", t3: "Where does each atom of one fat molecule go?",
+    b3: "One typical fat molecule, C₅₅H₁₀₄O₆, has 165 atoms (drawn as dots, not in its real shape). Drag “Burned” or press Play and watch where each atom ends up. Rings are oxygen atoms breathed in from the air.",
+    x3: "Every carbon atom leaves in CO₂, through the lungs. Every hydrogen atom ends up in water, which leaves in urine, sweat, breath and tears. The fat's 6 oxygen atoms split: 4 into CO₂ and 2 into water, the 2/3 : 1/3 split Meerman and Brown used. Most of the oxygen in the CO₂ (106 of 110 atoms) came in from the air.",
+    live3: "Burned {p}%: {lp}% of the fat's mass is now in CO₂, {wp}% in water, {rp}% still in the fat.",
+    k4: "The rule", t4: "Fat leaves the body mostly as the CO₂ you breathe out",
+    b4: "When fat is burned, its atoms do not vanish. Carbon leaves as CO₂ through the lungs; hydrogen leaves as water. About {fp}% of the mass goes out with your breath. The energy is real (it powers muscles and keeps you warm), but it comes from rearranging bonds, not from losing atoms, and the mass it carries is far too small to weigh.",
+    x4: "This is photosynthesis run backwards. A plant takes CO₂ and water and builds sugar from them (see “Where does a tree's mass come from?”); your body takes those atoms apart again and returns them to the air as CO₂ and water. Energy check: burning 10 kg of fat releases about {mj} MJ. By E = mc², that energy corresponds to only {ug} µg, about one part in {bn} billion of the fat's mass.",
+    live4: "10 kg fat → {fc} kg leaves as CO₂, {fw} kg as water. Energy {mj} MJ ≈ {ug} µg.",
+    fA: "breath", fB: "sweat & urine", fC: "heat", fD: "toilet", fFat: "−10 kg fat",
+    mFat: "fat", mO2: "O₂ in", mCO2: "CO₂ out", mH2O: "water out",
+    fBal: "in {a} kg = out {b} kg", fOwn: "Where the fat's own {kg} kg goes",
+    fLungs: "lungs (CO₂) {v} kg · {p}%", fWater: "water {v} kg · {p}%",
+    fRep: "Meerman & Brown", fCalc: "this page", fTen: "10 kg of fat", fColC: "CO₂ kg", fColW: "water kg",
+    fMol: "one fat molecule", fAirIn: "O₂ from air", fBinC: "breathed out as CO₂", fBinW: "leaves as water",
+    lC: "C", lH: "H", lO: "O (fat)", lOa: "O (air)",
+    f10: "10 kg of fat leaves as", fEn: "Energy released: {mj} MJ = {ug} µg", fEn2: "too small to show on this bar",
+    fYou: "you", fPlant: "plant", fOut: "CO₂ + H₂O", fIn: "food (C, H, O)", fLoop: "the same atoms go round",
+    resultTitle: "What we found", resultMain: "fat + O₂ → CO₂ (breathed out) + H₂O",
+    resultNote: "{fp}% of the fat's mass leaves through the lungs as CO₂, {wp}% as water. Energy is released, but the mass leaves as molecules.",
+    explainK: "Explain it", explainQ: "A friend says lost fat “turns into energy”. Using the 10 kg example, explain where its atoms actually go, and why the energy cannot account for the missing mass.",
+    homeK: "Try at home", homeQ: "Breathe onto a cold mirror: the mist is water leaving you. Then count your breaths for one quiet minute and use 0.04 g of CO₂ per breath to estimate how long it takes to breathe out 1 kg of CO₂.",
+    foot: "Source: R. Meerman and A. J. Brown, “When somebody loses weight, where does the fat go?”, BMJ 2014; 349: g7257. Their example: oxidising 10 kg of fat uses 29 kg of O₂ and gives 28 kg of CO₂ and 11 kg of water; 8.4 kg of the fat leaves as CO₂ and 1.6 kg as water. Typical triglyceride C₅₅H₁₀₄O₆ (real body fat is a mix of similar molecules). Atomic masses: C 12.011, H 1.008, O 15.999. The fat's oxygen is split 2/3 to CO₂ and 1/3 to water as in the paper (the products hold O in the ratio 110 : 52, about 68%). Energy in fat ≈ 37 kJ/g; c = 299 792 458 m/s. CO₂ per quiet breath ≈ 0.04 g (approximate: about 0.5 L breathed out, about 4% CO₂); 12 breaths per minute. · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "减掉的脂肪去哪儿了？", eyebrow: "生物 · 阶段 3", h1: "减掉的脂肪去哪儿了？",
+    intro: "先猜一猜。再称一称燃烧脂肪时进去和出来的东西，最后跟着脂肪的每个原子走出身体。",
+    reset: "重置", figAria: "人体和脂肪可能的出口、燃烧脂肪时各种分子的质量条、一个脂肪分子的原子走向二氧化碳和水",
+    kgLabel: "燃烧的脂肪", burnLabel: "燃烧进度", play: "播放", pause: "暂停",
+    s1: "先猜", s2: "称一称", s3: "跟原子", s4: "规律",
+    k1: "先猜一猜", t1: "有人减掉了 10 千克脂肪。这 10 千克去哪儿了？",
+    b1: "选一个。猜错没关系，后面几步会把每个答案都检验一遍。",
+    q: "减掉的脂肪，大部分质量是……离开身体的", o1: "通过肺呼出去", o2: "随汗和尿", o3: "变成能量和热", o4: "从厕所排掉",
+    right: "这正是让人意外的答案。第 2 步用数字检验。", wrong: "记住你的猜测，后面几步会跟踪每一个原子。",
+    fb1: "大部分是的。第 2 步称一称到底多少。",
+    fb2: "确实有一部分变成水，随尿、汗和呼吸离开。第 2 步会看到这是较小的一部分。",
+    fb3: "Meerman 和 Brown 问过 150 位医生、营养师和健身教练，这是最多人选的答案。能量确实放出来了，但能量带不走原子：10 千克的原子只能以原子的形式离开。",
+    fb4: "粪便主要是水、肠道细菌和没消化的食物，不是烧掉的脂肪。第 3 步跟着脂肪的原子走。",
+    k2: "动手 · 称一称", t2: "脂肪 + 氧气 → 二氧化碳 + 水",
+    b2: "身体里燃烧脂肪要经过很多步反应，但总的结果就是图上的方程式。拖动滑块：程序按原子逐个称每种分子，所以进出总是平衡的。",
+    x2: "这 {kg} 千克脂肪里，自身的原子有 {fc} 千克随 CO₂ 离开，{fw} 千克随水离开。烧掉它要吸进 {o2} 千克 O₂，所以呼出的 CO₂ 重 {co2} 千克。呼吸估算：安静时一次呼气大约带走 0.04 克 CO₂，一共约 {br} 次呼吸（每千克脂肪 {bpk} 次）；如果这些 CO₂ 全来自脂肪，按每分钟 12 次算，大约要呼吸 {days} 天。",
+    x2zero: "把滑块拖到 0 千克以上。",
+    live2: "{kg} 千克脂肪 + {o2} 千克 O₂ → {co2} 千克 CO₂ + {w} 千克水。脂肪自身的质量：{fp}% 随 CO₂ 离开，{wp}% 随水离开。",
+    k3: "动手 · 跟着原子走", t3: "一个脂肪分子的每个原子，各去了哪里？",
+    b3: "一个典型的脂肪分子 C₅₅H₁₀₄O₆ 有 165 个原子（画成圆点，不是它真实的形状）。拖动「燃烧进度」或按「播放」，看每个原子最后到了哪里。空心圈是从空气里吸进来的氧原子。",
+    x3: "每个碳原子都进了 CO₂，从肺呼出去。每个氢原子都进了水，随尿、汗、呼吸和眼泪离开。脂肪自带的 6 个氧原子分开走：4 个进 CO₂，2 个进水，也就是 Meerman 和 Brown 用的 2/3 : 1/3。CO₂ 里的氧大部分（110 个里的 106 个）是从空气里吸进来的。",
+    live3: "燃烧了 {p}%：脂肪质量的 {lp}% 已在 CO₂ 里，{wp}% 在水里，{rp}% 还在脂肪里。",
+    k4: "规律", t4: "脂肪主要变成二氧化碳，被你呼出去",
+    b4: "脂肪烧掉时，原子并没有消失。碳变成 CO₂ 从肺离开，氢变成水离开。大约 {fp}% 的质量随呼气离开身体。能量是真的（它让肌肉干活、让身体保持温暖），但它来自化学键的重新组合，而不是原子的丢失；能量对应的质量小到根本称不出来。",
+    x4: "这正好是光合作用倒过来。植物把 CO₂ 和水合成糖（见「大树的重量从哪里来？」）；你的身体再把这些原子拆开，以 CO₂ 和水的形式还给空气。算一算能量：烧掉 10 千克脂肪约放出 {mj} 兆焦。按 E = mc²，这些能量只对应 {ug} 微克，约占脂肪质量的 {yi} 亿分之一。",
+    live4: "10 千克脂肪 → {fc} 千克随 CO₂ 离开，{fw} 千克随水离开。能量 {mj} 兆焦 ≈ {ug} 微克。",
+    fA: "呼气", fB: "汗和尿", fC: "热", fD: "厕所", fFat: "−10 千克脂肪",
+    mFat: "脂肪", mO2: "吸入 O₂", mCO2: "呼出 CO₂", mH2O: "排出的水",
+    fBal: "进 {a} 千克 = 出 {b} 千克", fOwn: "脂肪自身的 {kg} 千克去了哪里",
+    fLungs: "肺（CO₂）{v} 千克 · {p}%", fWater: "水 {v} 千克 · {p}%",
+    fRep: "Meerman & Brown", fCalc: "本页计算", fTen: "10 千克脂肪", fColC: "CO₂ 千克", fColW: "水 千克",
+    fMol: "一个脂肪分子", fAirIn: "空气里的 O₂", fBinC: "变成 CO₂ 呼出", fBinW: "变成水排出",
+    lC: "C", lH: "H", lO: "O（脂肪）", lOa: "O（空气）",
+    f10: "10 千克脂肪的去向", fEn: "放出的能量：{mj} 兆焦 = {ug} 微克", fEn2: "小到这根条上画不出来",
+    fYou: "你", fPlant: "植物", fOut: "CO₂ + H₂O", fIn: "食物（C、H、O）", fLoop: "同一批原子在循环",
+    resultTitle: "我们发现", resultMain: "脂肪 + O₂ → CO₂（呼出）+ H₂O",
+    resultNote: "脂肪质量的 {fp}% 以 CO₂ 的形式从肺离开，{wp}% 变成水。能量放出来了，但质量是以分子的形式离开的。",
+    explainK: "说一说", explainQ: "朋友说减掉的脂肪「变成了能量」。用 10 千克的例子给他讲讲：脂肪的原子到底去了哪里，为什么能量解释不了少掉的质量。",
+    homeK: "家里做一做", homeQ: "对着冰凉的镜子哈一口气：那层雾就是从你身体出去的水。再安静地数一分钟呼吸次数，按每次呼出 0.04 克 CO₂，估算呼出 1 千克 CO₂ 要多久。",
+    foot: "来源：R. Meerman 和 A. J. Brown，《When somebody loses weight, where does the fat go?》，BMJ 2014; 349: g7257。文中的例子：氧化 10 千克脂肪要用 29 千克 O₂，生成 28 千克 CO₂ 和 11 千克水；脂肪本身有 8.4 千克随 CO₂ 离开，1.6 千克随水离开。典型甘油三酯 C₅₅H₁₀₄O₆（人体脂肪是许多相似分子的混合）。原子量：C 12.011，H 1.008，O 15.999。脂肪里的氧按文中做法 2/3 进 CO₂、1/3 进水（产物里氧原子之比是 110 : 52，约 68%）。脂肪能量约 37 kJ/g；c = 299 792 458 m/s。安静时每次呼气约带走 0.04 克 CO₂（粗略值：约呼出 0.5 升气，其中约 4% 是 CO₂）；每分钟 12 次。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- numbers (all computed here) ----------
+const AM = { C: 12.011, H: 1.008, O: 15.999 };
+const FAT = { C: 55, H: 104, O: 6 };                         // C55H104O6 + 78 O2 -> 55 CO2 + 52 H2O
+const RX = { O2: 78, CO2: 55, H2O: 52 };
+const M = {
+  FAT: FAT.C * AM.C + FAT.H * AM.H + FAT.O * AM.O,
+  O2: 2 * AM.O, CO2: AM.C + 2 * AM.O, H2O: 2 * AM.H + AM.O,
+};
+const PER = { O2: RX.O2 * M.O2 / M.FAT, CO2: RX.CO2 * M.CO2 / M.FAT, H2O: RX.H2O * M.H2O / M.FAT }; // kg per kg fat
+// the fat's own atoms: all C -> CO2, all H -> H2O, its O split 2/3 : 1/3 (Meerman & Brown)
+const O_TO_CO2 = FAT.O * 2 / 3, O_TO_H2O = FAT.O - O_TO_CO2;
+const OWN = {
+  CO2: (FAT.C * AM.C + O_TO_CO2 * AM.O) / M.FAT,
+  H2O: (FAT.H * AM.H + O_TO_H2O * AM.O) / M.FAT,
+};
+const REPORTED = { kg: 10, CO2: 8.4, H2O: 1.6 };
+const BREATH_G = 0.04, BPM = 12;                             // g CO2 per quiet breath (approx.), breaths per minute
+const E_FAT = 37e3, C_LIGHT = 299792458;                     // J per g of fat; m/s
+const energy = (kg) => { const J = kg * 1000 * E_FAT; return { MJ: J / 1e6, ug: J / (C_LIGHT * C_LIGHT) * 1e9 }; };
+function burnKg(kg) {
+  kg = Play.clamp(+kg || 0, 0, 1e6);
+  const co2 = kg * PER.CO2, breaths = co2 * 1000 / BREATH_G;
+  return {
+    kg, o2: kg * PER.O2, co2, h2o: kg * PER.H2O, ownCO2: kg * OWN.CO2, ownH2O: kg * OWN.H2O,
+    breaths, perKg: PER.CO2 * 1000 / BREATH_G, days: breaths / BPM / 60 / 24,
+  };
+}
+const f = Play.fmt;
+const pct = (x) => f(x * 100, 1);
+const big = (x) => (Number.isFinite(x) ? (Math.round(x / 100) * 100).toLocaleString(P.lang === "zh" ? "zh-CN" : "en-US") : "—");
+const E10 = energy(10);
+
+// ---------- one molecule, atom by atom ----------
+// fat atoms spread evenly by type; destination: CO2 bin as (C,O,O) triples, water bin as (O,H,H) triples
+function buildAtoms() {
+  const counts = { C: FAT.C, H: FAT.H, O: FAT.O }, N = FAT.C + FAT.H + FAT.O, placed = { C: 0, H: 0, O: 0 };
+  const fat = [];
+  for (let k = 0; k < N; k++) {
+    let best = "C", bd = -Infinity;
+    for (const t in counts) { const d = (k + 1) * counts[t] / N - placed[t]; if (placed[t] < counts[t] && d > bd) { bd = d; best = t; } }
+    placed[best]++;
+    fat.push({ el: best, src: k });
+  }
+  const binC = [], binW = [];                                   // slots
+  const fatOToC = Math.round(O_TO_CO2), fatOToW = FAT.O - fatOToC;
+  for (let m = 0; m < RX.CO2; m++) {
+    binC.push({ el: "C", fat: true });
+    const fo = Math.floor((m + 1) * fatOToC / RX.CO2) > Math.floor(m * fatOToC / RX.CO2);
+    binC.push({ el: "O", fat: fo }, { el: "O", fat: false });
+  }
+  for (let m = 0; m < RX.H2O; m++) {
+    const fo = Math.floor((m + 1) * fatOToW / RX.H2O) > Math.floor(m * fatOToW / RX.H2O);
+    binW.push({ el: "O", fat: fo }, { el: "H", fat: true }, { el: "H", fat: true });
+  }
+  // match fat atoms to fat slots of the same element
+  const free = (bin, name) => bin.map((s, i) => ({ s, i, bin: name })).filter((x) => x.s.fat);
+  const pool = free(binC, "C").concat(free(binW, "W"));
+  fat.forEach((a) => { const j = pool.findIndex((x) => x.s.el === a.el); const x = pool.splice(j, 1)[0]; a.bin = x.bin; a.slot = x.i; });
+  const air = [];
+  binC.forEach((s, i) => { if (!s.fat) air.push({ el: "O", bin: "C", slot: i }); });
+  binW.forEach((s, i) => { if (!s.fat) air.push({ el: "O", bin: "W", slot: i }); });
+  return { fat, air, nC: binC.length, nW: binW.length };
+}
+const ATOMS = buildAtoms();
+
+// ---------- DOM ----------
+const fig = document.getElementById("fig");
+const kgIn = document.getElementById("kg"), burnIn = document.getElementById("burn");
+const playBtn = document.getElementById("playBtn");
+const extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+let step = 0, predictNote = "", raf = 0, last = 0, pf = 0;
+document.getElementById("resultNote").textContent = P.t("resultNote", { fp: pct(OWN.CO2), wp: pct(OWN.H2O) });
+
+const S = (tag, a, p) => Play.svg(tag, a, p || fig);
+function text(x, y, s, cls, anchor) {
+  const t = S("text", { x, y, class: "lbl " + (cls || ""), "text-anchor": anchor || "start" });
+  t.textContent = s;
+  return t;
+}
+function arrow(x1, y1, x2, y2) {
+  S("line", { x1, y1, x2, y2, class: "arrow" });
+  const a = Math.atan2(y2 - y1, x2 - x1), L = 9;
+  const p = [[x2, y2], [x2 - L * Math.cos(a - 0.45), y2 - L * Math.sin(a - 0.45)], [x2 - L * Math.cos(a + 0.45), y2 - L * Math.sin(a + 0.45)]];
+  S("polygon", { points: p.map((q) => q.join(",")).join(" "), class: "ah" });
+}
+function bar(x, y, w, h, frac, cls) {
+  S("rect", { x, y, width: Math.max(0, w), height: h, rx: 3, class: "barbg" });
+  const v = Play.clamp(frac, 0, 1) * w;
+  if (v > 0) S("rect", { x, y, width: Math.max(1, v), height: h, rx: 3, class: cls });
+}
+function size() {
+  const r = fig.getBoundingClientRect();
+  const W = Math.max(280, Math.round(r.width || 600)), H = Math.max(240, Math.round(r.height || 360));
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  return { W, H };
+}
+
+function drawGuess(W, H) {
+  const cx = W / 2, s = H / 360;
+  const hy = 70 * s, tt = 104 * s, tb = 236 * s, tw = 74 * s;
+  S("circle", { cx, cy: hy, r: 24 * s, class: "body" });
+  S("rect", { x: cx - tw / 2, y: tt, width: tw, height: tb - tt, rx: 22 * s, class: "body" });
+  S("rect", { x: cx - tw / 2 + 6, y: tb - 8, width: 22 * s, height: H - 30 - tb, rx: 8, class: "body" });
+  S("rect", { x: cx + tw / 2 - 6 - 22 * s, y: tb - 8, width: 22 * s, height: H - 30 - tb, rx: 8, class: "body" });
+  S("ellipse", { cx, cy: 190 * s, rx: 28 * s, ry: 22 * s, class: "fat" });
+  text(cx, 195 * s, "?", "q", "middle").setAttribute("class", "q");
+  const side = Math.min(W / 2 - 14, 170);
+  // breath: from the mouth, up and right
+  arrow(cx + 26 * s, hy + 6, cx + side * 0.62, 34 * s);
+  text(cx + side * 0.62 + 4, 30 * s, P.t("fA"), "m", W < 420 ? "end" : "start");
+  // sweat & urine: left
+  arrow(cx - tw / 2 - 4, 170 * s, cx - side * 0.7, 150 * s);
+  text(cx - side * 0.7, 138 * s, P.t("fB"), "m", W < 420 ? "start" : "middle");
+  // heat: wavy lines, right
+  for (let i = 0; i < 3; i++) {
+    const x0 = cx + tw / 2 + 8 + i * 12, y0 = 150 * s;
+    S("path", { d: `M${x0} ${y0 + 40 * s} q6 -8 0 -16 q-6 -8 0 -16 q6 -8 0 -16`, class: "wave" });
+  }
+  text(cx + side * 0.75, 170 * s, P.t("fC"), "m", "middle");
+  // toilet: down
+  arrow(cx - tw / 2 - 2, H - 56, cx - side * 0.62, H - 26);
+  text(cx - side * 0.62 - 6, H - 10, P.t("fD"), "m", W < 420 ? "start" : "end");
+  text(cx + tw / 2 + 6, 222 * s, P.t("fFat"), "m b");
+}
+
+function drawWeigh(W, H) {
+  const r = burnKg(+kgIn.value), narrow = W < 420, tight = H < 340;
+  text(W / 2, 20, "C₅₅H₁₀₄O₆ + 78 O₂ → 55 CO₂ + 52 H₂O", narrow ? "eqs" : "eq", "middle");
+  const lw = narrow ? 74 : 92, vw = 72, bw = W - 24 - lw - vw, max = 10 * PER.O2, rh = tight ? 22 : 25;
+  const rows = [[P.t("mFat"), r.kg, "bF"], [P.t("mO2"), r.o2, "bO"], [P.t("mCO2"), r.co2, "bC"], [P.t("mH2O"), r.h2o, "bW"]];
+  rows.forEach((row, i) => {
+    const y = 30 + i * rh + (i >= 2 ? 6 : 0);
+    text(12, y + 14, row[0], "m");
+    bar(12 + lw, y + 3, bw, 13, row[1] / max, row[2]);
+    text(W - 12, y + 15, f(row[1], 2) + " kg", "", "end");
+  });
+  let y = 30 + 4 * rh + 22;
+  text(W / 2, y, P.t("fBal", { a: f(r.kg + r.o2, 2), b: f(r.co2 + r.h2o, 2) }), "m", "middle");
+  y += tight ? 22 : 28;
+  text(12, y, P.t("fOwn", { kg: f(r.kg, 1) }), "m b");
+  const w2 = W - 24, wc = OWN.CO2 * w2;
+  if (r.kg > 0) {
+    S("rect", { x: 12, y: y + 7, width: wc - 2, height: 18, rx: 3, class: "bC" });
+    S("rect", { x: 12 + wc, y: y + 7, width: w2 - wc, height: 18, rx: 3, class: "bW" });
+  } else S("rect", { x: 12, y: y + 7, width: w2, height: 18, rx: 3, class: "barbg" });
+  y += 42;
+  if (narrow) {                                            // stacked so the two labels never overlap
+    text(12, y, P.t("fLungs", { v: f(r.ownCO2, 2), p: pct(OWN.CO2) }), "b");
+    text(12, y + 16, P.t("fWater", { v: f(r.ownH2O, 2), p: pct(OWN.H2O) }), "m");
+    y += 16;
+  } else {
+    text(12, y, P.t("fLungs", { v: f(r.ownCO2, 2), p: pct(OWN.CO2) }), "b");
+    text(W - 12, y, P.t("fWater", { v: f(r.ownH2O, 2), p: pct(OWN.H2O) }), "b", "end");
+  }
+  // reported vs computed, as a small table: label | CO2 | water
+  const ten = burnKg(REPORTED.kg), ty = y + 12, x1 = W - 16, x0 = W - (narrow ? 76 : 96);
+  S("rect", { x: 8, y: ty, width: W - 16, height: 58, rx: 8, class: "panel" });
+  text(16, ty + 16, P.t("fTen"), "m b");
+  text(x0, ty + 16, P.t("fColC"), "m b", "end");
+  text(x1, ty + 16, P.t("fColW"), "m b", "end");
+  [[P.t("fRep"), f(REPORTED.CO2, 1), f(REPORTED.H2O, 1)], [P.t("fCalc"), f(ten.ownCO2, 2), f(ten.ownH2O, 2)]].forEach((row, i) => {
+    const yy = ty + 34 + i * 17;
+    text(16, yy, row[0], "m");
+    text(x0, yy, row[1], "b", "end");
+    text(x1, yy, row[2], "b", "end");
+  });
+}
+
+const ease = (t) => t * t * (3 - 2 * t);
+function gridSlots(n, x, y, w, h, triples) {
+  // triples: lay atoms out as molecules of 3 side by side
+  const nm = triples ? Math.ceil(n / 3) : n;
+  const aspect = triples ? 3 : 1;
+  const cols = Math.max(1, Math.round(Math.sqrt(nm * w / (h * aspect))));
+  const rows = Math.ceil(nm / cols);
+  const cw = w / cols, ch = h / rows, out = [];
+  const r = Math.min(triples ? cw / 3 : cw, ch) * 0.36;
+  for (let i = 0; i < n; i++) {
+    const m = triples ? Math.floor(i / 3) : i, k = triples ? i % 3 : 0;
+    const col = m % cols, row = Math.floor(m / cols);
+    const px = triples ? x + col * cw + cw * (0.2 + 0.3 * k) : x + (col + 0.5) * cw;
+    out.push([px, y + (row + 0.5) * ch]);
+  }
+  return { pos: out, r: Math.min(5, Math.max(1.6, r)) };
+}
+
+function drawAtoms(W, H) {
+  const p = +burnIn.value / 100, narrow = W < 420;
+  const mw = W * (narrow ? 0.34 : 0.36), bx = mw + (narrow ? 22 : 34), bw = W - bx - 8;
+  const top = 26, legY = H - 8, bottom = H - 26;
+  text(10, 16, P.t("fMol"), "m b");
+  const mol = gridSlots(ATOMS.fat.length, 8, top, mw - 8, bottom - top - 24, false);
+  const gap = 8, bh = (bottom - 4 - gap) / 2;
+  const bins = { C: { y: 4, n: ATOMS.nC }, W: { y: 4 + bh + gap, n: ATOMS.nW } };
+  const binGrid = {};
+  for (const k in bins) {
+    const b = bins[k];
+    S("rect", { x: bx, y: b.y, width: bw, height: bh, rx: 8, class: "bin" });
+    binGrid[k] = gridSlots(b.n, bx + 6, b.y + 22, bw - 12, bh - 26, true);
+  }
+  const src = [mw / 2 + 4, bottom - 6];
+  text(src[0], bottom + 4, P.t("fAirIn"), "m", "middle");
+  const all = ATOMS.fat.length + ATOMS.air.length;
+  const massIn = { C: 0, W: 0 };
+  const draw1 = (a, from, idx, isAir) => {
+    const d = (idx / all) * 0.6, t = ease(Play.clamp((p - d) / 0.4, 0, 1));
+    const g = binGrid[a.bin], to = g.pos[a.slot];
+    const x = from[0] + (to[0] - from[0]) * t, y = from[1] + (to[1] - from[1]) * t;
+    const r = mol.r + (g.r - mol.r) * t;
+    if (isAir) {
+      if (t <= 0) return;
+      S("circle", { cx: x, cy: y, r: Math.max(1.4, g.r - 0.6), class: "aOair", opacity: Math.min(1, t * 3) });
+    } else {
+      S("circle", { cx: x, cy: y, r, class: "a" + a.el });
+      massIn[a.bin] += AM[a.el] * t;
+    }
+  };
+  // interleave fat and air atoms in time so both streams move together
+  ATOMS.fat.forEach((a, i) => draw1(a, mol.pos[a.src], Math.round(i * all / ATOMS.fat.length), false));
+  ATOMS.air.forEach((a, i) => draw1(a, src, Math.round(i * all / ATOMS.air.length), true));
+  const lp = massIn.C / M.FAT, wp = massIn.W / M.FAT;
+  text(bx + 8, bins.C.y + 16, P.t("fBinC"), "m b");
+  text(bx + bw - 8, bins.C.y + 16, pct(lp) + "%", "b", "end");
+  text(bx + 8, bins.W.y + 16, P.t("fBinW"), "m b");
+  text(bx + bw - 8, bins.W.y + 16, pct(wp) + "%", "b", "end");
+  // legend
+  const items = [["aC", P.t("lC")], ["aH", P.t("lH")], ["aO", P.t("lO")], ["aOair", P.t("lOa")]];
+  const dx = narrow ? (W - 16) / 4 : Math.min(110, (W - 16) / 4);
+  items.forEach((it, i) => {
+    const x = 12 + i * dx;
+    S("circle", { cx: x, cy: legY - 4, r: 4.5, class: it[0] });
+    text(x + 9, legY, it[1], "m");
+  });
+  Play.live(liveEl, P.t("live3", { p: f(p * 100, 0), lp: pct(lp), wp: pct(wp), rp: pct(Math.max(0, 1 - lp - wp)) }));
+}
+
+function drawRule(W, H) {
+  const narrow = W < 420, ten = burnKg(10);
+  text(12, 22, P.t("f10"), "m b");
+  const w2 = W - 24, wc = OWN.CO2 * w2;
+  S("rect", { x: 12, y: 32, width: wc - 2, height: 24, rx: 3, class: "bC" });
+  S("rect", { x: 12 + wc, y: 32, width: w2 - wc, height: 24, rx: 3, class: "bW" });
+  const u = P.lang === "zh" ? " 千克" : " kg";
+  text(12, 76, P.t("mCO2") + " " + f(ten.ownCO2, 1) + u, "b");
+  text(W - 12, 76, P.t("mH2O") + " " + f(ten.ownH2O, 1) + u, "b", "end");
+  text(12, 104, P.t("fEn", { mj: f(E10.MJ, 0), ug: f(E10.ug, 1) }), "m b");
+  S("rect", { x: 12, y: 112, width: w2, height: 10, rx: 3, class: "barbg" });
+  text(12, 140, P.t("fEn2"), "m");
+  // the cycle: you ⇄ plant
+  const cy = Math.min(H - 70, 220), r = narrow ? 30 : 36, xl = W * 0.24, xr = W * 0.76;
+  S("circle", { cx: xl, cy, r, class: "body" });
+  S("circle", { cx: xr, cy, r, class: "bin" });
+  text(xl, cy + 5, P.t("fYou"), "b", "middle");
+  text(xr, cy + 5, P.t("fPlant"), "b", "middle");
+  arrow(xl + r * 0.7, cy - r * 0.75, xr - r * 0.7, cy - r * 0.75);
+  text(W / 2, cy - r * 0.75 - 8, P.t("fOut"), "m", "middle");
+  arrow(xr - r * 0.7, cy + r * 0.75, xl + r * 0.7, cy + r * 0.75);
+  text(W / 2, cy + r * 0.75 + 18, P.t("fIn"), "m", "middle");
+  text(W / 2, Math.min(H - 8, cy + r + 44), P.t("fLoop"), "m", "middle");
+}
+
+function draw() {
+  const { W, H } = size();
+  fig.innerHTML = "";
+  if (step === 0) drawGuess(W, H);
+  else if (step === 1) drawWeigh(W, H);
+  else if (step === 2) drawAtoms(W, H);
+  else drawRule(W, H);
+  const r = burnKg(+kgIn.value);
+  document.getElementById("kgVal").textContent = f(r.kg, 1) + (P.lang === "zh" ? " 千克" : " kg");
+  document.getElementById("burnVal").textContent = f(+burnIn.value, 0) + "%";
+  playBtn.textContent = raf ? P.t("pause") : P.t("play");
+  if (step === 0) { extra.textContent = predictNote; Play.live(liveEl, ""); }
+  if (step === 1) {
+    extra.textContent = r.kg > 0 ? P.t("x2", {
+      kg: f(r.kg, 1), fc: f(r.ownCO2, 2), fw: f(r.ownH2O, 2), o2: f(r.o2, 2), co2: f(r.co2, 2),
+      br: big(r.breaths), bpk: big(r.perKg), days: f(r.days, r.days < 10 ? 1 : 0),
+    }) : P.t("x2zero");
+    Play.live(liveEl, P.t("live2", { kg: f(r.kg, 1), o2: f(r.o2, 2), co2: f(r.co2, 2), w: f(r.h2o, 2), fp: pct(OWN.CO2), wp: pct(OWN.H2O) }));
+  }
+  if (step === 2) extra.textContent = P.t("x3");
+  if (step === 3) {
+    const ten = burnKg(10);
+    extra.textContent = P.t("x4", { mj: f(E10.MJ, 0), ug: f(E10.ug, 1), bn: f(10 / (E10.ug * 1e-9) / 1e9, 1), yi: f(10 / (E10.ug * 1e-9) / 1e8, 0) });
+    Play.live(liveEl, P.t("live4", { fc: f(ten.ownCO2, 2), fw: f(ten.ownH2O, 2), mj: f(E10.MJ, 0), ug: f(E10.ug, 1) }));
+  }
+}
+
+// ---------- animation (never autoplays) ----------
+function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
+function tick(t) {
+  const dt = last ? (t - last) / 1000 : 0;
+  last = t;
+  pf = Play.clamp(pf + dt * 25, 0, 100);       // 4 s for the whole burn
+  burnIn.value = pf;
+  if (pf >= 100) { stop(); draw(); return; }
+  raf = requestAnimationFrame(tick);
+  draw();
+}
+playBtn.addEventListener("click", () => {
+  if (raf) { stop(); draw(); return; }
+  if (+burnIn.value >= 100) burnIn.value = 0;
+  if (Play.reduced) { burnIn.value = 100; draw(); return; }  // no motion: jump to the end
+  pf = +burnIn.value;
+  last = 0;
+  raf = requestAnimationFrame(tick);
+  draw();
+});
+
+// ---------- steps ----------
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1"), right: true }, { label: P.t("o2") }, { label: P.t("o3") }, { label: P.t("o4") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { predictNote = P.t("fb" + (i + 1)); if (step === 0) extra.textContent = predictNote; });
+
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  if (i !== 2) stop();
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k, { fp: f(OWN.CO2 * 100, 0) });
+  document.getElementById("predict").hidden = i !== 0;
+  document.getElementById("ctlKg").hidden = i !== 1;
+  document.getElementById("ctlBurn").hidden = i !== 2;
+  draw();
+});
+
+kgIn.addEventListener("input", draw);
+burnIn.addEventListener("input", () => { stop(); draw(); });
+document.getElementById("reset").addEventListener("click", () => {
+  stop(); kgIn.value = 10; burnIn.value = 0; predictNote = ""; pr.reset(); st.go(0);
+});
+if ("ResizeObserver" in window) new ResizeObserver(() => draw()).observe(fig);
+else window.addEventListener("resize", draw);
+</script>
+</body>
+</html>
