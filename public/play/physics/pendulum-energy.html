@@ -142,7 +142,7 @@ const P = Play.setup({
     resultNote: "No m in the formula: a heavier bob is pulled harder but is harder to speed up, by the same factor. Four times the length gives twice the period. Height energy and speed energy trade places; friction turns some into heat.",
     explainK: "Explain it", explainQ: "A grandfather clock runs slow. Should you move the bob up or down the rod to fix it, and would a heavier bob help? Explain using T = 2π√(L/g).",
     homeK: "Try at home", homeQ: "Tie a key to a string 1 m long and time 10 swings; do it again with two keys, then with the string 25 cm long. Which change makes a difference, and by how much?",
-    foot: "Model: point bob on a massless rigid rod, no friction at the pivot. θ″ = −(g/L)·sin θ (optional air friction: −c·θ′ with c = 0.12 s⁻¹, a drag force proportional to speed and to mass, so both bobs lose the same share per second), solved with fourth-order Runge–Kutta at a fixed step of 1 ms. Measured period: time between two zero crossings in the same direction (linear interpolation), for the swing without air friction. Check: the exact period 2π√(L/g)/AGM(1, cos(θ₀/2)) agrees with the simulation to better than 0.01%. PE measured from the lowest point. g = 9.81 m/s². · CC BY 4.0 · Boxi Yu",
+    foot: "Model: point bob on a massless rigid rod, no friction at the pivot. θ″ = −(g/L)·sin θ (optional air friction: −c·θ′ with c = 0.12 s⁻¹, a drag force proportional to speed and to mass, so both bobs lose the same share per second), solved with fourth-order Runge–Kutta at a fixed step of 1 ms. Measured period: time between two zero crossings in the same direction (linear interpolation), for the swing without air friction. Check: the exact period 2π√(L/g)/AGM(1, cos(θ₀/2)) agrees with the simulation to better than 0.01%. PE measured from the lowest point. g = 9.81 m/s². · CC BY-SA 4.0 · Boxi Yu",
   },
   zh: {
     title: "单摆的节拍由什么决定？", eyebrow: "物理 · 阶段 4", h1: "单摆的节拍由什么决定？",
@@ -188,7 +188,7 @@ const P = Play.setup({
     resultNote: "公式里没有 m：摆锤越重，受的重力越大，但也越难加速，两者按同样的比例变。摆长 4 倍，周期 2 倍。高度的能量和速度的能量来回互换；摩擦会把一部分变成热。",
     explainK: "说一说", explainQ: "一台落地摆钟走慢了。应该把摆锤沿摆杆往上调还是往下调？换一个更重的摆锤有没有用？用 T = 2π√(L/g) 解释。",
     homeK: "家里做一做", homeQ: "把一把钥匙拴在 1 米长的绳子上，量摆 10 次的时间；换成两把钥匙再量一次；再把绳子缩短到 25 厘米量一次。哪个改变有影响，影响多大？",
-    foot: "模型：摆锤看成质点，挂在没有质量的硬杆上，支点无摩擦。θ″ = −(g/L)·sin θ（可选空气阻力：−c·θ′，c = 0.12 s⁻¹，即阻力与速度和质量成正比，两个摆锤每秒损失同样比例的能量），用四阶龙格–库塔法、固定步长 1 毫秒求解。测得的周期：同方向两次过零点之间的时间（线性插值），按没有空气阻力计算。校验：精确周期 2π√(L/g)/AGM(1, cos(θ₀/2)) 与模拟相差小于 0.01%。PE 以最低点为零。g = 9.81 m/s²。· CC BY 4.0 · Boxi Yu",
+    foot: "模型：摆锤看成质点，挂在没有质量的硬杆上，支点无摩擦。θ″ = −(g/L)·sin θ（可选空气阻力：−c·θ′，c = 0.12 s⁻¹，即阻力与速度和质量成正比，两个摆锤每秒损失同样比例的能量），用四阶龙格–库塔法、固定步长 1 毫秒求解。测得的周期：同方向两次过零点之间的时间（线性插值），按没有空气阻力计算。校验：精确周期 2π√(L/g)/AGM(1, cos(θ₀/2)) 与模拟相差小于 0.01%。PE 以最低点为零。g = 9.81 m/s²。· CC BY-SA 4.0 · Boxi Yu",
   },
 });
 

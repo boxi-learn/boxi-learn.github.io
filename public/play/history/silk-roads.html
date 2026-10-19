@@ -222,7 +222,7 @@ const EN = {
   tagS: "schematic, not to scale", tagL: "— land", tagSea: "- - sea",
   explainK: "Explain it", explainQ: "A friend says “a merchant took silk along the Silk Road from China to Rome”. Use the trader counter and the price from this page to explain what really happened, and why the price went up so much.",
   homeK: "Try at home", homeQ: "Play “pass it on” with your family: whisper a short message along a line of people, or pass a cup of rice and let each person keep one spoonful as their “fee”. How much arrives at the end of 3 people? Of 6?",
-  foot: "The map is schematic: positions keep only the rough order of places, not distances or directions. Ctesiphon was the Parthian and Sasanian capital; Baghdad was founded nearby in 762 CE, so later goods show Baghdad. Byzantium was renamed Constantinople in 330 CE. Calicut stands for the Malabar coast ports (earlier, Muziris). Routes, distances (rough, rounded) and the travel model are illustrative: caravans about 30 km a day, ships about 150 km a day plus about 30 days waiting for the monsoon per sea leg, risk 2% (land) or 3% (sea) per 1,000 km, one trader per stretch, the same markup at every sale. Real trade varied enormously. Dates follow standard reference works and are approximate. CC BY 4.0 · Boxi Yu",
+  foot: "The map is schematic: positions keep only the rough order of places, not distances or directions. Ctesiphon was the Parthian and Sasanian capital; Baghdad was founded nearby in 762 CE, so later goods show Baghdad. Byzantium was renamed Constantinople in 330 CE. Calicut stands for the Malabar coast ports (earlier, Muziris). Routes, distances (rough, rounded) and the travel model are illustrative: caravans about 30 km a day, ships about 150 km a day plus about 30 days waiting for the monsoon per sea leg, risk 2% (land) or 3% (sea) per 1,000 km, one trader per stretch, the same markup at every sale. Real trade varied enormously. Dates follow standard reference works and are approximate. CC BY-SA 4.0 · Boxi Yu",
 };
 const ZH = {
   title: "丝绸之路上走的是什么？", eyebrow: "历史 · 阶段 3", h1: "丝绸之路上走的是什么？",
@@ -274,7 +274,7 @@ const ZH = {
   tagS: "示意图，不按比例", tagL: "— 陆路", tagSea: "- - 海路",
   explainK: "说一说", explainQ: "朋友说：「一个商人沿着丝绸之路把丝绸从中国运到了罗马。」用本页的经手人数和价格，跟他讲讲实际是怎样的，价格为什么涨了那么多。",
   homeK: "家里做一做", homeQ: "和家人玩「传下去」：沿一排人悄悄传一句话；或者传一杯米，每人留一勺当「辛苦费」。经过 3 个人还剩多少？6 个人呢？",
-  foot: "地图是示意图：位置只保留各地大致的先后关系，不代表距离和方向。泰西封是帕提亚和萨珊的都城；巴格达 762 年建在它附近，所以较晚的东西显示巴格达。拜占庭在 330 年改名君士坦丁堡。卡利卡特代表马拉巴尔海岸的港口（更早是穆吉里斯）。路线、距离（粗略取整）和旅行模型都是示意：商队每天约 30 公里，船每天约 150 公里，每段海路另加约 30 天等季风；风险每 1000 公里陆路 2%、海路 3%；每段一个商人，每次转卖加价相同。真实的贸易差别很大。年代采用通行参考书的说法，都是大致年代。CC BY 4.0 · Boxi Yu",
+  foot: "地图是示意图：位置只保留各地大致的先后关系，不代表距离和方向。泰西封是帕提亚和萨珊的都城；巴格达 762 年建在它附近，所以较晚的东西显示巴格达。拜占庭在 330 年改名君士坦丁堡。卡利卡特代表马拉巴尔海岸的港口（更早是穆吉里斯）。路线、距离（粗略取整）和旅行模型都是示意：商队每天约 30 公里，船每天约 150 公里，每段海路另加约 30 天等季风；风险每 1000 公里陆路 2%、海路 3%；每段一个商人，每次转卖加价相同。真实的贸易差别很大。年代采用通行参考书的说法，都是大致年代。CC BY-SA 4.0 · Boxi Yu",
 };
 GOODS.forEach((g) => { if (!EN["g_" + g.id] || !ZH["g_" + g.id]) console.error("missing good " + g.id); });
 const P = Play.setup({ en: EN, zh: ZH });

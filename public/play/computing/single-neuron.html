@@ -269,7 +269,7 @@ const P = Play.setup({
     resultNote: "On a mistake: w ← w + 0.1·(t − o)·x. If a straight line can split the data the mistakes stop (Novikoff 1962); on XOR they never do (Minsky & Papert 1969).",
     explainK: "Explain it", explainQ: "Explain to someone how this neuron gets all 16 fruits right without knowing what a fruit is. Then say why it can never get the XOR fruit all right, using the straight line.",
     homeK: "Try at home", homeQ: "Score 10 snacks from 0 to 10 for sweetness and for crunch, and plot them on squared paper: a circle if a family member likes it, a square if not. Can one ruler line split circles from squares? Try to find four snacks that no line can split.",
-    foot: "Neuron: s = w₁·x₁ + w₂·x₂ + b; output yes (1) only when s > 0, so s = 0 counts as no. Perceptron learning rule (Rosenblatt 1958, Psychological Review): after each point, w₁ += η(t − o)·x₁, w₂ += η(t − o)·x₂, b += η(t − o), with t, o ∈ {0, 1} and learning rate η = 0.1. Convergence on linearly separable data: Novikoff 1962. XOR limit: Minsky & Papert, Perceptrons, 1969; multi-layer networks trained by back-propagation (Rumelhart, Hinton & Williams 1986) can learn it. The fruit and plant data are invented by a seeded random generator (fruit seed {fs}, XOR seed {xs}); “New data” only offers fruit sets the rule learns from 0 in 4–30 passes. Auto stops after {cap} passes. “Best any line” is a search over 180 directions and every cut along each. CC BY 4.0 · Boxi Yu",
+    foot: "Neuron: s = w₁·x₁ + w₂·x₂ + b; output yes (1) only when s > 0, so s = 0 counts as no. Perceptron learning rule (Rosenblatt 1958, Psychological Review): after each point, w₁ += η(t − o)·x₁, w₂ += η(t − o)·x₂, b += η(t − o), with t, o ∈ {0, 1} and learning rate η = 0.1. Convergence on linearly separable data: Novikoff 1962. XOR limit: Minsky & Papert, Perceptrons, 1969; multi-layer networks trained by back-propagation (Rumelhart, Hinton & Williams 1986) can learn it. The fruit and plant data are invented by a seeded random generator (fruit seed {fs}, XOR seed {xs}); “New data” only offers fruit sets the rule learns from 0 in 4–30 passes. Auto stops after {cap} passes. “Best any line” is a search over 180 directions and every cut along each. CC BY-SA 4.0 · Boxi Yu",
   },
   zh: {
     title: "一个人工神经元学分类", eyebrow: "信息科技 · 阶段 4",
@@ -314,7 +314,7 @@ const P = Play.setup({
     resultNote: "错一次：w ← w + 0.1·(t − o)·x。只要有直线能分开，错误一定会停（Novikoff 1962）；异或永远停不下（Minsky 与 Papert 1969）。",
     explainK: "说一说", explainQ: "跟别人讲讲：这个神经元不知道水果是什么，为什么还能把 16 个水果全部分对？再用「直线」说明它为什么永远分不对异或水果。",
     homeK: "家里做一做", homeQ: "给 10 种零食的甜度和脆度各打 0 到 10 分，画在方格纸上：家人喜欢的画圆、不喜欢的画方块。能用尺子画一条直线把圆和方块分开吗？试着找出四种零食，让任何直线都分不开。",
-    foot: "神经元：s = w₁·x₁ + w₂·x₂ + b；只有 s > 0 才输出「是」（1），s = 0 算「否」。感知机学习规则（Rosenblatt 1958，《心理学评论》）：每看一个点，w₁ += η(t − o)·x₁，w₂ += η(t − o)·x₂，b += η(t − o)，t、o ∈ {0, 1}，学习率 η = 0.1。线性可分数据上必定收敛：Novikoff 1962。异或的局限：Minsky 与 Papert《感知机》1969；用反向传播训练的多层网络（Rumelhart、Hinton、Williams 1986）能学会异或。水果和植物数据是用带种子的随机数编的（水果种子 {fs}，异或种子 {xs}）；「换一组」只给出规则从 0 开始 4–30 轮能学会的水果数据。自动学习最多 {cap} 轮。「任何直线最少错几个」是在 180 个方向、每个方向所有切法里搜出来的。CC BY 4.0 · Boxi Yu",
+    foot: "神经元：s = w₁·x₁ + w₂·x₂ + b；只有 s > 0 才输出「是」（1），s = 0 算「否」。感知机学习规则（Rosenblatt 1958，《心理学评论》）：每看一个点，w₁ += η(t − o)·x₁，w₂ += η(t − o)·x₂，b += η(t − o)，t、o ∈ {0, 1}，学习率 η = 0.1。线性可分数据上必定收敛：Novikoff 1962。异或的局限：Minsky 与 Papert《感知机》1969；用反向传播训练的多层网络（Rumelhart、Hinton、Williams 1986）能学会异或。水果和植物数据是用带种子的随机数编的（水果种子 {fs}，异或种子 {xs}）；「换一组」只给出规则从 0 开始 4–30 轮能学会的水果数据。自动学习最多 {cap} 轮。「任何直线最少错几个」是在 180 个方向、每个方向所有切法里搜出来的。CC BY-SA 4.0 · Boxi Yu",
   },
 });
 

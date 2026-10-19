@@ -16,4 +16,4 @@ npm run dev
 
 Pushing to `main` deploys to GitHub Pages.
 
-Code: MIT ([LICENSE](LICENSE)). Text and interactive pages: CC BY 4.0 ([LICENSE-CONTENT](LICENSE-CONTENT)). By Boxi Yu.
+Code: MIT ([LICENSE](LICENSE)). Text and interactive pages: CC BY-SA 4.0 ([LICENSE-CONTENT](LICENSE-CONTENT)); logos and trademarks excluded. By Boxi Yu. Copies published before 2026-10-19 remain available under CC BY 4.0.

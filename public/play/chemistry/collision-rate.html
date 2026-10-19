@@ -145,7 +145,7 @@ const P = Play.setup({
     explainK: "Explain it", explainQ: "A friend says: “Heat makes particles bump into each other more, that’s why reactions go faster.” Using the words “activation energy” and “fraction”, tell them what they are missing.",
     homeK: "Try at home", homeQ: "Drop a fizzing tablet (vitamin C or antacid) into cold water and another into warm water, and time how long each fizzes. Then crush one and drop it into cold water: that is surface area at work.",
     dataNote: "The model: {n} equal-mass discs in a 2D box, elastic collisions, and a gentle thermostat that now and then gives a random particle a new velocity at the set temperature. An A–B collision reacts when ½μu² ≥ Ea, where u is the approach speed along the line between the centres and μ is the reduced mass. In 2D the kinetic energy of a particle follows p(E) = e^(−E/RT)/RT (per mole), so the fraction above E is exactly e^(−E/RT); the chart uses that exact 2D formula. The same formula gives the fraction of collisions whose head-on energy is at least Ea, in 2D and in 3D (the textbook collision-theory result), which is why the measured fraction settles near it. At fixed concentration the collision frequency grows with the mean relative speed, ∝ √T. R = 8.314 J/(mol·K). The model uses Ea of 4–16 kJ/mol because most real reactions have 40–120 kJ/mol, where at 298 K only about {real} of collisions (Ea = {ea}) succeed, far too few to count in a small box. Each product pair is swapped at once for a fresh A and B with the same motion (it stays yellow for {life} model seconds so you can see it), so the supply stays steady, like a stirred flow reactor. “Twice as fast per 10 °C” is only a rule of thumb; it fits Ea ≈ 50 kJ/mol near room temperature. Sources: collision theory and the Arrhenius equation as in standard physical chemistry texts (e.g. Atkins, Physical Chemistry); IUPAC Gold Book, “activation energy”.",
-    foot: "CC BY 4.0 · Boxi Yu",
+    foot: "CC BY-SA 4.0 · Boxi Yu",
   },
   zh: {
     title: "温度高，撞得更猛", eyebrow: "化学 · 阶段 4",
@@ -189,7 +189,7 @@ const P = Play.setup({
     explainK: "说一说", explainQ: "朋友说：「加热让颗粒撞得更多，所以反应变快。」用上「活化能」和「比例」两个词，告诉他漏掉了什么。",
     homeK: "家里做一做", homeQ: "一片泡腾片（维生素 C 或胃药）放进冷水，另一片放进温水，计时看各冒泡多久。再把一片压碎放进冷水：这就是表面积的作用。",
     dataNote: "模型：{n} 个质量相同的圆盘在二维盒子里做弹性碰撞，恒温器不时按设定温度给随机一个颗粒换一个速度。A–B 相撞时，若 ½μu² ≥ Ea 就反应，u 是沿两球心连线的接近速度，μ 是约化质量。二维中颗粒动能的分布是 p(E) = e^(−E/RT)/RT（按每摩尔），所以能量高于 E 的比例正好是 e^(−E/RT)；图上用的就是这个二维的精确公式。同一个公式也给出正面能量不低于 Ea 的碰撞比例，二维和三维都成立（教科书碰撞理论的结论），所以实测比例会稳定在它附近。浓度不变时，碰撞频率随平均相对速度增长，∝ √T。R = 8.314 J/(mol·K)。模型的 Ea 只取 4–16 kJ/mol，因为多数真实反应在 40–120 kJ/mol，298 K 时只有约 {real} 的碰撞（Ea = {ea}）能成功，小盒子里根本数不到。每对产物立刻换成一对运动不变的新 A 和 B（黄色保留 {life} 模型秒，方便看见），让反应物供应保持稳定，像一个搅拌的连续流反应器。「每升 10 °C 快一倍」只是经验说法，大约对应室温附近 Ea ≈ 50 kJ/mol。来源：标准物理化学教材中的碰撞理论与阿伦尼乌斯方程（如 Atkins《物理化学》）；IUPAC Gold Book「活化能」条目。",
-    foot: "CC BY 4.0 · Boxi Yu",
+    foot: "CC BY-SA 4.0 · Boxi Yu",
   },
 });
 const $ = (id) => document.getElementById(id);

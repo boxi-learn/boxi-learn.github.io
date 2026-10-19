@@ -1,7 +1,16 @@
 Text and interactive pages on this site are licensed under the Creative Commons
-Attribution 4.0 International License (CC BY 4.0), by Boxi Yu.
+Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0), by Boxi Yu.
 
-https://creativecommons.org/licenses/by/4.0/
+https://creativecommons.org/licenses/by-sa/4.0/
+Full legal code: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Exception: names, logos and trademarks are not covered by this licence; all
+rights reserved.
+
+Copies published before 2026-10-19 were released under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). That licence cannot be revoked,
+so those earlier copies remain available under CC BY 4.0. Everything from
+2026-10-19 on is CC BY-SA 4.0.
 
 Code (layouts, styles, scripts, including public/play/play.js and play.css) is
 under the MIT License in LICENSE.

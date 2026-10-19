@@ -120,7 +120,7 @@ export const UI: Record<string, T> = {
   watchFor: { en: "What to watch for", zh: "留心看" },
   safety: { en: "Safety", zh: "安全" },
   printCard: { en: "Print this card", zh: "打印这张卡" },
-  license: { en: "Text and pages CC BY 4.0 · Boxi Yu", zh: "文字与页面 CC BY 4.0 · Boxi Yu" },
+  license: { en: "Text and pages CC BY-SA 4.0 · Boxi Yu", zh: "文字与页面 CC BY-SA 4.0 · Boxi Yu" },
 };
 export const GRADE_LABEL: Record<string, T> = {
   cn: { en: "China", zh: "中国" },

@@ -311,7 +311,7 @@ const P = Play.setup({
     explainQ: "A friend says “bubble sort works, so it’s as good as any other.” Use the numbers for 1,000 items to explain why a programmer would still pick merge sort, and say when insertion sort is the smart choice.",
     homeK: "Try at home",
     homeQ: "Shuffle 8 playing cards face down. Sort them twice: once by comparing neighbours (bubble sort), once by sorting each half and then merging the two piles. Count the comparisons each time, with someone keeping a tally.",
-    foot: "Sorts as in Knuth, The Art of Computer Programming, Vol. 3 (Sorting and Searching). Bubble sort makes passes that get one shorter each time and stops after a pass with no swap; insertion sort swaps the new item left; selection sort swaps the smallest of the rest to the front; merge sort is top-down. A comparison is one look at two items. Every count on this page comes from running the code: lists are seeded shuffles of 1…n (mulberry32 generator), the chart averages 3 lists per n. Merge sort is drawn sliding the left half over; its write count is that of the usual version with a spare list. Lower bound ⌈log₂ n!⌉. CC BY 4.0 · Boxi Yu",
+    foot: "Sorts as in Knuth, The Art of Computer Programming, Vol. 3 (Sorting and Searching). Bubble sort makes passes that get one shorter each time and stops after a pass with no swap; insertion sort swaps the new item left; selection sort swaps the smallest of the rest to the front; merge sort is top-down. A comparison is one look at two items. Every count on this page comes from running the code: lists are seeded shuffles of 1…n (mulberry32 generator), the chart averages 3 lists per n. Merge sort is drawn sliding the left half over; its write count is that of the usual version with a spare list. Lower bound ⌈log₂ n!⌉. CC BY-SA 4.0 · Boxi Yu",
   },
   zh: {
     title: "排序比赛", eyebrow: "信息科技 · 阶段 3",
@@ -367,7 +367,7 @@ const P = Play.setup({
     explainQ: "朋友说：「冒泡排序能排对，所以跟别的方法一样好。」用 1000 个数的比较次数跟他解释，程序员为什么还是会选归并排序；再说说什么时候插入排序最划算。",
     homeK: "家里做一做",
     homeQ: "把 8 张扑克牌洗乱、背面朝上。排两次：一次只比较相邻的两张（冒泡排序），一次先把两半各自排好、再把两叠合并。请家人记下每次比较了多少回。",
-    foot: "排序方法依照 Knuth《计算机程序设计艺术》第 3 卷（排序与查找）。冒泡排序每遍短一格，某一遍没有交换就停；插入排序把新来的数往左换；选择排序把剩下最小的换到前面；归并排序自顶向下。一次比较 = 看一次两个数谁大。本页所有次数都是代码实际运行数出来的：数列是 1…n 用种子打乱（mulberry32 随机数），图上每个 n 取 3 串的平均。归并排序画成左半边整体右移的样子，写入次数按常见的「借一个空数组」版本计。下界 ⌈log₂ n!⌉。CC BY 4.0 · Boxi Yu",
+    foot: "排序方法依照 Knuth《计算机程序设计艺术》第 3 卷（排序与查找）。冒泡排序每遍短一格，某一遍没有交换就停；插入排序把新来的数往左换；选择排序把剩下最小的换到前面；归并排序自顶向下。一次比较 = 看一次两个数谁大。本页所有次数都是代码实际运行数出来的：数列是 1…n 用种子打乱（mulberry32 随机数），图上每个 n 取 3 串的平均。归并排序画成左半边整体右移的样子，写入次数按常见的「借一个空数组」版本计。下界 ⌈log₂ n!⌉。CC BY-SA 4.0 · Boxi Yu",
   },
 });
 

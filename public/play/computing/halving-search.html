@@ -317,7 +317,7 @@ const P = Play.setup({
     explainQ: "A friend says “just buy a faster computer, the method doesn’t matter.” Use the numbers for a list of a million to explain why halving still wins, and say when your friend is right.",
     homeK: "Try at home",
     homeQ: "Ask someone to think of a number from 1 to 100 and answer only “higher” or “lower”. Play once guessing freely and once always guessing the middle; count the guesses. Then find a word in a paper dictionary by opening it in the middle and halving.",
-    foot: "Binary search here is the standard version: low = 0, high = n − 1; look at mid = ⌊(low + high) / 2⌋; stop on a match, otherwise keep the half that can still hold the target; stop when low > high. One look = one three-way comparison (less, equal or greater). Worst case ⌊log₂ n⌋ + 1 looks, found or not (Knuth, The Art of Computer Programming, Vol. 3, §6.2.1). Linear search checks left to right and does not use the order. Step 3 uses assumed costs: A = 1 ns per look (about a billion simple steps a second), B = A’s cost × the slider (default 1,000, so 1 µs). The list is 64 distinct whole numbers 1–999 from a seeded generator (mulberry32). Sorting cost n · log₂ n is the usual estimate for merge sort. ns = nanosecond, µs = microsecond, ms = millisecond. CC BY 4.0 · Boxi Yu",
+    foot: "Binary search here is the standard version: low = 0, high = n − 1; look at mid = ⌊(low + high) / 2⌋; stop on a match, otherwise keep the half that can still hold the target; stop when low > high. One look = one three-way comparison (less, equal or greater). Worst case ⌊log₂ n⌋ + 1 looks, found or not (Knuth, The Art of Computer Programming, Vol. 3, §6.2.1). Linear search checks left to right and does not use the order. Step 3 uses assumed costs: A = 1 ns per look (about a billion simple steps a second), B = A’s cost × the slider (default 1,000, so 1 µs). The list is 64 distinct whole numbers 1–999 from a seeded generator (mulberry32). Sorting cost n · log₂ n is the usual estimate for merge sort. ns = nanosecond, µs = microsecond, ms = millisecond. CC BY-SA 4.0 · Boxi Yu",
   },
   zh: {
     title: "对半找：搜索为什么能这么快", eyebrow: "信息科技 · 阶段 4",
@@ -391,7 +391,7 @@ const P = Play.setup({
     explainQ: "朋友说：「买台更快的电脑就行，方法无所谓。」用一百万个数的例子跟他解释为什么对半找还是赢；再说说什么时候他说得对。",
     homeK: "家里做一做",
     homeQ: "请家人想一个 1 到 100 的数，只回答「大了」或「小了」。玩两次：一次随便猜，一次每次都猜中间，数一数各猜了几次。再用纸质字典查一个字：从中间翻开，每次扔掉一半。",
-    foot: "本页的二分查找是标准写法：low = 0，high = n − 1；看 mid = ⌊(low + high) / 2⌋；相等就停，否则留下还可能有目标的那一半；low > high 时停。看一次 = 一次三路比较（小于、等于、大于）。最坏情况看 ⌊log₂ n⌋ + 1 次，找得到找不到都一样（Knuth《计算机程序设计艺术》第 3 卷 §6.2.1）。顺序查找从左往右看，不利用顺序。第 3 步的用时是假设的：A 每看一次 1 ns（约每秒十亿个简单步骤），B = A 的用时 × 滑块倍数（默认 1000，即 1 µs）。数列是 1–999 中用种子随机数（mulberry32）取的 64 个不同整数。排序代价 n · log₂ n 是归并排序的通常估计。ns = 纳秒，µs = 微秒，ms = 毫秒。CC BY 4.0 · Boxi Yu",
+    foot: "本页的二分查找是标准写法：low = 0，high = n − 1；看 mid = ⌊(low + high) / 2⌋；相等就停，否则留下还可能有目标的那一半；low > high 时停。看一次 = 一次三路比较（小于、等于、大于）。最坏情况看 ⌊log₂ n⌋ + 1 次，找得到找不到都一样（Knuth《计算机程序设计艺术》第 3 卷 §6.2.1）。顺序查找从左往右看，不利用顺序。第 3 步的用时是假设的：A 每看一次 1 ns（约每秒十亿个简单步骤），B = A 的用时 × 滑块倍数（默认 1000，即 1 µs）。数列是 1–999 中用种子随机数（mulberry32）取的 64 个不同整数。排序代价 n · log₂ n 是归并排序的通常估计。ns = 纳秒，µs = 微秒，ms = 毫秒。CC BY-SA 4.0 · Boxi Yu",
   },
 });
 
