@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sink or float?</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .tray { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 14px 8px; }
+  .tray button { font-size: 14px; padding: 5px 11px; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .tray button[aria-pressed="true"] { border-color: var(--a); background: var(--soft); }
+  .tray .dot { width: 10px; height: 10px; }
+  .ghost { position: fixed; z-index: 10; pointer-events: none; background: var(--surface); border: 2px solid var(--a); border-radius: 999px; padding: 4px 12px; font-size: 14px; transform: translate(-50%, -120%); box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+  .controls output { font-family: var(--math); color: var(--fg); font-size: 15px; min-width: 4em; }
+  table.res { width: 100%; border-collapse: collapse; font-size: 14px; margin: 2px 0 10px; }
+  table.res th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 650; border-bottom: 1px solid var(--line); padding: 3px 4px; }
+  table.res td { padding: 4px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  table.res td.num { text-align: right; white-space: nowrap; }
+  table.res tr.sel td { font-weight: 700; }
+  .fl { color: var(--a); font-weight: 650; } .sk { color: var(--no); font-weight: 650; }
+  ul.ladder { list-style: none; margin: 2px 0 10px; padding: 0; font-size: 14px; }
+  ul.ladder li { display: flex; gap: 10px; padding: 2px 0; }
+  ul.ladder li > span:nth-child(2) { min-width: 9em; }
+  ul.ladder li .d { font-family: var(--math); min-width: 3.2em; text-align: right; }
+  ul.ladder li.water { border-top: 2px solid var(--c); border-bottom: 2px solid var(--c); color: var(--c); font-weight: 700; margin: 3px 0; }
+  ul.ladder li.calc { font-weight: 700; }
+  #fig { height: auto; aspect-ratio: 600 / 380; max-height: 420px; }
+  #fig .lab { fill: var(--fg); font-family: var(--font); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  #fig .lab.on { fill: var(--a); font-weight: 750; }
+  #fig g.item { cursor: pointer; }
+  #fig g.item:focus { outline: none; }
+  #fig g.item:focus-visible .sel, #fig g.item.on .sel { stroke: var(--a); }
+  .foot.data { text-align: left; max-width: 900px; margin: 14px auto 0; line-height: 1.6; }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="pause" aria-pressed="false"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 380" role="group" data-t-aria="figAria"></svg>
+      <div id="c1" class="controls">
+        <button type="button" id="drop1"></button>
+      </div>
+      <div id="c2" hidden>
+        <div class="tray" id="tray" role="toolbar" data-t-aria="trayAria"></div>
+        <div class="controls">
+          <label for="size" data-t="sizeLabel"></label>
+          <input type="range" id="size" min="0.5" max="2" step="0.1" value="1">
+          <output id="sizeVal" for="size"></output>
+        </div>
+      </div>
+      <div id="c3" class="controls" hidden>
+        <label for="thick" data-t="thickLabel"></label>
+        <input type="range" id="thick" min="0.15" max="1.2" step="0.05" value="0.3">
+        <output id="thickVal" for="thick"></output>
+        <button type="button" class="small" id="drop3" data-t="dropAgain"></button>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div id="extra"></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot data" id="data"></p>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Sink or float?", eyebrow: "Science · Stage 1",
+    h1: "Floating depends on how heavy something is for its size",
+    intro: "Guess first, then drop things into the tank. Watch which ones float, and how deep they sit.",
+    reset: "Reset", pause: "Pause", play: "Play",
+    figAria: "A tank of water with objects that float or sink", trayAria: "Objects to drop into the tank",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "A big log and a small nail",
+    b1: "Both go into the same tank of water. Pick an answer, then watch them drop.",
+    b1done: "The log is about {k} times heavier than the nail ({m1} against {m2}), yet the log floats and the nail sinks. So “heavy things sink” cannot be the rule.",
+    q: "Which one sinks?", o1: "The log: it is heavier", o2: "The nail", o3: "Both sink", o4: "Both float",
+    right: "Yes, even though the nail is far lighter. Watch.", wrong: "Watch what really happens.",
+    drop1: "Drop them in", dropAgain: "Drop again",
+    k2: "Hands on", t2: "Test things in the tank",
+    b2: "Tap an object below, or drag it into the tank. Tap one in the tank to select it, then change its size with the slider.",
+    sizeLabel: "Size of selected", sizeNone: "Drop something in first.",
+    thObj: "Object", thMass: "Mass", thRho: "g/cm³", thRes: "In water",
+    resFloat: "floats, {p}% under", resSink: "sinks", resWait: "…",
+    liveSel: "{name} at size ×{s}: volume {v} cm³, mass {m}. Its density is still {d} g/cm³, so it still {res}.",
+    resFloatV: "floats with {p}% under water", resSinkV: "sinks",
+    itemAria: "{name}, {d} grams per cubic centimetre, {res}",
+    k3: "The rule", t3: "Compare with water",
+    b3: "Density is how many grams one cubic centimetre weighs; water’s is 1 g/cm³. Denser than water: it sinks. Less dense: it floats, and the share under water equals its density ÷ 1. Now the same clay, two shapes: drag the slider to press the boat thinner.",
+    thickLabel: "Boat wall", thickVal: "{t} cm",
+    boatLive: "Both are the same {m} g of clay. Ball: {vb} cm³ → {db} g/cm³, it sinks. Boat {L} cm wide, {h} cm tall: clay plus the air inside take up {vo} cm³ → average {da} g/cm³, so it {res}.",
+    water: "water", ladderFloat: "floats", ladderSink: "sinks",
+    n_log: "Wooden log", n_nail: "Iron nail", n_apple: "Apple", n_coin: "Coin", n_ice: "Ice cube",
+    n_ball: "Rubber ball (hollow)", n_clay: "Clay lump", n_candle: "Candle", n_cball: "Clay ball", n_boat: "Clay boat",
+    resultTitle: "What we found", resultMain: "density < 1 g/cm³ (water) → floats",
+    resultNote: "Size alone never changes it: make an object {k} times bigger in every direction and its mass and its volume both grow {k3} times. Air trapped inside, as in a boat or a hollow ball, lowers the average density.",
+    explainK: "Explain it", explainQ: "A big log floats but a small nail sinks. Explain why to a friend without using the word ‘heavy’.",
+    homeK: "Try at home", homeQ: "Fill a bowl with water. Test an apple, a coin, a lump of clay, then the same clay pressed into a boat shape.",
+    dataNote: "Densities used (g/cm³, room temperature, approximate): fresh water {water}; pine wood {wood} (0.4–0.7 by species and dryness); apple {apple} (about 0.75–0.85); paraffin wax (candle) {wax}; ice {ice}; rubber {rubber} — the ball is a hollow shell 3 cm in radius with 0.3 cm walls, so its average is {ball}; modelling clay {clay} (brands vary, about 1.3–1.8); iron {iron}; copper–nickel coin {coin}. Masses come from sizes in centimetres (log 12 × 50, nail 0.4 × 6, apple 7.5, coin 2.5 × 0.18, ice 3, ball 6, clay 4, candle 2 × 15). Drawings are not to scale. The boat is an open square box whose height is a third of its width; its average counts the clay and the air inside.",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "沉还是浮？", eyebrow: "科学 · 阶段 1",
+    h1: "沉浮不看多重，看同样大小时谁更重",
+    intro: "先猜，再把东西放进水箱。看哪些浮、哪些沉，浮的又沉下去多少。",
+    reset: "重置", pause: "暂停", play: "播放",
+    figAria: "一箱水，里面的东西有的浮着、有的沉底", trayAria: "可以放进水箱的东西",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "一根大木头和一颗小铁钉",
+    b1: "两样东西放进同一箱水里。先选一个答案，再看它们落下去。",
+    b1done: "木头大约是铁钉的 {k} 倍重（{m1} 对 {m2}），可木头浮着、铁钉沉了。所以「重的沉」不是规律。",
+    q: "哪个会沉下去？", o1: "木头，它更重", o2: "铁钉", o3: "都沉", o4: "都浮",
+    right: "对！铁钉轻得多，却沉了。看。", wrong: "看看实际会怎样。",
+    drop1: "放进水里", dropAgain: "再放一次",
+    k2: "动手", t2: "把东西放进水箱试试",
+    b2: "点下面的东西，或者把它拖进水箱。点水箱里的东西选中它，再用滑块改它的大小。",
+    sizeLabel: "选中物体的大小", sizeNone: "先放一样东西进去。",
+    thObj: "物体", thMass: "质量", thRho: "克/厘米³", thRes: "在水里",
+    resFloat: "浮，{p}% 在水下", resSink: "沉", resWait: "……",
+    liveSel: "{name} 放大到 ×{s}：体积 {v} 立方厘米，质量 {m}。它的密度还是 {d} 克/立方厘米，所以还是{res}。",
+    resFloatV: "浮着，{p}% 在水下", resSinkV: "沉底",
+    itemAria: "{name}，每立方厘米 {d} 克，{res}",
+    k3: "规律", t3: "和水比一比",
+    b3: "密度就是 1 立方厘米有多少克；水是 1 克/立方厘米。比水密：沉。比水疏：浮，而且水下那部分的比例正好等于它的密度 ÷ 1。再看同一团橡皮泥的两种形状：拖滑块，把船壁捏得更薄。",
+    thickLabel: "船壁厚度", thickVal: "{t} 厘米",
+    boatLive: "两样都是同样 {m} 克橡皮泥。泥球：{vb} 立方厘米 → {db} 克/立方厘米，沉。泥船宽 {L} 厘米、高 {h} 厘米：泥加上船里的空气一共占 {vo} 立方厘米 → 平均 {da} 克/立方厘米，所以{res}。",
+    water: "水", ladderFloat: "浮", ladderSink: "沉",
+    n_log: "木头", n_nail: "铁钉", n_apple: "苹果", n_coin: "硬币", n_ice: "冰块",
+    n_ball: "橡皮球（空心）", n_clay: "橡皮泥团", n_candle: "蜡烛", n_cball: "泥球", n_boat: "泥船",
+    resultTitle: "我们发现", resultMain: "密度 < 1 克/厘米³（水）→ 浮",
+    resultNote: "光改大小改不了沉浮：把东西每个方向都放大 {k} 倍，质量和体积都变成 {k3} 倍。里面关着空气（像船、空心球），平均密度就变小。",
+    explainK: "说一说", explainQ: "大木头能浮，小铁钉却沉。不用「重」这个字，给朋友讲讲为什么。",
+    homeK: "家里做一做", homeQ: "装一盆水，试试苹果、硬币、一团橡皮泥，再把同一团橡皮泥捏成小船。",
+    dataNote: "所用密度（克/立方厘米，室温，约值）：淡水 {water}；松木 {wood}（因树种和干湿在 0.4–0.7 之间）；苹果 {apple}（约 0.75–0.85）；石蜡（蜡烛）{wax}；冰 {ice}；橡胶 {rubber}——球是半径 3 厘米、壁厚 0.3 厘米的空心壳，平均 {ball}；橡皮泥 {clay}（各牌子不同，约 1.3–1.8）；铁 {iron}；铜镍硬币 {coin}。质量由厘米尺寸算出（木头 12 × 50，铁钉 0.4 × 6，苹果 7.5，硬币 2.5 × 0.18，冰块 3，球 6，泥团 4，蜡烛 2 × 15）。图不按比例。泥船是开口的方盒，高是宽的三分之一；平均密度把泥和船里的空气一起算。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- physics data (g, cm) ----------
+const RHO = { water: 1.0, wood: 0.6, apple: 0.8, wax: 0.9, ice: 0.92, rubber: 1.1, clay: 1.5, iron: 7.9, coin: 8.9 };
+const cyl = (d, L) => Math.PI * (d / 2) ** 2 * L;
+const sph = (d) => (Math.PI / 6) * d ** 3;
+const BALL_R = 3, BALL_WALL = 0.3; // hollow rubber ball: average density from its shell, air mass ignored
+const ballRho = RHO.rubber * (BALL_R ** 3 - (BALL_R - BALL_WALL) ** 3) / BALL_R ** 3;
+// type: hcyl = cylinder lying down, sphere, box (flat-sided: share under water = depth share)
+const OBJ = [
+  { id: "log", type: "hcyl", rho: RHO.wood, vol: cyl(12, 50), w: 112, h: 34, fill: "var(--b)" },
+  { id: "nail", type: "nail", rho: RHO.iron, vol: cyl(0.4, 6), w: 58, h: 9, fill: "var(--muted)" },
+  { id: "apple", type: "sphere", rho: RHO.apple, vol: sph(7.5), w: 46, h: 46, fill: "var(--no)" },
+  { id: "coin", type: "box", rho: RHO.coin, vol: cyl(2.5, 0.18), w: 34, h: 6, fill: "var(--hl)" },
+  { id: "ice", type: "box", rho: RHO.ice, vol: 27, w: 38, h: 38, fill: "var(--surface)", stroke: "var(--c)" },
+  { id: "ball", type: "sphere", rho: ballRho, vol: sph(2 * BALL_R), w: 46, h: 46, fill: "var(--h)" },
+  { id: "clay", type: "sphere", rho: RHO.clay, vol: sph(4), w: 36, h: 36, fill: "var(--a)" },
+  { id: "candle", type: "hcyl", rho: RHO.wax, vol: cyl(2, 15), w: 72, h: 14, fill: "var(--soft)", stroke: "var(--muted)" },
+];
+const byId = Object.fromEntries(OBJ.map((o) => [o.id, o]));
+const CLAY_V = 50, CLAY_M = CLAY_V * RHO.clay, K3 = 16; // step 3: 50 cm³ of clay, 16 units per cm
+
+// share of volume under water when the lowest x (0..1) of the height is submerged
+function frac(type, x) {
+  x = Play.clamp(x, 0, 1);
+  if (type === "sphere") return x * x * (3 - 2 * x);
+  if (type === "hcyl") { const th = 2 * Math.acos(1 - 2 * x); return (th - Math.sin(th)) / (2 * Math.PI); }
+  return x;
+}
+function eqDepth(type, rho) { // depth share where share under water = rho (rho < 1)
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if (frac(type, m) < rho) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+// open square box, height = width / 3, walls t: solve width L so that clay volume = CLAY_V
+function boat(t) {
+  const vol = (L) => L * L * (L / 3) - (L - 2 * t) ** 2 * (L / 3 - t);
+  let lo = 3 * t, hi = 200;
+  for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (vol(m) < CLAY_V) lo = m; else hi = m; }
+  const L = (lo + hi) / 2, h = L / 3, outer = L * L * h;
+  return { t, L, h, outer, rho: CLAY_M / outer };
+}
+
+// ---------- number formatting ----------
+const n3 = (v) => (v >= 100 ? Play.fmt(v, 0) : v >= 10 ? Play.fmt(v, 1) : Play.fmt(v, 2));
+const fmtMass = (g) => (g >= 1000 ? Play.fmt(g / 1000, 1) + " kg" : (g >= 10 ? Play.fmt(g, 0) : Play.fmt(g, 1)) + " g");
+const fmtRho = (r) => (r < 1 ? Play.fmt(r, 2) : Play.fmt(r, r < 10 ? 2 : 1));
+const pct = (r) => Play.fmt(Math.min(r, 1) * 100, 0);
+const twoSig = (x) => { const p = Math.pow(10, Math.floor(Math.log10(x)) - 1); return Math.round(x / p) * p; };
+
+// ---------- tank & drawing ----------
+const fig = document.getElementById("fig");
+const T = { x0: 24, x1: 576, top: 70, surf: 132, floor: 362 };
+const G = 1400, DRAG = 6;
+const back = Play.svg("g", {}, fig), itemsL = Play.svg("g", {}, fig), waterL = Play.svg("g", { "pointer-events": "none" }, fig), labL = Play.svg("g", { "pointer-events": "none" }, fig);
+Play.svg("rect", { x: T.x0, y: T.top, width: T.x1 - T.x0, height: T.floor - T.top, fill: "var(--soft)", opacity: 0.45 }, back);
+Play.svg("rect", { x: T.x0, y: T.surf, width: T.x1 - T.x0, height: T.floor - T.surf, fill: "var(--c)", opacity: 0.34 }, waterL);
+Play.svg("line", { x1: T.x0, x2: T.x1, y1: T.surf, y2: T.surf, stroke: "var(--c)", "stroke-width": 2 }, waterL);
+Play.svg("path", { d: `M${T.x0} ${T.top - 6}V${T.floor}H${T.x1}V${T.top - 6}`, fill: "none", stroke: "var(--muted)", "stroke-width": 4, "stroke-linejoin": "round" }, waterL);
+
+let fs = 14;
+function updateFs() {
+  const r = fig.getBoundingClientRect();
+  const sc = Math.min(r.width / 600, r.height / 380);
+  fs = sc > 0 ? Math.max(14, 13.5 / sc) : 14;
+}
+
+const name = (it) => P.t("n_" + it.def.id);
+let zoom = 1; // step 2: shrink every drawing together when the tank gets crowded
+const zf = (it) => (it.scene === 1 ? zoom : 1);
+const Wd = (it) => it.def.w * it.s * zf(it), Ht = (it) => it.def.h * it.s * zf(it);
+const floats = (it) => it.def.rho < 1;
+function eqTop(it) {
+  const H = Ht(it);
+  return floats(it) ? T.surf - H * (1 - eqDepth(it.def.type, it.def.rho)) : T.floor - H;
+}
+
+function drawShape(it) {
+  const g = it.g, d = it.def, W = Wd(it), H = Ht(it);
+  while (g.firstChild) g.removeChild(g.firstChild);
+  const st = d.stroke ? { stroke: d.stroke, "stroke-width": 2 } : {};
+  Play.svg("rect", { class: "sel", x: -5, y: -5, width: W + 10, height: H + 10, rx: 6, fill: "none", stroke: "transparent", "stroke-width": 2, "stroke-dasharray": "5 4" }, g);
+  if (d.type === "hcyl") {
+    Play.svg("rect", Object.assign({ x: 0, y: 0, width: W, height: H, rx: H / 2, fill: d.fill }, st), g);
+    if (d.id === "log") {
+      Play.svg("ellipse", { cx: W - H / 4, cy: H / 2, rx: H / 4, ry: H / 2 - 1, fill: "var(--hl)", opacity: 0.7 }, g);
+      Play.svg("ellipse", { cx: W - H / 4, cy: H / 2, rx: H / 9, ry: H / 4, fill: "none", stroke: "var(--b)", "stroke-width": 1.5 }, g);
+    } else {
+      Play.svg("line", { x1: W, x2: W + H / 3, y1: H / 2, y2: H / 2, stroke: "var(--fg)", "stroke-width": 2 }, g);
+    }
+  } else if (d.type === "sphere") {
+    Play.svg("circle", { cx: W / 2, cy: H / 2, r: H / 2, fill: d.fill }, g);
+    if (d.id === "apple") Play.svg("line", { x1: W / 2, x2: W / 2 + H * 0.08, y1: H * 0.12, y2: -H * 0.12, stroke: "var(--b)", "stroke-width": 3, "stroke-linecap": "round" }, g);
+    if (d.id === "ball") Play.svg("path", { d: `M0 ${H / 2}Q${W / 2} ${H * 0.8} ${W} ${H / 2}`, fill: "none", stroke: "var(--surface)", "stroke-width": 3 }, g);
+    Play.svg("circle", { cx: W * 0.35, cy: H * 0.33, r: H * 0.1, fill: "var(--surface)", opacity: 0.45 }, g);
+  } else if (d.type === "nail") {
+    Play.svg("path", { d: `M4 ${H * 0.3}H${W * 0.86}L${W} ${H / 2}L${W * 0.86} ${H * 0.7}H4Z`, fill: d.fill }, g);
+    Play.svg("rect", { x: 0, y: 0, width: 5, height: H, rx: 1.5, fill: d.fill }, g);
+  } else if (d.type === "boat") {
+    const t = Math.max(2, d.t * K3);
+    Play.svg("rect", { x: 0, y: 0, width: W, height: H, fill: "var(--surface)", opacity: 0.35, stroke: "var(--muted)", "stroke-width": 1.5, "stroke-dasharray": "4 4" }, g);
+    Play.svg("path", { d: `M0 0V${H}H${W}V0H${W - t}V${H - t}H${t}V0Z`, fill: d.fill }, g);
+  } else {
+    Play.svg("rect", Object.assign({ x: 0, y: 0, width: W, height: H, rx: Math.min(4, H / 3), fill: d.fill }, st), g);
+    if (d.id === "ice") Play.svg("path", { d: `M${W * 0.2} ${H * 0.25}L${W * 0.45} ${H * 0.2}`, stroke: "var(--c)", "stroke-width": 2 }, g);
+  }
+}
+
+function makeItem(def, x, scene) {
+  const it = { def, s: 1, x, y: 0, v: 0, held: true, done: false, scene };
+  it.g = Play.svg("g", { class: "item" });
+  it.lab = Play.svg("text", { class: "lab", "text-anchor": "middle" });
+  if (scene === 1) {
+    it.g.setAttribute("tabindex", "0");
+    it.g.setAttribute("role", "button");
+    const sel = () => { select(it); it.g.focus(); };
+    it.g.addEventListener("click", sel);
+    it.g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sel(); } });
+  }
+  drawShape(it);
+  hold(it);
+  return it;
+}
+function hold(it) { it.held = true; it.done = false; it.v = 0; it.y = Math.max(4, T.surf - Ht(it) - 30); }
+function release(it) {
+  it.held = false; it.done = false; it.v = 0;
+  if (Play.reduced) { it.y = eqTop(it); it.done = true; }
+}
+function snap(it) { it.held = false; it.v = 0; it.y = eqTop(it); it.done = true; }
+
+function stepPhysics(it, dt) {
+  const H = Ht(it), rho = it.def.rho;
+  const f = frac(it.def.type, (it.y + H - T.surf) / H);
+  const a = G * (1 - f / rho) - (f > 0 ? DRAG * it.v : 0);
+  it.v += a * dt; it.y += it.v * dt;
+  if (it.y + H >= T.floor) { it.y = T.floor - H; it.v = 0; it.done = true; return; }
+  if (rho < 1) { const e = eqTop(it); if (Math.abs(it.y - e) < 0.4 && Math.abs(it.v) < 4) { it.y = e; it.v = 0; it.done = true; } }
+}
+
+function labelText(it) {
+  if (it.scene === 0) return name(it) + " · " + fmtMass(it.def.rho * it.def.vol);
+  if (it.scene === 2) return name(it) + " " + fmtRho(it.def.rho);
+  return fmtRho(it.def.rho);
+}
+function place(it) {
+  it.g.setAttribute("transform", `translate(${it.x - Wd(it) / 2} ${it.y})`);
+  it.lab.setAttribute("x", it.x);
+  it.lab.setAttribute("y", it.y - 9);
+  it.lab.setAttribute("font-size", fs.toFixed(1));
+  it.lab.textContent = labelText(it);
+  it.lab.classList.toggle("on", it === selected && cur === 1);
+  it.g.classList.toggle("on", it === selected && cur === 1);
+  if (it.scene === 1) it.g.setAttribute("aria-label", P.t("itemAria", { name: name(it), d: fmtRho(it.def.rho), res: resText(it, true) }));
+}
+
+// ---------- scenes ----------
+let cur = 0, paused = false, raf = 0, last = 0, selected = null, s1Dropped = false;
+const scenes = [[], [], []];
+function buildScenes() {
+  scenes[0] = [makeItem(byId.log, 170, 0), makeItem(byId.nail, 440, 0)];
+  scenes[1] = [];
+  const b = boat(+thick.value);
+  scenes[2] = [
+    makeItem({ id: "cball", type: "sphere", rho: RHO.clay, w: 0, h: 0, fill: "var(--a)" }, 140, 2),
+    makeItem({ id: "boat", type: "boat", rho: b.rho, t: b.t, w: 0, h: 0, fill: "var(--a)" }, 400, 2),
+  ];
+  setClayShapes(false);
+  selected = null; s1Dropped = false;
+}
+function setClayShapes(keep) {
+  const [ball, bt] = scenes[2], b = boat(+thick.value), d = Math.cbrt((6 * CLAY_V) / Math.PI);
+  ball.def.w = ball.def.h = d * K3; ball.def.vol = CLAY_V;
+  Object.assign(bt.def, { rho: b.rho, t: b.t, w: b.L * K3, h: b.h * K3, vol: b.outer });
+  bt.info = b; ball.d = d;
+  [ball, bt].forEach((it) => { drawShape(it); if (keep && !it.held) snap(it); else if (it.held) hold(it); });
+}
+function mount() {
+  [itemsL, labL].forEach((l) => { while (l.firstChild) l.removeChild(l.firstChild); });
+  scenes[cur].forEach((it) => { itemsL.appendChild(it.g); labL.appendChild(it.lab); });
+  render();
+}
+function render() { scenes[cur].forEach(place); }
+function active() { return scenes[cur].some((it) => !it.held && !it.done); }
+function wake() { if (!raf && !paused && active()) { last = 0; raf = requestAnimationFrame(tick); } }
+function tick(ts) {
+  raf = 0;
+  if (paused) return;
+  const dt = last ? Math.min((ts - last) / 1000, 0.05) : 1 / 60;
+  last = ts;
+  let changed = false;
+  scenes[cur].forEach((it) => {
+    if (it.held || it.done) return;
+    for (let k = 0; k < 8 && !it.done; k++) stepPhysics(it, dt / 8);
+    if (it.done) changed = true;
+  });
+  render();
+  if (changed) text();
+  if (active()) raf = requestAnimationFrame(tick);
+}
+
+// ---------- step 2: tray, packing, size ----------
+const tray = document.getElementById("tray"), size = document.getElementById("size"), sizeVal = document.getElementById("sizeVal");
+const thick = document.getElementById("thick"), thickVal = document.getElementById("thickVal");
+const chips = {};
+OBJ.forEach((o) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.setAttribute("aria-pressed", "false");
+  const dot = document.createElement("span"); dot.className = "dot"; dot.style.background = o.fill;
+  if (o.stroke) dot.style.boxShadow = "inset 0 0 0 2px " + o.stroke;
+  b.append(dot, document.createTextNode(P.t("n_" + o.id)));
+  tray.appendChild(b); chips[o.id] = b;
+  let start = null, drag = false, ghost = null, skipClick = false;
+  b.addEventListener("pointerdown", (e) => { start = { x: e.clientX, y: e.clientY }; drag = false; b.setPointerCapture(e.pointerId); });
+  b.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    if (!drag && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) {
+      drag = true; ghost = document.createElement("div"); ghost.className = "ghost"; ghost.textContent = P.t("n_" + o.id); document.body.appendChild(ghost);
+    }
+    if (ghost) { ghost.style.left = e.clientX + "px"; ghost.style.top = e.clientY + "px"; }
+  });
+  const end = (e, ok) => {
+    if (!start) return;
+    if (drag) {
+      skipClick = true;
+      const r = fig.getBoundingClientRect();
+      if (ok && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom && !inTank(o.id)) addToTank(o.id);
+    }
+    if (ghost) ghost.remove();
+    ghost = null; start = null; drag = false;
+  };
+  b.addEventListener("pointerup", (e) => end(e, true));
+  b.addEventListener("pointercancel", (e) => end(e, false));
+  b.addEventListener("click", () => { if (skipClick) { skipClick = false; return; } toggle(o.id); });
+  b.addEventListener("keydown", (e) => {
+    const ids = OBJ.map((x) => x.id), i = ids.indexOf(o.id);
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      chips[ids[(i + (e.key === "ArrowRight" ? 1 : ids.length - 1)) % ids.length]].focus();
+    }
+  });
+});
+const inTank = (id) => scenes[1].find((it) => it.def.id === id);
+function toggle(id) { const it = inTank(id); if (it) removeFromTank(it); else addToTank(id); }
+function addToTank(id) {
+  const it = makeItem(byId[id], 0, 1);
+  scenes[1].push(it); itemsL.appendChild(it.g); labL.appendChild(it.lab);
+  select(it, true);
+  pack(); hold(it); release(it);
+  chips[id].setAttribute("aria-pressed", "true");
+  render(); text(); wake();
+}
+function removeFromTank(it) {
+  scenes[1] = scenes[1].filter((x) => x !== it);
+  it.g.remove(); it.lab.remove();
+  chips[it.def.id].setAttribute("aria-pressed", "false");
+  if (selected === it) selected = scenes[1][scenes[1].length - 1] || null;
+  syncSize(); pack(); render(); text();
+}
+function slotW(it, z) { const ex = it.def.id === "candle" ? 1 / 3 : 0; return Math.max(it.def.w * it.s * z + it.def.h * it.s * z * ex, 4.4 * 0.58 * fs) + 10; }
+function pack() {
+  const room = T.x1 - T.x0 - 8, list = scenes[1], tot = (z) => list.reduce((a, it) => a + slotW(it, z), 0);
+  let z = 1;
+  if (tot(1) > room) { let lo = 0.05, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (tot(m) > room) hi = m; else lo = m; } z = lo; }
+  if (Math.abs(z - zoom) > 1e-6) {
+    zoom = z;
+    list.forEach((it) => { drawShape(it); if (it.done) snap(it); else if (it.held) hold(it); });
+  }
+  let x = T.x0 + 4;
+  list.forEach((it) => { const w = slotW(it, zoom); it.x = x + w / 2; x += w; });
+}
+function select(it, quiet) { selected = it; syncSize(); if (!quiet) { render(); text(); } }
+function syncSize() {
+  size.disabled = !selected;
+  if (selected) size.value = selected.s;
+  sizeVal.textContent = selected ? "×" + Play.fmt(selected.s, 1) : "";
+}
+size.addEventListener("input", () => {
+  if (!selected) return;
+  selected.s = Play.clamp(+size.value, 0.5, 2);
+  drawShape(selected); snap(selected);
+  syncSize(); pack(); render(); text();
+});
+thick.addEventListener("input", () => { setClayShapes(true); render(); text(); });
+
+// ---------- text ----------
+const $ = (id) => document.getElementById(id);
+function resText(it, verbose) {
+  if (!verbose && !it.done) return P.t("resWait");
+  if (floats(it)) return P.t(verbose ? "resFloatV" : "resFloat", { p: pct(it.def.rho) });
+  return P.t(verbose ? "resSinkV" : "resSink");
+}
+function el(tag, txt, cls) { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; }
+function text() {
+  const k = cur + 1, extra = $("extra"), live = $("live");
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  extra.innerHTML = "";
+  if (cur === 0) {
+    const [lg, nl] = scenes[0], m1 = lg.def.rho * lg.def.vol, m2 = nl.def.rho * nl.def.vol;
+    const done = lg.done && nl.done;
+    $("stepBody").textContent = done ? P.t("b1done", { k: Play.fmt(twoSig(m1 / m2), 0), m1: fmtMass(m1), m2: fmtMass(m2) }) : P.t("b1");
+    $("drop1").textContent = P.t(s1Dropped ? "dropAgain" : "drop1");
+    Play.live(live, done ? scenes[0].map((it) => name(it) + ": " + resText(it, true)).join(" · ") : "");
+  } else if (cur === 1) {
+    $("stepBody").textContent = P.t("b2");
+    if (scenes[1].length) {
+      const tb = el("table", null, "res"), hr = el("tr");
+      ["thObj", "thMass", "thRho", "thRes"].forEach((h) => hr.appendChild(el("th", P.t(h))));
+      tb.appendChild(hr);
+      scenes[1].forEach((it) => {
+        const tr = el("tr", null, it === selected ? "sel" : "");
+        tr.append(el("td", name(it)), el("td", fmtMass(it.def.rho * it.def.vol * it.s ** 3), "num"), el("td", fmtRho(it.def.rho), "num"),
+          el("td", resText(it, false), it.done ? (floats(it) ? "fl" : "sk") : ""));
+        tb.appendChild(tr);
+      });
+      extra.appendChild(tb);
+    }
+    if (selected) {
+      const it = selected, v = it.def.vol * it.s ** 3;
+      Play.live(live, P.t("liveSel", { name: name(it), s: Play.fmt(it.s, 1), v: n3(v), m: fmtMass(v * it.def.rho), d: fmtRho(it.def.rho), res: resText(it, true) }));
+    } else Play.live(live, P.t("sizeNone"));
+  } else {
+    $("stepBody").textContent = P.t("b3");
+    const [ball, bt] = scenes[2], b = bt.info;
+    const rows = OBJ.map((o) => ({ d: o.rho, n: P.t("n_" + o.id) }))
+      .concat([{ d: RHO.clay, n: P.t("n_cball"), c: 1 }, { d: b.rho, n: P.t("n_boat"), c: 1 }])
+      .sort((a, z) => a.d - z.d);
+    const ul = el("ul", null, "ladder");
+    let w = false;
+    rows.forEach((r) => {
+      if (!w && r.d >= RHO.water) { w = true; const li = el("li", null, "water"); li.append(el("span", fmtRho(RHO.water), "d"), el("span", P.t("water"))); ul.appendChild(li); }
+      const li = el("li", null, r.c ? "calc" : "");
+      li.append(el("span", fmtRho(r.d), "d"), el("span", r.n), el("span", P.t(r.d < 1 ? "ladderFloat" : "ladderSink"), r.d < 1 ? "fl" : "sk"));
+      ul.appendChild(li);
+    });
+    if (!w) { const li = el("li", null, "water"); li.append(el("span", fmtRho(RHO.water), "d"), el("span", P.t("water"))); ul.appendChild(li); }
+    extra.appendChild(ul);
+    Play.live(live, P.t("boatLive", { m: Play.fmt(CLAY_M, 0), vb: Play.fmt(CLAY_V, 0), db: fmtRho(RHO.clay), L: Play.fmt(b.L, 1), h: Play.fmt(b.h, 1), vo: n3(b.outer), da: fmtRho(b.rho), res: resText(bt, true) }));
+  }
+  thickVal.textContent = P.t("thickVal", { t: Play.fmt(+thick.value, 2) });
+}
+
+// ---------- step 1: predict ----------
+function drop1() { s1Dropped = true; scenes[0].forEach((it) => { hold(it); release(it); }); render(); text(); wake(); }
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }, { label: P.t("o4") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => drop1());
+$("drop1").addEventListener("click", drop1);
+$("drop3").addEventListener("click", () => { scenes[2].forEach((it) => { hold(it); release(it); }); render(); text(); wake(); });
+
+const pauseBtn = $("pause");
+function setPause(p) {
+  paused = p; pauseBtn.textContent = P.t(p ? "play" : "pause"); pauseBtn.setAttribute("aria-pressed", p ? "true" : "false");
+  if (!p) wake();
+}
+pauseBtn.addEventListener("click", () => setPause(!paused));
+
+let s3Seen = false;
+buildScenes(); syncSize(); setPause(false);
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  cur = i;
+  $("predict").hidden = i !== 0;
+  $("c1").hidden = i !== 0; $("c2").hidden = i !== 1; $("c3").hidden = i !== 2;
+  updateFs();
+  if (i === 2 && !s3Seen) { s3Seen = true; scenes[2].forEach(release); }
+  if (i === 1) pack();
+  mount(); text(); wake();
+});
+
+$("reset").addEventListener("click", () => {
+  if (raf) cancelAnimationFrame(raf);
+  raf = 0;
+  OBJ.forEach((o) => chips[o.id].setAttribute("aria-pressed", "false"));
+  size.value = 1; thick.value = 0.3; s3Seen = false;
+  zoom = 1; buildScenes(); syncSize(); pr.reset(); setPause(false); st.go(0);
+});
+window.addEventListener("resize", () => { updateFs(); if (cur === 1) pack(); render(); });
+
+$("resultNote").textContent = P.t("resultNote", { k: 2, k3: 2 ** 3 });
+$("data").textContent = P.t("dataNote", {
+  water: fmtRho(RHO.water), wood: fmtRho(RHO.wood), apple: fmtRho(RHO.apple), wax: fmtRho(RHO.wax), ice: fmtRho(RHO.ice),
+  rubber: fmtRho(RHO.rubber), ball: fmtRho(ballRho), clay: fmtRho(RHO.clay), iron: fmtRho(RHO.iron), coin: fmtRho(RHO.coin),
+});
+
+</script>
+</body>
+</html>

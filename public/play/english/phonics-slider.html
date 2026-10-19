@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Change one letter, get a new word</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .visual { padding: 14px 10px 6px; }
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
+  .cols button { width: min(100%, 120px); margin: 0 auto; padding: 6px 4px; font-size: 16px; line-height: 1; }
+  .cols button.hear { font-size: 14px; line-height: 1.3; }
+  svg.tiles { width: 100%; height: auto; display: block; margin: 4px 0; }
+  .tile { cursor: pointer; }
+  .tile:focus { outline: none; }
+  .tile:focus-visible .box { stroke: var(--hl); stroke-width: 6; }
+  .tile .box { fill: var(--soft); stroke: var(--line); stroke-width: 3; transition: stroke .15s, fill .15s; }
+  .tile.vowel .box { fill: var(--surface); stroke: var(--b); }
+  .tile.flash .box { stroke: var(--a); stroke-width: 6; }
+  .tile.lit .box { fill: var(--a); }
+  .tile.lit text.letter { fill: var(--surface); }
+  .tile text { fill: var(--fg); font-family: var(--font); text-anchor: middle; }
+  .tile text.letter { font-family: var(--serif); font-size: 104px; dominant-baseline: central; }
+  .tile.vowel text.letter { fill: var(--b); }
+  .tile.lit.vowel text.letter { fill: var(--surface); }
+  .slabel { fill: var(--muted); font-size: 24px; text-anchor: middle; font-family: var(--font); }
+  .sound { fill: var(--fg); font-size: 30px; text-anchor: middle; font-family: var(--font); font-weight: 650; }
+  .dot { fill: var(--a); }
+  .arrow { stroke: var(--a); stroke-width: 5; fill: none; stroke-linecap: round; }
+  .arrowhead { fill: var(--a); }
+  .wordbox { text-align: center; padding: 6px 8px 4px; }
+  .word { font-family: var(--serif); font-size: 60px; line-height: 1.1; letter-spacing: .04em; overflow-wrap: anywhere; }
+  .word.real { color: var(--a); }
+  .status { display: inline-block; margin: 6px 0 4px; padding: 4px 12px; border-radius: 999px; font-size: 14px; font-weight: 650; border: 1px solid var(--line); background: var(--soft); max-width: 100%; }
+  .status.real { border-color: var(--a); color: var(--a); }
+  .status.tricky { border-color: var(--b); color: var(--b); }
+  .status.nonsense { border-color: var(--c); color: var(--c); }
+  .softc { font-size: 14px; color: var(--muted); margin: 2px 0 0; min-height: 1.2em; }
+  .wbtns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 8px 0 4px; }
+  .found { border-top: 1px solid var(--line); margin: 10px 4px 0; padding: 10px 4px 8px; font-size: 14px; }
+  .found .ft { color: var(--muted); margin-bottom: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { font-family: var(--serif); font-size: 16px; padding: 2px 10px; border-radius: 999px; }
+  .chips button.now { border-color: var(--a); color: var(--a); }
+  .fam { font-size: 14px; color: var(--muted); margin: 0 0 10px; }
+  .fam .w { font-family: var(--serif); color: var(--fg); font-size: 16px; }
+  .tricky { display: grid; gap: 6px; margin: 4px 0 10px; }
+  .tricky .row { display: flex; gap: 10px; align-items: baseline; font-size: 14px; color: var(--muted); }
+  .tricky button { font-family: var(--serif); font-size: 17px; min-width: 64px; flex: none; }
+  .play .note { font-size: 14px !important; }
+  .result .math { font-family: var(--serif); overflow-wrap: anywhere; }
+  .foot { font-size: 13px; }
+  @media (max-width: 560px) {
+    .tile text.letter { font-size: 110px; }
+    .word { font-size: 48px; }
+  }
+</style>
+</head>
+<body data-subject="english">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="cols" id="ups"></div>
+      <svg class="tiles" id="fig" viewBox="0 0 600 300" role="group" data-t-aria="figAria"></svg>
+      <div class="cols" id="downs"></div>
+      <div class="cols" id="hears" style="margin-top:6px"></div>
+      <div class="wordbox">
+        <div class="word" id="word" lang="en"></div>
+        <div class="status" id="status"></div>
+        <p class="softc" id="softc"></p>
+        <div class="wbtns">
+          <button type="button" id="say" data-t="sayWord"></button>
+          <button type="button" id="blend" data-t="blendBtn"></button>
+        </div>
+      </div>
+      <div class="found">
+        <div class="ft" id="foundT"></div>
+        <div class="chips" id="chips" lang="en"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="fam" id="fam" hidden></p>
+      <div id="trickyBox" hidden>
+        <p><strong data-t="trickyT"></strong></p>
+        <div class="tricky" id="tricky"></div>
+      </div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resultMain" lang="en"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Change one letter, get a new word", eyebrow: "English · Stage 1", h1: "Change one letter, get a new word",
+    intro: "Letters stand for sounds. Swap one letter, blend the sounds, and read a word you have never seen.",
+    reset: "Reset", figAria: "Three letter tiles: start sound, vowel, end sound",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "cat → change c to h", b1: "The tiles say c-a-t, cat. Swap only the first letter. How would you say the new word?",
+    q: "c-a-t says cat. Change c to h: h-a-t. How do you say it?",
+    o1: "hat — only the first sound changes", o2: "I can't know until someone tells me", o3: "Still cat — it looks almost the same",
+    right: "Yes! h says /h/ and the rest still says /at/: hat. You read it by its sounds, not by its shape.",
+    wrong: "Look at the tiles now: /h/ + /a/ + /t/ = hat. The letters told you — nobody had to teach you that word.",
+    k2: "Hands on", t2: "Spin the letters, read the word",
+    b2: "Change one letter at a time with ▲ ▼, by clicking a tile, or with the arrow keys (↑ ↓ change, ← → move). Say each sound, then push the sounds together. How many real words can you find?",
+    k3: "The rule", t3: "Say each sound, then blend",
+    b3: "Letters stand for sounds. Say the sound of each letter, push the sounds together, and you can read a word you have never seen — even a nonsense word. English has exceptions: a few common \"tricky words\" don't follow the usual sounds. Learn those few by heart and sound out the rest.",
+    trickyT: "Tricky words — tap to hear",
+    trThe: "th is two letters for one sound; e here says a weak /u/.",
+    trSaid: "ai here says /e/, as in bed.",
+    trWas: "a here says /o/ or /u/, and s says /z/.",
+    trOne: "sounds like won — the letters don't match the sounds.",
+    trYou: "ou here says /oo/, as in moon.",
+    slot0: "start", slot1: "vowel", slot2: "end",
+    up: "Previous letter for the {slot}", down: "Next letter for the {slot}",
+    tileAria: "{slot} letter {l}, says {s}. Up or down arrow to change.",
+    hear: "Hear {s}", hearAria: "Hear the sound {s}",
+    sayWord: "▶ Say the word", blendBtn: "▶ Blend slowly",
+    real: "real word ✓", nonsense: "nonsense word — still readable!", tricky: "real word, but tricky: {note}",
+    nOU: "o here says /u/, as in up.", nWA: "after w, a here says /o/.", nGJ: "g before e or i can say /j/, as in gem.",
+    softc: "c before e or i usually says /s/, as in city.",
+    fam: "Same ending -{rime}: {list}", famNone: "No common word in our list ends in -{rime}. Try another vowel or ending.",
+    found: "Real words found: {n} of {m} in our list", foundNone: "None yet — keep spinning.",
+    liveW: "{spell} → {word}: {status}",
+    resultTitle: "Blend the sounds",
+    resultNote: "Blending works for most short words. Tricky words like the and said are the few exceptions to learn by heart.",
+    explainK: "Explain it", explainQ: "A friend says English words can only be memorised one by one, like pictures. Use three letters to show them why that isn't true.",
+    homeK: "Try at home", homeQ: "Write c, a and t on three paper cards, plus spare cards with other letters. Take turns swapping one card and reading the new word aloud — real or nonsense.",
+    foot: "Sounds are written the way phonics books write them (/a/ as in apple), not in IPA. Speech uses your browser's built-in voice, which cannot say a sound perfectly on its own, so each sound comes with a key word; nonsense words may come out oddly. The list holds common short words; a rare real word may show as nonsense. Some words are blocked from appearing. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "换一个字母，变一个新词", eyebrow: "英语 · 阶段 1", h1: "换一个字母，变一个新词",
+    intro: "字母代表声音。换掉一个字母，把声音拼起来，没见过的词也能读出来。",
+    reset: "重置", figAria: "三块字母牌：开头的音、元音、结尾的音",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "cat → 把 c 换成 h", b1: "字母牌现在是 c-a-t，读 cat。只换第一个字母，新词怎么读？",
+    q: "c-a-t 读 cat。把 c 换成 h，变成 h-a-t，怎么读？",
+    o1: "hat——只有第一个音变了", o2: "没人教过我，读不出来", o3: "还是 cat——长得差不多",
+    right: "对！h 发 /h/，后面还是 /at/：hat。你是靠声音读出来的，不是靠记字形。",
+    wrong: "看字母牌：/h/ + /a/ + /t/ = hat。字母已经告诉你怎么读了，不用别人教这个词。",
+    k2: "动手", t2: "转动字母，读出新词",
+    b2: "用 ▲ ▼、点字母牌、或方向键（↑ ↓ 换字母，← → 换位置），一次只换一个字母。先读每个音，再把声音连起来。你能找到多少个真词？",
+    k3: "规律", t3: "读出每个音，再拼起来",
+    b3: "字母代表声音。读出每个字母的音，把声音连起来，没见过的词也能读——连假词都能读。英语也有例外：少数常用的「特殊词」（tricky words）不按常规发音。这几个记住就好，其余的都拼读。",
+    trickyT: "特殊词——点一下听",
+    trThe: "th 两个字母发一个音；这里的 e 读成轻轻的 /u/。",
+    trSaid: "这里的 ai 读 /e/，像 bed 里的。",
+    trWas: "这里的 a 读 /o/ 或 /u/，s 读 /z/。",
+    trOne: "读起来像 won——字母和发音对不上。",
+    trYou: "这里的 ou 读 /oo/，像 moon 里的。",
+    slot0: "开头", slot1: "元音", slot2: "结尾",
+    up: "{slot}换成上一个字母", down: "{slot}换成下一个字母",
+    tileAria: "{slot}字母 {l}，发 {s}。按上下方向键换字母。",
+    hear: "听 {s}", hearAria: "听 {s} 这个音",
+    sayWord: "▶ 读整个词", blendBtn: "▶ 慢慢拼",
+    real: "真词 ✓", nonsense: "假词——照样能读！", tricky: "真词，但不按常规：{note}",
+    nOU: "这里的 o 读 /u/，像 up 里的。", nWA: "在 w 后面，这里的 a 读 /o/。", nGJ: "g 在 e、i 前面可以读 /j/，像 gem。",
+    softc: "c 在 e、i 前面通常读 /s/，像 city。",
+    fam: "同样以 -{rime} 结尾：{list}", famNone: "我们的词表里没有以 -{rime} 结尾的常用词。换个元音或结尾试试。",
+    found: "找到的真词：{n} 个（词表共 {m} 个）", foundNone: "还没有——继续转。",
+    liveW: "{spell} → {word}：{status}",
+    resultTitle: "把声音拼起来",
+    resultNote: "大多数短词都能这样拼读。the、said 这样的特殊词是少数例外，记住就好。",
+    explainK: "说一说", explainQ: "朋友说英文单词只能一个个死记字形。用三个字母给他演示一下为什么不是这样。",
+    homeK: "家里做一做", homeQ: "在三张纸卡上写 c、a、t，再多写几张别的字母。轮流换掉一张卡，把新词读出来——真词、假词都算。",
+    foot: "音标按自然拼读书的写法（/a/ 像 apple 里的），不是国际音标。发音用浏览器自带的语音，它没法把单个音读得很准，所以每个音都配了一个例词；假词可能读得怪。词表只收常用短词，少数生僻的真词会显示成假词；个别不雅的组合会被跳过。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---- data ----
+const ONSETS = "bcdfghjklmnprstvwyz".split("");
+const VOWELS = "aeiou".split("");
+const CODAS = "bdgmnptx".split("");
+const SLOTS = [ONSETS, VOWELS, CODAS];
+// Sound shown under each letter (phonics notation), a text the browser voice says reasonably, and a key word.
+const SND = {
+  b: ["/b/", "buh", "bat"], c: ["/k/", "kuh", "cat"], d: ["/d/", "duh", "dog"], f: ["/f/", "fuh", "fan"],
+  g: ["/g/", "guh", "got"], h: ["/h/", "huh", "hat"], j: ["/j/", "juh", "jam"], k: ["/k/", "kuh", "kid"],
+  l: ["/l/", "luh", "leg"], m: ["/m/", "muh", "map"], n: ["/n/", "nuh", "net"], p: ["/p/", "puh", "pig"],
+  r: ["/r/", "ruh", "red"], s: ["/s/", "suh", "sun"], t: ["/t/", "tuh", "top"], v: ["/v/", "vuh", "van"],
+  w: ["/w/", "wuh", "wet"], y: ["/y/", "yuh", "yes"], z: ["/z/", "zuh", "zip"],
+  a: ["/a/", "", "apple"], e: ["/e/", "eh", "egg"], i: ["/i/", "ih", "insect"], o: ["/o/", "ah", "octopus"], u: ["/u/", "uh", "up"],
+};
+const CODA_KEY = { b: "tub", d: "bed", g: "dog", m: "jam", n: "sun", p: "cup", t: "hat", x: "box" };
+const SOFT_C = ["/s/", "suh", "city"];
+// Common, regular CVC words (short vowel, every letter says its usual sound).
+const REAL = new Set((
+  "bad bag ban bat cab can cap cat dab dad dam fab fad fan fat fax gab gag gap had ham hat jab jag jam " +
+  "lab lad lag lap lax mad man map mat max nab nag nan nap pad pan pat rag ram ran rap rat sad sag sap sat sax " +
+  "tab tag tan tap tax van vat wag wax yam yap zap " +
+  "bed beg bet den fed get hem hen hex jet keg led leg let men met net peg pen pep pet red set ten vet vex " +
+  "wed web wet yen yet " +
+  "bib bid big bin bit dig dim din dip fib fig fin fit fix gig hid him hip hit jig kid kin kit lid lip lit " +
+  "mid mix nib nip nit nix pig pin pip pit rib rid rig rim rip sin sip sit six tin tip wig win wit zip zit " +
+  "bob bog bop cob cod cog cop cot dog dot fog fox got hob hog hop hot job jog jot lob log lop lot mob mom mop " +
+  "nod not pod pop pot pox rob rod rot sob top tot " +
+  "bud bug bun but cub cud cup cut dud dug fun gum gun gut hub hug hum hut jug jut lug mud mug mum nub nun nut " +
+  "pub pug pun pup rub rug run rut sub sum sun sup tub tug tux yum"
+).split(" "));
+// Real words whose letters don't all say their usual sound.
+const TRICKY = { son: "nOU", ton: "nOU", won: "nOU", wad: "nWA", wan: "nWA", gem: "nGJ", gin: "nGJ" };
+// Combinations never shown (rude words or slurs); cycling skips over them.
+const BLOCK = new Set("fag fap sex tit cum jap nob bum git yob sod god nig wop wog gat cox nad pom mex dix sux fux vag cun".split(" "));
+const START = [1, 0, 6]; // c a t
+const TOTAL = [...REAL].length + Object.keys(TRICKY).length;
+
+let idx = START.slice(), found = new Set(), blendTimers = [];
+const word = () => SLOTS[0][idx[0]] + SLOTS[1][idx[1]] + SLOTS[2][idx[2]];
+const kind = (w) => (REAL.has(w) ? "real" : TRICKY[w] ? "tricky" : "nonsense");
+const softC = () => SLOTS[0][idx[0]] === "c" && (SLOTS[1][idx[1]] === "e" || SLOTS[1][idx[1]] === "i");
+function soundOf(slot) {
+  const l = SLOTS[slot][idx[slot]];
+  if (slot === 0 && softC()) return SOFT_C;
+  if (slot === 2) return l === "x" ? ["/ks/", "", "box"] : [SND[l][0], SND[l][1], CODA_KEY[l]];
+  return SND[l];
+}
+
+// ---- build ----
+const fig = document.getElementById("fig");
+const $ = (id) => document.getElementById(id);
+const CX = [100, 300, 500];
+const tiles = CX.map((cx, s) => {
+  const g = Play.svg("g", { class: "tile" + (s === 1 ? " vowel" : ""), tabindex: "0", role: "spinbutton" }, fig);
+  Play.svg("text", { class: "slabel", x: cx, y: 26 }, g).textContent = P.t("slot" + s);
+  Play.svg("rect", { class: "box", x: cx - 80, y: 42, width: 160, height: 160, rx: 22 }, g);
+  const letter = Play.svg("text", { class: "letter", x: cx, y: 120 }, g);
+  letter.setAttribute("lang", "en");
+  Play.svg("circle", { class: "dot", cx, cy: 222, r: 9 }, g);
+  const snd = Play.svg("text", { class: "sound", x: cx, y: 290 }, g);
+  g.addEventListener("click", () => spin(s, 1));
+  g.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp") { spin(s, -1); e.preventDefault(); }
+    else if (e.key === "ArrowDown") { spin(s, 1); e.preventDefault(); }
+    else if (e.key === "ArrowLeft" && s > 0) { tiles[s - 1].g.focus(); e.preventDefault(); }
+    else if (e.key === "ArrowRight" && s < 2) { tiles[s + 1].g.focus(); e.preventDefault(); }
+    else if (e.key === "Enter" || e.key === " ") { hearSlot(s); e.preventDefault(); }
+  });
+  return { g, letter, snd };
+});
+// blending arrow under the dots
+Play.svg("path", { class: "arrow", d: "M 100 246 L 486 246" }, fig);
+Play.svg("path", { class: "arrowhead", d: "M 500 246 L 480 235 L 480 257 Z" }, fig);
+
+function mkBtns(boxId, make) {
+  return [0, 1, 2].map((s) => { const b = document.createElement("button"); b.type = "button"; make(b, s); $(boxId).appendChild(b); return b; });
+}
+const ups = mkBtns("ups", (b, s) => { b.textContent = "▲"; b.setAttribute("aria-label", P.t("up", { slot: P.t("slot" + s) })); b.addEventListener("click", () => spin(s, -1)); });
+mkBtns("downs", (b, s) => { b.textContent = "▼"; b.setAttribute("aria-label", P.t("down", { slot: P.t("slot" + s) })); b.addEventListener("click", () => spin(s, 1)); });
+const hears = mkBtns("hears", (b, s) => { b.className = "hear"; b.addEventListener("click", () => hearSlot(s)); });
+
+// ---- actions ----
+function spin(s, dir) {
+  stopBlend();
+  const n = SLOTS[s].length;
+  for (let k = 0; k < n; k++) {
+    idx[s] = (idx[s] + dir + n) % n;
+    if (!BLOCK.has(word())) break;
+  }
+  flash(s);
+  draw();
+}
+function flash(s) {
+  const g = tiles[s].g;
+  g.classList.add("flash");
+  setTimeout(() => g.classList.remove("flash"), 260);
+}
+function hearSlot(s) {
+  const [, say, key] = soundOf(s);
+  Play.speak((say ? say + "... " : "") + key, "en-US");
+}
+function stopBlend() {
+  blendTimers.forEach(clearTimeout);
+  blendTimers = [];
+  tiles.forEach((t) => t.g.classList.remove("lit"));
+}
+function blend() {
+  stopBlend();
+  const w = word(), rime = w.slice(1);
+  const on = soundOf(0)[1];
+  Play.speak(on + "... " + rime + "... " + w, "en-US");
+  const lit = (list) => tiles.forEach((t, i) => t.g.classList.toggle("lit", list.includes(i)));
+  if (Play.reduced) { lit([0, 1, 2]); blendTimers.push(setTimeout(stopBlend, 1500)); return; }
+  lit([0]);
+  blendTimers.push(setTimeout(() => lit([1, 2]), 700), setTimeout(() => lit([0, 1, 2]), 1400), setTimeout(stopBlend, 2400));
+}
+
+function draw() {
+  const w = word(), k = kind(w);
+  if (k !== "nonsense") found.add(w);
+  tiles.forEach((t, s) => {
+    const l = SLOTS[s][idx[s]], snd = soundOf(s);
+    t.letter.textContent = l;
+    t.snd.textContent = snd[0];
+    t.g.setAttribute("aria-valuetext", l);
+    t.g.setAttribute("aria-label", P.t("tileAria", { slot: P.t("slot" + s), l, s: snd[0] }));
+    hears[s].textContent = P.t("hear", { s: snd[0] });
+    hears[s].setAttribute("aria-label", P.t("hearAria", { s: snd[0] }) + " — " + snd[2]);
+  });
+  const wEl = $("word");
+  wEl.textContent = w;
+  wEl.className = "word" + (k === "nonsense" ? "" : " real");
+  const st = $("status");
+  const stText = k === "tricky" ? P.t("tricky", { note: P.t(TRICKY[w]) }) : P.t(k);
+  st.textContent = stText;
+  st.className = "status " + k;
+  $("softc").textContent = softC() && k === "nonsense" ? P.t("softc") : "";
+  // word family: same vowel + ending
+  const rime = w.slice(1);
+  const fam = ONSETS.map((o) => o + rime).filter((x) => kind(x) !== "nonsense" && !BLOCK.has(x));
+  const famEl = $("fam");
+  famEl.innerHTML = "";
+  if (fam.length) {
+    const [a, b] = P.t("fam", { rime, list: "\u0000" }).split("\u0000");
+    famEl.append(a);
+    const sp = document.createElement("span");
+    sp.className = "w"; sp.lang = "en"; sp.textContent = fam.join(" · ");
+    famEl.append(sp, b);
+  } else famEl.textContent = P.t("famNone", { rime });
+  // found list
+  $("foundT").textContent = found.size ? P.t("found", { n: found.size, m: TOTAL }) : P.t("foundNone");
+  const chips = $("chips");
+  chips.innerHTML = "";
+  [...found].sort().forEach((f) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = f;
+    if (f === w) b.className = "now";
+    b.addEventListener("click", () => setWord(f));
+    chips.appendChild(b);
+  });
+  const parts = [0, 1, 2].map((s) => soundOf(s)[0]);
+  $("resultMain").textContent = parts.join(" + ") + " → " + w;
+  Play.live($("live"), P.t("liveW", { spell: w.split("").join("-"), word: w, status: stText }));
+}
+function setWord(w) {
+  const t = [ONSETS.indexOf(w[0]), VOWELS.indexOf(w[1]), CODAS.indexOf(w[2])];
+  if (t.some((x) => x < 0) || BLOCK.has(w)) return;
+  stopBlend();
+  idx = t;
+  draw();
+}
+
+$("say").addEventListener("click", () => Play.speak(word(), "en-US"));
+$("blend").addEventListener("click", blend);
+
+// tricky words (step 3)
+[["the", "trThe"], ["said", "trSaid"], ["was", "trWas"], ["one", "trOne"], ["you", "trYou"]].forEach(([w, key]) => {
+  const row = document.createElement("div");
+  row.className = "row";
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = w; b.lang = "en";
+  b.addEventListener("click", () => Play.speak(w, "en-US"));
+  const sp = document.createElement("span");
+  sp.textContent = P.t(key);
+  row.append(b, sp);
+  $("tricky").appendChild(row);
+});
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1"), right: true }, { label: P.t("o2") }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { setWord("hat"); flash(0); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("fam").hidden = i !== 1;
+  $("trickyBox").hidden = i !== 2;
+});
+$("reset").addEventListener("click", () => {
+  if ("speechSynthesis" in window) { try { speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+  stopBlend(); idx = START.slice(); found = new Set(); pr.reset(); st.go(0); draw();
+});
+draw();
+</script>
+</body>
+</html>

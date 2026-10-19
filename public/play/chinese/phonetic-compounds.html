@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build a character</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .han { font-family: "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", "Songti SC", serif; }
+  #fig text { fill: var(--fg); }
+  #fig .lab { font-size: 23px; fill: var(--muted); }
+  #fig .py { font-size: 26px; font-family: var(--font); }
+  #fig .ra { fill: var(--a); }
+  #fig .ph { fill: var(--c); }
+  #fig .box { fill: var(--soft); stroke: var(--line); stroke-width: 2; }
+  #fig .boxa { fill: none; stroke: var(--a); stroke-width: 3; }
+  #fig .boxc { fill: none; stroke: var(--c); stroke-width: 3; }
+  #fig .dash { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 7 6; }
+  #fig.over .dash { stroke: var(--a); stroke-width: 3; }
+  #fig .slot { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  #fig .slot.got { stroke: var(--a); stroke-width: 2.5; }
+  .pick { display: flex; flex-direction: column; gap: 10px; padding: 4px 14px 14px; }
+  .pick .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .pick .row > span { min-width: 6.5em; }
+  .phon button[aria-pressed=true] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
+  .tile { touch-action: none; padding: 4px 2px; display: flex; flex-direction: column; align-items: center; line-height: 1.15; min-height: 56px; }
+  .tile .g { font-size: 24px; color: var(--a); }
+  .tile .m { font-size: 13px; color: var(--muted); }
+  .tile.on { background: var(--soft); color: var(--fg); border-color: var(--a); }
+  .tile.on .m { color: var(--muted); }
+  .ghost { position: fixed; z-index: 9; pointer-events: none; font-size: 40px; color: var(--a); transform: translate(-50%, -60%); }
+  .sayrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 2px 0 8px; }
+  .gloss { font-size: 15px !important; color: var(--fg) !important; }
+  .gloss .big { font-size: 22px; }
+</style>
+</head>
+<body data-subject="chinese">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" data-t-aria="figAria"></svg>
+      <div class="pick" id="pick">
+        <div class="row phon" id="phon"><span data-t="phonLabel"></span></div>
+        <div class="row"><span data-t="radLabel"></span></div>
+        <div class="tiles" id="tiles" role="group" data-t-aria="radLabel"></div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="gloss" id="gloss"></p>
+      <div class="sayrow"><button type="button" class="small" id="say"></button></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math han" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// Radicals (形旁): glyph + meaning area. Characters stay Chinese in both languages; only the glosses are translated.
+const RADS = [
+  { r: "氵", en: "water", zh: "水" }, { r: "日", en: "sun", zh: "太阳" }, { r: "目", en: "eye", zh: "眼睛" },
+  { r: "讠", en: "speech", zh: "说话" }, { r: "忄", en: "heart", zh: "心" }, { r: "虫", en: "insect", zh: "虫" },
+  { r: "米", en: "rice", zh: "米粮" }, { r: "艹", en: "plant", zh: "草木" }, { r: "亻", en: "person", zh: "人" },
+  { r: "扌", en: "hand", zh: "手" }, { r: "饣", en: "food", zh: "吃" }, { r: "足", en: "foot", zh: "脚" },
+  { r: "火", en: "fire", zh: "火" }, { r: "衤", en: "clothes", zh: "衣服" }, { r: "雨", en: "rain", zh: "雨" },
+  { r: "纟", en: "thread", zh: "丝线" }, { r: "阝", en: "mound", zh: "土山" }, { r: "户", en: "door", zh: "门户" },
+];
+// Phonetic families (声旁). Pinyin = standard Putonghua reading (现代汉语词典).
+const FAM = [
+  { p: "青", py: "qīng", m: [
+    { r: "氵", c: "清", py: "qīng", en: "clear, clean (of water)", zh: "水清澈、干净：清水" },
+    { r: "日", c: "晴", py: "qíng", en: "sunny, a clear sky", zh: "天上有太阳、没有云：晴天" },
+    { r: "目", c: "睛", py: "jīng", en: "eyeball, as in 眼睛 eyes", zh: "眼珠：眼睛" },
+    { r: "讠", c: "请", py: "qǐng", en: "to ask politely, to invite", zh: "用话请求、邀请：请坐" },
+    { r: "忄", c: "情", py: "qíng", en: "feeling", zh: "心里的感受：心情" },
+    { r: "虫", c: "蜻", py: "qīng", en: "dragonfly, as in 蜻蜓", zh: "一种昆虫：蜻蜓" },
+    { r: "米", c: "精", py: "jīng", en: "refined, fine (first: polished rice)", zh: "本指挑选过的好米，引申为精细：精米" },
+    { r: "艹", c: "菁", py: "jīng", en: "lush; the best part, as in 菁华", zh: "草木茂盛；精华：菁华" },
+    { r: "亻", c: "倩", py: "qiàn", en: "pretty, charming (of a person)", zh: "形容人美好：倩影" },
+  ] },
+  { p: "包", py: "bāo", m: [
+    { r: "扌", c: "抱", py: "bào", en: "to hug, to hold in the arms", zh: "用手臂围住：拥抱" },
+    { r: "饣", c: "饱", py: "bǎo", en: "full after eating", zh: "吃够了：吃饱" },
+    { r: "氵", c: "泡", py: "pào", en: "bubble; to soak", zh: "水泡；放在水里浸：泡茶" },
+    { r: "足", c: "跑", py: "pǎo", en: "to run", zh: "用脚快走：跑步" },
+    { r: "火", c: "炮", py: "pào", en: "cannon; firecracker", zh: "火炮；鞭炮" },
+    { r: "衤", c: "袍", py: "páo", en: "robe, long gown", zh: "长衣服：长袍" },
+    { r: "艹", c: "苞", py: "bāo", en: "flower bud", zh: "没开的花：花苞" },
+    { r: "雨", c: "雹", py: "báo", en: "hail", zh: "天上落下的冰粒：冰雹" },
+  ] },
+  { p: "方", py: "fāng", m: [
+    { r: "讠", c: "访", py: "fǎng", en: "to visit, to ask about", zh: "去看望、询问：访问" },
+    { r: "户", c: "房", py: "fáng", en: "house, room", zh: "住人的屋子：房子" },
+    { r: "艹", c: "芳", py: "fāng", en: "fragrant (of flowers and grass)", zh: "花草的香气：芬芳" },
+    { r: "纟", c: "纺", py: "fǎng", en: "to spin thread", zh: "把棉、麻等纺成线：纺线" },
+    { r: "阝", c: "防", py: "fáng", en: "to guard against (first: an earth bank)", zh: "本指堤坝，引申为防备：防守" },
+    { r: "亻", c: "仿", py: "fǎng", en: "to imitate", zh: "照着别人做：模仿" },
+  ] },
+];
+// Pinyin helpers: tone number and toneless syllable split into initial + final.
+const MARK = { "̄": 1, "́": 2, "̌": 3, "̀": 4 };
+function parsePy(s) {
+  const d = s.normalize("NFD");
+  let tone = 5;
+  for (const ch of d) if (MARK[ch]) tone = MARK[ch];
+  const base = d.replace(/[̀́̄̌]/g, "").normalize("NFC");
+  const m = base.match(/^(zh|ch|sh|[bpmfdtnlgkhjqxrzcsyw])?(.*)$/);
+  return { tone, base, ini: m[1] || "", fin: m[2] };
+}
+function soundKind(a, b) {
+  const x = parsePy(a), y = parsePy(b);
+  if (x.base === y.base) return x.tone === y.tone ? "same" : "tone";
+  if (x.fin === y.fin) return "initial";
+  return "drift";
+}
+
+const P = Play.setup({
+  en: {
+    title: "Build a character", eyebrow: "Chinese · Stage 1", h1: "Build a character: meaning part + sound part",
+    intro: "Most Chinese characters are not random pictures. Snap a meaning part onto a sound part and watch real characters appear.",
+    reset: "Reset", figAria: "A radical slot plus a phonetic makes a character, with its pinyin and a tray of the family found so far",
+    s1: "Guess", s2: "Build", s3: "Rule",
+    k1: "Predict first", t1: "What could a character with 氵 be about?", b1: "Pick an answer. Then look at the three cards.",
+    k2: "Hands on", t2: "Snap a radical onto the sound part",
+    b2: "Drag a radical tile onto the picture, or tap it (keyboard: arrow keys, then Enter). Change the sound part with the buttons on top.",
+    k3: "The rule", t3: "The radical points to meaning, the phonetic hints at sound",
+    b3: "In 情, 忄 (heart) says it is about feelings and 青 qīng says it sounds like qíng. The sound hint is only a hint: tones and first sounds change, and after two thousand years some hints have drifted far — 也 yě sits inside 池 chí and 地 dì. And not every character works this way: 休 is a person 亻 resting by a tree 木, with no sound part at all.",
+    q: "You meet a new character with 氵 on the left. It is probably about…", o1: "Water or liquid", o2: "Trees and wood", o3: "Nothing — every character is just a shape to memorise",
+    right: "Yes. 氵 is a squeezed 水 (water). 河 river, 湖 lake, 海 sea all carry it.",
+    wrong: "Look at the cards: 河 river, 湖 lake, 海 sea — all water. The 氵 part is a clue you can use.",
+    hidden: "?", rv1: "river", rv2: "lake", rv3: "sea", waterTag: "water",
+    mean: "meaning", sound: "sound", partR: "meaning part", partP: "sound part",
+    say: "▶ Say it", sayIdle: "▶ Say the sound part",
+    famT: "{p} family: {k} / {n} found", noneYet: "Pick a radical.",
+    made: "{c} = {r} ({m}) + {p} ({ppy})", none: "{r} + {p}: not a character in everyday use. Try another radical — {p} still has {left} to find.",
+    allFound: "You found the whole {p} family on this page.",
+    kSame: "Sounds exactly like {p} {ppy}.", kTone: "Same syllable as {p} {ppy} — only the tone changed.",
+    kInitial: "Rhymes with {p} {ppy} — only the first sound changed ({a} → {b}).", kDrift: "The sound has drifted from {p} {ppy}: the hint is rough here.",
+    s1live: "Three characters with 氵: 河 hé, 湖 hú, 海 hǎi.", s3live: "情 = 忄 (meaning) + 青 (sound). 池 chí, 地 dì, 驰 chí all hold 也 yě. 休 = 亻 + 木, meaning only.",
+    r3a: "meaning: heart", r3b: "sound: qīng", drift: "sound drifted", noSound: "no sound part", rest: "person + tree = rest",
+    resultTitle: "What we found", resultMain: "radical → meaning · phonetic → sound",
+    resultNote: "A hint, not a rule: the sound part often gives a nearby sound (tones and first sounds change), and some characters have no sound part. Most common characters are built this way, though.",
+    explainK: "Explain it", explainQ: "A friend says Chinese characters are thousands of unrelated pictures. Use 清 and 晴 to show them why not — then give one case where the sound hint does not work.",
+    homeK: "Try at home", homeQ: "Find five characters with 氵 or 扌 on packets, signs or book covers at home. Guess what each one is about, then check with an adult or a dictionary.",
+    foot: "Pinyin: standard Putonghua readings (as in the Xiandai Hanyu Cidian); glosses simplified for children. Speech uses your browser's Chinese voice. CC BY 4.0 · Boxi Yu",
+    phonLabel: "Sound part 声旁", radLabel: "Meaning part 形旁",
+  },
+  zh: {
+    title: "形声字拼装台", eyebrow: "语文 · 阶段 1", h1: "形声字拼装台：形旁 + 声旁",
+    intro: "大部分汉字不是随便画的图。把一个形旁拼到声旁上，看真的字一个个冒出来。",
+    reset: "重置", figAria: "形旁格加上声旁拼成一个字，下面是读音和已经找到的同族字",
+    s1: "先猜", s2: "拼字", s3: "规律",
+    k1: "先猜一猜", t1: "带「氵」的字，可能跟什么有关？", b1: "先选一个答案，再看三张卡片。",
+    k2: "动手", t2: "把形旁拼到声旁上",
+    b2: "把下面的形旁块拖到图上，或者点一下（键盘：方向键选，回车放）。上面的按钮换声旁。",
+    k3: "规律", t3: "形旁管意思，声旁管读音",
+    b3: "「情」里，忄（心）说明它跟心里的感受有关，青 qīng 提示它读 qíng。声旁只是提示：声调、声母常常会变；两千多年下来，有的提示已经差很远——「也」yě 在「池」chí、「地」dì 里。也不是每个字都这样造：「休」是人 亻 靠着树 木 歇息，根本没有声旁。",
+    q: "你遇到一个没学过的字，左边是「氵」。它多半跟什么有关？", o1: "水或液体", o2: "树木", o3: "看不出来——每个字只能当图形死记",
+    right: "对。「氵」是压扁的「水」。河、湖、海都带着它。",
+    wrong: "看看卡片：河、湖、海，都跟水有关。「氵」是可以用的线索。",
+    hidden: "?", rv1: "河流", rv2: "湖泊", rv3: "大海", waterTag: "水",
+    mean: "意思", sound: "读音", partR: "形旁", partP: "声旁",
+    say: "▶ 读一读", sayIdle: "▶ 读声旁",
+    famT: "「{p}」族：找到 {k} / {n}", noneYet: "选一个形旁。",
+    made: "{c} = {r}（{m}）+ {p}（{ppy}）", none: "{r} + {p}：不是日常用字。换个形旁试试——「{p}」族还有 {left} 个没找到。",
+    allFound: "这一页上「{p}」族的字全找到了。",
+    kSame: "跟「{p}」{ppy} 读音完全一样。", kTone: "跟「{p}」{ppy} 同音节，只是声调变了。",
+    kInitial: "跟「{p}」{ppy} 韵母一样，只是声母变了（{a} → {b}）。", kDrift: "跟「{p}」{ppy} 差得比较远：这里的读音提示只是大概。",
+    s1live: "三个带「氵」的字：河 hé、湖 hú、海 hǎi。", s3live: "情 = 忄（意思）+ 青（读音）。池 chí、地 dì、驰 chí 里都有「也」yě。休 = 亻 + 木，只表意思。",
+    r3a: "意思：心", r3b: "读音：qīng", drift: "读音走远了", noSound: "没有声旁", rest: "人 + 树 = 歇息",
+    resultTitle: "我们发现", resultMain: "形旁管意思 · 声旁管读音",
+    resultNote: "这是提示，不是铁律：声旁给的常是相近的音（声调、声母会变），也有的字没有声旁。不过常用字里，大多数是这样造的。",
+    explainK: "说一说", explainQ: "有人说汉字是几千张互不相干的图。用「清」和「晴」跟他讲讲为什么不是——再举一个声旁提示不灵的例子。",
+    homeK: "家里做一做", homeQ: "在家里的包装、招牌、书皮上找 5 个带「氵」或「扌」的字，先猜它跟什么有关，再问大人或查字典核对。",
+    foot: "拼音按普通话标准读音（以《现代汉语词典》为准）；释义为儿童简化版。朗读用浏览器自带的中文语音。CC BY 4.0 · Boxi Yu",
+    phonLabel: "声旁 Sound part", radLabel: "形旁 Meaning part",
+  },
+});
+const L = P.lang;
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), tilesEl = $("tiles"), phonEl = $("phon");
+const S = Play.svg;
+
+let step = 0, fam = 0, rad = null, revealed = false;
+const found = FAM.map(() => new Set());
+
+function radInfo(r) { return RADS.find((x) => x.r === r); }
+function member(fi, r) { return FAM[fi].m.find((x) => x.r === r) || null; }
+function txt(x, y, s, cls, size, anchor) {
+  const t = S("text", { x, y, "text-anchor": anchor || "middle", class: cls || "" }, fig);
+  if (size) t.setAttribute("font-size", size);
+  t.textContent = s;
+  return t;
+}
+
+// ---- figure for each step ----
+function drawGuess() {
+  S("rect", { x: 26, y: 70, width: 150, height: 150, rx: 16, class: "box" }, fig);
+  txt(101, 185, "氵", "han ra", 120);
+  txt(101, 258, P.t("waterTag") + "?", "lab");
+  const words = [["河", "hé", "rv1"], ["湖", "hú", "rv2"], ["海", "hǎi", "rv3"]];
+  words.forEach(([c, py, k], i) => {
+    const x = 200 + i * 132;
+    S("rect", { x, y: 50, width: 118, height: 250, rx: 14, class: "slot" + (revealed ? " got" : "") }, fig);
+    txt(x + 59, 150, c, "han", 84);
+    txt(x + 59, 205, revealed ? py : P.t("hidden"), "py");
+    txt(x + 59, 250, revealed ? P.t(k) : P.t("hidden"), "lab");
+  });
+}
+
+function drawBuild() {
+  const F = FAM[fam], m = rad ? member(fam, rad) : null;
+  // drop slot (形旁)
+  S("rect", { x: 24, y: 22, width: 130, height: 130, rx: 14, class: "box" }, fig);
+  S("rect", { x: 30, y: 28, width: 118, height: 118, rx: 10, class: rad ? "boxa" : "dash" }, fig);
+  if (rad) txt(89, 120, rad, "han ra", 88);
+  else txt(89, 104, "?", "lab", 40);
+  txt(89, 186, rad ? radInfo(rad)[L] : P.t("partR"), "lab ra");
+  txt(176, 100, "+", "lab", 36);
+  // phonetic (声旁)
+  S("rect", { x: 198, y: 22, width: 130, height: 130, rx: 14, class: "box" }, fig);
+  S("rect", { x: 204, y: 28, width: 118, height: 118, rx: 10, class: "boxc" }, fig);
+  txt(263, 120, F.p, "han ph", 88);
+  txt(263, 186, F.py, "py ph");
+  txt(350, 100, "=", "lab", 36);
+  // result
+  S("rect", { x: 372, y: 12, width: 204, height: 150, rx: 16, class: m ? "slot got" : "slot" }, fig);
+  txt(474, 132, m ? m.c : "?", m ? "han" : "lab", m ? 124 : 56);
+  txt(474, 196, m ? m.py : "", "py");
+  // family tray
+  const n = F.m.length, w = 560 / n;
+  txt(20, 238, P.t("famT", { p: F.p, k: found[fam].size, n }), "lab", null, "start");
+  F.m.forEach((x, i) => {
+    const got = found[fam].has(x.c), cx = 20 + w * i + w / 2;
+    S("rect", { x: 20 + w * i + 3, y: 252, width: w - 6, height: 100, rx: 10, class: "slot" + (got ? " got" : "") }, fig);
+    txt(cx, 300, got ? x.c : "?", got ? "han" : "lab", got ? 40 : 30);
+    if (got) txt(cx, 338, x.py, "lab");
+  });
+}
+
+function drawRule() {
+  // 情 = 忄 + 青
+  txt(78, 112, "情", "han", 96);
+  txt(160, 92, "=", "lab", 34);
+  S("rect", { x: 186, y: 22, width: 104, height: 96, rx: 12, class: "boxa" }, fig);
+  txt(238, 98, "忄", "han ra", 72);
+  txt(238, 148, P.t("r3a"), "lab ra");
+  txt(318, 92, "+", "lab", 34);
+  S("rect", { x: 346, y: 22, width: 104, height: 96, rx: 12, class: "boxc" }, fig);
+  txt(398, 98, "青", "han ph", 72);
+  txt(398, 148, P.t("r3b"), "lab ph");
+  txt(520, 76, "qíng", "py");
+  // caveat 1: sound drifted
+  S("line", { x1: 20, y1: 172, x2: 580, y2: 172, stroke: "var(--line)", "stroke-width": 2 }, fig);
+  txt(60, 236, "也", "han ph", 56);
+  txt(60, 264, "yě", "lab");
+  [["池", "chí"], ["地", "dì"], ["驰", "chí"]].forEach(([c, py], i) => {
+    const x = 160 + i * 84;
+    txt(x, 232, c, "han", 52);
+    txt(x, 264, py, "lab");
+  });
+  txt(410, 240, P.t("drift"), "lab", null, "start");
+  // caveat 2: no sound part
+  txt(60, 334, "休", "han", 52);
+  txt(160, 330, "= 亻 + 木", "han", 34, "start");
+  txt(330, 318, P.t("noSound"), "lab", null, "start");
+  txt(330, 348, P.t("rest"), "lab", null, "start");
+}
+
+function draw() {
+  fig.innerHTML = "";
+  if (step === 0) drawGuess(); else if (step === 1) drawBuild(); else drawRule();
+  // tiles state
+  tilesEl.querySelectorAll(".tile").forEach((b) => {
+    const on = b.dataset.r === rad;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  phonEl.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-pressed", i === fam ? "true" : "false"));
+  info();
+}
+
+function info() {
+  const gl = $("gloss"), say = $("say");
+  gl.textContent = "";
+  if (step === 0) {
+    say.textContent = P.t("say");
+    Play.live($("live"), revealed ? P.t("s1live") : "");
+    return;
+  }
+  if (step === 2) {
+    say.textContent = P.t("say");
+    Play.live($("live"), P.t("s3live"));
+    return;
+  }
+  const F = FAM[fam];
+  if (!rad) { say.textContent = P.t("sayIdle"); Play.live($("live"), P.t("noneYet")); return; }
+  const m = member(fam, rad), ri = radInfo(rad);
+  if (!m) {
+    say.textContent = P.t("sayIdle");
+    const left = F.m.length - found[fam].size;
+    Play.live($("live"), left ? P.t("none", { r: rad, p: F.p, left }) : P.t("allFound", { p: F.p }));
+    return;
+  }
+  say.textContent = P.t("say");
+  const b1 = document.createElement("span"); b1.className = "big han"; b1.textContent = m.c + " ";
+  const b2 = document.createElement("strong"); b2.textContent = m.py;
+  gl.append(b1, b2, document.createTextNode(L === "zh" ? "：" + m.zh : " — " + m.en));
+  const k = soundKind(F.py, m.py), a = parsePy(F.py).ini || "∅", b = parsePy(m.py).ini || "∅";
+  const key = { same: "kSame", tone: "kTone", initial: "kInitial", drift: "kDrift" }[k];
+  let line = P.t("made", { c: m.c, r: rad, m: ri[L], p: F.p, ppy: F.py }) + (L === "zh" ? "。" : ". ") + P.t(key, { p: F.p, ppy: F.py, a, b });
+  if (found[fam].size === F.m.length) line += " " + P.t("allFound", { p: F.p });
+  Play.live($("live"), line);
+}
+
+function place(r) {
+  rad = r;
+  const m = member(fam, r);
+  if (m) found[fam].add(m.c);
+  draw();
+}
+
+// ---- controls ----
+FAM.forEach((F, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "small han";
+  b.textContent = F.p + " " + F.py;
+  b.addEventListener("click", () => { fam = i; rad = null; draw(); });
+  phonEl.appendChild(b);
+});
+RADS.forEach((x) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tile";
+  b.dataset.r = x.r;
+  b.setAttribute("aria-label", x.r + " " + x[L]);
+  b.innerHTML = '<span class="g han"></span><span class="m"></span>';
+  b.firstChild.textContent = x.r;
+  b.lastChild.textContent = x[L];
+  b.addEventListener("click", () => { if (suppress) { suppress = false; return; } place(x.r); });
+  tilesEl.appendChild(b);
+});
+tilesEl.addEventListener("keydown", (e) => {
+  const tiles = [...tilesEl.querySelectorAll(".tile")];
+  const i = tiles.indexOf(document.activeElement);
+  if (i < 0) return;
+  const cols = Math.max(1, Math.round(tilesEl.clientWidth / (tiles[0].offsetWidth + 6)));
+  const d = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[e.key];
+  if (!d) return;
+  e.preventDefault();
+  tiles[Play.clamp(i + d, 0, tiles.length - 1)].focus();
+});
+
+// drag a tile onto the figure (mouse + touch via pointer events)
+let drag = null, suppress = false;
+function overFig(x, y) {
+  const r = fig.getBoundingClientRect();
+  return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+tilesEl.addEventListener("pointerdown", (e) => {
+  const b = e.target.closest(".tile");
+  if (!b || e.button > 0) return;
+  drag = { r: b.dataset.r, x: e.clientX, y: e.clientY, ghost: null };
+});
+window.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  if (!drag.ghost && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6) {
+    drag.ghost = document.createElement("div");
+    drag.ghost.className = "ghost han";
+    drag.ghost.textContent = drag.r;
+    document.body.appendChild(drag.ghost);
+  }
+  if (drag.ghost) {
+    drag.ghost.style.left = e.clientX + "px";
+    drag.ghost.style.top = e.clientY + "px";
+    fig.classList.toggle("over", overFig(e.clientX, e.clientY));
+  }
+});
+function endDrag(e, cancel) {
+  if (!drag) return;
+  if (drag.ghost) {
+    drag.ghost.remove();
+    fig.classList.remove("over");
+    suppress = true;
+    setTimeout(() => (suppress = false), 0);
+    if (!cancel && overFig(e.clientX, e.clientY)) place(drag.r);
+  }
+  drag = null;
+}
+window.addEventListener("pointerup", (e) => endDrag(e, false));
+window.addEventListener("pointercancel", (e) => endDrag(e, true));
+
+$("say").addEventListener("click", () => {
+  let s;
+  if (step === 0) s = "河，湖，海";
+  else if (step === 2) s = "情";
+  else { const m = rad ? member(fam, rad) : null; s = m ? m.c : FAM[fam].p; }
+  Play.speak(s, "zh-CN");
+});
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1"), right: true }, { label: P.t("o2") }, { label: P.t("o3") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { revealed = true; draw(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("pick").hidden = i !== 1;
+  draw();
+});
+
+$("reset").addEventListener("click", () => {
+  fam = 0; rad = null; revealed = false;
+  found.forEach((s) => s.clear());
+  pr.reset();
+  st.go(0);
+});
+</script>
+</body>
+</html>

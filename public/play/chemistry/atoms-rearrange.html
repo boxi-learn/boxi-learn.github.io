@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atoms are rearranged, never lost</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 560 / 430; max-height: 470px; }
+  .result .math { white-space: normal; }
+  .at-H { fill: var(--on-panel); stroke: var(--muted); }
+  .at-C { fill: var(--muted); stroke: var(--fg); }
+  .at-N { fill: var(--c); stroke: var(--fg); }
+  .at-O { fill: var(--no); stroke: var(--fg); }
+  .atom { stroke-width: 1.2; }
+  .box { fill: var(--soft); stroke: var(--line); stroke-width: 1.5; }
+  .sep { stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 5 5; }
+  .lbl { fill: var(--fg); font: 600 22px var(--font); }
+  .lbl-m { fill: var(--muted); font: 22px var(--font); }
+  .num { fill: var(--fg); font: 600 22px var(--math); }
+  .beam { stroke: var(--fg); stroke-width: 6; stroke-linecap: round; }
+  .string { stroke: var(--muted); stroke-width: 1.5; }
+  .pan { fill: var(--surface); stroke: var(--fg); stroke-width: 2; }
+  .post { fill: var(--muted); }
+  .level { fill: var(--a); }
+  .glass { fill: var(--soft); fill-opacity: .55; stroke: var(--fg); stroke-width: 2; }
+  .stopper { fill: var(--b); }
+  .paper { fill: var(--b); stroke: var(--fg); stroke-width: 1; }
+  .flame1 { fill: var(--hl); } .flame2 { fill: var(--no); }
+  .scalebody { fill: var(--ink-panel); } .scaletop { fill: var(--muted); }
+  .readout { fill: var(--on-panel); font: 600 26px var(--math); }
+  .seg-paper { fill: var(--b); } .seg-o2 { fill: var(--no); } .seg-co2 { fill: var(--muted); } .seg-h2o { fill: var(--c); }
+  .ghost { fill-opacity: .45; stroke: var(--fg); stroke-dasharray: 5 4; stroke-width: 1.5; }
+  .axis { stroke: var(--line); stroke-width: 2; }
+  .rxpick, .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .rxpick { width: 100%; }
+  .eq { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; width: 100%; color: var(--fg); font-size: 17px; }
+  .term { display: inline-flex; align-items: center; gap: 4px; }
+  .term button { width: 34px; height: 34px; padding: 0; font-size: 18px; line-height: 1; }
+  .term button:disabled { opacity: .4; cursor: default; }
+  .coef { font-family: var(--math); font-size: 21px; min-width: 1.1em; text-align: center; color: var(--a); font-weight: 700; }
+  .formula { font-family: var(--math); font-size: 20px; }
+  .op { color: var(--muted); font-size: 20px; }
+  .legend { font-size: 14px; width: 100%; }
+  .dot { width: 11px; height: 11px; border: 1px solid var(--muted); }
+  table.tally { border-collapse: collapse; width: 100%; font-size: 14px; margin: 2px 0 10px; }
+  table.tally th, table.tally td { text-align: center; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  table.tally th:first-child, table.tally td:first-child { text-align: left; }
+  table.tally td.bad { color: var(--no); font-weight: 700; }
+  table.tally td.ok { color: var(--a); font-weight: 700; }
+  .status { font-size: 14px; color: var(--fg); margin: 0 0 8px; min-height: 1.4em; }
+  .status.win { color: var(--a); font-weight: 700; }
+  .livebox { font-size: 14px !important; }
+</style>
+</head>
+<body data-subject="chemistry">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 560 430" role="img"></svg>
+      <div class="controls" id="benchCtl">
+        <div class="rxpick" id="rxPick" role="group" data-t-aria="rxAria"></div>
+        <div class="eq" id="eq"></div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--on-panel)"></span><span data-t="legH"></span></span>
+          <span><span class="dot" style="background:var(--muted)"></span><span data-t="legC"></span></span>
+          <span><span class="dot" style="background:var(--c)"></span><span data-t="legN"></span></span>
+          <span><span class="dot" style="background:var(--no)"></span><span data-t="legO"></span></span>
+        </div>
+      </div>
+      <div class="controls" id="burnCtl">
+        <button type="button" id="play"></button>
+        <label for="f" data-t="fLabel"></label>
+        <input type="range" id="f" min="0" max="100" value="0">
+        <span class="val" id="fVal"></span>
+        <div class="seg" id="contPick" role="group" data-t-aria="contAria">
+          <button type="button" class="small" id="cOpen" data-t="open"></button>
+          <button type="button" class="small" id="cSealed" data-t="sealed"></button>
+        </div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--b)"></span><span data-t="legPaper"></span></span>
+          <span><span class="dot" style="background:var(--no)"></span><span data-t="legO2"></span></span>
+          <span><span class="dot" style="background:var(--muted)"></span><span data-t="legCO2"></span></span>
+          <span><span class="dot" style="background:var(--c)"></span><span data-t="legH2O"></span></span>
+        </div>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="stepBody2"></p>
+      <div id="tallyBox"></div>
+      <p class="status" id="status"></p>
+      <p class="livebox" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+// CORE START — pure chemistry, no DOM (checked in node)
+const MASS = { H: 1.008, C: 12.011, N: 14.007, O: 15.999 };
+const ORDER = ["C", "H", "N", "O"];
+// shape: [element, x, y] in molecule units; heavy atoms last so they sit on top
+const SPECIES = {
+  H2: { f: "H₂", atoms: { H: 2 }, shape: [["H", -5, 0], ["H", 5, 0]] },
+  O2: { f: "O₂", atoms: { O: 2 }, shape: [["O", -7, 0], ["O", 7, 0]] },
+  N2: { f: "N₂", atoms: { N: 2 }, shape: [["N", -7, 0], ["N", 7, 0]] },
+  H2O: { f: "H₂O", atoms: { H: 2, O: 1 }, shape: [["H", -10, 7], ["H", 10, 7], ["O", 0, -1]] },
+  CH4: { f: "CH₄", atoms: { C: 1, H: 4 }, shape: [["H", -10, -8], ["H", 10, -8], ["H", -10, 8], ["H", 10, 8], ["C", 0, 0]] },
+  CO2: { f: "CO₂", atoms: { C: 1, O: 2 }, shape: [["O", -13, 0], ["O", 13, 0], ["C", 0, 0]] },
+  NH3: { f: "NH₃", atoms: { N: 1, H: 3 }, shape: [["H", -11, 7], ["H", 11, 7], ["H", 0, -12], ["N", 0, 0]] },
+};
+const RADIUS = { H: 6, C: 9, N: 8.5, O: 8.5 };
+const RX = [
+  { key: "rx1", L: ["H2", "O2"], R: ["H2O"], answer: [2, 1, 2] },
+  { key: "rx2", L: ["CH4", "O2"], R: ["CO2", "H2O"], answer: [1, 2, 1, 2] },
+  { key: "rx3", L: ["N2", "H2"], R: ["NH3"], answer: [1, 3, 2] },
+];
+const CMIN = 1, CMAX = 9;
+const molMass = (atoms) => Object.keys(atoms).reduce((s, e) => s + MASS[e] * atoms[e], 0);
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+function tally(rx, co) {
+  const L = {}, R = {};
+  const side = (list, off, into) => list.forEach((sp, i) => {
+    const c = co[off + i];
+    for (const e in SPECIES[sp].atoms) into[e] = (into[e] || 0) + c * SPECIES[sp].atoms[e];
+  });
+  side(rx.L, 0, L);
+  side(rx.R, rx.L.length, R);
+  const els = ORDER.filter((e) => e in L || e in R);
+  const mL = els.reduce((s, e) => s + (L[e] || 0) * MASS[e], 0);
+  const mR = els.reduce((s, e) => s + (R[e] || 0) * MASS[e], 0);
+  const bad = els.filter((e) => (L[e] || 0) !== (R[e] || 0));
+  return { L, R, els, mL, mR, bad, balanced: bad.length === 0, g: co.reduce(gcd) };
+}
+// Paper modelled as cellulose units: C6H10O5 + 6 O2 -> 6 CO2 + 5 H2O
+const PAPER = { C: 6, H: 10, O: 5 };
+const N_PAPER = 0.01, N_O2_FLASK = 0.075;   // mol
+function burn(f, sealed) {
+  f = Math.min(1, Math.max(0, Number.isFinite(f) ? f : 0));
+  const paper = N_PAPER * (1 - f) * molMass(PAPER);
+  const o2used = 6 * N_PAPER * f * molMass({ O: 2 });
+  const co2 = 6 * N_PAPER * f * molMass({ C: 1, O: 2 });
+  const h2o = 5 * N_PAPER * f * molMass({ H: 2, O: 1 });
+  const o2 = sealed ? N_O2_FLASK * molMass({ O: 2 }) - o2used : 0;
+  const start = N_PAPER * molMass(PAPER) + (sealed ? N_O2_FLASK * molMass({ O: 2 }) : 0);
+  const reading = sealed ? paper + o2 + co2 + h2o : paper;
+  return { f, paper, o2, o2used, co2, h2o, start, reading, escaped: sealed ? 0 : co2 + h2o };
+}
+// CORE END
+
+const P = Play.setup({
+  en: {
+    title: "Atoms are rearranged, never lost", eyebrow: "Chemistry · Stage 3", h1: "Atoms are rearranged, never lost",
+    intro: "Burn paper, balance three reactions, and weigh what happens. Count the atoms and the mass takes care of itself.",
+    reset: "Reset", figBench: "Molecules before and after the reaction drawn as coloured balls, above a balance scale that compares their total mass",
+    figBurn: "Paper burning in a container on a scale, with bars showing where the mass is",
+    rxAria: "Choose a reaction", contAria: "Choose the container",
+    s1: "Guess", s2: "Balance", s3: "Rule",
+    k1: "Predict first", t1: "Burning paper gets lighter. Is mass destroyed?",
+    b1: "Burn the paper with the slider or the Burn button and watch the scale reading drop.",
+    q: "After burning, the open dish weighs less. What happened to the missing mass?",
+    o1: "It was destroyed: fire uses matter up", o2: "It turned into heat and light", o3: "It is still there, as gases that drifted into the air",
+    right: "Yes. The atoms left as invisible gases. Step 2 shows why atoms cannot vanish; step 3 catches the gases in a sealed flask.",
+    wrong: "Most people think so. Keep going: in step 3 the same burning happens in a sealed flask.",
+    k2: "Hands on", t2: "Balance the equation",
+    b2: "Pick a reaction. Use − and + to change how many of each molecule there are. Atoms can only regroup, so every kind must match on both sides.",
+    k3: "The rule", t3: "Same atoms, same mass",
+    b3: "A reaction only regroups atoms into new molecules. The number of each kind of atom stays the same, so the total mass stays the same. In the sealed flask nothing gets in or out, and the reading never moves.",
+    b3b: "In the open dish, oxygen comes in from the air while carbon dioxide and water vapour leave, so the scale only weighs the paper that is left. In the late 18th century Antoine Lavoisier weighed reactions carefully in closed vessels and showed that the total mass does not change.",
+    before: "Before", after: "After", tAtom: "Atom", tMass: "Mass (u)",
+    balanced: "Balanced! Every kind of atom matches, and the scale is level.",
+    balancedG: "Balanced, but every number can be divided by {g}. Chemists write the smallest whole numbers.",
+    unbalanced: "Not yet: {list} do not match. That would mean atoms appear or vanish, so the scale tilts by {d} u.",
+    rx1: "Water", rx2: "Methane burns", rx3: "Ammonia",
+    fewer: "Fewer {f}", more: "More {f}",
+    legH: "H hydrogen", legC: "C carbon", legN: "N nitrogen", legO: "O oxygen",
+    burnBtn: "▶ Burn", pauseBtn: "❚❚ Pause", fLabel: "Burned", open: "Open dish", sealed: "Sealed flask",
+    legPaper: "paper", legO2: "oxygen O₂", legCO2: "carbon dioxide CO₂", legH2O: "water vapour H₂O",
+    onScale: "On scale", inAir: "In the air", atStart: "At start", toRoom: "↑ into the room",
+    liveOpen: "Open dish: the scale reads {r} g (paper left). {e} g of CO₂ and water went into the air: more than the {p} g of paper burned, because {o} g of oxygen from the air joined in.",
+    liveOpen0: "Open dish: the scale reads {r} g, just the paper. Now burn it.",
+    liveSealed: "Sealed flask: {s} g at the start, {r} g now. Paper {p} g + oxygen {o} g + CO₂ {c} g + water {w} g.",
+    liveBench: "Before: {l}. After: {r}.",
+    resultTitle: "What we found", resultMain: "atoms in = atoms out ⇒ mass in = mass out",
+    resultNote: "If a scale reading changes during a reaction, something crossed the container wall, usually a gas.",
+    explainK: "Explain it", explainQ: "A rusty nail weighs more than the same nail before it rusted. Use atoms to explain where the extra mass came from.",
+    homeK: "Try at home", homeQ: "Put a spoon of baking soda in a bottle, put vinegar in a balloon and stretch it over the mouth. Weigh, tip the vinegar in, weigh again. Then repeat without the balloon.",
+    foot: "Atomic masses (IUPAC conventional values, u = atomic mass unit): H 1.008, C 12.011, N 14.007, O 15.999. Paper is modelled as cellulose, C₆H₁₀O₅ + 6 O₂ → 6 CO₂ + 5 H₂O, with 1.62 g ≈ 0.01 mol of units; real paper also leaves a little mineral ash. The energy released matches a mass far too small to weigh (about 10⁻¹⁰ of the total). CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "原子只是重新组合，一个也不少", eyebrow: "化学 · 阶段 3", h1: "原子只是重新组合，一个也不少",
+    intro: "烧一张纸，配平三个反应，再称一称。把原子数清楚，质量自然就对上了。",
+    reset: "重置", figBench: "反应前后的分子画成彩色小球，下面的天平比较两边的总质量",
+    figBurn: "容器里的纸在秤上燃烧，柱子显示质量在哪里",
+    rxAria: "选择反应", contAria: "选择容器",
+    s1: "先猜", s2: "配平", s3: "规律",
+    k1: "先猜一猜", t1: "纸烧完变轻了，质量被消灭了吗？",
+    b1: "拖滑块或按「燃烧」把纸烧掉，看秤上的读数往下掉。",
+    q: "敞口盘子里的纸烧完后，秤上读数变小了。少掉的质量去哪儿了？",
+    o1: "被消灭了：火把物质用掉了", o2: "变成了光和热", o3: "还在，变成气体飘进空气里了",
+    right: "对。原子变成看不见的气体跑掉了。第 2 步看为什么原子不会消失，第 3 步用密封烧瓶把气体关住。",
+    wrong: "很多人都这么想。往下看：第 3 步在密封烧瓶里烧同样的纸。",
+    k2: "动手", t2: "配平方程式",
+    b2: "选一个反应，用 − 和 + 改变每种分子的个数。原子只能重新组合，所以每种原子两边都要一样多。",
+    k3: "规律", t3: "原子一样，质量就一样",
+    b3: "反应只是把原子重新组合成新的分子。每种原子的个数不变，所以总质量不变。在密封烧瓶里，什么都进不来也出不去，读数一动不动。",
+    b3b: "在敞口盘子里，空气中的氧气进来，二氧化碳和水蒸气出去，秤上只称到剩下的纸。18 世纪后期，拉瓦锡在密闭容器里仔细称量化学反应，证明总质量不变。",
+    before: "反应前", after: "反应后", tAtom: "原子", tMass: "质量 (u)",
+    balanced: "配平了！每种原子都对上了，天平也平了。",
+    balancedG: "配平了，不过每个数都能被 {g} 整除。化学上写最小的整数。",
+    unbalanced: "还没有：{list} 两边不一样多。那等于原子凭空出现或消失，所以天平歪了 {d} u。",
+    rx1: "生成水", rx2: "甲烷燃烧", rx3: "合成氨",
+    fewer: "减少 {f}", more: "增加 {f}",
+    legH: "H 氢", legC: "C 碳", legN: "N 氮", legO: "O 氧",
+    burnBtn: "▶ 燃烧", pauseBtn: "❚❚ 暂停", fLabel: "烧掉", open: "敞口盘子", sealed: "密封烧瓶",
+    legPaper: "纸", legO2: "氧气 O₂", legCO2: "二氧化碳 CO₂", legH2O: "水蒸气 H₂O",
+    onScale: "秤上", inAir: "进了空气", atStart: "开始时", toRoom: "↑ 飘进房间",
+    liveOpen: "敞口盘子：秤上 {r} g（剩下的纸）。有 {e} g 二氧化碳和水进了空气，比烧掉的 {p} g 纸还多，因为空气里的 {o} g 氧气也参加了反应。",
+    liveOpen0: "敞口盘子：秤上 {r} g，只有纸。现在烧它。",
+    liveSealed: "密封烧瓶：开始 {s} g，现在 {r} g。纸 {p} g + 氧气 {o} g + 二氧化碳 {c} g + 水 {w} g。",
+    liveBench: "反应前：{l}。反应后：{r}。",
+    resultTitle: "我们发现", resultMain: "原子进 = 原子出 ⇒ 质量进 = 质量出",
+    resultNote: "反应时秤的读数变了，说明有东西穿过了容器壁，通常是气体。",
+    explainK: "说一说", explainQ: "铁钉生锈后比原来重。用原子解释多出来的质量是从哪儿来的。",
+    homeK: "家里做一做", homeQ: "瓶里放一勺小苏打，气球里装点醋，套在瓶口。先称，再把醋倒进去，再称。然后不套气球再做一次。",
+    foot: "相对原子质量（IUPAC 常用值，u 为原子质量单位）：H 1.008，C 12.011，N 14.007，O 15.999。纸按纤维素计：C₆H₁₀O₅ + 6 O₂ → 6 CO₂ + 5 H₂O，1.62 g 约 0.01 mol；真实的纸还会留下一点矿物灰。放出的能量对应的质量小到称不出来（约为总质量的 10⁻¹⁰）。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig");
+const S = (tag, attrs, parent) => Play.svg(tag, attrs, parent);
+const g2 = (x) => Play.fmt(x, 2);
+const state = { scene: "burn", rx: 0, co: [1, 1, 1], f: 0, sealed: false, playing: false };
+
+function molecule(sp, cx, cy, s, parent) {
+  SPECIES[sp].shape.forEach(([e, x, y]) => S("circle", { class: "atom at-" + e, cx: cx + x * s, cy: cy + y * s, r: RADIUS[e] * s }, parent));
+}
+
+/* ---------- scene: balancing workbench ---------- */
+function drawSide(list, co, x0, y0, w, h) {
+  const n = list.length, sh = h / n;
+  list.forEach((sp, i) => {
+    if (i > 0) S("line", { class: "sep", x1: x0 + 8, x2: x0 + w - 8, y1: y0 + i * sh, y2: y0 + i * sh }, fig);
+    const cols = n === 1 ? 3 : 5, rows = Math.ceil(CMAX / cols);
+    const cw = w / cols, chh = sh / rows;
+    const ext = (k) => 2 * Math.max(...SPECIES[sp].shape.map((q) => Math.abs(q[k]) + RADIUS[q[0]]));
+    const s = Math.min(n === 1 ? 1.9 : 1.3, 0.82 * cw / ext(1), 0.82 * chh / ext(2));
+    const k = co[i];
+    const usedRows = Math.ceil(k / cols);
+    for (let j = 0; j < k; j++) {
+      const r = Math.floor(j / cols), inRow = Math.min(cols, k - r * cols), c = j - r * cols;
+      const cx = x0 + w / 2 + (c - (inRow - 1) / 2) * cw;
+      const cy = y0 + i * sh + sh / 2 + (r - (usedRows - 1) / 2) * chh;
+      molecule(sp, cx, cy, s, fig);
+    }
+  });
+}
+function drawBench() {
+  const rx = RX[state.rx], co = state.co, T = tally(rx, co);
+  fig.setAttribute("aria-label", P.t("figBench"));
+  fig.innerHTML = "";
+  S("text", { class: "lbl", x: 135, y: 26, "text-anchor": "middle" }, fig).textContent = P.t("before");
+  S("text", { class: "lbl", x: 425, y: 26, "text-anchor": "middle" }, fig).textContent = P.t("after");
+  S("rect", { class: "box", x: 10, y: 38, width: 250, height: 200, rx: 12 }, fig);
+  S("rect", { class: "box", x: 300, y: 38, width: 250, height: 200, rx: 12 }, fig);
+  S("text", { class: "lbl", x: 280, y: 146, "text-anchor": "middle" }, fig).textContent = "→";
+  drawSide(rx.L, co.slice(0, rx.L.length), 10, 38, 250, 200);
+  drawSide(rx.R, co.slice(rx.L.length), 300, 38, 250, 200);
+  // balance scale: tilt grows with mass difference, saturates at 12°
+  const diff = T.mL - T.mR;
+  const deg = Math.abs(diff) < 1e-9 ? 0 : 12 * Math.tanh(diff / 12);
+  const th = deg * Math.PI / 180, px = 280, py = 290, arm = 200;
+  const lx = px - arm * Math.cos(th), ly = py + arm * Math.sin(th);
+  const rxx = px + arm * Math.cos(th), ry = py - arm * Math.sin(th);
+  S("path", { class: "post", d: `M${px - 34},404 L${px + 34},404 L${px + 6},${py} L${px - 6},${py} Z` }, fig);
+  [[lx, ly, T.mL], [rxx, ry, T.mR]].forEach(([x, y, m]) => {
+    S("line", { class: "string", x1: x, y1: y, x2: x - 40, y2: y + 40 }, fig);
+    S("line", { class: "string", x1: x, y1: y, x2: x + 40, y2: y + 40 }, fig);
+    S("path", { class: "pan", d: `M${x - 54},${y + 40} L${x + 54},${y + 40} Q${x},${y + 66} ${x - 54},${y + 40} Z` }, fig);
+    S("text", { class: "num", x, y: y + 88, "text-anchor": "middle" }, fig).textContent = g2(m) + " u";
+  });
+  S("line", { class: "beam", x1: lx, y1: ly, x2: rxx, y2: ry }, fig);
+  S("circle", { class: T.balanced ? "level" : "post", cx: px, cy: py, r: 8 }, fig);
+  return T;
+}
+function sub(el, n) { return el + ": " + n; }
+function renderTally(T) {
+  const box = $("tallyBox");
+  box.innerHTML = "";
+  const tb = document.createElement("table");
+  tb.className = "tally";
+  const row = (cells, tag, cls) => {
+    const tr = document.createElement("tr");
+    cells.forEach((c, i) => { const td = document.createElement(tag); td.textContent = c; if (cls && cls[i]) td.className = cls[i]; tr.appendChild(td); });
+    tb.appendChild(tr);
+  };
+  row([P.t("tAtom"), P.t("before"), P.t("after"), ""], "th");
+  T.els.forEach((e) => {
+    const a = T.L[e] || 0, b = T.R[e] || 0, ok = a === b;
+    row([e, a, b, ok ? "✓" : "✗"], "td", ["", "", "", ok ? "ok" : "bad"]);
+  });
+  const mok = Math.abs(T.mL - T.mR) < 1e-9;
+  row([P.t("tMass"), g2(T.mL), g2(T.mR), mok ? "✓" : "✗"], "td", ["", "", "", mok ? "ok" : "bad"]);
+  box.appendChild(tb);
+  const st = $("status");
+  st.classList.toggle("win", T.balanced);
+  if (T.balanced) st.textContent = T.g > 1 ? P.t("balancedG", { g: T.g }) : P.t("balanced");
+  else st.textContent = P.t("unbalanced", { list: T.bad.join(", "), d: g2(Math.abs(T.mL - T.mR)) });
+  const list = (side) => T.els.map((e) => sub(e, side[e] || 0)).join(", ");
+  Play.live($("live"), P.t("liveBench", { l: list(T.L), r: list(T.R) }));
+}
+function buildPicker() {
+  const pick = $("rxPick");
+  pick.innerHTML = "";
+  RX.forEach((r, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "small" + (i === state.rx ? " on" : ""); b.textContent = P.t(r.key);
+    b.setAttribute("aria-pressed", i === state.rx ? "true" : "false");
+    b.addEventListener("click", () => { state.rx = i; state.co = r.L.concat(r.R).map(() => 1); buildPicker(); buildEq(); render(); });
+    pick.appendChild(b);
+  });
+}
+function buildEq() {
+  const eq = $("eq"), rx = RX[state.rx], all = rx.L.concat(rx.R);
+  eq.innerHTML = "";
+  all.forEach((sp, i) => {
+    if (i > 0) {
+      const op = document.createElement("span");
+      op.className = "op"; op.textContent = i === rx.L.length ? "→" : "+";
+      eq.appendChild(op);
+    }
+    const t = document.createElement("span");
+    t.className = "term";
+    const mk = (txt, d, key) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = txt; b.setAttribute("aria-label", P.t(key, { f: SPECIES[sp].f }));
+      b.addEventListener("click", () => { state.co[i] = Play.clamp(state.co[i] + d, CMIN, CMAX); render(); b.focus(); });
+      return b;
+    };
+    const minus = mk("−", -1, "fewer"), plus = mk("+", 1, "more");
+    const c = document.createElement("span"); c.className = "coef"; c.dataset.i = i;
+    const f = document.createElement("span"); f.className = "formula"; f.textContent = SPECIES[sp].f;
+    minus.dataset.i = i; plus.dataset.i = i; minus.dataset.k = "m"; plus.dataset.k = "p";
+    t.append(minus, c, plus, f);
+    eq.appendChild(t);
+  });
+}
+function syncEq() {
+  document.querySelectorAll("#eq .coef").forEach((c) => (c.textContent = state.co[+c.dataset.i]));
+  document.querySelectorAll("#eq button").forEach((b) => {
+    const v = state.co[+b.dataset.i];
+    b.disabled = b.dataset.k === "m" ? v <= CMIN : v >= CMAX;
+  });
+}
+
+/* ---------- scene: burning paper on a scale ---------- */
+function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+const FLASK = { cx: 160, cy: 262, r: 88 };
+const PTS_IN = (() => {
+  const rnd = seeded(7), out = [];
+  while (out.length < 40) {
+    const x = FLASK.cx + (rnd() * 2 - 1) * 72, y = FLASK.cy + (rnd() * 2 - 1) * 72;
+    if (Math.hypot(x - FLASK.cx, y - FLASK.cy) > 70) continue;
+    if (x > 118 && x < 202 && y > 268) continue;          // keep clear of the paper
+    if (out.some((p) => Math.hypot(p[0] - x, p[1] - y) < 19)) { if (rnd() < 0.97) continue; }
+    out.push([x, y]);
+  }
+  return out;
+})();
+const PTS_UP = (() => {
+  const rnd = seeded(11), out = [];
+  while (out.length < 24) {
+    const x = 50 + rnd() * 220, y = 50 + rnd() * 220;
+    if (out.some((p) => Math.hypot(p[0] - x, p[1] - y) < 26)) { if (rnd() < 0.98) continue; }
+    out.push([x, y]);
+  }
+  return out;
+})();
+function drawBurn() {
+  const B = burn(state.f, state.sealed), f = B.f;
+  fig.setAttribute("aria-label", P.t("figBurn"));
+  fig.innerHTML = "";
+  const nCO2 = Math.round(12 * f), nH2O = Math.round(10 * f);
+  const paperH = 50 * (1 - f), base = state.sealed ? 344 : 336;
+  if (state.sealed) {
+    const ny = FLASK.cy - Math.sqrt(FLASK.r * FLASK.r - 400);
+    S("path", { class: "glass", d: `M140,128 L140,${ny} A${FLASK.r},${FLASK.r} 0 1 0 180,${ny} L180,128 Z` }, fig);
+    S("rect", { class: "stopper", x: 134, y: 112, width: 52, height: 20, rx: 4 }, fig);
+    const nO2 = Math.max(0, Math.round(15 - 12 * f));
+    const kinds = [].concat(Array(nO2).fill("O2"), Array(nCO2).fill("CO2"), Array(nH2O).fill("H2O"));
+    kinds.forEach((k, i) => { const p = PTS_IN[i % PTS_IN.length]; molecule(k, p[0], p[1], 0.62, fig); });
+  } else {
+    S("path", { class: "glass", d: "M60,326 L260,326 L246,352 L74,352 Z" }, fig);
+    const kinds = [].concat(Array(nCO2).fill("CO2"), Array(nH2O).fill("H2O"));
+    kinds.forEach((k, i) => {
+      const p = PTS_UP[i % PTS_UP.length];
+      const g = S("g", { opacity: 0.85 }, fig);
+      molecule(k, p[0], p[1] - 30 * f, 0.62, g);
+    });
+    if (f > 0) S("text", { class: "lbl-m", x: 160, y: 30, "text-anchor": "middle" }, fig).textContent = P.t("toRoom");
+  }
+  if (paperH > 0.5) S("rect", { class: "paper", x: 135, y: base - paperH, width: 50, height: paperH, rx: 2 }, fig);
+  if (f > 0 && f < 1) {
+    const ty = base - paperH;
+    S("path", { class: "flame1", d: `M148,${ty} Q146,${ty - 22} 160,${ty - 40} Q174,${ty - 22} 172,${ty} Z` }, fig);
+    S("path", { class: "flame2", d: `M154,${ty} Q154,${ty - 12} 160,${ty - 22} Q166,${ty - 12} 166,${ty} Z` }, fig);
+  }
+  // digital scale (zeroed with the empty container)
+  S("rect", { class: "scaletop", x: 40, y: 354, width: 240, height: 10, rx: 3 }, fig);
+  S("rect", { class: "scalebody", x: 56, y: 364, width: 208, height: 56, rx: 8 }, fig);
+  S("text", { class: "readout", x: 160, y: 401, "text-anchor": "middle" }, fig).textContent = g2(B.reading) + " g";
+  // bars: what is on the scale, and either the start or what went into the air
+  const k = 64, bottom = 360;
+  S("line", { class: "axis", x1: 322, x2: 548, y1: bottom, y2: bottom }, fig);
+  const stack = (x, parts, ghost) => {
+    let y = bottom;
+    parts.forEach(([cls, m]) => {
+      const h = Math.max(0, m * k);
+      if (h > 0.01) S("rect", { class: cls + (ghost ? " ghost" : ""), x, y: y - h, width: 80, height: h }, fig);
+      y -= h;
+    });
+    return y;
+  };
+  const top1 = stack(335, [["seg-paper", B.paper], ["seg-o2", B.o2], ["seg-co2", state.sealed ? B.co2 : 0], ["seg-h2o", state.sealed ? B.h2o : 0]]);
+  S("text", { class: "num", x: 375, y: top1 - 8, "text-anchor": "middle" }, fig).textContent = g2(B.reading);
+  S("text", { class: "lbl-m", x: 375, y: 388, "text-anchor": "middle" }, fig).textContent = P.t("onScale");
+  let top2, v2;
+  if (state.sealed) { top2 = stack(455, [["seg-paper", N_PAPER * molMass(PAPER)], ["seg-o2", N_O2_FLASK * molMass({ O: 2 })]], true); v2 = B.start; }
+  else { top2 = stack(455, [["seg-co2", B.co2], ["seg-h2o", B.h2o]], true); v2 = B.escaped; }
+  S("text", { class: "num", x: 495, y: top2 - 8, "text-anchor": "middle" }, fig).textContent = g2(v2);
+  S("text", { class: "lbl-m", x: 495, y: 388, "text-anchor": "middle" }, fig).textContent = P.t(state.sealed ? "atStart" : "inAir");
+  $("fVal").textContent = Math.round(f * 100) + "%";
+  $("cOpen").classList.toggle("on", !state.sealed); $("cOpen").setAttribute("aria-pressed", String(!state.sealed));
+  $("cSealed").classList.toggle("on", state.sealed); $("cSealed").setAttribute("aria-pressed", String(state.sealed));
+  $("play").textContent = P.t(state.playing ? "pauseBtn" : "burnBtn");
+  const msg = state.sealed
+    ? P.t("liveSealed", { s: g2(B.start), r: g2(B.reading), p: g2(B.paper), o: g2(B.o2), c: g2(B.co2), w: g2(B.h2o) })
+    : f === 0 ? P.t("liveOpen0", { r: g2(B.reading) }) : P.t("liveOpen", { r: g2(B.reading), e: g2(B.escaped), p: g2(N_PAPER * molMass(PAPER) - B.paper), o: g2(B.o2used) });
+  Play.live($("live"), msg);
+}
+
+function render() {
+  $("benchCtl").hidden = state.scene !== "bench";
+  $("burnCtl").hidden = state.scene !== "burn";
+  $("tallyBox").hidden = $("status").hidden = state.scene !== "bench";
+  if (state.scene === "bench") { const T = drawBench(); syncEq(); renderTally(T); }
+  else drawBurn();
+}
+
+/* ---------- burn animation (never autoplays) ---------- */
+let raf = 0, last = 0;
+function tick(t) {
+  if (!state.playing) return;
+  const dt = last ? Math.min(0.1, (t - last) / 1000) : 0;
+  last = t;
+  state.f = Math.min(1, state.f + dt / 6);
+  $("f").value = Math.round(state.f * 100);
+  if (state.f >= 1) state.playing = false;
+  render();
+  if (state.playing) raf = requestAnimationFrame(tick);
+}
+function stop() { state.playing = false; cancelAnimationFrame(raf); last = 0; }
+$("play").addEventListener("click", () => {
+  if (state.playing) { stop(); render(); return; }
+  if (state.f >= 1) { state.f = 0; $("f").value = 0; }
+  state.playing = true; last = 0; render();
+  raf = requestAnimationFrame(tick);
+});
+$("f").addEventListener("input", (e) => { stop(); state.f = Play.clamp(+e.target.value / 100, 0, 1); render(); });
+$("cOpen").addEventListener("click", () => { state.sealed = false; render(); });
+$("cSealed").addEventListener("click", () => { state.sealed = true; render(); });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  stop();
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("stepBody2").textContent = i === 2 ? P.t("b3b") : "";
+  $("stepBody2").hidden = i !== 2;
+  $("predict").hidden = i !== 0;
+  $("contPick").hidden = i === 0;
+  if (i === 0) { state.scene = "burn"; state.sealed = false; }
+  else if (i === 1) state.scene = "bench";
+  else { state.scene = "burn"; state.sealed = true; }
+  render();
+});
+buildPicker();
+buildEq();
+$("reset").addEventListener("click", () => {
+  stop();
+  state.rx = 0; state.co = [1, 1, 1]; state.f = 0; state.sealed = false;
+  $("f").value = 0;
+  pr.reset(); buildPicker(); buildEq(); st.go(0);
+});
+render();
+</script>
+</body>
+</html>

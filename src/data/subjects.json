@@ -1,0 +1,2986 @@
+{
+ "stages": [
+  {
+   "n": 0,
+   "name": {
+    "en": "Early Start",
+    "zh": "启蒙"
+   },
+   "age": {
+    "en": "about 3–6",
+    "zh": "约 3–6 岁"
+   },
+   "theme": {
+    "en": "Know the world with the body and senses: listen, look, touch, talk.",
+    "zh": "用身体和感官认识世界：听、看、摸、说。"
+   },
+   "form": {
+    "en": "Game cards and short videos for parents. No screen for the child.",
+    "zh": "给家长的亲子游戏卡和短视频，孩子不看屏幕。"
+   }
+  },
+  {
+   "n": 1,
+   "name": {
+    "en": "Observe and Say",
+    "zh": "观察与表达"
+   },
+   "age": {
+    "en": "about 6–9",
+    "zh": "约 6–9 岁"
+   },
+   "theme": {
+    "en": "Look closely, say it clearly, ask why.",
+    "zh": "看仔细、说清楚、问为什么。"
+   },
+   "form": {
+    "en": "Interactive pages, hands-on activities, five minutes a day.",
+    "zh": "互动页、动手活动、每天 5 分钟。"
+   }
+  },
+  {
+   "n": 2,
+   "name": {
+    "en": "Models and Patterns",
+    "zh": "模型与规律"
+   },
+   "age": {
+    "en": "about 9–12",
+    "zh": "约 9–12 岁"
+   },
+   "theme": {
+    "en": "Explain with a model, predict with a pattern.",
+    "zh": "用模型解释现象，用规律预测。"
+   },
+   "form": {
+    "en": "Simulations with sliders, insight videos, varied practice.",
+    "zh": "可调参数的模拟、洞察视频、变式练习。"
+   }
+  },
+  {
+   "n": 3,
+   "name": {
+    "en": "Structure and Evidence",
+    "zh": "结构与证据"
+   },
+   "age": {
+    "en": "about 12–15",
+    "zh": "约 12–15 岁"
+   },
+   "theme": {
+    "en": "The inner structure of each subject; argue from evidence.",
+    "zh": "学科内部的结构；用证据说话。"
+   },
+   "form": {
+    "en": "Interactive labs, discussion groups, open problems.",
+    "zh": "互动实验室、讨论小组、开放题。"
+   }
+  },
+  {
+   "n": 4,
+   "name": {
+    "en": "Systems and Argument",
+    "zh": "系统与论证"
+   },
+   "age": {
+    "en": "about 15–18",
+    "zh": "约 15–18 岁"
+   },
+   "theme": {
+    "en": "Many-factor systems; rigorous argument, writing and modelling.",
+    "zh": "多因素系统；严谨论证、写作和建模。"
+   },
+   "form": {
+    "en": "Worked-problem videos, projects, bridges to exams and competitions.",
+    "zh": "讲题、项目、衔接选考和竞赛。"
+   }
+  }
+ ],
+ "cross_seeds": [
+  {
+   "id": "X-1",
+   "name": {
+    "en": "Guess, then check",
+    "zh": "先猜再验"
+   },
+   "what": {
+    "en": "Predict before the experiment, the next line, the cause — then look.",
+    "zh": "实验前先预测，读之前先猜下文，看史料前先猜原因。"
+   }
+  },
+  {
+   "id": "X-2",
+   "name": {
+    "en": "Evidence outweighs opinion",
+    "zh": "证据比观点重"
+   },
+   "what": {
+    "en": "Data in science, sources in history, maps in geography, the text itself in reading.",
+    "zh": "科学的数据、历史的史料、地理的地图、语文的原文。"
+   }
+  },
+  {
+   "id": "X-3",
+   "name": {
+    "en": "Look from another side",
+    "zh": "换个角度看"
+   },
+   "what": {
+    "en": "Frames of reference, other people in history, other scales on a map, other ways to say it.",
+    "zh": "物理的参考系、历史的不同当事人、地理的不同尺度、英语的换种说法。"
+   }
+  },
+  {
+   "id": "X-4",
+   "name": {
+    "en": "Explain it to someone",
+    "zh": "说给别人听"
+   },
+   "what": {
+    "en": "Every lesson ends with putting it in your own words.",
+    "zh": "每课结尾用自己的话讲清楚。"
+   }
+  }
+ ],
+ "subjects": [
+  {
+   "id": "chinese",
+   "order": 1,
+   "name": {
+    "en": "Chinese",
+    "zh": "语文"
+   },
+   "tagline": {
+    "en": "Characters make sense, sentences have a skeleton, and every text is a writer's choices.",
+    "zh": "字是有道理的，句子有骨架，文章是作者选出来的。"
+   },
+   "stages": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "seeds": [
+    {
+     "id": "CN-1",
+     "name": {
+      "en": "Characters make sense",
+      "zh": "字是有道理的"
+     },
+     "what": {
+      "en": "The radical hints the meaning, the phonetic hints the sound: 河, 湖, 海 all carry water.",
+      "zh": "形旁表义、声旁表音；「河、湖、海」都带水。"
+     }
+    },
+    {
+     "id": "CN-2",
+     "name": {
+      "en": "A sentence has a skeleton",
+      "zh": "一句话有骨架"
+     },
+     "what": {
+      "en": "Who + does what + how. Take away the describing words and the sentence still stands.",
+      "zh": "谁 + 做什么 + 怎么样；去掉修饰，句子还站得住。"
+     }
+    },
+    {
+     "id": "CN-3",
+     "name": {
+      "en": "A text is what the writer chose",
+      "zh": "文章是作者选出来的"
+     },
+     "what": {
+      "en": "What to write, what to leave out, what comes first — all of it is a choice.",
+      "zh": "写什么、不写什么、先写什么都是选择。"
+     }
+    },
+    {
+     "id": "CN-4",
+     "name": {
+      "en": "Reading needs evidence",
+      "zh": "读要有证据"
+     },
+     "what": {
+      "en": "When you answer 'why', point to the sentence in the text.",
+      "zh": "回答「为什么」时指出原文哪一句。"
+     }
+    },
+    {
+     "id": "CN-5",
+     "name": {
+      "en": "Sound and rhythm",
+      "zh": "声音和节奏"
+     },
+     "what": {
+      "en": "Level and oblique tones, rhyme, pauses: a poem is meant to be read aloud.",
+      "zh": "平仄、押韵、停顿；诗是读出来的。"
+     }
+    }
+   ],
+   "stage_questions": {
+    "0": {
+     "en": "What is this sound?",
+     "zh": "这个声音是什么？"
+    },
+    "1": {
+     "en": "Why does this character look like this?",
+     "zh": "这个字为什么长这样？"
+    },
+    "2": {
+     "en": "Why did the writer write it this way?",
+     "zh": "作者为什么这样写？"
+    },
+    "3": {
+     "en": "How do you prove your reading?",
+     "zh": "你怎么证明你的理解？"
+    },
+    "4": {
+     "en": "Who is this text talking to?",
+     "zh": "这篇文章在和谁对话？"
+    }
+   },
+   "misconceptions": [
+    {
+     "en": "Every character is a separate picture you just have to memorise.",
+     "zh": "每个字都是一张单独的图，只能死记。"
+    },
+    {
+     "en": "A character has only one meaning.",
+     "zh": "一个字只有一个意思。"
+    },
+    {
+     "en": "Figures of speech are just decoration.",
+     "zh": "修辞只是「装饰」。"
+    },
+    {
+     "en": "The longer the essay, the better.",
+     "zh": "作文越长越好。"
+    }
+   ],
+   "lessons": [
+    {
+     "slug": "phonetic-compounds",
+     "stage": 1,
+     "seeds": [
+      "CN-1",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "2",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "ready",
+     "play": "phonetic-compounds.html",
+     "title": {
+      "en": "Build a character: meaning part + sound part",
+      "zh": "形声字拼装台"
+     },
+     "insight": {
+      "en": "In a meaning–sound character, the radical tells you the area of meaning and the phonetic hints at the sound: 青 + 氵/日/目/讠/忄 gives 清 晴 睛 请 情.",
+      "zh": "形声字里，形旁告诉你意思跟什么有关，声旁提示读音：青 + 氵/日/目/讠/忄 → 清 晴 睛 请 情。"
+     },
+     "misconception": {
+      "en": "Every character is a separate picture you just have to memorise.",
+      "zh": "每个字都是一张单独的图，只能死记。"
+     },
+     "explain": {
+      "en": "A friend says Chinese characters are thousands of unrelated pictures. Use 清 and 晴 to show them why not — then give one case where the sound hint does not work.",
+      "zh": "有人说汉字是几千张互不相干的图。用「清」和「晴」跟他讲讲为什么不是——再举一个声旁提示不灵的例子。"
+     },
+     "home": {
+      "en": "Find five characters with 氵 or 扌 on packets, signs or book covers at home. Guess what each one is about, then check with an adult or a dictionary.",
+      "zh": "在家里的包装、招牌、书皮上找 5 个带「氵」或「扌」的字，先猜它跟什么有关，再问大人或查字典核对。"
+     }
+    },
+    {
+     "slug": "sentence-blocks",
+     "stage": 1,
+     "seeds": [
+      "CN-2",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "2",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Sentence blocks: find the skeleton",
+      "zh": "句子积木"
+     },
+     "insight": {
+      "en": "Remove the describing words and a sentence still stands on 'who + does what'; add them back and it says more, not something else.",
+      "zh": "去掉修饰词，句子靠「谁 + 做什么」照样站得住；加回去，句子说得更多，但骨架不变。"
+     },
+     "misconception": {
+      "en": "Every word in a sentence is equally important.",
+      "zh": "句子里每个词都一样重要。"
+     },
+     "play": null
+    },
+    {
+     "slug": "poem-rhythm",
+     "stage": 2,
+     "seeds": [
+      "CN-5",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Tap the beat of a Tang poem",
+      "zh": "古诗节奏点读"
+     },
+     "insight": {
+      "en": "A five-character line usually breaks into 2 + 3 beats and a seven-character line into 4 + 3; the rhyme falls at the end of the even lines.",
+      "zh": "五言句一般按「二三」停顿，七言句按「四三」停顿；韵脚落在双数句的句末。"
+     },
+     "misconception": {
+      "en": "How you read a poem aloud doesn't change anything.",
+      "zh": "诗怎么读出来都一样。"
+     },
+     "play": null
+    },
+    {
+     "slug": "paragraph-reorder",
+     "stage": 2,
+     "seeds": [
+      "CN-3",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Reorder and cut: writing is choosing",
+      "zh": "段落重排"
+     },
+     "insight": {
+      "en": "Moving or cutting one paragraph changes what the reader feels first and what they remember; what a writer leaves out is a choice too.",
+      "zh": "挪动或删掉一段，读者先感到什么、最后记住什么就变了；不写什么，也是作者的选择。"
+     },
+     "misconception": {
+      "en": "The longer the essay, the better.",
+      "zh": "作文越长越好。"
+     },
+     "play": null
+    },
+    {
+     "slug": "word-meaning-timeline",
+     "stage": 3,
+     "seeds": [
+      "CN-1",
+      "CN-4",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "How a word's meaning moves through time",
+      "zh": "文言词义演变时间线"
+     },
+     "insight": {
+      "en": "Meanings drift: in classical Chinese 走 meant 'run' and 去 meant 'leave', so read an old text with the old meaning, and let the context prove it.",
+      "zh": "词义会走动：古文里「走」是跑、「去」是离开；读古文要用古义，并用上下文来证明。"
+     },
+     "misconception": {
+      "en": "A character has only one meaning.",
+      "zh": "一个字只有一个意思。"
+     },
+     "play": null
+    },
+    {
+     "slug": "argument-map",
+     "stage": 3,
+     "seeds": [
+      "CN-4",
+      "X-2",
+      "X-4"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Map an argument: claim, reasons, evidence",
+      "zh": "论证结构图"
+     },
+     "insight": {
+      "en": "An argument is a claim held up by reasons, and each reason needs evidence; a reason with nothing under it does not hold the claim up.",
+      "zh": "论证 = 观点 + 理由 + 证据；底下没有证据的理由，撑不起观点。"
+     },
+     "misconception": {
+      "en": "Stating an opinion firmly is already an argument.",
+      "zh": "观点说得够坚定，就算论证了。"
+     },
+     "play": null
+    },
+    {
+     "slug": "intertext-reader",
+     "stage": 4,
+     "seeds": [
+      "CN-3",
+      "CN-4",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Two texts side by side",
+      "zh": "互文对照阅读器"
+     },
+     "insight": {
+      "en": "Writers answer earlier writers; set two texts side by side and what the later one keeps, changes or drops shows what it is arguing with.",
+      "zh": "作者在回应前人；把两篇放在一起看，后者保留、改动、删掉了什么，就看出它在和谁对话。"
+     },
+     "misconception": {
+      "en": "A text means only what it says on its own.",
+      "zh": "一篇文章只看它自己就能读懂全部。"
+     },
+     "play": null
+    }
+   ]
+  },
+  {
+   "id": "english",
+   "order": 2,
+   "name": {
+    "en": "English",
+    "zh": "英语"
+   },
+   "tagline": {
+    "en": "Letters are sounds, words come in parts, and word order carries meaning.",
+    "zh": "字母是声音，词能拆成块，语序本身就是意思。"
+   },
+   "stages": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "seeds": [
+    {
+     "id": "EN-1",
+     "name": {
+      "en": "Letters stand for sounds",
+      "zh": "字母代表声音"
+     },
+     "what": {
+      "en": "Phonics: c-a-t blends into cat; one sound can have several spellings.",
+      "zh": "自然拼读：c-a-t 拼出 cat；同一个音有几种写法。"
+     }
+    },
+    {
+     "id": "EN-2",
+     "name": {
+      "en": "Words come in parts",
+      "zh": "词是一块一块的"
+     },
+     "what": {
+      "en": "un-happy-ness: roots, prefixes and suffixes.",
+      "zh": "un-happy-ness：词根和词缀。"
+     }
+    },
+    {
+     "id": "EN-3",
+     "name": {
+      "en": "Word order is information",
+      "zh": "英语的语序是信息"
+     },
+     "what": {
+      "en": "Subject–verb–object cannot be shuffled, adjectives have an order; it is not word-for-word Chinese.",
+      "zh": "主谓宾不能乱，形容词有顺序；不是逐字翻中文。"
+     }
+    },
+    {
+     "id": "EN-4",
+     "name": {
+      "en": "Getting the gist is enough",
+      "zh": "听懂大意就够了"
+     },
+     "what": {
+      "en": "Comprehensible input: if you follow about 80%, keep listening instead of stopping for every word.",
+      "zh": "可理解输入：听懂约 80% 就继续听，不停下来查每个词。"
+     }
+    },
+    {
+     "id": "EN-5",
+     "name": {
+      "en": "One meaning, many ways to say it",
+      "zh": "同一个意思有很多说法"
+     },
+     "what": {
+      "en": "Paraphrase and register: formal and casual.",
+      "zh": "换说法、语域（正式 / 口语）。"
+     }
+    }
+   ],
+   "stage_questions": {
+    "0": {
+     "en": "What does this sound like?",
+     "zh": "这个声音像什么？"
+    },
+    "1": {
+     "en": "How do these letters sound?",
+     "zh": "这些字母怎么读？"
+    },
+    "2": {
+     "en": "Can this word be taken apart?",
+     "zh": "这个词能拆开吗？"
+    },
+    "3": {
+     "en": "Why is this structure used here?",
+     "zh": "为什么这里用这个结构？"
+    },
+    "4": {
+     "en": "How do I say it accurately and appropriately?",
+     "zh": "怎么说得又准又得体？"
+    }
+   },
+   "misconceptions": [
+    {
+     "en": "Every English word matches exactly one Chinese word.",
+     "zh": "一个英文词对一个中文词。"
+    },
+    {
+     "en": "Grammar rules must be memorised before you can use them.",
+     "zh": "语法要先背规则再用。"
+    },
+    {
+     "en": "If your accent isn't perfect, you shouldn't speak.",
+     "zh": "口音不标准就不该开口。"
+    },
+    {
+     "en": "Every English word has to be memorised by its shape.",
+     "zh": "每个英文单词都只能靠死记字形。"
+    }
+   ],
+   "lessons": [
+    {
+     "slug": "phonics-slider",
+     "stage": 1,
+     "seeds": [
+      "EN-1",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "3",
+      "us": "K",
+      "uk": "1"
+     },
+     "status": "ready",
+     "play": "phonics-slider.html",
+     "title": {
+      "en": "Change one letter, get a new word",
+      "zh": "换一个字母，变一个新词"
+     },
+     "insight": {
+      "en": "Letters stand for sounds; blend the sounds and you can read a word you have never seen.",
+      "zh": "字母代表声音；把声音拼起来，没见过的词也能读出来。"
+     },
+     "misconception": {
+      "en": "Every English word has to be memorised by its shape.",
+      "zh": "每个英文单词都只能靠死记字形。"
+     },
+     "explain": {
+      "en": "A friend says English words can only be memorised one by one, like pictures. Use three letters to show them why that isn't true.",
+      "zh": "朋友说英文单词只能一个个死记字形。用三个字母给他演示一下为什么不是这样。"
+     },
+     "home": {
+      "en": "Write c, a and t on three paper cards, plus spare cards with other letters. Take turns swapping one card and reading the new word aloud — real or nonsense.",
+      "zh": "在三张纸卡上写 c、a、t，再多写几张别的字母。轮流换掉一张卡，把新词读出来——真词、假词都算。"
+     }
+    },
+    {
+     "slug": "one-sound-many-spellings",
+     "stage": 1,
+     "seeds": [
+      "EN-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "1",
+      "uk": "2"
+     },
+     "status": "planned",
+     "title": {
+      "en": "One sound, several spellings",
+      "zh": "一个音，几种写法"
+     },
+     "insight": {
+      "en": "The same sound can be written in more than one way: rain, play and cake share one vowel sound.",
+      "zh": "同一个音可以有几种写法：rain、play、cake 里是同一个元音。"
+     },
+     "misconception": {
+      "en": "Each sound has only one spelling.",
+      "zh": "一个音只有一种写法。"
+     },
+     "play": null
+    },
+    {
+     "slug": "affix-builder",
+     "stage": 2,
+     "seeds": [
+      "EN-2",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "5",
+      "us": "3",
+      "uk": "4"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Build a word from parts",
+      "zh": "用零件拼出一个词"
+     },
+     "insight": {
+      "en": "A long word is often a root with parts added: un- flips the meaning, -ness turns it into a thing.",
+      "zh": "长词常常是词根加零件：un- 把意思反过来，-ness 把它变成一样东西。"
+     },
+     "misconception": {
+      "en": "Long words are hard because each one must be learnt as a whole.",
+      "zh": "长单词难，因为每个都得整个背下来。"
+     },
+     "play": null
+    },
+    {
+     "slug": "tense-timeline",
+     "stage": 2,
+     "seeds": [
+      "EN-3",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "6",
+      "us": "3",
+      "uk": "4"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Tenses on a timeline",
+      "zh": "时态放到时间轴上"
+     },
+     "insight": {
+      "en": "A tense marks where an action sits in time relative to now; the verb form changes, not extra words.",
+      "zh": "时态标出动作相对「现在」在时间上的位置；变的是动词形式，不是多加一个词。"
+     },
+     "misconception": {
+      "en": "Time is shown only by words like yesterday, just as in Chinese.",
+      "zh": "时间只靠 yesterday 这类词表示，跟中文一样。"
+     },
+     "play": null
+    },
+    {
+     "slug": "gist-listening",
+     "stage": 2,
+     "seeds": [
+      "EN-4",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "6",
+      "us": "?",
+      "uk": "?"
+     },
+     "status": "planned",
+     "title": {
+      "en": "You don't need every word",
+      "zh": "不必听懂每一个词"
+     },
+     "insight": {
+      "en": "Knowing most of the words is enough to follow a story; the unknown ones often explain themselves from context.",
+      "zh": "认识大部分词就能跟上故事，生词常常能从上下文猜出来。"
+     },
+     "misconception": {
+      "en": "If you miss one word, you have not understood.",
+      "zh": "漏掉一个词就等于没听懂。"
+     },
+     "play": null
+    },
+    {
+     "slug": "sentence-tree",
+     "stage": 3,
+     "seeds": [
+      "EN-3",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "The skeleton of a long sentence",
+      "zh": "长句子的骨架"
+     },
+     "insight": {
+      "en": "Strip away the clauses and phrases and a long sentence still stands on its subject and verb.",
+      "zh": "去掉从句和短语，长句子仍然靠主语和谓语立着。"
+     },
+     "misconception": {
+      "en": "Long sentences are read by translating word by word.",
+      "zh": "长句子要逐词翻译着读。"
+     },
+     "play": null
+    },
+    {
+     "slug": "register-rewriter",
+     "stage": 4,
+     "seeds": [
+      "EN-5",
+      "X-3",
+      "X-4"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "11",
+      "uk": "12"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Same message, different tone",
+      "zh": "同一句话，不同的语气"
+     },
+     "insight": {
+      "en": "The same meaning can be said formally or casually; the right choice depends on who you are talking to.",
+      "zh": "同一个意思可以说得正式或随意，怎么选看你在跟谁说话。"
+     },
+     "misconception": {
+      "en": "There is one correct way to say each thing.",
+      "zh": "每件事只有一种正确说法。"
+     },
+     "play": null
+    }
+   ]
+  },
+  {
+   "id": "science",
+   "order": 3,
+   "name": {
+    "en": "Science",
+    "zh": "科学"
+   },
+   "tagline": {
+    "en": "Predict, test fairly, explain with things you cannot see.",
+    "zh": "先预测，再公平地试，用看不见的东西解释看得见的现象。"
+   },
+   "stages": [
+    0,
+    1,
+    2
+   ],
+   "continues_as": [
+    "physics",
+    "chemistry",
+    "biology"
+   ],
+   "seeds": [
+    {
+     "id": "SCI-1",
+     "name": {
+      "en": "Everything is made of tiny particles",
+      "zh": "世界由看不见的小颗粒组成"
+     },
+     "what": {
+      "en": "Sugar in water has not vanished; a smell is particles drifting to you.",
+      "zh": "糖溶进水里没有消失；气味是飘过来的颗粒。"
+     }
+    },
+    {
+     "id": "SCI-2",
+     "name": {
+      "en": "Things don't start moving by themselves",
+      "zh": "东西不会无缘无故动起来"
+     },
+     "what": {
+      "en": "A push starts it; without a push it slows — friction is pulling on it.",
+      "zh": "推一下才动，不推会慢慢停——是摩擦在拉它。"
+     }
+    },
+    {
+     "id": "SCI-3",
+     "name": {
+      "en": "Energy changes form but is never made or lost",
+      "zh": "能量会换样子，但不会凭空来去"
+     },
+     "what": {
+      "en": "Battery → light → heat; food → running.",
+      "zh": "电池 → 灯光 → 热；食物 → 跑步。"
+     }
+    },
+    {
+     "id": "SCI-4",
+     "name": {
+      "en": "Living things survive by their structure",
+      "zh": "生物靠结构活下去"
+     },
+     "what": {
+      "en": "The shape of a beak, leaves turning to the light.",
+      "zh": "鸟喙的形状，叶子朝着光。"
+     }
+    },
+    {
+     "id": "SCI-5",
+     "name": {
+      "en": "Change one thing, watch one thing",
+      "zh": "变一个、看一个、其余不动"
+     },
+     "what": {
+      "en": "A fair test changes one variable and keeps the rest the same.",
+      "zh": "公平实验只改一个条件，其余保持一样。"
+     }
+    },
+    {
+     "id": "SCI-6",
+     "name": {
+      "en": "Big and small, fast and slow",
+      "zh": "大和小、快和慢的尺度"
+     },
+     "what": {
+      "en": "From a grain of sand to a mountain; from a second to ten thousand years.",
+      "zh": "从一粒沙到一座山，从一秒到一万年。"
+     }
+    }
+   ],
+   "stage_questions": {
+    "0": {
+     "en": "What will it do?",
+     "zh": "它会怎样？"
+    },
+    "1": {
+     "en": "How do we make the test fair?",
+     "zh": "怎么让实验公平？"
+    },
+    "2": {
+     "en": "How do we explain what we cannot see?",
+     "zh": "看不见的东西怎么解释？"
+    }
+   },
+   "misconceptions": [
+    {
+     "en": "Heavy things sink, light things float.",
+     "zh": "重的沉，轻的浮。"
+    },
+    {
+     "en": "Sugar disappears when it dissolves.",
+     "zh": "糖溶解后就没有了。"
+    },
+    {
+     "en": "It is cold in winter because Earth is farther from the Sun.",
+     "zh": "冬天冷是因为地球离太阳远。"
+    }
+   ],
+   "lessons": [
+    {
+     "slug": "sink-or-float",
+     "stage": 1,
+     "seeds": [
+      "SCI-5",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "3",
+      "us": "2",
+      "uk": "3"
+     },
+     "status": "ready",
+     "play": "sink-or-float.html",
+     "title": {
+      "en": "Sink or float?",
+      "zh": "沉还是浮？"
+     },
+     "insight": {
+      "en": "Whether something floats depends on how heavy it is for its size, not on how heavy it is.",
+      "zh": "沉浮不看多重，看「同样大小时谁更重」。"
+     },
+     "misconception": {
+      "en": "Heavy things sink, light things float.",
+      "zh": "重的沉，轻的浮。"
+     },
+     "explain": {
+      "en": "A big log floats but a small nail sinks. Explain why to a friend without using the word 'heavy'.",
+      "zh": "大木头能浮，小铁钉却沉。不用「重」这个字，给朋友讲讲为什么。"
+     },
+     "home": {
+      "en": "Fill a bowl with water. Test an apple, a coin, a lump of clay, then the same clay pressed into a boat shape.",
+      "zh": "装一盆水，试试苹果、硬币、一团橡皮泥，再把同一团橡皮泥捏成小船。"
+     }
+    },
+    {
+     "slug": "shadows",
+     "stage": 1,
+     "seeds": [
+      "SCI-5",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "3",
+      "us": "1",
+      "uk": "3"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Where does a shadow go?",
+      "zh": "影子跑到哪里去？"
+     },
+     "insight": {
+      "en": "A shadow is where light is blocked, so it always points away from the light.",
+      "zh": "影子是光被挡住的地方，所以总在背着光的那一边。"
+     },
+     "misconception": {
+      "en": "A shadow is a reflection of the object.",
+      "zh": "影子是物体的倒影。"
+     },
+     "play": null
+    },
+    {
+     "slug": "particles-three-states",
+     "stage": 2,
+     "seeds": [
+      "SCI-1"
+     ],
+     "grade": {
+      "cn": "5",
+      "us": "5",
+      "uk": "5"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Solid, liquid, gas: the same particles",
+      "zh": "固、液、气：同样的颗粒"
+     },
+     "insight": {
+      "en": "Heating does not change the particles, only how fast they move and how far apart they are.",
+      "zh": "加热不改变颗粒本身，只改变它们动得多快、离得多远。"
+     },
+     "misconception": {
+      "en": "Particles of ice are colder and harder than particles of water.",
+      "zh": "冰的颗粒比水的颗粒更冷、更硬。"
+     },
+     "play": null
+    },
+    {
+     "slug": "lever-balance",
+     "stage": 2,
+     "seeds": [
+      "SCI-2",
+      "SCI-5"
+     ],
+     "grade": {
+      "cn": "6",
+      "us": "5",
+      "uk": "5"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why a long lever helps",
+      "zh": "为什么长杠杆省力"
+     },
+     "insight": {
+      "en": "Weight times distance must match on both sides; a longer arm needs less weight.",
+      "zh": "两边「重量 × 距离」要相等，力臂越长，用的力越小。"
+     },
+     "misconception": {
+      "en": "A balance only balances when the weights are equal.",
+      "zh": "两边一样重才会平衡。"
+     },
+     "play": null
+    },
+    {
+     "slug": "food-chain",
+     "stage": 2,
+     "seeds": [
+      "SCI-3",
+      "SCI-4"
+     ],
+     "grade": {
+      "cn": "5",
+      "us": "5",
+      "uk": "4"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Who eats whom, and where the energy goes",
+      "zh": "谁吃谁，能量去了哪儿"
+     },
+     "insight": {
+      "en": "Each step up a food chain keeps only about a tenth of the energy.",
+      "zh": "食物链每往上一级，只留下大约十分之一的能量。"
+     },
+     "misconception": {
+      "en": "Predators are at the top because they are strongest.",
+      "zh": "猛兽在顶端是因为它们最强。"
+     },
+     "play": null
+    }
+   ]
+  },
+  {
+   "id": "physics",
+   "order": 4,
+   "name": {
+    "en": "Physics",
+    "zh": "物理"
+   },
+   "tagline": {
+    "en": "Forces change motion, energy is kept, and it all depends on where you stand.",
+    "zh": "力改变运动，能量守恒，看到什么取决于你站在哪里。"
+   },
+   "stages": [
+    3,
+    4
+   ],
+   "continues_from": [
+    "science"
+   ],
+   "seeds": [
+    {
+     "id": "PHY-1",
+     "name": {
+      "en": "A force changes motion, it does not keep it going",
+      "zh": "力改变运动，不是维持运动"
+     },
+     "what": {
+      "en": "Push and the speed changes; stop pushing and only friction or air slows it. F = ma.",
+      "zh": "推一下速度就变；不推了，是摩擦和空气在让它慢下来。F = ma。"
+     }
+    },
+    {
+     "id": "PHY-2",
+     "name": {
+      "en": "Energy and momentum are conserved",
+      "zh": "能量和动量守恒"
+     },
+     "what": {
+      "en": "Count everything before and after: the total stays the same, it only moves between forms and objects.",
+      "zh": "前后都数清楚：总量不变，只在形式和物体之间转移。"
+     }
+    },
+    {
+     "id": "PHY-3",
+     "name": {
+      "en": "Fields push and pull across empty space",
+      "zh": "场隔着空间推和拉"
+     },
+     "what": {
+      "en": "Gravity, electric and magnetic forces need no contact; a field says how strong and which way at every point.",
+      "zh": "重力、电力、磁力不用接触；场告诉你每一点的力有多大、朝哪边。"
+     }
+    },
+    {
+     "id": "PHY-4",
+     "name": {
+      "en": "Waves carry energy, not stuff",
+      "zh": "波带走的是能量，不是东西"
+     },
+     "what": {
+      "en": "Sound, light and ripples move a pattern along; the medium only wobbles in place.",
+      "zh": "声、光、水波传的是一种样子；介质只在原地晃。"
+     }
+    },
+    {
+     "id": "PHY-5",
+     "name": {
+      "en": "Motion depends on who is watching",
+      "zh": "运动要看谁在看"
+     },
+     "what": {
+      "en": "Speed and path change with the frame of reference; the laws of physics do not.",
+      "zh": "速度和轨迹随参考系变，物理规律不变。"
+     }
+    }
+   ],
+   "stage_questions": {
+    "3": {
+     "en": "How are force and motion related?",
+     "zh": "力和运动是什么关系？"
+    },
+    "4": {
+     "en": "Why must things be conserved?",
+     "zh": "为什么一定守恒？"
+    }
+   },
+   "misconceptions": [
+    {
+     "en": "Heavy things fall faster.",
+     "zh": "重的东西落得快。"
+    },
+    {
+     "en": "Motion needs a force to keep it going.",
+     "zh": "运动需要力来维持。"
+    },
+    {
+     "en": "Current is used up by a bulb.",
+     "zh": "电流经过灯泡就被用掉了。"
+    },
+    {
+     "en": "In a crash the bigger object pushes harder.",
+     "zh": "相撞时大的那个推得更用力。"
+    }
+   ],
+   "lessons": [
+    {
+     "slug": "falling-objects",
+     "stage": 3,
+     "seeds": [
+      "PHY-1",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "8",
+      "uk": "9"
+     },
+     "status": "ready",
+     "play": "falling-objects.html",
+     "title": {
+      "en": "Do heavy things fall faster?",
+      "zh": "重的东西落得更快吗？"
+     },
+     "insight": {
+      "en": "Without air, everything falls with the same acceleration g; differences come from air resistance, which matters more for light, wide objects.",
+      "zh": "没有空气时，所有东西都以同样的加速度 g 下落；快慢的差别来自空气阻力，又轻又宽的东西受它影响最大。"
+     },
+     "misconception": {
+      "en": "Heavier objects fall faster.",
+      "zh": "越重的东西落得越快。"
+     },
+     "explain": {
+      "en": "A friend says 'heavy things fall faster'. Using the words 'air' and 'mass', explain when they are right and when they are wrong.",
+      "zh": "朋友说「重的东西落得快」。用上「空气」和「质量」两个词，讲讲他什么时候对、什么时候错。"
+     },
+     "home": {
+      "en": "Drop a book and a sheet of paper side by side. Then lay the paper flat on top of the book and drop both. Last, crumple the paper into a ball and race it against the book.",
+      "zh": "把一本书和一张纸并排放手。再把纸平放在书上面一起丢。最后把纸揉成团，和书比一比谁先落地。"
+     }
+    },
+    {
+     "slug": "incline-cart",
+     "stage": 3,
+     "seeds": [
+      "PHY-1",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "8",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "How far would a cart roll with no friction?",
+      "zh": "没有摩擦，小车能滑多远？"
+     },
+     "insight": {
+      "en": "The smoother the floor, the farther the cart rolls; with no friction at all it would never stop.",
+      "zh": "地面越光滑，小车滑得越远；完全没有摩擦，它就永远不会停。"
+     },
+     "misconception": {
+      "en": "A moving thing stops by itself when the push runs out.",
+      "zh": "推力用完了，东西自己就会停。"
+     },
+     "play": null
+    },
+    {
+     "slug": "series-parallel",
+     "stage": 3,
+     "seeds": [
+      "PHY-2",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "9",
+      "us": "8",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Is current used up in a bulb?",
+      "zh": "电流会被灯泡用掉吗？"
+     },
+     "insight": {
+      "en": "The current is the same all the way round a series loop; the bulb turns energy into light, not charge into nothing.",
+      "zh": "串联电路里各处电流一样大；灯泡把能量变成光，电荷并没有消失。"
+     },
+     "misconception": {
+      "en": "Current is used up by a bulb.",
+      "zh": "电流经过灯泡就被用掉了。"
+     },
+     "play": null
+    },
+    {
+     "slug": "lens-images",
+     "stage": 3,
+     "seeds": [
+      "PHY-4",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "8",
+      "uk": "9"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Where does a lens put the picture?",
+      "zh": "透镜把像放在哪里？"
+     },
+     "insight": {
+      "en": "Rays from one point of the object meet again at one point of the image; move the object closer and the image moves away and grows.",
+      "zh": "物体上一点发出的光，经过透镜又会聚到像上一点；物体靠近，像就远离、变大。"
+     },
+     "misconception": {
+      "en": "Covering half the lens cuts off half the picture.",
+      "zh": "挡住半个透镜，像就少一半。"
+     },
+     "play": null
+    },
+    {
+     "slug": "frames-projectile",
+     "stage": 4,
+     "seeds": [
+      "PHY-5",
+      "PHY-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "11",
+      "uk": "12"
+     },
+     "status": "planned",
+     "title": {
+      "en": "A ball dropped on a moving train",
+      "zh": "在行驶的火车上放手一个球"
+     },
+     "insight": {
+      "en": "Sideways and downward motion are independent: the passenger sees the ball fall straight down, someone on the platform sees a parabola.",
+      "zh": "水平和竖直运动互不干扰：车上的人看球直直落下，站台上的人看到一条抛物线。"
+     },
+     "misconception": {
+      "en": "A ball dropped in a moving train lands behind you.",
+      "zh": "在行驶的火车里放手，球会落到身后。"
+     },
+     "play": null
+    },
+    {
+     "slug": "pendulum-energy",
+     "stage": 4,
+     "seeds": [
+      "PHY-2",
+      "PHY-4",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "11",
+      "uk": "12"
+     },
+     "status": "planned",
+     "title": {
+      "en": "What sets a pendulum's beat?",
+      "zh": "单摆的节拍由什么决定？"
+     },
+     "insight": {
+      "en": "For small swings the period depends only on the length (T = 2π√(L/g)); height energy and speed energy keep trading places.",
+      "zh": "小角度时周期只看摆长（T = 2π√(L/g)）；高度的能量和速度的能量来回互换。"
+     },
+     "misconception": {
+      "en": "A heavier bob swings slower.",
+      "zh": "摆锤越重，摆得越慢。"
+     },
+     "play": null
+    },
+    {
+     "slug": "collision-carts",
+     "stage": 4,
+     "seeds": [
+      "PHY-2",
+      "PHY-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "11",
+      "uk": "12"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Who pushes harder in a crash?",
+      "zh": "相撞时谁推得更用力？"
+     },
+     "insight": {
+      "en": "Both carts push each other equally hard for the same time, so the total momentum is the same before and after, even when energy turns into heat.",
+      "zh": "两辆车互相推的力一样大、时间一样长，所以碰撞前后总动量不变，哪怕有能量变成了热。"
+     },
+     "misconception": {
+      "en": "In a crash the bigger object pushes harder.",
+      "zh": "相撞时大的那个推得更用力。"
+     },
+     "play": null
+    },
+    {
+     "slug": "electric-field-lines",
+     "stage": 4,
+     "seeds": [
+      "PHY-3",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "12",
+      "uk": "12"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Drawing a force you cannot see",
+      "zh": "画出看不见的力"
+     },
+     "insight": {
+      "en": "Field lines leave positive charges and end on negative ones; where they crowd together the force on a test charge is strongest.",
+      "zh": "电场线从正电荷出发、到负电荷结束；线越密，试探电荷受的力越大。"
+     },
+     "misconception": {
+      "en": "Charges only feel a force when they touch.",
+      "zh": "电荷碰到一起才会有力。"
+     },
+     "play": null
+    }
+   ]
+  },
+  {
+   "id": "chemistry",
+   "order": 5,
+   "name": {
+    "en": "Chemistry",
+    "zh": "化学"
+   },
+   "tagline": {
+    "en": "Count the atoms: substances change, the atoms only regroup.",
+    "zh": "数清原子：物质会变，原子只是换了组合。"
+   },
+   "stages": [
+    3,
+    4
+   ],
+   "continues_from": [
+    "science"
+   ],
+   "seeds": [
+    {
+     "id": "CHEM-1",
+     "name": {
+      "en": "Atoms are rearranged, never lost",
+      "zh": "原子只重新组合，不会消失"
+     },
+     "what": {
+      "en": "A reaction regroups atoms into new molecules; each kind keeps its count, so mass is conserved.",
+      "zh": "反应把原子重新组合成新分子，每种原子个数不变，所以质量守恒。"
+     }
+    },
+    {
+     "id": "CHEM-2",
+     "name": {
+      "en": "Structure decides properties",
+      "zh": "结构决定性质"
+     },
+     "what": {
+      "en": "The same atoms joined differently make different substances: graphite and diamond are both carbon.",
+      "zh": "同样的原子连法不同就是不同的物质：石墨和金刚石都是碳。"
+     }
+    },
+    {
+     "id": "CHEM-3",
+     "name": {
+      "en": "Reactions trade energy",
+      "zh": "反应伴随能量交换"
+     },
+     "what": {
+      "en": "Breaking bonds takes energy, making bonds gives it out; the difference is the heat of reaction.",
+      "zh": "断键要吸收能量，成键会放出能量，两者之差就是反应热。"
+     }
+    },
+    {
+     "id": "CHEM-4",
+     "name": {
+      "en": "Reactions have a speed and a balance point",
+      "zh": "反应有快慢，也有平衡点"
+     },
+     "what": {
+      "en": "Particles must collide hard enough to react; forward and backward reactions can run at equal rates.",
+      "zh": "颗粒要撞得够猛才反应；正反应和逆反应可以一样快，达到平衡。"
+     }
+    },
+    {
+     "id": "CHEM-5",
+     "name": {
+      "en": "The periodic table is a pattern",
+      "zh": "元素周期表是一张规律图"
+     },
+     "what": {
+      "en": "Ordered by proton number, elements repeat their behaviour because outer electrons repeat.",
+      "zh": "按质子数排列，最外层电子周期性重复，元素性质也跟着重复。"
+     }
+    }
+   ],
+   "stage_questions": {
+    "3": {
+     "en": "How does one substance turn into another?",
+     "zh": "物质怎么变成别的物质？"
+    },
+    "4": {
+     "en": "Why do reactions happen, and how fast?",
+     "zh": "反应为什么会发生、发生多快？"
+    }
+   },
+   "misconceptions": [
+    {
+     "en": "Burning destroys matter; mass is lost in a reaction.",
+     "zh": "燃烧把物质烧没了，反应会损失质量。"
+    },
+    {
+     "en": "Atoms have the properties of the substance: copper atoms are orange, ice molecules are cold.",
+     "zh": "原子带着物质的性质：铜原子是橙色的，冰的分子是冷的。"
+    },
+    {
+     "en": "Breaking a chemical bond releases energy.",
+     "zh": "断开化学键会放出能量。"
+    },
+    {
+     "en": "At equilibrium the reaction has stopped.",
+     "zh": "达到平衡时反应就停止了。"
+    },
+    {
+     "en": "The periodic table is ordered by atomic mass.",
+     "zh": "元素周期表是按原子质量排的。"
+    }
+   ],
+   "lessons": [
+    {
+     "slug": "atoms-rearrange",
+     "stage": 3,
+     "seeds": [
+      "CHEM-1",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "9",
+      "us": "8",
+      "uk": "9"
+     },
+     "status": "ready",
+     "play": "atoms-rearrange.html",
+     "title": {
+      "en": "Atoms are rearranged, never lost",
+      "zh": "原子只是重新组合，一个也不少"
+     },
+     "insight": {
+      "en": "In a reaction atoms regroup into new molecules; the count of each kind of atom, and so the mass, stays the same.",
+      "zh": "反应中原子重新组合成新分子；每种原子的个数不变，所以质量也不变。"
+     },
+     "misconception": {
+      "en": "Burning makes matter disappear; mass is lost in reactions.",
+      "zh": "燃烧让物质消失了，反应会损失质量。"
+     },
+     "explain": {
+      "en": "A rusty nail weighs more than the same nail before it rusted. Use atoms to explain where the extra mass came from.",
+      "zh": "铁钉生锈后比原来重。用原子解释多出来的质量是从哪儿来的。"
+     },
+     "home": {
+      "en": "Put a spoon of baking soda in a bottle, put vinegar in a balloon and stretch it over the mouth. Weigh, tip the vinegar in, weigh again. Then repeat without the balloon.",
+      "zh": "瓶里放一勺小苏打，气球里装点醋，套在瓶口。先称，再把醋倒进去，再称。然后不套气球再做一次。"
+     }
+    },
+    {
+     "slug": "atoms-build-molecules",
+     "stage": 3,
+     "seeds": [
+      "CHEM-2",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "9",
+      "us": "8",
+      "uk": "9"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Snap atoms into molecules",
+      "zh": "原子拼分子"
+     },
+     "insight": {
+      "en": "Each atom makes a fixed number of bonds, so only certain molecules can be built.",
+      "zh": "每种原子能连的键数是固定的，所以只能拼出某些分子。"
+     },
+     "misconception": {
+      "en": "Atoms can stick together in any number and any way.",
+      "zh": "原子可以随便几个、随便怎么粘在一起。"
+     },
+     "play": null
+    },
+    {
+     "slug": "same-atoms-different-stuff",
+     "stage": 3,
+     "seeds": [
+      "CHEM-2",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "9",
+      "us": "8",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Same atoms, different stuff",
+      "zh": "同样的原子，不同的物质"
+     },
+     "insight": {
+      "en": "Properties come from how atoms are arranged, not from the atoms themselves: graphite and diamond are both pure carbon.",
+      "zh": "性质来自原子怎么排列，而不是原子本身：石墨和金刚石都是纯碳。"
+     },
+     "misconception": {
+      "en": "Atoms have the properties of the substance they make up.",
+      "zh": "原子带着它所组成物质的性质。"
+     },
+     "play": null
+    },
+    {
+     "slug": "ph-tenfold",
+     "stage": 3,
+     "seeds": [
+      "CHEM-2",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "9",
+      "us": "8",
+      "uk": "9"
+     },
+     "status": "planned",
+     "title": {
+      "en": "pH: every step is ten times",
+      "zh": "pH：每差一级就是十倍"
+     },
+     "insight": {
+      "en": "Each step down the pH scale means ten times more hydrogen ions.",
+      "zh": "pH 每降低 1，氢离子浓度就变成 10 倍。"
+     },
+     "misconception": {
+      "en": "pH 3 is only a little more acidic than pH 4.",
+      "zh": "pH 3 只比 pH 4 酸一点点。"
+     },
+     "play": null
+    },
+    {
+     "slug": "bond-energy",
+     "stage": 4,
+     "seeds": [
+      "CHEM-3",
+      "CHEM-1"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "11",
+      "uk": "12"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Where reaction heat comes from",
+      "zh": "反应热从哪里来"
+     },
+     "insight": {
+      "en": "Breaking bonds costs energy and making bonds releases it; a reaction is exothermic when the new bonds are stronger.",
+      "zh": "断键吸能、成键放能；新键更牢时，反应就放热。"
+     },
+     "misconception": {
+      "en": "Breaking a chemical bond releases energy.",
+      "zh": "断开化学键会放出能量。"
+     },
+     "play": null
+    },
+    {
+     "slug": "collision-rate",
+     "stage": 4,
+     "seeds": [
+      "CHEM-4",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "11",
+      "uk": "12"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Hotter means harder hits",
+      "zh": "温度高，撞得更猛"
+     },
+     "insight": {
+      "en": "Warming speeds a reaction mainly because many more collisions carry enough energy to react, not just because there are more collisions.",
+      "zh": "升温让反应变快，主要是因为够能量的碰撞多了很多，而不只是碰撞次数多了。"
+     },
+     "misconception": {
+      "en": "Heating speeds a reaction only because particles collide more often.",
+      "zh": "升温变快只是因为颗粒碰得更频繁。"
+     },
+     "play": null
+    },
+    {
+     "slug": "equilibrium-shift",
+     "stage": 4,
+     "seeds": [
+      "CHEM-4",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "11",
+      "uk": "12"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Equilibrium is busy, not stopped",
+      "zh": "平衡不是停了，是两边一样快"
+     },
+     "insight": {
+      "en": "At equilibrium the forward and backward reactions run at the same rate, so amounts stay constant while particles keep changing.",
+      "zh": "平衡时正、逆反应一样快，所以各物质的量不变，但颗粒一直在变来变去。"
+     },
+     "misconception": {
+      "en": "At equilibrium the reaction has stopped.",
+      "zh": "达到平衡时反应就停止了。"
+     },
+     "play": null
+    },
+    {
+     "slug": "periodic-patterns",
+     "stage": 4,
+     "seeds": [
+      "CHEM-5",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "10",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why the table has rows and columns",
+      "zh": "周期表为什么有行有列"
+     },
+     "insight": {
+      "en": "Elements in a column behave alike because they have the same number of outer electrons.",
+      "zh": "同一列的元素性质相似，因为最外层电子数一样。"
+     },
+     "misconception": {
+      "en": "The periodic table is ordered by atomic mass.",
+      "zh": "元素周期表是按原子质量排的。"
+     },
+     "play": null
+    }
+   ]
+  },
+  {
+   "id": "biology",
+   "order": 6,
+   "name": {
+    "en": "Biology",
+    "zh": "生物"
+   },
+   "tagline": {
+    "en": "Life is built from cells, runs on matter and energy, and changes by variation and selection.",
+    "zh": "生命由细胞搭成，靠物质和能量运转，靠变异和选择改变。"
+   },
+   "stages": [
+    3,
+    4
+   ],
+   "continues_from": [
+    "science"
+   ],
+   "seeds": [
+    {
+     "id": "BIO-1",
+     "name": {
+      "en": "Cells are the units of life",
+      "zh": "细胞是生命的单位"
+     },
+     "what": {
+      "en": "Every living thing is one cell or many; every cell comes from another cell.",
+      "zh": "所有生物都由一个或许多细胞组成；细胞只能由细胞分裂而来。"
+     }
+    },
+    {
+     "id": "BIO-2",
+     "name": {
+      "en": "Structure fits function",
+      "zh": "结构和功能相适应"
+     },
+     "what": {
+      "en": "Flat leaves catch light, folded gut walls absorb food, small cells exchange fast.",
+      "zh": "扁平的叶片好接光，折叠的肠壁好吸收，小细胞交换得快。"
+     }
+    },
+    {
+     "id": "BIO-3",
+     "name": {
+      "en": "Matter cycles, energy flows",
+      "zh": "物质循环，能量流动"
+     },
+     "what": {
+      "en": "Atoms are reused again and again; energy enters as light and leaves as heat.",
+      "zh": "原子被一遍遍重复利用；能量以光进来、以热离开。"
+     }
+    },
+    {
+     "id": "BIO-4",
+     "name": {
+      "en": "Inheritance is passed on in units",
+      "zh": "遗传是一份一份传下去的"
+     },
+     "what": {
+      "en": "Genes come in pairs and are passed on whole, not blended like paint.",
+      "zh": "基因成对存在、整份传下去，不像颜料那样混合。"
+     }
+    },
+    {
+     "id": "BIO-5",
+     "name": {
+      "en": "Evolution by variation and selection",
+      "zh": "变异加选择带来进化"
+     },
+     "what": {
+      "en": "Individuals differ; those that fit better leave more offspring; populations change over generations.",
+      "zh": "个体各不相同；更适应的留下更多后代；种群一代代改变。"
+     }
+    }
+   ],
+   "stage_questions": {
+    "3": {
+     "en": "How is life organised?",
+     "zh": "生命是怎么组织起来的？"
+    },
+    "4": {
+     "en": "How does life continue and change?",
+     "zh": "生命怎么延续和变化？"
+    }
+   },
+   "misconceptions": [
+    {
+     "en": "Plants get their food and mass from the soil.",
+     "zh": "植物从土里吃饱、长重。"
+    },
+    {
+     "en": "Children are a blend of their parents, like mixing paint.",
+     "zh": "孩子是父母的混合，就像调颜料。"
+    },
+    {
+     "en": "Animals change because they need to: giraffes stretched their necks.",
+     "zh": "动物因为需要才改变：长颈鹿是伸脖子伸长的。"
+    },
+    {
+     "en": "When you lose weight, the fat turns into energy or heat.",
+     "zh": "减肥时，脂肪变成了能量或热。"
+    }
+   ],
+   "lessons": [
+    {
+     "slug": "cell-zoom",
+     "stage": 3,
+     "seeds": [
+      "BIO-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "6",
+      "uk": "7"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Zoom into a leaf, a hand, a pond",
+      "zh": "放大一片叶、一只手、一滴池水"
+     },
+     "insight": {
+      "en": "Zoom in far enough on any living thing and you find cells.",
+      "zh": "任何生物放大到足够倍数，都能看到细胞。"
+     },
+     "misconception": {
+      "en": "Only animals are made of cells.",
+      "zh": "只有动物才由细胞组成。"
+     },
+     "play": null
+    },
+    {
+     "slug": "why-cells-are-small",
+     "stage": 3,
+     "seeds": [
+      "BIO-2",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why are cells so small?",
+      "zh": "细胞为什么这么小？"
+     },
+     "insight": {
+      "en": "When a cell doubles in width, its volume grows eight times but its surface only four, so big cells cannot feed themselves.",
+      "zh": "细胞变宽一倍，体积变 8 倍、表面只变 4 倍，太大的细胞喂不饱自己。"
+     },
+     "misconception": {
+      "en": "Big animals have bigger cells.",
+      "zh": "大动物的细胞更大。"
+     },
+     "play": null
+    },
+    {
+     "slug": "where-plants-get-mass",
+     "stage": 3,
+     "seeds": [
+      "BIO-3",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "ready",
+     "play": "where-plants-get-mass.html",
+     "title": {
+      "en": "Where does a tree's mass come from?",
+      "zh": "大树的重量从哪里来？"
+     },
+     "insight": {
+      "en": "Most of a plant's dry mass is carbon taken from carbon dioxide in the air by photosynthesis, not from the soil.",
+      "zh": "植物干重的大部分是光合作用从空气里的二氧化碳拿来的碳，不是从土里来的。"
+     },
+     "misconception": {
+      "en": "Plants get their food and mass from the soil.",
+      "zh": "植物从土里吃饱、长重。"
+     },
+     "explain": {
+      "en": "A friend says 'plants eat soil'. Using the willow numbers, explain where a tree's mass really comes from, and what the soil is still needed for.",
+      "zh": "朋友说「植物是吃土长大的」。用柳树实验的数字给他讲讲：树的重量到底从哪里来，土又是干什么用的。"
+     },
+     "home": {
+      "en": "Grow cress or bean sprouts on wet paper towel, with no soil at all, for a week. They still grow. Where did their new mass come from?",
+      "zh": "在湿纸巾上种水芹或豆芽，一点土都不用，养一周。它们照样长大——新长的重量从哪里来？"
+     }
+    },
+    {
+     "slug": "where-fat-goes",
+     "stage": 3,
+     "seeds": [
+      "BIO-3",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Where does fat go when you lose weight?",
+      "zh": "减掉的脂肪去哪儿了？"
+     },
+     "insight": {
+      "en": "Most of the mass of burned fat leaves the body as carbon dioxide you breathe out; the rest leaves as water.",
+      "zh": "烧掉的脂肪大部分变成二氧化碳从嘴里呼出去，其余变成水排出。"
+     },
+     "misconception": {
+      "en": "When you lose weight, the fat turns into energy or heat.",
+      "zh": "减肥时，脂肪变成了能量或热。"
+     },
+     "play": null
+    },
+    {
+     "slug": "mendel-peas",
+     "stage": 3,
+     "seeds": [
+      "BIO-4",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "8",
+      "uk": "9"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Mendel's peas: why the 3 : 1?",
+      "zh": "孟德尔的豌豆：为什么是 3 : 1？"
+     },
+     "insight": {
+      "en": "Each parent passes on one of its two copies of a gene at random, so a hidden trait comes back in about a quarter of the grandchildren.",
+      "zh": "父母各随机传一份基因，所以隐藏的性状会在大约四分之一的孙代里重新出现。"
+     },
+     "misconception": {
+      "en": "Children are a blend of their parents, like mixing paint.",
+      "zh": "孩子是父母的混合，就像调颜料。"
+     },
+     "play": null
+    },
+    {
+     "slug": "natural-selection",
+     "stage": 4,
+     "seeds": [
+      "BIO-5",
+      "X-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "11",
+      "us": "10",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Who leaves more offspring?",
+      "zh": "谁留下的后代多？"
+     },
+     "insight": {
+      "en": "No individual changes; the mix of a population shifts because some variants leave more offspring than others.",
+      "zh": "没有哪个个体自己变了；是有的变异留下的后代多，种群的组成才一代代偏移。"
+     },
+     "misconception": {
+      "en": "Animals change because they need to: giraffes stretched their necks.",
+      "zh": "动物因为需要才改变：长颈鹿是伸脖子伸长的。"
+     },
+     "play": null
+    },
+    {
+     "slug": "dna-to-protein",
+     "stage": 4,
+     "seeds": [
+      "BIO-4",
+      "BIO-2"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "10",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "From DNA letters to a protein",
+      "zh": "从 DNA 字母到蛋白质"
+     },
+     "insight": {
+      "en": "Every cell holds the same DNA; cells differ by which genes they read, three letters per amino acid.",
+      "zh": "每个细胞的 DNA 都一样；细胞不同，是因为读的基因不同，三个字母对应一个氨基酸。"
+     },
+     "misconception": {
+      "en": "Different cells in the body have different DNA.",
+      "zh": "身体里不同的细胞有不同的 DNA。"
+     },
+     "play": null
+    }
+   ]
+  },
+  {
+   "id": "geography",
+   "order": 7,
+   "name": {
+    "en": "Geography",
+    "zh": "地理"
+   },
+   "tagline": {
+    "en": "Read the map, then ask why this place is the way it is.",
+    "zh": "先读懂地图，再问这个地方为什么是这样。"
+   },
+   "stages": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "seeds": [
+    {
+     "id": "GEO-1",
+     "name": {
+      "en": "A map is the world made small",
+      "zh": "地图是缩小的世界"
+     },
+     "what": {
+      "en": "Scale, direction and a key — and every map has to leave things out.",
+      "zh": "比例尺、方向、图例；地图总要舍掉一些东西。"
+     }
+    },
+    {
+     "id": "GEO-2",
+     "name": {
+      "en": "Places differ, and there are reasons",
+      "zh": "地方和地方不一样，有原因"
+     },
+     "what": {
+      "en": "Latitude, land and sea, and relief shape climate; climate shapes how people live.",
+      "zh": "纬度、海陆、地形决定气候；气候决定人怎么生活。"
+     }
+    },
+    {
+     "id": "GEO-3",
+     "name": {
+      "en": "The Earth is moving",
+      "zh": "地球在动"
+     },
+     "what": {
+      "en": "Spinning gives day, night and time zones; orbiting with a tilted axis gives seasons.",
+      "zh": "自转带来昼夜和时区；公转加上地轴倾斜带来四季。"
+     }
+    },
+    {
+     "id": "GEO-4",
+     "name": {
+      "en": "People change places, and places change people",
+      "zh": "人改变环境，环境也改变人"
+     },
+     "what": {
+      "en": "Cities, farming, taming rivers — and what each of them changes back.",
+      "zh": "城市、农业、河流治理，以及它们反过来带来的变化。"
+     }
+    }
+   ],
+   "stage_questions": {
+    "1": {
+     "en": "Where am I?",
+     "zh": "我在哪里？"
+    },
+    "2": {
+     "en": "Why is it hot here and cold there?",
+     "zh": "为什么这里热那里冷？"
+    },
+    "3": {
+     "en": "Why do people here live the way they do?",
+     "zh": "这个地方的人为什么这样生活？"
+    },
+    "4": {
+     "en": "How does this system work?",
+     "zh": "这个系统怎么运转？"
+    }
+   },
+   "misconceptions": [
+    {
+     "en": "Summer is when Earth is closer to the Sun.",
+     "zh": "夏天是因为地球离太阳近。"
+    },
+    {
+     "en": "North always means 'up', on a map and on the ground.",
+     "zh": "北就是「上面」，地图上是，地上也是。"
+    },
+    {
+     "en": "A mountain top should be warmer, because it is closer to the Sun.",
+     "zh": "山顶离太阳更近，应该更暖和。"
+    },
+    {
+     "en": "When it is daytime for me, it is daytime everywhere.",
+     "zh": "我这里是白天，全世界都是白天。"
+    },
+    {
+     "en": "A country with more young people simply has more people.",
+     "zh": "年轻人多的国家只是人多而已。"
+    }
+   ],
+   "lessons": [
+    {
+     "slug": "map-scale",
+     "stage": 1,
+     "seeds": [
+      "GEO-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "3",
+      "us": "3",
+      "uk": "3"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Draw a map of my home",
+      "zh": "画我家的地图"
+     },
+     "insight": {
+      "en": "A map shrinks every distance by the same number; the scale tells you that number.",
+      "zh": "地图把所有距离都缩小同样的倍数，比例尺就是这个倍数。"
+     },
+     "misconception": {
+      "en": "Things on a map are drawn as big as they look important.",
+      "zh": "地图上的东西越重要画得越大。"
+     },
+     "play": null
+    },
+    {
+     "slug": "seasons-tilt",
+     "stage": 2,
+     "seeds": [
+      "GEO-3",
+      "X-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "6",
+      "uk": "7"
+     },
+     "status": "ready",
+     "play": "seasons-tilt.html",
+     "title": {
+      "en": "Why is summer hot?",
+      "zh": "夏天为什么热？"
+     },
+     "insight": {
+      "en": "Seasons come from Earth's tilted axis (about 23.44°): it changes how high the noon Sun climbs and how long the day lasts. Distance barely matters — Earth is closest to the Sun in early January.",
+      "zh": "四季来自地轴倾斜（约 23.44°）：它改变正午太阳有多高、白天有多长。距离几乎不起作用——地球在一月初离太阳最近。"
+     },
+     "misconception": {
+      "en": "Summer is when Earth is closer to the Sun.",
+      "zh": "夏天是因为地球离太阳近。"
+     },
+     "explain": {
+      "en": "A friend says summer is when Earth is closer to the Sun. Use one fact about January and one about Australia to change their mind.",
+      "zh": "朋友说夏天是因为地球离太阳近。用一条关于一月的事实、一条关于澳大利亚的事实，说服他。"
+     },
+     "home": {
+      "en": "Shine a torch straight down on paper, then at a slant, and trace the bright patch each time. The slanted patch is bigger, so each bit of paper gets less light. Bonus: measure your noon shadow once a month.",
+      "zh": "用手电筒垂直照一张纸，再斜着照，每次描出亮斑。斜照的亮斑更大，每一小块纸分到的光更少。加分：每月量一次正午时自己的影子。"
+     }
+    },
+    {
+     "slug": "time-zones",
+     "stage": 2,
+     "seeds": [
+      "GEO-3",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "6",
+      "uk": "7"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why is it night in New York when it's day in Beijing?",
+      "zh": "北京白天时，纽约为什么是夜里？"
+     },
+     "insight": {
+      "en": "Earth turns 15° every hour, so every 15° of longitude is one hour of clock time.",
+      "zh": "地球每小时转 15°，所以经度每差 15°，时间就差 1 小时。"
+     },
+     "misconception": {
+      "en": "When it is daytime for me, it is daytime everywhere.",
+      "zh": "我这里是白天，全世界都是白天。"
+     },
+     "play": null
+    },
+    {
+     "slug": "mountain-cooling",
+     "stage": 2,
+     "seeds": [
+      "GEO-2",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "?",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why is it cold on a mountain top?",
+      "zh": "山顶为什么冷？"
+     },
+     "insight": {
+      "en": "Air is warmed mostly by the ground below, and it cools by about 6.5 °C for every kilometre you climb.",
+      "zh": "空气主要被地面加热，每升高 1 千米大约降温 6.5 °C。"
+     },
+     "misconception": {
+      "en": "A mountain top should be warmer, because it is closer to the Sun.",
+      "zh": "山顶离太阳更近，应该更暖和。"
+     },
+     "play": null
+    },
+    {
+     "slug": "climate-graph",
+     "stage": 3,
+     "seeds": [
+      "GEO-2",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "?",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Read a place from its climate graph",
+      "zh": "从气候图读出一个地方"
+     },
+     "insight": {
+      "en": "Twelve bars of rain and a line of temperature tell you the climate type, and the climate tells you what grows there.",
+      "zh": "十二根降水柱加一条气温线，就能判断气候类型，气候又告诉你那里长什么。"
+     },
+     "misconception": {
+      "en": "Places at the same latitude have the same climate.",
+      "zh": "同一纬度的地方气候都一样。"
+     },
+     "play": null
+    },
+    {
+     "slug": "population-pyramid",
+     "stage": 3,
+     "seeds": [
+      "GEO-4",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "?",
+      "uk": "9"
+     },
+     "status": "planned",
+     "title": {
+      "en": "What a population pyramid tells you",
+      "zh": "人口金字塔告诉你什么"
+     },
+     "insight": {
+      "en": "The shape of the pyramid shows today's births and deaths and predicts the population of the next 30 years.",
+      "zh": "金字塔的形状反映今天的出生和死亡，也预示未来 30 年的人口。"
+     },
+     "misconception": {
+      "en": "A country with more young people simply has more people.",
+      "zh": "年轻人多的国家只是人多而已。"
+     },
+     "play": null
+    },
+    {
+     "slug": "atmospheric-circulation",
+     "stage": 4,
+     "seeds": [
+      "GEO-2",
+      "GEO-3"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "?",
+      "uk": "12"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why deserts sit at 30°",
+      "zh": "为什么沙漠多在 30° 附近"
+     },
+     "insight": {
+      "en": "Air rises at the hot equator, drops its rain, and sinks dry around 30° north and south — where most big deserts are.",
+      "zh": "空气在炎热的赤道上升、把雨下完，在南北纬 30° 附近干燥地下沉——大沙漠多在那里。"
+     },
+     "misconception": {
+      "en": "Deserts are where it is hottest.",
+      "zh": "沙漠就是最热的地方。"
+     },
+     "play": null
+    },
+    {
+     "slug": "plate-boundaries",
+     "stage": 4,
+     "seeds": [
+      "GEO-2",
+      "GEO-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "?",
+      "uk": "9"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Where earthquakes happen",
+      "zh": "地震发生在哪里"
+     },
+     "insight": {
+      "en": "Earthquakes and volcanoes line up along the edges of plates, so a map of them draws the plates for you.",
+      "zh": "地震和火山沿板块边缘排成带，把它们画在地图上，板块就显出来了。"
+     },
+     "misconception": {
+      "en": "Earthquakes can happen anywhere equally.",
+      "zh": "地震在哪里都一样容易发生。"
+     },
+     "play": null
+    }
+   ]
+  },
+  {
+   "id": "history",
+   "order": 8,
+   "name": {
+    "en": "History",
+    "zh": "历史"
+   },
+   "tagline": {
+    "en": "Time has length, and we know the past from evidence.",
+    "zh": "时间有长度，过去要靠证据来认识。"
+   },
+   "stages": [
+    2,
+    3,
+    4
+   ],
+   "seeds": [
+    {
+     "id": "HIS-1",
+     "name": {
+      "en": "Time has length",
+      "zh": "时间有长度"
+     },
+     "what": {
+      "en": "How long a hundred or a thousand years is; what was happening in different places at the same time.",
+      "zh": "一百年、一千年有多长；同一时间世界各地在干什么。"
+     }
+    },
+    {
+     "id": "HIS-2",
+     "name": {
+      "en": "How do we know about the past?",
+      "zh": "我们怎么知道过去？"
+     },
+     "what": {
+      "en": "Objects, documents and sites; the closer a source is to the event, the more it is worth questioning carefully.",
+      "zh": "文物、文献、遗址；离事件越近的材料越值得追问。"
+     }
+    },
+    {
+     "id": "HIS-3",
+     "name": {
+      "en": "Things happen for many reasons",
+      "zh": "事情有很多原因"
+     },
+     "what": {
+      "en": "Long-term causes, triggers and chance; technology, environment and people.",
+      "zh": "长期原因、直接原因、偶然；技术、环境、人。"
+     }
+    },
+    {
+     "id": "HIS-4",
+     "name": {
+      "en": "How did people see it then?",
+      "zh": "当时的人怎么看"
+     },
+     "what": {
+      "en": "Don't judge people of the past by today's knowledge; different people at the same event tell it differently.",
+      "zh": "不用今天的眼光要求古人；同一事件不同当事人说法不同。"
+     }
+    }
+   ],
+   "stage_questions": {
+    "2": {
+     "en": "How far away is the past?",
+     "zh": "过去离我们有多远？"
+    },
+    "3": {
+     "en": "Why should we believe this happened?",
+     "zh": "我们凭什么相信这件事？"
+    },
+    "4": {
+     "en": "Why did it happen this way, and how else could it have gone?",
+     "zh": "为什么会这样，还可能怎样？"
+    }
+   },
+   "misconceptions": [
+    {
+     "en": "Everything ‘ancient’ happened at about the same time — the past is one big ‘long ago’.",
+     "zh": "「古代」的事都差不多同时发生，过去就是一整团「很久以前」。"
+    },
+    {
+     "en": "If an old book or inscription says it, it must be true.",
+     "zh": "古书或碑文上写的，就一定是真的。"
+    },
+    {
+     "en": "Every event has one single cause.",
+     "zh": "每件事都只有一个原因。"
+    },
+    {
+     "en": "People in the past were less clever than us.",
+     "zh": "古人没有我们聪明。"
+    }
+   ],
+   "lessons": [
+    {
+     "slug": "deep-time-line",
+     "stage": 2,
+     "seeds": [
+      "HIS-1",
+      "HIS-2",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "6",
+      "uk": "5"
+     },
+     "status": "ready",
+     "play": "deep-time-line.html",
+     "title": {
+      "en": "How long ago is long ago?",
+      "zh": "很久以前到底有多久？"
+     },
+     "insight": {
+      "en": "Time has length: written history is a thin slice, and civilisations overlapped in surprising ways — Cleopatra lived closer in time to the Moon landing than to the building of the Great Pyramid.",
+      "zh": "时间有长度：有文字的历史只是薄薄一层，各地文明的时间交错得出人意料——克娄巴特拉离登月比离修建大金字塔还近。"
+     },
+     "misconception": {
+      "en": "‘Ancient’ events all happened around the same time; the past is one undifferentiated ‘long ago’.",
+      "zh": "「古代」的事都发生在差不多的时候，过去就是一整团「很久以前」。"
+     },
+     "explain": {
+      "en": "Explain to a friend how one ‘ancient’ person can be closer in time to us than to another ‘ancient’ person. Use the numbers from the timeline.",
+      "zh": "给朋友讲讲：为什么一位「古人」离我们，可能比离另一位「古人」还近？用时间线上的数字说明。"
+     },
+     "home": {
+      "en": "Make a timeline from a long strip of paper: 1 cm for every 100 years. Mark your own birth, a grandparent's birth and three events from this page. How long must the strip be to reach the Great Pyramid?",
+      "zh": "用一长条纸做时间线：每 100 年 1 厘米。标出你的出生、祖辈的出生和本页的三件事。纸条要多长才能到达大金字塔？"
+     }
+    },
+    {
+     "slug": "meanwhile-elsewhere",
+     "stage": 2,
+     "seeds": [
+      "HIS-1",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "6",
+      "uk": "6"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Meanwhile, somewhere else…",
+      "zh": "与此同时，在别处……"
+     },
+     "insight": {
+      "en": "Civilisations did not take turns: around 500 BCE Confucius in China, the Buddha in India and the citizens of Athens were alive in the same few generations.",
+      "zh": "各地文明不是轮流登场的：公元前 500 年前后，中国的孔子、印度的佛陀和雅典的公民生活在相隔不过几代人的时间里。"
+     },
+     "misconception": {
+      "en": "History happened one civilisation after another, like chapters in a book.",
+      "zh": "历史是一个文明接一个文明发生的，像书的一章接一章。"
+     },
+     "play": null
+    },
+    {
+     "slug": "why-writing",
+     "stage": 2,
+     "seeds": [
+      "HIS-2",
+      "HIS-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "6",
+      "uk": "5"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why was writing invented?",
+      "zh": "文字为什么会被发明？"
+     },
+     "insight": {
+      "en": "The earliest clay tablets from Mesopotamia mostly record goods, rations and accounts — writing began as a tool for keeping track, not for telling stories.",
+      "zh": "美索不达米亚最早的泥板大多记的是货物、口粮和账目——文字一开始是记账的工具，不是讲故事的。"
+     },
+     "misconception": {
+      "en": "Writing was invented to record stories and poems.",
+      "zh": "文字是为了写故事和诗歌才发明的。"
+     },
+     "play": null
+    },
+    {
+     "slug": "dating-the-past",
+     "stage": 3,
+     "seeds": [
+      "HIS-2",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "How old is it? Tree rings and radiocarbon",
+      "zh": "它有多老？树轮和放射性碳"
+     },
+     "insight": {
+      "en": "Carbon-14 in once-living things halves about every 5,730 years, so what is left works like a clock; tree rings, counted year by year, check and calibrate that clock.",
+      "zh": "曾经活着的东西里的碳-14 大约每 5730 年减少一半，剩下多少就像一只钟；一年一圈的树轮用来校准这只钟。"
+     },
+     "misconception": {
+      "en": "Scientists just guess how old ancient things are.",
+      "zh": "科学家只是猜古物有多老。"
+     },
+     "play": null
+    },
+    {
+     "slug": "weigh-the-source",
+     "stage": 3,
+     "seeds": [
+      "HIS-2",
+      "HIS-4",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Which source would you trust?",
+      "zh": "你更相信哪份材料？"
+     },
+     "insight": {
+      "en": "Every source was made by someone, at some time, for some purpose; asking who, when and why tells you what the source can and cannot show.",
+      "zh": "每份史料都是某人、在某时、为某个目的留下的；问清谁、何时、为什么，就知道它能说明什么、不能说明什么。"
+     },
+     "misconception": {
+      "en": "If it is written in an old source, it must be true.",
+      "zh": "古代材料上写的，就一定是真的。"
+     },
+     "play": null
+    },
+    {
+     "slug": "silk-roads",
+     "stage": 3,
+     "seeds": [
+      "HIS-1",
+      "HIS-3",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "What travelled the Silk Roads?",
+      "zh": "丝绸之路上走的是什么？"
+     },
+     "insight": {
+      "en": "The Silk Roads were a web of routes; goods, ideas, religions and inventions passed hand to hand through chains of traders, and few people travelled the whole way.",
+      "zh": "丝绸之路是一张路网；货物、思想、宗教和发明经过一段段商人接力传递，很少有人走完全程。"
+     },
+     "misconception": {
+      "en": "The Silk Road was one road that merchants travelled from end to end.",
+      "zh": "丝绸之路是一条路，商人从头走到尾。"
+     },
+     "play": null
+    },
+    {
+     "slug": "causes-web",
+     "stage": 4,
+     "seeds": [
+      "HIS-3",
+      "HIS-4",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "10",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Why did printing spread so fast?",
+      "zh": "印刷术为什么传得那么快？"
+     },
+     "insight": {
+      "en": "Big changes rarely have one cause: long-term conditions, a trigger and people's choices work together, and taking one away changes the outcome.",
+      "zh": "大变化很少只有一个原因：长期条件、直接诱因和人的选择一起起作用，拿掉一个，结果就会不同。"
+     },
+     "misconception": {
+      "en": "Every event has one single cause.",
+      "zh": "每件事都只有一个原因。"
+     },
+     "play": null
+    }
+   ]
+  },
+  {
+   "id": "computing",
+   "order": 9,
+   "name": {
+    "en": "Computing",
+    "zh": "信息科技与编程"
+   },
+   "tagline": {
+    "en": "Break it into exact steps, let loops do the repeating, and hunt the bug calmly.",
+    "zh": "把大事拆成准确的小步骤，重复的交给循环，出错了就一步步找。"
+   },
+   "stages": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "seeds": [
+    {
+     "id": "CS-1",
+     "name": {
+      "en": "Break a big job into small steps",
+      "zh": "把大事拆成小步骤"
+     },
+     "what": {
+      "en": "Brushing your teeth is a list of instructions too; get the order wrong and the result is wrong.",
+      "zh": "刷牙也是一串指令；顺序错了结果就错。"
+     }
+    },
+    {
+     "id": "CS-2",
+     "name": {
+      "en": "Hand repeated work to a loop",
+      "zh": "重复的事交给循环"
+     },
+     "what": {
+      "en": "Four times 'forward, turn right' is a square.",
+      "zh": "走 4 次「前进 + 右转」就是正方形。"
+     }
+    },
+    {
+     "id": "CS-3",
+     "name": {
+      "en": "Any information can become numbers",
+      "zh": "一切信息都可以变成数"
+     },
+     "what": {
+      "en": "A colour is three numbers, text is a code, a picture is a grid of squares.",
+      "zh": "颜色是三个数，文字是编码，图片是格子。"
+     }
+    },
+    {
+     "id": "CS-4",
+     "name": {
+      "en": "Mistakes are normal — find them",
+      "zh": "出错是正常的，找到它"
+     },
+     "what": {
+      "en": "Go one step at a time and see which step does something other than you expected.",
+      "zh": "一步一步走，看哪一步和想的不一样。"
+     }
+    }
+   ],
+   "stage_questions": {
+    "0": {
+     "en": "What do I do next?",
+     "zh": "下一步做什么？"
+    },
+    "1": {
+     "en": "How does the robot get there?",
+     "zh": "机器人怎么走到那里？"
+    },
+    "2": {
+     "en": "How can we write fewer commands?",
+     "zh": "怎么少写几条？"
+    },
+    "3": {
+     "en": "How do we make a program smarter?",
+     "zh": "怎么让程序更聪明？"
+    },
+    "4": {
+     "en": "Is this algorithm fast enough?",
+     "zh": "这个算法够快吗？"
+    }
+   },
+   "misconceptions": [
+    {
+     "en": "The computer knows what you mean.",
+     "zh": "电脑知道你想让它做什么。"
+    },
+    {
+     "en": "The order of the commands doesn't matter.",
+     "zh": "指令的顺序无所谓。"
+    },
+    {
+     "en": "A program with a bug means you are bad at coding.",
+     "zh": "程序出错说明我不会编程。"
+    },
+    {
+     "en": "A computer stores a picture as a picture, not as numbers.",
+     "zh": "电脑里存的图片就是图，不是数。"
+    },
+    {
+     "en": "A faster computer always beats a better algorithm.",
+     "zh": "电脑够快，算法好不好无所谓。"
+    }
+   ],
+   "lessons": [
+    {
+     "slug": "be-the-robot",
+     "stage": 0,
+     "seeds": [
+      "CS-1",
+      "X-4"
+     ],
+     "grade": {
+      "cn": "?",
+      "us": "PreK",
+      "uk": "Reception"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Be the robot",
+      "zh": "我来当机器人"
+     },
+     "insight": {
+      "en": "A robot only does exactly what it is told, one instruction at a time.",
+      "zh": "机器人只做你说的那一句，一次一句。"
+     },
+     "misconception": {
+      "en": "The robot will work out what you meant.",
+      "zh": "机器人会自己明白你的意思。"
+     },
+     "play": null
+    },
+    {
+     "slug": "robot-commands",
+     "stage": 1,
+     "seeds": [
+      "CS-1",
+      "CS-2",
+      "CS-4",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "3",
+      "us": "1",
+      "uk": "2"
+     },
+     "status": "ready",
+     "play": "robot-commands.html",
+     "title": {
+      "en": "Tell the robot exactly what to do",
+      "zh": "一步一步告诉机器人"
+     },
+     "insight": {
+      "en": "A program is a list of exact steps run in order; when the same steps repeat, a loop says them once.",
+      "zh": "程序是一串按顺序执行的准确步骤；同样的步骤重复时，用循环只写一次。"
+     },
+     "misconception": {
+      "en": "The computer knows what you mean, and the order doesn't matter.",
+      "zh": "电脑知道你的意思，顺序无所谓。"
+     },
+     "explain": {
+      "en": "Your friend wrote 'turn right, forward, forward' but meant 'forward, forward, turn right'. Explain why the robot ends up somewhere else, and how stepping through one command at a time would show the mistake.",
+      "zh": "朋友写了「右转、前进、前进」，其实想写「前进、前进、右转」。说说为什么机器人会走到别处，以及一步一步执行怎样帮你找到这个错。"
+     },
+     "home": {
+      "en": "Put a toy at one end of a room. A grown-up plays the robot and only understands 'step forward', 'turn left', 'turn right'. Write the commands on paper first, then read them out one by one. Did the robot reach the toy?",
+      "zh": "在房间一头放个玩具。请大人当机器人，只听得懂「向前一步」「左转」「右转」。先把指令写在纸上，再一条条念出来。机器人走到玩具那里了吗？"
+     }
+    },
+    {
+     "slug": "find-the-bug",
+     "stage": 1,
+     "seeds": [
+      "CS-4",
+      "X-1"
+     ],
+     "grade": {
+      "cn": "3",
+      "us": "2",
+      "uk": "2"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Find the bug",
+      "zh": "找到那个错"
+     },
+     "insight": {
+      "en": "To find a bug, run one step at a time and compare what happens with what you expected.",
+      "zh": "找错的办法：一步一步执行，把每一步的结果和你想的对一对。"
+     },
+     "misconception": {
+      "en": "If the program is wrong you have to start again from scratch.",
+      "zh": "程序错了只能全部重写。"
+     },
+     "play": null
+    },
+    {
+     "slug": "loop-drawing",
+     "stage": 2,
+     "seeds": [
+      "CS-2",
+      "CS-1"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "3",
+      "uk": "3"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Draw shapes with loops",
+      "zh": "用循环画图形"
+     },
+     "insight": {
+      "en": "A regular shape with n sides is 'forward, turn 360°/n' repeated n times.",
+      "zh": "正 n 边形就是把「前进、转 360°/n」重复 n 次。"
+     },
+     "misconception": {
+      "en": "Every side of a shape needs its own commands.",
+      "zh": "图形的每条边都要单独写指令。"
+     },
+     "play": null
+    },
+    {
+     "slug": "pixels-rgb",
+     "stage": 2,
+     "seeds": [
+      "CS-3"
+     ],
+     "grade": {
+      "cn": "4",
+      "us": "4",
+      "uk": "4"
+     },
+     "status": "planned",
+     "title": {
+      "en": "A picture is a grid of numbers",
+      "zh": "图片是一格一格的数"
+     },
+     "insight": {
+      "en": "A screen picture is a grid of pixels, and each pixel's colour is three numbers: red, green, blue.",
+      "zh": "屏幕上的图是像素格子，每格的颜色是红、绿、蓝三个数。"
+     },
+     "misconception": {
+      "en": "A computer stores a picture as a picture, not as numbers.",
+      "zh": "电脑里存的图片就是图，不是数。"
+     },
+     "play": null
+    },
+    {
+     "slug": "binary-cards",
+     "stage": 3,
+     "seeds": [
+      "CS-3",
+      "X-3"
+     ],
+     "grade": {
+      "cn": "7",
+      "us": "6",
+      "uk": "7"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Counting with only 0 and 1",
+      "zh": "只用 0 和 1 数数"
+     },
+     "insight": {
+      "en": "In binary each place is worth twice the place to its right, so any whole number is a sum of 1, 2, 4, 8, ….",
+      "zh": "二进制每一位是右边一位的两倍，所以任何整数都能写成 1、2、4、8……的和。"
+     },
+     "misconception": {
+      "en": "Binary is a secret code only computers can read.",
+      "zh": "二进制是只有电脑才看得懂的密码。"
+     },
+     "play": null
+    },
+    {
+     "slug": "sorting-race",
+     "stage": 3,
+     "seeds": [
+      "CS-1",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "8",
+      "us": "7",
+      "uk": "8"
+     },
+     "status": "planned",
+     "title": {
+      "en": "The sorting race",
+      "zh": "排序比赛"
+     },
+     "insight": {
+      "en": "Different step-by-step methods give the same sorted list but need very different numbers of comparisons.",
+      "zh": "不同的排序方法排出同样的结果，但比较的次数可以差很多。"
+     },
+     "misconception": {
+      "en": "Any method that gets the right answer is equally good.",
+      "zh": "只要结果对，方法都一样好。"
+     },
+     "play": null
+    },
+    {
+     "slug": "halving-search",
+     "stage": 4,
+     "seeds": [
+      "CS-1",
+      "CS-2",
+      "X-2"
+     ],
+     "grade": {
+      "cn": "10",
+      "us": "9",
+      "uk": "10"
+     },
+     "status": "planned",
+     "title": {
+      "en": "Halve it: how search gets fast",
+      "zh": "对半找：搜索为什么能这么快"
+     },
+     "insight": {
+      "en": "Halving a sorted list each time finds one item among a million in about 20 looks.",
+      "zh": "在排好序的表里每次砍掉一半，一百万个里找一个只要约 20 次。"
+     },
+     "misconception": {
+      "en": "A faster computer always beats a better algorithm.",
+      "zh": "电脑够快，算法好不好无所谓。"
+     },
+     "play": null
+    }
+   ]
+  }
+ ]
+}

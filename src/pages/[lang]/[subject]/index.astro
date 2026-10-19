@@ -1,0 +1,71 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { type Lang, LANGS, SUBJECTS, STAGES, subjectById, t } from "../../../data/site";
+
+export function getStaticPaths() {
+  return LANGS.flatMap((lang) => SUBJECTS.map((s) => ({ params: { lang, subject: s.id } })));
+}
+const lang = Astro.params.lang as Lang;
+const s = subjectById.get(Astro.params.subject!)!;
+const links = (ids?: string[]) => (ids ?? []).map((id) => subjectById.get(id)).filter((x) => x !== undefined);
+---
+
+<Base lang={lang} title={s.name[lang]} description={s.tagline[lang]} path={`${s.id}/`}>
+  <div class={`s-${s.id}`}>
+    <section class="hero">
+      <p class="eyebrow">{t("stages", lang)} {s.stages.join(" · ")}</p>
+      <h1 class="accent">{s.name[lang]}</h1>
+      <p class="lead">{s.tagline[lang]}</p>
+      {links(s.continues_from).length > 0 && (
+        <p class="meta">{t("continuesFrom", lang)}: {links(s.continues_from).map((x) => <a class="chip" href={`/${lang}/${x.id}/`}>{x.name[lang]}</a>)}</p>
+      )}
+      {links(s.continues_as).length > 0 && (
+        <p class="meta">{t("continuesAs", lang)}: {links(s.continues_as).map((x) => <a class="chip" href={`/${lang}/${x.id}/`}>{x.name[lang]}</a>)}</p>
+      )}
+    </section>
+
+    <h2>{t("seeds", lang)}</h2>
+    <p class="meta">{t("seedsLead", lang)}</p>
+    <div class="seeds">
+      {s.seeds.map((sd) => (
+        <div class="card">
+          <span class="seed-id">{sd.id}</span>
+          <h3>{sd.name[lang]}</h3>
+          <p class="meta">{sd.what[lang]}</p>
+        </div>
+      ))}
+    </div>
+
+    <h2>{t("stages", lang)}</h2>
+    {s.stages.map((n) => {
+      const st = STAGES[n];
+      const lessons = s.lessons.filter((l) => l.stage === n);
+      return (
+        <div class="stage-row">
+          <span class="stage-num">{n}</span>
+          <div>
+            <h3><a href={`/${lang}/stage/${n}/`}>{st.name[lang]}</a> <span class="meta">· {st.age[lang]}</span></h3>
+            <div class="q">{s.stage_questions[String(n)]?.[lang]}</div>
+            {lessons.length === 0 ? <p class="meta">{t("noLessons", lang)}</p> : (
+              <ul class="lessons">
+                {lessons.map((l) => (
+                  <li>
+                    <a class="lesson" href={`/${lang}/${s.id}/${l.slug}/`}>
+                      <span class="title">{l.title[lang]}</span>
+                      <span class="sub">{l.insight[lang]}</span>
+                      <span class={`badge ${l.status}`}>{t(l.status, lang)}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      );
+    })}
+
+    <h2>{t("misconceptions", lang)}</h2>
+    <p class="meta">{t("misLead", lang)}</p>
+    <ul class="mis">{s.misconceptions.map((m) => <li>{m[lang]}</li>)}</ul>
+  </div>
+</Base>

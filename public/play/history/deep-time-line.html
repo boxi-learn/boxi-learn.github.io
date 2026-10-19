@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How long ago is long ago?</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .stage svg.main#fig { height: 440px; cursor: grab; user-select: none; -webkit-user-select: none; }
+  .stage svg.main#fig.guess { cursor: default; }
+  .stage svg.main#fig:active { cursor: grabbing; }
+  .stage svg.main#fig.guess:active { cursor: default; }
+  @media (max-width: 560px) { .stage svg.main#fig { height: 420px; } }
+  #fig text { font-size: 13px; }
+  #fig .lab { fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  #fig .ev { cursor: pointer; outline: none; }
+  #fig .ev.sel .lab { fill: var(--a); font-weight: 700; }
+  #fig .dot { fill: var(--a); stroke: var(--surface); stroke-width: 1.5px; }
+  #fig .bar { fill: var(--a); opacity: .6; }
+  #fig .ev.sel .dot, #fig .ev.sel .bar { fill: var(--hl); opacity: 1; }
+  #fig .hit { fill: transparent; }
+  #fig .ev:focus-visible .hit { stroke: var(--hl); stroke-width: 3px; }
+  #fig .lead { stroke: var(--muted); stroke-width: 1px; opacity: .6; }
+  #fig .laneName { fill: var(--muted); font-weight: 700; }
+  #fig .laneBg { fill: var(--soft); opacity: .55; }
+  #fig .grid { stroke: var(--line); stroke-width: 1px; }
+  #fig .axisLine { stroke: var(--muted); stroke-width: 1px; }
+  #fig .tick { fill: var(--muted); }
+  #fig .band { fill: var(--a); opacity: .08; }
+  #fig .bandLab { fill: var(--a); font-weight: 650; }
+  #fig .today { stroke: var(--a); stroke-dasharray: 3 3; stroke-width: 1px; }
+  #fig .br { stroke: var(--fg); stroke-width: 1.5px; fill: none; }
+  #fig .brDash { stroke: var(--hl); stroke-dasharray: 4 3; stroke-width: 1.5px; }
+  #fig .brLab { fill: var(--fg); font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+  #fig .gLine { stroke: var(--muted); stroke-width: 2px; }
+  #fig .gTick { stroke: var(--line); stroke-width: 1px; }
+  #fig .gName { fill: var(--fg); font-weight: 700; }
+  #fig .gDate { fill: var(--muted); }
+  #fig .gQ { fill: var(--a); font-weight: 800; font-size: 28px; }
+  #fig .gGap { fill: var(--fg); font-weight: 650; }
+  #fig .gHint { fill: var(--muted); }
+  .controls button { min-width: 38px; }
+  .controls .val { font-family: var(--font); font-size: 13px; color: var(--muted); min-width: 0; }
+  .info { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin: 0 0 10px; }
+  .info .nm { font-weight: 700; color: var(--fg); }
+  .info .dt { color: var(--muted); }
+  .info .gp { font-weight: 750; color: var(--a); font-size: 16px; margin-top: 4px; }
+  .info .calc { font-family: var(--math); color: var(--fg); }
+  #resMain { white-space: normal; }
+  .info div + div { margin-top: 4px; }
+</style>
+</head>
+<body data-subject="history">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 440" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctl">
+        <button type="button" id="zOut" data-t-aria="zOut">−</button>
+        <button type="button" id="zIn" data-t-aria="zIn">+</button>
+        <button type="button" class="small" id="vAll" data-t="vAll"></button>
+        <button type="button" class="small" id="vWrite" data-t="vWrite"></button>
+        <button type="button" class="small" id="vCleo" data-t="vCleo"></button>
+        <button type="button" class="small" id="vClear" data-t="vClear"></button>
+        <span class="val" id="span"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="info" id="info" hidden></div>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" id="resMain"></div></div>
+    <div class="rn" id="resNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+"use strict";
+/* Years are stored as historical years: negative = BCE, positive = CE, no year 0.
+   astro() maps them to a continuous number line (1 BCE = 0), so gaps are plain differences. */
+const TODAY = new Date().getFullYear();
+const LANES = ["lnAf", "lnEu", "lnSa", "lnEa", "lnAm"];
+// l = lane, y = year (range start), y2 = range end, c = approximate ("c."), ago = years before present (deep time), p = label priority
+const EV = [
+  { id: "hs", l: 0, y: -298000, ago: 300000, c: 1, p: 1,
+    en: ["Earliest Homo sapiens", "Fossils from Jebel Irhoud, Morocco, are the oldest known of our species so far."],
+    zh: ["最早的智人", "摩洛哥杰贝尔依罗出土的化石，是目前已知最古老的智人（现代人）化石。"] },
+  { id: "farm", l: 0, y: -9500, c: 1, p: 1,
+    en: ["Farming begins", "People in the Fertile Crescent start growing wheat and barley."],
+    zh: ["农业出现", "新月沃地的人开始种植小麦和大麦。"] },
+  { id: "cun", l: 0, y: -3200, c: 1, p: 1,
+    en: ["Cuneiform writing", "Among the earliest writing: signs pressed into clay tablets in Sumer, Mesopotamia."],
+    zh: ["楔形文字", "最早的文字之一：美索不达米亚的苏美尔人在泥板上压出的符号。"] },
+  { id: "pyr", l: 0, y: -2560, c: 1, p: 1,
+    en: ["Great Pyramid", "Built at Giza, Egypt, as the tomb of the pharaoh Khufu."],
+    zh: ["吉萨大金字塔", "建在埃及吉萨，是法老胡夫的陵墓。"] },
+  { id: "ham", l: 0, y: -1754, c: 1, p: 2,
+    en: ["Code of Hammurabi", "King Hammurabi of Babylon has his laws carved on a tall stone."],
+    zh: ["《汉谟拉比法典》", "古巴比伦国王汉谟拉比把法律刻在一块高大的石碑上。"] },
+  { id: "tut", l: 0, y: -1332, y2: -1323, c: 1, p: 2,
+    en: ["Tutankhamun", "Young pharaoh of Egypt; his tomb was found almost untouched in 1922."],
+    zh: ["图坦卡蒙", "古埃及少年法老；他的陵墓 1922 年被发现时几乎完好。"] },
+  { id: "cleo", l: 0, y: -30, p: 1,
+    en: ["Cleopatra dies", "Cleopatra VII, the last Ptolemaic ruler of Egypt, dies; Egypt becomes part of the Roman Empire."],
+    zh: ["克娄巴特拉去世", "埃及托勒密王朝末代女王克娄巴特拉七世去世，埃及并入罗马。"] },
+  { id: "lasc", l: 1, y: -15000, ago: 17000, c: 1, p: 1,
+    en: ["Lascaux cave art", "Paintings of horses, deer and cattle on cave walls in southwest France."],
+    zh: ["拉斯科洞穴壁画", "法国西南部洞穴墙上画的马、鹿和牛。"] },
+  { id: "stone", l: 1, y: -2500, c: 1, p: 2,
+    en: ["Stonehenge", "The great sarsen stones of Stonehenge, England, are raised."],
+    zh: ["巨石阵", "英格兰巨石阵的大砂岩巨石在这时立起。"] },
+  { id: "oly", l: 1, y: -776, p: 2,
+    en: ["First Olympics", "Traditional date of the first recorded Games at Olympia, Greece."],
+    zh: ["第一届古代奥运会", "传统说法中，希腊奥林匹亚有记录的第一届运动会。"] },
+  { id: "colo", l: 1, y: 80, p: 2,
+    en: ["Colosseum opens", "Rome's great amphitheatre opens under Emperor Titus."],
+    zh: ["罗马斗兽场落成", "罗马的大型圆形剧场在提图斯皇帝时启用。"] },
+  { id: "gut", l: 1, y: 1440, c: 1, p: 1,
+    en: ["Gutenberg's press", "A printing press with movable metal type, in Mainz, Germany."],
+    zh: ["古腾堡印刷机", "德国美因茨，用金属活字的印刷机。"] },
+  { id: "newt", l: 1, y: 1687, p: 2,
+    en: ["Newton's Principia", "Isaac Newton publishes his laws of motion and gravity."],
+    zh: ["牛顿《原理》", "牛顿发表运动定律和万有引力定律。"] },
+  { id: "indus", l: 2, y: -2600, y2: -1900, c: 1, p: 1,
+    en: ["Indus cities", "Planned cities such as Mohenjo-daro and Harappa; their script is still not deciphered."],
+    zh: ["印度河城市", "摩亨佐-达罗、哈拉帕等规划整齐的城市；它们的文字至今没有被破译。"] },
+  { id: "bud", l: 2, y: -500, c: 1, p: 2,
+    en: ["The Buddha", "The Buddha teaches in northern India; scholars place his life in the 6th–5th century BCE."],
+    zh: ["佛陀", "佛陀在印度北部传道；学者把他的生平定在公元前 6—前 5 世纪。"] },
+  { id: "ash", l: 2, y: -268, y2: -232, c: 1, p: 2,
+    en: ["Emperor Ashoka", "Mauryan emperor whose edicts were carved on rocks and pillars."],
+    zh: ["阿育王", "孔雀王朝君主，他的诏令刻在岩石和石柱上。"] },
+  { id: "zero", l: 2, y: 628, p: 2,
+    en: ["Rules for zero", "Brahmagupta writes down rules for calculating with zero."],
+    zh: ["零的运算规则", "婆罗摩笈多写下用零计算的规则。"] },
+  { id: "taj", l: 2, y: 1632, y2: 1653, c: 1, p: 2,
+    en: ["Taj Mahal", "Built at Agra by the Mughal emperor Shah Jahan as a tomb for his wife Mumtaz Mahal."],
+    zh: ["泰姬陵", "莫卧儿皇帝沙贾汗在阿格拉为妻子蒙塔兹·马哈尔修建的陵墓。"] },
+  { id: "orac", l: 3, y: -1250, c: 1, p: 1,
+    en: ["Oracle bones", "Shang dynasty writing carved on bones and shells — the earliest large body of Chinese writing."],
+    zh: ["甲骨文", "商代刻在龟甲兽骨上的文字，是已知最早成体系的汉字。"] },
+  { id: "conf", l: 3, y: -551, y2: -479, p: 2,
+    en: ["Confucius", "Teacher from the state of Lu; these are the traditional dates of his life."],
+    zh: ["孔子", "鲁国的老师；这是他生卒年的传统说法。"] },
+  { id: "qin", l: 3, y: -221, p: 1,
+    en: ["Qin unifies China", "Qin Shi Huang unites the warring states and standardises writing, coins and measures."],
+    zh: ["秦统一", "秦始皇统一六国，统一文字、货币和度量衡。"] },
+  { id: "cai", l: 3, y: 105, p: 2,
+    en: ["Cai Lun's paper", "Cai Lun reports a better way of making paper to the Han court (older paper scraps exist too)."],
+    zh: ["蔡伦造纸", "蔡伦向汉朝朝廷献上改进的造纸法（更早的纸片也有出土）。"] },
+  { id: "dia", l: 3, y: 868, p: 2,
+    en: ["Diamond Sutra print", "The oldest surviving printed book with a date, found at Dunhuang."],
+    zh: ["《金刚经》印本", "现存最早有明确日期的印刷书，发现于敦煌。"] },
+  { id: "zheng", l: 3, y: 1405, y2: 1433, p: 2,
+    en: ["Zheng He's voyages", "Ming fleets sail across the Indian Ocean as far as East Africa."],
+    zh: ["郑和下西洋", "明朝船队横渡印度洋，最远到达东非。"] },
+  { id: "maya", l: 4, y: 250, y2: 900, c: 1, p: 1,
+    en: ["Classic Maya", "Cities such as Tikal and Palenque flourish, with glyph writing and a detailed calendar."],
+    zh: ["玛雅古典期", "蒂卡尔、帕伦克等城市繁荣，使用象形文字和精细的历法。"] },
+  { id: "teno", l: 4, y: 1325, c: 1, p: 2,
+    en: ["Tenochtitlan", "The Mexica (Aztecs) found their island capital, where Mexico City stands today."],
+    zh: ["特诺奇蒂特兰", "墨西加人（阿兹特克人）在湖心岛上建都，就是今天的墨西哥城。"] },
+  { id: "mach", l: 4, y: 1450, c: 1, p: 2,
+    en: ["Machu Picchu", "An Inca estate built high in the Andes of Peru."],
+    zh: ["马丘比丘", "印加人在秘鲁安第斯山高处修建的庄园。"] },
+  { id: "colu", l: 4, y: 1492, p: 1,
+    en: ["Columbus crosses", "Columbus's ships sail from Spain and reach the Caribbean."],
+    zh: ["哥伦布横渡大西洋", "哥伦布的船队从西班牙出发，抵达加勒比海。"] },
+  { id: "wri", l: 4, y: 1903, p: 2,
+    en: ["First powered flight", "The Wright brothers fly the first controlled powered aeroplane, in the USA."],
+    zh: ["第一次动力飞行", "莱特兄弟在美国完成第一次有控制的动力飞机飞行。"] },
+  { id: "moon", l: 4, y: 1969, p: 1,
+    en: ["Moon landing", "Apollo 11: people walk on the Moon for the first time."],
+    zh: ["登月", "阿波罗 11 号：人类第一次在月球上行走。"] },
+];
+
+const EN = {
+  title: "How long ago is long ago?", eyebrow: "History · Stage 2", h1: "How long ago is long ago?",
+  intro: "Guess first, then zoom through 300,000 years and measure the gaps between real events.",
+  reset: "Reset", figAria: "Zoomable world timeline with five regional lanes. Arrow keys move, plus and minus zoom, Tab reaches events, Enter selects one.",
+  s1: "Guess", s2: "Explore", s3: "How we know",
+  k1: "Predict first", t1: "Cleopatra, the pyramid and the Moon",
+  b1: "Cleopatra died in 30 BCE. The Great Pyramid of Giza was built around 2560 BCE. People first walked on the Moon in 1969 CE. Guess before you see the line.",
+  q: "In time, is Cleopatra closer to…", o1: "the building of the Great Pyramid", o2: "about halfway", o3: "the Moon landing",
+  right: "Yes. When she died, the pyramid was already about {g} years old — older to her than she is to us.",
+  wrong: "Look at the line: she is {d} nearer to the Moon landing. The ancient world was itself thousands of years long.",
+  gHint: "Pick an answer to place Cleopatra.",
+  k2: "Hands on", t2: "Zoom through 300,000 years",
+  b2: "Drag to move. Scroll, pinch or use + and − to zoom; arrow keys work too. Tap any two events to measure the time between them.",
+  k3: "The rule", t3: "Time has length — and dates come from evidence",
+  b3: "Put events on one line and subtract. Across the BCE/CE line, add the two numbers and take away 1, because there is no year 0. The further back, the more dates carry “c.” (circa, ‘about’). Historians fix dates from written records such as king lists and dated documents, from radiocarbon dating of once-living things like wood, bone and seeds, and from tree rings, which count years one by one and are used to check radiocarbon.",
+  liveW: "Writing began about {w} years ago — only about {pct}% of the roughly 300,000 years our species has existed. Press “Show all” to see how thin that slice is.",
+  lnAf: "Africa & West Asia", lnEu: "Europe & Mediterranean", lnSa: "South Asia", lnEa: "East Asia", lnAm: "Americas",
+  zIn: "Zoom in", zOut: "Zoom out", vAll: "Show all", vWrite: "Writing → today", vCleo: "Try: Cleopatra", vClear: "Clear",
+  span: "Window: about {n}", band: "written records", pick2: "Tap an event on the timeline. Then tap a second one to measure the gap.",
+  pick1: "Now tap a second event.", gapIs: "Time between them: {g}", noZero: "(there is no year 0)",
+  fromStart: "For a period, the gap is measured from its start.", deep: "Deep-time dates are rounded, so the gap is too.",
+  gapLive: "{a} to {b}: {g}",
+  resultTitle: "What we found", resNote: "Cleopatra lived about {d} closer to the Moon landing than to the Great Pyramid. “Long ago” is not one place.",
+  explainK: "Explain it", explainQ: "How can one “ancient” person be closer in time to you than to another “ancient” person? Explain it to a friend using numbers from the timeline.",
+  homeK: "Try at home", homeQ: "Make a timeline from a long strip of paper: 1 cm for every 100 years. Mark your birth, a grandparent's birth and three events from this page. How long must the strip be to reach the Great Pyramid?",
+  foot: "Dates are the conventional ones used in standard reference works; c. = circa, about. Early dates (Hammurabi, the Buddha, Egyptian kings) differ between scholars by years to decades. Deep-time dates are given as years before present. CC BY 4.0 · Boxi Yu",
+};
+const ZH = {
+  title: "很久以前到底有多久？", eyebrow: "历史 · 阶段 2", h1: "很久以前到底有多久？",
+  intro: "先猜一猜，再在 30 万年里缩放，量一量真实事件之间隔了多久。",
+  reset: "重置", figAria: "可缩放的世界时间线，分五个地区。方向键移动，加号减号缩放，Tab 选到事件，回车选中。",
+  s1: "先猜", s2: "动手", s3: "怎么知道",
+  k1: "先猜一猜", t1: "克娄巴特拉、金字塔和月球",
+  b1: "克娄巴特拉死于公元前 30 年。吉萨大金字塔约建于公元前 2560 年。人类第一次登上月球是公元 1969 年。先猜，再看时间线。",
+  q: "在时间上，克娄巴特拉离哪个更近？", o1: "修建大金字塔", o2: "差不多正中间", o3: "登月",
+  right: "对。她去世时，大金字塔已经约 {g} 岁了——对她来说，金字塔比她对我们还要古老。",
+  wrong: "看这条线：她离登月近了 {d}。「古代」本身就有几千年长。",
+  gHint: "选一个答案，把克娄巴特拉放到线上。",
+  k2: "动手", t2: "在 30 万年里缩放",
+  b2: "拖动来移动；滚轮、双指或 + − 按钮缩放，方向键也可以。点任意两件事，量它们之间隔了多久。",
+  k3: "规律", t3: "时间有长度——年代来自证据",
+  b3: "把事件放在同一条线上相减。跨过公元前和公元的分界时，两个数相加再减 1，因为没有「公元 0 年」。越早的年代越常带「约」。历史学家靠这些定年代：文字记录（王表、写有日期的文书），曾经活着的东西（木头、骨头、种子）的放射性碳测年，还有一年长一圈的树轮——树轮还用来校准放射性碳测年。",
+  liveW: "文字出现在约 {w}前——只占智人约 30 万年历史的 {pct}% 左右。按「看全部」，看看这一层有多薄。",
+  lnAf: "非洲与西亚", lnEu: "欧洲与地中海", lnSa: "南亚", lnEa: "东亚", lnAm: "美洲",
+  zIn: "放大", zOut: "缩小", vAll: "看全部", vWrite: "文字出现至今", vCleo: "试试克娄巴特拉", vClear: "清除",
+  span: "窗口：约 {n}", band: "有文字记录", pick2: "点时间线上的一件事，再点第二件，量它们之间隔了多久。",
+  pick1: "再点第二件事。", gapIs: "相隔：{g}", noZero: "（没有公元 0 年）",
+  fromStart: "对于一段时期，从它开始的那年算起。", deep: "远古年代是取整的，所以相隔年数也是约数。",
+  gapLive: "{a}到{b}：{g}",
+  resultTitle: "我们发现", resNote: "克娄巴特拉离登月比离修建大金字塔近了约 {d}。「很久以前」不是同一个地方。",
+  explainK: "说一说", explainQ: "为什么一位「古人」离我们，可能比离另一位「古人」还近？用时间线上的数字给朋友讲清楚。",
+  homeK: "家里做一做", homeQ: "用一长条纸做时间线：每 100 年 1 厘米。标出你的出生、祖辈的出生和本页的三件事。纸条要多长才能到达大金字塔？",
+  foot: "年代采用通行参考书的说法；「约」表示大约。早期年代（汉谟拉比、佛陀、古埃及诸王）不同学者之间相差几年到几十年。远古年代按距今多少年给出。CC BY 4.0 · Boxi Yu",
+};
+EV.forEach((e) => { EN["n_" + e.id] = e.en[0]; EN["d_" + e.id] = e.en[1]; ZH["n_" + e.id] = e.zh[0]; ZH["d_" + e.id] = e.zh[1]; });
+const P = Play.setup({ en: EN, zh: ZH });
+const ZHL = P.lang === "zh";
+const $ = (id) => document.getElementById(id);
+const byId = {}; EV.forEach((e) => (byId[e.id] = e));
+
+/* ---------- year arithmetic ---------- */
+const astro = (y) => (y < 0 ? y + 1 : y);          // 1 BCE → 0, 30 BCE → -29
+const hist = (a) => (a <= 0 ? a - 1 : a);           // inverse, for integers
+const gapYears = (y1, y2) => Math.abs(astro(y1) - astro(y2));
+function roundGap(g, approx) {
+  if (!approx) return g;
+  if (g >= 10000) return Math.round(g / 1000) * 1000;
+  if (g >= 100) return Math.round(g / 10) * 10;
+  return g;
+}
+const enNum = (n) => n.toLocaleString("en-US");
+const yr = (n) => (n >= 10000 ? enNum(n) : String(n));
+const wan = (n) => String(+(n / 10000).toFixed(1));
+function yearsText(g, approx) {
+  if (ZHL) return (approx ? "约 " : "") + (g >= 10000 ? wan(g) + " 万年" : g + " 年");
+  return (approx ? "about " : "") + enNum(g) + (g === 1 ? " year" : " years");
+}
+function dateText(e) {
+  const c = e.c, y = e.y, y2 = e.y2;
+  if (ZHL) {
+    if (e.ago) return "约 " + wan(e.ago) + " 万年前";
+    const p = c ? "约" : "";
+    if (y2 != null) return y < 0 ? p + "公元前 " + -y + "—前 " + -y2 + " 年" : p + "公元 " + y + "—" + y2 + " 年";
+    return y < 0 ? p + "公元前 " + -y + " 年" : p + "公元 " + y + " 年";
+  }
+  if (e.ago) return "c. " + enNum(e.ago) + " years ago";
+  const p = c ? "c. " : "";
+  if (y2 != null) return y < 0 ? p + -y + "–" + -y2 + " BCE" : p + y + "–" + y2 + " CE";
+  return y < 0 ? p + yr(-y) + " BCE" : p + y + " CE";
+}
+function tickText(n) {
+  if (ZHL) return n < 0 ? "公元前" + (-n >= 10000 ? wan(-n) + "万" : -n) : "公元" + n;
+  return n < 0 ? yr(-n) + " BCE" : yr(n) + " CE";
+}
+function textW(s) { let w = 0; for (const ch of s) w += /[⺀-鿿＀-￯]/.test(ch) ? 13 : 7.4; return w; }
+/* the gap between two events, as numbers and words */
+function measure(e1, e2) {
+  let a = e1, b = e2;
+  if (astro(a.y) > astro(b.y)) { a = e2; b = e1; }
+  const raw = gapYears(a.y, b.y);
+  const approx = !!(a.c || b.c);
+  const g = roundGap(raw, approx);
+  let calc = "";
+  if (!a.ago && !b.ago) {
+    if (a.y < 0 && b.y < 0) calc = -a.y + " − " + -b.y + " = " + raw;
+    else if (a.y > 0 && b.y > 0) calc = b.y + " − " + a.y + " = " + raw;
+    else calc = -a.y + " + " + b.y + " − 1 = " + raw;
+  }
+  return { a, b, raw, g, approx, calc, cross: a.y < 0 && b.y > 0 };
+}
+
+/* ---------- figure ---------- */
+const fig = $("fig");
+let W = 600, H = 440;
+const AX = 34, BOT = 36;
+const MINA = -306000, MAXB = TODAY + 60, MINSPAN = 20;
+const START = [astro(-3600), TODAY + 40];
+const V = { a: START[0], b: START[1] };
+let mode = "guess", sel = [], guessed = false, guessT = 0, anim = 0;
+
+const gGuess = Play.svg("g", {}, fig);
+const gLine = Play.svg("g", {}, fig);
+const gBg = Play.svg("g", {}, gLine), gAxis = Play.svg("g", {}, gLine), gEv = Play.svg("g", {}, gLine), gBr = Play.svg("g", {}, gLine);
+
+EV.forEach((e) => {
+  const g = Play.svg("g", { class: "ev", tabindex: "-1", role: "button", "data-ev": e.id,
+    "aria-label": P.t("n_" + e.id) + ", " + dateText(e) }, gEv);
+  e.lead = Play.svg("line", { class: "lead" }, g);
+  e.hit = Play.svg("rect", { class: "hit", rx: 6 }, g);
+  e.mark = e.y2 != null ? Play.svg("rect", { class: "bar", height: 8, rx: 4 }, g) : Play.svg("circle", { class: "dot", r: 5.5 }, g);
+  e.tx = Play.svg("text", { class: "lab" }, g);
+  e.tx.textContent = P.t("n_" + e.id);
+  e.g = g;
+  g.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" || ev.key === " ") { toggle(e); ev.preventDefault(); ev.stopPropagation(); }
+  });
+});
+
+const X = (a) => ((a - V.a) / (V.b - V.a)) * W;
+
+function setView(a, b) {
+  let s = Play.clamp(b - a, MINSPAN, MAXB - MINA);
+  const c = (a + b) / 2;
+  a = c - s / 2; b = c + s / 2;
+  if (a < MINA) { b += MINA - a; a = MINA; }
+  if (b > MAXB) { a -= b - MAXB; b = MAXB; }
+  if (!Number.isFinite(a) || !Number.isFinite(b)) { a = START[0]; b = START[1]; }
+  V.a = a; V.b = b;
+  draw();
+}
+function zoomAt(px, f) {
+  const s = V.b - V.a, c = V.a + (px / W) * s;
+  const ns = Play.clamp(s * f, MINSPAN, MAXB - MINA);
+  setView(c - (px / W) * ns, c - (px / W) * ns + ns);
+}
+function pan(dYears) { setView(V.a + dYears, V.b + dYears); }
+function animateTo(a, b) {
+  cancelAnimationFrame(anim);
+  if (Play.reduced) { setView(a, b); return; }
+  const a0 = V.a, b0 = V.b, c0 = (a0 + b0) / 2, c1 = (a + b) / 2, s0 = Math.log(b0 - a0), s1 = Math.log(b - a);
+  const t0 = performance.now();
+  const stepF = (t) => {
+    const k = Math.min(1, (t - t0) / 500), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    const s = Math.exp(s0 + (s1 - s0) * e), c = c0 + (c1 - c0) * e;
+    setView(c - s / 2, c + s / 2);
+    if (k < 1) anim = requestAnimationFrame(stepF);
+  };
+  anim = requestAnimationFrame(stepF);
+}
+
+function niceStep(pxPerYear, labelW) {
+  const steps = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
+  for (const s of steps) if (s * pxPerYear >= labelW + 10) return s;
+  return 200000;
+}
+
+function drawAxis() {
+  gAxis.innerHTML = "";
+  const ppy = W / (V.b - V.a);
+  const sample = tickText(Math.round(hist(V.a)) < 0 ? Math.round(hist(V.a)) : -1000);
+  const step = niceStep(ppy, Math.max(textW(sample), textW(tickText(2000))));
+  const h0 = Math.floor(hist(V.a) / step) - 1, h1 = Math.ceil(hist(V.b) / step) + 1;
+  for (let k = h0; k <= h1 && k - h0 < 80; k++) {
+    const n = k * step;
+    if (n === 0) continue;
+    const x = X(astro(n));
+    if (x < -1 || x > W + 1) continue;
+    Play.svg("line", { class: "grid", x1: x, x2: x, y1: AX, y2: H - BOT }, gAxis);
+    const s = tickText(n), w = textW(s);
+    if (x - w / 2 < 2 || x + w / 2 > W - 2) continue;
+    Play.svg("text", { class: "tick", x, y: AX - 11, "text-anchor": "middle" }, gAxis).textContent = s;
+  }
+  Play.svg("line", { class: "axisLine", x1: 0, x2: W, y1: AX, y2: AX }, gAxis);
+  const xt = X(TODAY);
+  if (xt >= 0 && xt <= W) Play.svg("line", { class: "today", x1: xt, x2: xt, y1: AX, y2: H - BOT }, gAxis);
+}
+
+function drawBg() {
+  gBg.innerHTML = "";
+  const lh = (H - AX - BOT) / LANES.length;
+  // band of written history
+  const bx1 = X(astro(-3200)), bx2 = X(TODAY);
+  if (bx2 > 0 && bx1 < W) {
+    const l = Math.max(bx1, -2), r = Math.min(bx2, W + 2);
+    Play.svg("rect", { class: "band", x: l, y: AX, width: Math.max(2, r - l), height: H - AX - BOT }, gBg);
+  }
+  LANES.forEach((k, i) => {
+    if (i % 2) Play.svg("rect", { class: "laneBg", x: 0, y: AX + i * lh, width: W, height: lh }, gBg);
+    Play.svg("text", { class: "laneName", x: 8, y: AX + i * lh + 16 }, gBg).textContent = P.t(k);
+  });
+  const lab = P.t("band"), lw = textW(lab);
+  if (bx2 > 0 && bx1 < W) {
+    const t = Play.svg("text", { class: "bandLab", y: H - 6 }, gBg);
+    if (bx2 - Math.max(bx1, 0) > lw + 10) { t.setAttribute("x", Math.max(bx1, 0) + 5); t.textContent = lab; }
+    else if (bx1 > lw + 30) { t.setAttribute("x", bx1 - 5); t.setAttribute("text-anchor", "end"); t.textContent = lab + " →"; }
+    else { t.setAttribute("x", Math.min(W - 4, bx2)); t.setAttribute("text-anchor", "end"); t.textContent = lab; }
+  }
+}
+
+function drawEvents() {
+  const lh = (H - AX - BOT) / LANES.length;
+  const rows = LANES.map(() => [[], []]);
+  const order = EV.slice().sort((p, q) => (sel.includes(q) - sel.includes(p)) || (p.p - q.p) || (p.y - q.y));
+  order.forEach((e) => {
+    const top = AX + e.l * lh;
+    const x1 = X(astro(e.y)), x2 = e.y2 != null ? X(astro(e.y2)) : x1;
+    const visible = x2 >= -6 && x1 <= W + 6;
+    e.g.style.display = visible ? "" : "none";
+    e.g.setAttribute("tabindex", visible ? "0" : "-1");
+    e.g.classList.toggle("sel", sel.includes(e));
+    if (!visible) return;
+    const yd = top + 62;
+    let cx = x1;
+    if (e.y2 != null) {
+      const bw = Math.max(6, x2 - x1), bx = x2 - x1 < 6 ? x1 - 3 : x1;
+      e.mark.setAttribute("x", bx); e.mark.setAttribute("y", yd - 4); e.mark.setAttribute("width", bw);
+      cx = Play.clamp((Math.max(x1, 0) + Math.min(x2, W)) / 2, 0, W);
+      e.hit.setAttribute("x", bx - 10); e.hit.setAttribute("width", bw + 20);
+    } else {
+      e.mark.setAttribute("cx", x1); e.mark.setAttribute("cy", yd);
+      e.mark.setAttribute("r", sel.includes(e) ? 7.5 : 5.5);
+      e.hit.setAttribute("x", x1 - 13); e.hit.setAttribute("width", 26);
+    }
+    e.hit.setAttribute("y", yd - 13); e.hit.setAttribute("height", 26);
+    e.cx = cx; e.yd = yd;
+    e.tx.style.display = "";
+    if (!e.w) { const mw = e.tx.getComputedTextLength ? e.tx.getComputedTextLength() : 0; if (mw > 0) e.w = mw; }
+    const w = (e.w || textW(e.tx.textContent)) * (sel.includes(e) ? 1.1 : 1), lx = Play.clamp(cx - w / 2, 4, W - 4 - w);
+    let row = -1;
+    for (let r = 0; r < 2 && row < 0; r++) {
+      if (rows[e.l][r].every(([a, b]) => lx + w + 6 < a || lx - 6 > b)) row = r;
+    }
+    if (row < 0) { e.tx.style.display = "none"; e.lead.style.display = "none"; return; }
+    rows[e.l][row].push([lx, lx + w]);
+    const by = row === 0 ? top + 50 : top + 33;
+    e.tx.style.display = ""; e.tx.setAttribute("x", lx); e.tx.setAttribute("y", by);
+    if (row === 1) {
+      e.lead.style.display = "";
+      e.lead.setAttribute("x1", cx); e.lead.setAttribute("x2", cx);
+      e.lead.setAttribute("y1", by + 3); e.lead.setAttribute("y2", yd - 7);
+    } else e.lead.style.display = "none";
+  });
+}
+
+function drawBracket() {
+  gBr.innerHTML = "";
+  if (sel.length !== 2) return;
+  const m = measure(sel[0], sel[1]);
+  const yb = H - 20;
+  const xa = X(astro(m.a.y)), xb = X(astro(m.b.y));
+  [[m.a, xa], [m.b, xb]].forEach(([e, x]) => {
+    if (x >= 0 && x <= W && e.g.style.display !== "none") Play.svg("line", { class: "brDash", x1: x, x2: x, y1: (e.yd || AX) + 8, y2: yb }, gBr);
+  });
+  const l = Play.clamp(xa, 0, W), r = Play.clamp(xb, 0, W);
+  if (r - l < 1) return;
+  Play.svg("path", { class: "br", d: `M${l} ${yb - 5}V${yb}H${r}V${yb - 5}` }, gBr);
+  const s = yearsText(m.g, m.approx), w = textW(s);
+  const tx = Play.clamp((l + r) / 2, w / 2 + 4, W - w / 2 - 4);
+  Play.svg("text", { class: "brLab", x: tx, y: yb - 8, "text-anchor": "middle" }, gBr).textContent = s;
+}
+
+function spanText() {
+  const s = V.b - V.a;
+  const mag = Math.pow(10, Math.max(0, Math.floor(Math.log10(s)) - 1));
+  $("span").textContent = P.t("span", { n: yearsText(Math.round(s / mag) * mag, false) });
+}
+
+function drawGuess() {
+  gGuess.innerHTML = "";
+  const y0 = Math.round(H * 0.56), xL = 30, xR = W - 30;
+  const ePyr = byId.pyr, eCleo = byId.cleo, eMoon = byId.moon;
+  const total = gapYears(ePyr.y, eMoon.y);
+  const frac = gapYears(ePyr.y, eCleo.y) / total;
+  // a tick every 500 years, so the length is visible
+  for (let n = -2500; n <= 1969; n += 500) {
+    const x = xL + (gapYears(ePyr.y, n) / total) * (xR - xL);
+    Play.svg("line", { class: "gTick", x1: x, x2: x, y1: y0 - 8, y2: y0 + 8 }, gGuess);
+  }
+  Play.svg("line", { class: "gLine", x1: xL, x2: xR, y1: y0, y2: y0 }, gGuess);
+  const mark = (x, e, anchor, yT) => {
+    Play.svg("circle", { class: "dot", cx: x, cy: y0, r: 7 }, gGuess);
+    const ax = anchor === "start" ? x - 8 : anchor === "end" ? x + 8 : x;
+    Play.svg("text", { class: "gName", x: ax, y: yT, "text-anchor": anchor }, gGuess).textContent = P.t("n_" + e.id);
+    Play.svg("text", { class: "gDate", x: ax, y: yT + 18, "text-anchor": anchor }, gGuess).textContent = dateText(e);
+  };
+  mark(xL, ePyr, "start", y0 - 52);
+  mark(xR, eMoon, "end", y0 - 52);
+  const t = guessT, ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  const xf = xL + frac * (xR - xL), cxs = W / 2;
+  const cx = cxs + (xf - cxs) * ease, cy = (y0 - 150) + 150 * ease;
+  const cName = P.t("n_cleo"), nW = Math.max(textW(cName), textW(dateText(eCleo)));
+  const tx = Play.clamp(cx, nW / 2 + 4, W - nW / 2 - 4);
+  if (guessed) Play.svg("circle", { class: "dot", cx, cy, r: 7, style: "fill: var(--hl)" }, gGuess);
+  else Play.svg("text", { class: "gQ", x: cx, y: cy + 10, "text-anchor": "middle" }, gGuess).textContent = "?";
+  const ly = cy - 48 - 48 * ease;
+  if (guessed) Play.svg("line", { class: "lead", x1: cx, x2: cx, y1: ly + 26, y2: cy - 9 }, gGuess);
+  Play.svg("text", { class: "gName", x: tx, y: ly, "text-anchor": "middle" }, gGuess).textContent = cName;
+  Play.svg("text", { class: "gDate", x: tx, y: ly + 18, "text-anchor": "middle" }, gGuess).textContent = dateText(eCleo);
+  if (!guessed) {
+    Play.svg("text", { class: "gHint", x: W / 2, y: y0 + 60, "text-anchor": "middle" }, gGuess).textContent = P.t("gHint");
+    return;
+  }
+  if (t < 1) return;
+  const m1 = measure(ePyr, eCleo), m2 = measure(eCleo, eMoon);
+  const yb = y0 + 34;
+  [[xL, xf, m1], [xf, xR, m2]].forEach(([l, r, m]) => {
+    Play.svg("path", { class: "br", d: `M${l + 2} ${yb - 6}V${yb}H${r - 2}V${yb - 6}` }, gGuess);
+    const s = yearsText(m.g, m.approx);
+    Play.svg("text", { class: "gGap", x: (l + r) / 2, y: yb + 20, "text-anchor": "middle" }, gGuess).textContent = s;
+  });
+}
+
+function draw() {
+  fig.classList.toggle("guess", mode === "guess");
+  gGuess.style.display = mode === "guess" ? "" : "none";
+  gLine.style.display = mode === "guess" ? "none" : "";
+  if (mode === "guess") { drawGuess(); return; }
+  drawBg(); drawAxis(); drawEvents(); drawBracket(); spanText();
+}
+
+function resize() {
+  const r = fig.getBoundingClientRect();
+  if (r.width < 10 || r.height < 10) return;
+  W = Math.round(r.width); H = Math.round(r.height);
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  draw();
+}
+if (window.ResizeObserver) new ResizeObserver(resize).observe(fig); else window.addEventListener("resize", resize);
+
+/* ---------- selection and the info panel ---------- */
+function toggle(e) {
+  const i = sel.indexOf(e);
+  if (i >= 0) sel.splice(i, 1);
+  else { sel.push(e); if (sel.length > 2) sel.shift(); }
+  draw(); info();
+}
+function line(cls, text, parent) { const d = document.createElement("div"); d.className = cls; d.textContent = text; parent.appendChild(d); return d; }
+function info() {
+  const box = $("info");
+  box.innerHTML = "";
+  if (!sel.length) { line("", P.t("pick2"), box); return; }
+  if (sel.length === 1) {
+    const e = sel[0];
+    const d = line("", "", box);
+    const n = document.createElement("span"); n.className = "nm"; n.textContent = P.t("n_" + e.id);
+    const t = document.createElement("span"); t.className = "dt"; t.textContent = " · " + dateText(e) + " · " + P.t(LANES[e.l]);
+    d.append(n, t);
+    line("", P.t("d_" + e.id), box);
+    line("dt", P.t("pick1"), box);
+    Play.live($("live"), P.t("n_" + e.id) + ", " + dateText(e));
+    return;
+  }
+  const m = measure(sel[0], sel[1]);
+  [m.a, m.b].forEach((e) => {
+    const d = line("", "", box);
+    const n = document.createElement("span"); n.className = "nm"; n.textContent = P.t("n_" + e.id);
+    const t = document.createElement("span"); t.className = "dt"; t.textContent = " · " + dateText(e);
+    d.append(n, t);
+  });
+  const g = yearsText(m.g, m.approx);
+  line("gp", P.t("gapIs", { g }), box);
+  if (m.calc) line("calc", m.calc + (m.cross ? " " + P.t("noZero") : ""), box);
+  if (m.a.ago || m.b.ago) line("dt", P.t("deep"), box);
+  if (m.a.y2 != null || m.b.y2 != null) line("dt", P.t("fromStart"), box);
+  Play.live($("live"), P.t("gapLive", { a: P.t("n_" + m.a.id), b: P.t("n_" + m.b.id), g }));
+}
+
+/* ---------- pointer, wheel, keyboard ---------- */
+const ptrs = new Map();
+let down = null, pinchD = 0, pinchX = 0;
+const svgX = (cx) => { const r = fig.getBoundingClientRect(); return ((cx - r.left) / r.width) * W; };
+function pinchInfo() {
+  const [p, q] = [...ptrs.values()];
+  return { d: Math.hypot(p.x - q.x, p.y - q.y), x: svgX((p.x + q.x) / 2) };
+}
+fig.addEventListener("pointerdown", (ev) => {
+  if (mode === "guess") return;
+  cancelAnimationFrame(anim);
+  try { fig.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+  ptrs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  if (ptrs.size === 1) {
+    const t = ev.target.closest && ev.target.closest("[data-ev]");
+    down = { x: ev.clientX, y: ev.clientY, id: t ? t.dataset.ev : null, moved: false };
+  } else if (ptrs.size === 2) {
+    if (down) down.moved = true;
+    const pi = pinchInfo(); pinchD = pi.d; pinchX = pi.x;
+  }
+});
+fig.addEventListener("pointermove", (ev) => {
+  const prev = ptrs.get(ev.pointerId);
+  if (!prev) return;
+  const nx = ev.clientX, ny = ev.clientY;
+  if (ptrs.size === 1) {
+    if (down && Math.hypot(nx - down.x, ny - down.y) > 6) down.moved = true;
+    if (down && down.moved) {
+      const r = fig.getBoundingClientRect();
+      pan((-(nx - prev.x) / r.width) * (V.b - V.a));
+    }
+    ptrs.set(ev.pointerId, { x: nx, y: ny });
+  } else if (ptrs.size === 2) {
+    ptrs.set(ev.pointerId, { x: nx, y: ny });
+    const pi = pinchInfo();
+    if (pi.d > 4 && pinchD > 4) {
+      pan(((pinchX - pi.x) / W) * (V.b - V.a));
+      zoomAt(pi.x, pinchD / pi.d);
+    }
+    pinchD = pi.d; pinchX = pi.x;
+  }
+});
+function up(ev) {
+  if (!ptrs.has(ev.pointerId)) return;
+  ptrs.delete(ev.pointerId);
+  if (ptrs.size === 0) {
+    if (down && !down.moved && down.id && ev.type === "pointerup") toggle(byId[down.id]);
+    down = null;
+  } else if (ptrs.size === 1) {
+    down = null;
+  }
+}
+fig.addEventListener("pointerup", up);
+fig.addEventListener("pointercancel", up);
+fig.addEventListener("wheel", (ev) => {
+  if (mode === "guess") return;
+  ev.preventDefault();
+  cancelAnimationFrame(anim);
+  const k = ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? 400 : 1;
+  zoomAt(svgX(ev.clientX), Math.exp(Play.clamp(ev.deltaY * k, -200, 200) * 0.0018));
+}, { passive: false });
+function focusX() {
+  const a = document.activeElement;
+  const e = a && a.dataset && a.dataset.ev ? byId[a.dataset.ev] : null;
+  return e && Number.isFinite(e.cx) ? e.cx : W / 2;
+}
+fig.addEventListener("keydown", (ev) => {
+  if (mode === "guess") return;
+  const s = V.b - V.a;
+  let used = true;
+  if (ev.key === "ArrowLeft") pan(-0.15 * s);
+  else if (ev.key === "ArrowRight") pan(0.15 * s);
+  else if (ev.key === "ArrowUp" || ev.key === "+" || ev.key === "=") zoomAt(focusX(), 0.7);
+  else if (ev.key === "ArrowDown" || ev.key === "-" || ev.key === "_") zoomAt(focusX(), 1 / 0.7);
+  else used = false;
+  if (used) { cancelAnimationFrame(anim); ev.preventDefault(); }
+});
+
+$("zIn").addEventListener("click", () => animateTo(...scaled(0.5)));
+$("zOut").addEventListener("click", () => animateTo(...scaled(2)));
+function scaled(f) {
+  const c = (V.a + V.b) / 2, s = Play.clamp((V.b - V.a) * f, MINSPAN, MAXB - MINA);
+  return [c - s / 2, c + s / 2];
+}
+$("vAll").addEventListener("click", () => animateTo(MINA, MAXB));
+$("vWrite").addEventListener("click", () => animateTo(astro(-3200) - 250, TODAY + 60));
+$("vCleo").addEventListener("click", () => {
+  sel = [byId.pyr, byId.cleo];
+  info();
+  animateTo(astro(-2900), TODAY + 60);
+});
+$("vClear").addEventListener("click", () => { sel = []; draw(); info(); });
+
+function showResult() { document.querySelector(".result").hidden = mode === "guess" && !guessed; }
+
+/* ---------- guess animation ---------- */
+function runGuess() {
+  guessed = true;
+  showResult();
+  cancelAnimationFrame(anim);
+  if (Play.reduced) { guessT = 1; draw(); return; }
+  const t0 = performance.now();
+  const f = (t) => {
+    guessT = Math.min(1, (t - t0) / 900);
+    if (mode === "guess") draw();
+    if (guessT < 1) anim = requestAnimationFrame(f); else draw();
+  };
+  anim = requestAnimationFrame(f);
+}
+
+/* ---------- computed strings ---------- */
+const mPC = measure(byId.pyr, byId.cleo), mCM = measure(byId.cleo, byId.moon);
+const closer = roundGap(mPC.raw - mCM.raw, true);
+const dTxt = yearsText(closer, true).replace(/^about |^约 /, "");
+$("resMain").textContent = (ZHL ? "公元前 30 年 → 公元 1969 年：" : "30 BCE → 1969 CE: ") + mCM.calc + (ZHL ? " 年" : " years");
+$("resNote").textContent = P.t("resNote", { d: dTxt });
+const writeAgo = TODAY - astro(-3200);
+const sapiensAgo = TODAY - astro(byId.hs.y);
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }],
+  right: P.t("right", { g: yearsText(mPC.g, false).replace(/ years| 年/, "") }),
+  wrong: P.t("wrong", { d: dTxt }),
+}, () => { if (!guessed) runGuess(); });
+
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  $("info").hidden = i === 0;
+  $("ctl").hidden = i === 0;
+  mode = i === 0 ? "guess" : "line";
+  showResult();
+  if (i === 2) Play.live($("live"), P.t("liveW", { w: yearsText(Math.round(writeAgo / 100) * 100, false).replace(/^about /, ""), pct: Play.fmt((100 * writeAgo) / sapiensAgo, 1) }));
+  else if (i === 0) Play.live($("live"), "");
+  else info();
+  resize();
+});
+
+$("reset").addEventListener("click", () => {
+  cancelAnimationFrame(anim);
+  sel = []; guessed = false; guessT = 0;
+  V.a = START[0]; V.b = START[1];
+  pr.reset(); st.go(0); info();
+});
+info();
+resize();
+</script>
+</body>
+</html>

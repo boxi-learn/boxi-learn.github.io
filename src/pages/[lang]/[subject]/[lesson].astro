@@ -1,0 +1,54 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { type Lang, LANGS, SUBJECTS, STAGES, GRADE_LABEL, seedName, subjectById, t } from "../../../data/site";
+
+export function getStaticPaths() {
+  return LANGS.flatMap((lang) =>
+    SUBJECTS.flatMap((s) => s.lessons.map((l) => ({ params: { lang, subject: s.id, lesson: l.slug } }))),
+  );
+}
+const lang = Astro.params.lang as Lang;
+const s = subjectById.get(Astro.params.subject!)!;
+const l = s.lessons.find((x) => x.slug === Astro.params.lesson)!;
+const playUrl = l.play ? `/play/${s.id}/${l.play}?lang=${lang}` : null;
+---
+
+<Base lang={lang} title={`${l.title[lang]} · ${s.name[lang]}`} description={l.insight[lang]} path={`${s.id}/${l.slug}/`}>
+  <div class={`s-${s.id}`}>
+    <p class="crumbs">
+      <a href={`/${lang}/`}>{t("site", lang)}</a> › <a href={`/${lang}/${s.id}/`}>{s.name[lang]}</a> ›
+      <a href={`/${lang}/stage/${l.stage}/`}>{t("stage", lang)} {l.stage} · {STAGES[l.stage].name[lang]}</a>
+    </p>
+    <h1>{l.title[lang]}</h1>
+    <div class="chips">{l.seeds.map((id) => <span class="chip">{seedName(s, id, lang)}</span>)}</div>
+
+    <div class="block mix"><div class="label">{t("mis", lang)}</div><p>{l.misconception[lang]}</p></div>
+    <div class="block insight"><div class="label">{t("insight", lang)}</div><p>{l.insight[lang]}</p></div>
+
+    <section class="play-embed">
+      <h2>{t("play", lang)}</h2>
+      {playUrl ? (
+        <>
+          <iframe id="play" src={`${playUrl}&embed=1`} title={l.title[lang]}></iframe>
+          <p class="open"><a href={playUrl} target="_blank" rel="noopener">{t("openNew", lang)} ↗</a></p>
+        </>
+      ) : (
+        <div class="video">{t("notYet", lang)}</div>
+      )}
+    </section>
+
+    {l.explain && <div class="block insight"><div class="label">{t("explain", lang)}</div><p>{l.explain[lang]}</p></div>}
+    {l.home && <div class="block non"><div class="label">{t("home", lang)}</div><p>{l.home[lang]}</p></div>}
+
+    <p class="meta">
+      {t("grade", lang)}: {Object.entries(l.grade).map(([k, v]) => `${GRADE_LABEL[k]?.[lang] ?? k} ${v}`).join(" · ")}
+    </p>
+  </div>
+  <script is:inline>
+    // Interactive pages post their height (play.js, embed mode) so the iframe never scrolls inside.
+    addEventListener("message", (e) => {
+      const f = document.getElementById("play");
+      if (f && e.source === f.contentWindow && e.data && e.data.type === "play-height") f.style.height = e.data.h + "px";
+    });
+  </script>
+</Base>

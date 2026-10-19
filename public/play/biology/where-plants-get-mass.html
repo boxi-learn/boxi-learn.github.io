@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where does a tree's mass come from?</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .lbl { fill: var(--fg); font-size: 14px; }
+  .lbl.m { fill: var(--muted); font-size: 13px; }
+  .lbl.big { font-size: 20px; font-weight: 700; }
+  .lbl.b { font-weight: 650; }
+  .lbl.eq { font-family: var(--math); font-size: 17px; }
+  .panel { fill: var(--soft); }
+  .trunk { fill: var(--b); }
+  .leaf { fill: var(--a); opacity: .85; }
+  .twig { stroke: var(--a); stroke-width: 2; fill: none; opacity: .8; }
+  .pot { fill: var(--b); opacity: .55; }
+  .soil { fill: var(--b); }
+  .ground { stroke: var(--line); stroke-width: 2; }
+  .barbg { fill: var(--line); opacity: .6; }
+  .bA { fill: var(--a); } .bB { fill: var(--b); } .bC { fill: var(--c); } .bH { fill: var(--hl); }
+  .sun { fill: var(--hl); }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .ah { fill: var(--muted); }
+  .q { fill: var(--a); font-size: 34px; font-weight: 750; }
+  .controls .play-btn { min-width: 5.5em; }
+  #extra { font-size: 14px; }
+</style>
+</head>
+<body data-subject="biology">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" data-t-aria="figAria"></svg>
+      <div class="controls" id="ctlYear">
+        <label for="year" data-t="yearLabel"></label>
+        <input type="range" id="year" min="0" max="5" step="0.1" value="0">
+        <span class="val" id="yearVal"></span>
+        <button type="button" class="small play-btn" id="playBtn"></button>
+      </div>
+      <div class="controls" id="ctlGlu">
+        <label for="glu" data-t="gluLabel"></label>
+        <input type="range" id="glu" min="0" max="1000" step="10" value="100">
+        <span class="val" id="gluVal"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p id="extra"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" id="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Where does a tree's mass come from?", eyebrow: "Biology · Stage 3", h1: "Where does a tree's mass come from?",
+    intro: "Guess first. Then weigh a willow and its soil for five years, and count the atoms that build a sugar.",
+    reset: "Reset", figAria: "A willow in a pot with two scales, and bars weighing the molecules of photosynthesis",
+    yearLabel: "Years", yearVal: "year {y}", gluLabel: "Glucose made", play: "Play", pause: "Pause",
+    s1: "Guess", s2: "Willow", s3: "Atoms", s4: "Rule",
+    k1: "Predict first", t1: "A little tree grows into a big one. Where did most of the new mass come from?",
+    b1: "Pick one. Being wrong costs nothing: the next steps put every answer to the test.",
+    q: "Most of the tree's new mass comes from…", o1: "the soil", o2: "water", o3: "the air", o4: "sunlight",
+    right: "That is the surprising answer. Now look at the evidence.", wrong: "Keep that guess in mind and test it in the next step.",
+    fb1: "Most people guess this. It was the usual idea in the 1600s too. Step 2 weighs the soil.",
+    fb2: "That is exactly what van Helmont concluded. Water is part of it; step 3 shows how big a part.",
+    fb3: "Air feels like nothing, yet it has mass: one cubic metre of air weighs about 1.2 kg.",
+    fb4: "Light brings the energy, but it does not bring atoms. Step 3 counts where the atoms come from.",
+    k2: "Hands on · a 17th-century experiment", t2: "Van Helmont's willow: weigh the tree and the soil",
+    b2: "Jan Baptist van Helmont planted a small willow in a pot of dried, weighed soil, covered the pot, and for about five years gave it only rainwater. Drag the years (or press Play) and watch both scales.",
+    x2a: "Keep going to year 5.",
+    x2b: "Reported result: the tree gained about {gain} kg, while the soil lost only about {loss} g, roughly {ratio} times less. The new mass did not come from the soil.",
+    live2: "Year {y}: tree {tree} kg ({dt} kg), dried soil {soil} kg ({ds} g).",
+    k3: "Hands on · count the atoms", t3: "Photosynthesis: what goes in, what comes out",
+    b3: "Use the slider to make glucose (a sugar). The code weighs every molecule from its atoms, so the two sides always balance.",
+    x3: "All 6 carbon atoms in glucose come from CO₂, and so do its 6 oxygen atoms. Only the hydrogen, {hp}% of the mass, comes from water. The O₂ given off comes from water that the leaf splits, not from CO₂: experiments with heavy oxygen (¹⁸O) showed this in 1941. Written to show it: 6CO₂ + 12H₂O → C₆H₁₂O₆ + 6O₂ + 6H₂O.",
+    live3: "To make {g} g of glucose, the leaf takes in {co2} g of CO₂ and {h2o} g of water, and gives out {o2} g of O₂. That is {per} g of CO₂ for every gram of glucose.",
+    k4: "The rule", t4: "A plant builds itself mostly out of air",
+    b4: "Using light energy, a plant joins CO₂ from the air with water to make sugar, then builds wood, leaves and roots from it. Carbon from CO₂ is the largest part of its dry mass. Soil supplies small amounts of minerals such as nitrogen (N), phosphorus (P) and potassium (K): vital, but tiny by weight.",
+    x4: "Van Helmont saw that the soil hardly changed and concluded the tree was made of water. That was wrong, though not all wrong: a living tree holds a lot of water. He did not think the air could add weight. Rough estimate: if about half of the {gain} kg was water, the remaining ~{dry} kg of dry matter, built like sugar, needed about {co2} kg of CO₂ from the air.",
+    live4: "Tree +{gain} kg, soil −{loss} g. Of the mass in glucose, {ap}% came from CO₂ and {hp}% from water.",
+    fTree: "Willow tree", fSoil: "Dried soil", fPot: "pot of soil", fAir: "air (CO₂)", fWater: "water", fSun: "light",
+    fSame: "same scale as the tree", fStart: "start {v} kg", fYear: "year {y}",
+    mCO2: "CO₂ in", mH2O: "H₂O in", mGlu: "glucose out", mO2: "O₂ out",
+    fBal: "in {a} g = out {b} g", fComp: "Mass of glucose by where its atoms came from",
+    fC: "C", fO: "O", fH: "H", fFromAir: "from CO₂ {p}%", fFromWater: "from water {p}%",
+    fGain: "tree gained", fLoss: "soil lost", fSugar: "Sugar's mass came from", fAirS: "air", fWaterS: "water",
+    fMin: "Soil adds N, P, K: small but essential",
+    resultTitle: "What we found", resultMain: "air + water + light → plant",
+    resultNote: "{ap}% of the mass of sugar comes from CO₂ in the air. Soil adds minerals (N, P, K) in small amounts.",
+    explainK: "Explain it", explainQ: "A friend says 'plants eat soil'. Using the willow numbers, explain where a tree's mass really comes from, and what the soil is still needed for.",
+    homeK: "Try at home", homeQ: "Grow cress or bean sprouts on wet paper towel, with no soil at all, for a week. They still grow. Where did their new mass come from?",
+    foot: "Data: J. B. van Helmont's willow experiment (published 1648), figures as commonly reported: willow 5 lb → 169 lb 3 oz in five years; 200 lb of dried soil lost about 2 oz (1 lb = 0.4536 kg). Only the start and end were reported; years in between are a smooth curve for illustration. He also did not weigh the leaves that fell each autumn. Atomic masses: C 12.011, H 1.008, O 15.999. Oxygen tracer: Ruben, Randall, Kamen and Hyde, 1941. Air ≈ 1.2 kg/m³ at sea level. The 50% water share is a rough figure for fresh wood. · CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "大树的重量从哪里来？", eyebrow: "生物 · 阶段 3", h1: "大树的重量从哪里来？",
+    intro: "先猜一猜。再把一棵柳树和它的土称上五年，最后数一数造出一份糖要用哪些原子。",
+    reset: "重置", figAria: "盆里的柳树和两台秤，以及光合作用各种分子的质量条",
+    yearLabel: "年数", yearVal: "第 {y} 年", gluLabel: "造出的葡萄糖", play: "播放", pause: "暂停",
+    s1: "先猜", s2: "柳树", s3: "数原子", s4: "规律",
+    k1: "先猜一猜", t1: "小树长成了大树。新长出来的重量，大部分是从哪里来的？",
+    b1: "选一个。猜错没关系，后面几步会把每个答案都检验一遍。",
+    q: "大树新增的重量，大部分来自……", o1: "土", o2: "水", o3: "空气", o4: "阳光",
+    right: "这正是让人意外的答案。接着看证据。", wrong: "记住你的猜测，下一步来检验它。",
+    fb1: "大多数人都这么猜，17 世纪的人也这么想。第 2 步就来称一称土。",
+    fb2: "范·海尔蒙特当年的结论正是「水」。水确实占一部分，第 3 步看它占多少。",
+    fb3: "空气摸着像没东西，其实有质量：一立方米空气大约重 1.2 千克。",
+    fb4: "光带来的是能量，不带来原子。第 3 步数一数原子从哪里来。",
+    k2: "动手 · 一个 17 世纪的实验", t2: "范·海尔蒙特的柳树：称树，也称土",
+    b2: "扬·巴普蒂斯塔·范·海尔蒙特把一棵小柳树种进一盆烘干、称过的土里，盖住盆口，大约五年里只浇雨水。拖动年数（或按「播放」），看两台秤怎么变。",
+    x2a: "继续拖到第 5 年。",
+    x2b: "记载的结果：树增重约 {gain} 千克，土只少了约 {loss} 克，差了大约 {ratio} 倍。新增的重量不是从土里来的。",
+    live2: "第 {y} 年：树 {tree} 千克（{dt} 千克），干土 {soil} 千克（{ds} 克）。",
+    k3: "动手 · 数原子", t3: "光合作用：进去什么，出来什么",
+    b3: "拖滑块造出一些葡萄糖（一种糖）。程序按原子逐个称每种分子，所以两边总是平衡的。",
+    x3: "葡萄糖里的 6 个碳原子全部来自 CO₂，6 个氧原子也来自 CO₂。只有氢来自水，占质量的 {hp}%。放出的 O₂ 来自叶子分解的水，不是来自 CO₂：1941 年用重氧（¹⁸O）做标记的实验证明了这一点。把这一点写出来就是：6CO₂ + 12H₂O → C₆H₁₂O₆ + 6O₂ + 6H₂O。",
+    live3: "要造 {g} 克葡萄糖，叶子吸进 {co2} 克 CO₂ 和 {h2o} 克水，放出 {o2} 克 O₂。每造 1 克葡萄糖要用 {per} 克 CO₂。",
+    k4: "规律", t4: "植物主要是用空气把自己造出来的",
+    b4: "植物借光的能量，把空气里的 CO₂ 和水合成糖，再用糖造出木头、叶子和根。来自 CO₂ 的碳是植物干重里最大的一份。土只提供少量矿质元素，比如氮（N）、磷（P）、钾（K）：必不可少，但按重量算很少。",
+    x4: "范·海尔蒙特看到土几乎没少，就断定树是水变的。这个结论错了，但不全错：活树里确实有很多水。他没想到空气也能增加重量。粗略估算：如果 {gain} 千克里大约一半是水，剩下约 {dry} 千克干物质按糖来算，要从空气里吸收约 {co2} 千克 CO₂。",
+    live4: "树 +{gain} 千克，土 −{loss} 克。葡萄糖的质量中 {ap}% 来自 CO₂，{hp}% 来自水。",
+    fTree: "柳树", fSoil: "干土", fPot: "一盆土", fAir: "空气（CO₂）", fWater: "水", fSun: "光",
+    fSame: "和树用同一个比例", fStart: "起始 {v} 千克", fYear: "第 {y} 年",
+    mCO2: "进 CO₂", mH2O: "进 H₂O", mGlu: "出葡萄糖", mO2: "出 O₂",
+    fBal: "进 {a} 克 = 出 {b} 克", fComp: "葡萄糖的质量，按原子来源分",
+    fC: "C", fO: "O", fH: "H", fFromAir: "来自 CO₂ {p}%", fFromWater: "来自水 {p}%",
+    fGain: "树增重", fLoss: "土减少", fSugar: "糖的质量来自", fAirS: "空气", fWaterS: "水",
+    fMin: "土提供 N、P、K：量少但不可缺",
+    resultTitle: "我们发现", resultMain: "空气 + 水 + 光 → 植物",
+    resultNote: "糖的质量有 {ap}% 来自空气里的 CO₂。土只补充少量矿质元素（N、P、K）。",
+    explainK: "说一说", explainQ: "朋友说「植物是吃土长大的」。用柳树实验的数字给他讲讲：树的重量到底从哪里来，土又是干什么用的。",
+    homeK: "家里做一做", homeQ: "在湿纸巾上种水芹或豆芽，一点土都不用，养一周。它们照样长大——新长的重量从哪里来？",
+    foot: "数据：范·海尔蒙特的柳树实验（1648 年出版），采用通行记载：柳树五年从 5 磅长到 169 磅 3 盎司；200 磅干土约少 2 盎司（1 磅 = 0.4536 千克）。记载只有起点和终点，中间年份是示意用的平滑曲线。他也没称每年秋天落下的叶子。原子量：C 12.011，H 1.008，O 15.999。氧示踪实验：Ruben、Randall、Kamen、Hyde，1941 年。海平面空气约 1.2 kg/m³。「一半是水」是鲜木的粗略比例。· CC BY 4.0 · Boxi Yu",
+  },
+});
+
+// ---------- numbers (all computed here) ----------
+const LB = 0.45359237, OZ = LB / 16;
+const H0 = { tree0: 5 * LB, tree5: 169 * LB + 3 * OZ, soil0: 200 * LB, soilLoss: 2 * OZ }; // kg, as reported
+const GAIN = H0.tree5 - H0.tree0;                       // kg
+const AM = { C: 12.011, H: 1.008, O: 15.999 };
+const M = {
+  CO2: AM.C + 2 * AM.O, H2O: 2 * AM.H + AM.O, O2: 2 * AM.O,
+  GLU: 6 * AM.C + 12 * AM.H + 6 * AM.O,
+};
+// 6CO2 + 6H2O -> C6H12O6 + 6O2, grams per gram of glucose
+const PER = { CO2: 6 * M.CO2 / M.GLU, H2O: 6 * M.H2O / M.GLU, O2: 6 * M.O2 / M.GLU };
+const SHARE = { C: 6 * AM.C / M.GLU, O: 6 * AM.O / M.GLU, H: 12 * AM.H / M.GLU }; // of glucose mass
+const FROM_AIR = SHARE.C + SHARE.O, FROM_WATER = SHARE.H;
+const DRY = GAIN * 0.5;                                  // rough: fresh wood about half water
+const growth = (u) => Math.pow(Play.clamp(u, 0, 1), 1.5); // illustrative curve between reported ends
+function willow(y) {
+  const u = Play.clamp(y / 5, 0, 1);
+  return { tree: H0.tree0 + GAIN * growth(u), soil: H0.soil0 - H0.soilLoss * u };
+}
+const roundSig = (x, s) => { if (!(x > 0)) return 0; const p = Math.pow(10, Math.floor(Math.log10(x)) - s + 1); return Math.round(x / p) * p; };
+const f = Play.fmt;
+const pct = (x) => f(x * 100, 1);
+
+// ---------- DOM ----------
+const fig = document.getElementById("fig");
+const year = document.getElementById("year"), glu = document.getElementById("glu");
+const playBtn = document.getElementById("playBtn");
+const extra = document.getElementById("extra"), liveEl = document.getElementById("live");
+let step = 0, predictNote = "", raf = 0, last = 0, yf = 0;
+document.getElementById("resultNote").textContent = P.t("resultNote", { ap: pct(FROM_AIR) });
+
+const S = (tag, a, p) => Play.svg(tag, a, p || fig);
+function text(x, y, s, cls, anchor, p) {
+  const t = S("text", { x, y, class: "lbl " + (cls || ""), "text-anchor": anchor || "start" }, p);
+  t.textContent = s;
+  return t;
+}
+function arrow(x1, y1, x2, y2) {
+  S("line", { x1, y1, x2, y2, class: "arrow" });
+  const a = Math.atan2(y2 - y1, x2 - x1), L = 9;
+  const p = [[x2, y2], [x2 - L * Math.cos(a - 0.45), y2 - L * Math.sin(a - 0.45)], [x2 - L * Math.cos(a + 0.45), y2 - L * Math.sin(a + 0.45)]];
+  S("polygon", { points: p.map((q) => q.join(",")).join(" "), class: "ah" });
+}
+
+// willow in a pot; returns geometry
+function drawTree(cx, groundY, areaW, areaH, mass, label) {
+  const pw = Math.min(areaW * 0.62, 130), ph = 52;
+  const potTop = groundY - ph;
+  S("line", { x1: cx - areaW / 2 + 6, y1: groundY, x2: cx + areaW / 2 - 6, y2: groundY, class: "ground" });
+  S("path", { d: `M${cx - pw / 2} ${potTop} L${cx + pw / 2} ${potTop} L${cx + pw / 2 - 12} ${groundY} L${cx - pw / 2 + 12} ${groundY} Z`, class: "pot" });
+  S("rect", { x: cx - pw / 2 + 3, y: potTop + 2, width: pw - 6, height: 9, rx: 3, class: "soil" });
+  const s = Math.cbrt(Play.clamp(mass / H0.tree5, 0, 1));          // size ∝ cube root of mass
+  const maxH = Math.max(40, potTop - 12);
+  const th = Math.max(18, s * maxH * 0.45), tw = 3 + s * 10;
+  const topY = potTop - th;
+  S("path", { d: `M${cx - tw / 2} ${potTop + 2} L${cx - tw / 4} ${topY} L${cx + tw / 4} ${topY} L${cx + tw / 2} ${potTop + 2} Z`, class: "trunk" });
+  const rx = Math.max(12, s * Math.min(areaW / 2 - 8, maxH * 0.55)), ry = Math.max(10, s * maxH * 0.3);
+  const cy = topY - ry * 0.35;
+  for (let i = 0; i < 9; i++) {                                     // drooping willow strands
+    const x0 = cx - rx * 0.85 + (i / 8) * rx * 1.7;
+    S("path", { d: `M${x0} ${cy} Q${x0 + (x0 - cx) * 0.25} ${cy + ry} ${x0 + (x0 - cx) * 0.15} ${cy + ry * 1.5}`, class: "twig" });
+  }
+  S("ellipse", { cx, cy, rx, ry, class: "leaf" });
+  if (label) text(cx, groundY + 20, label, "m", "middle");
+  return { potTop, top: cy - ry };
+}
+
+function bar(x, y, w, h, frac, cls) {
+  S("rect", { x, y, width: Math.max(0, w), height: h, rx: 3, class: "barbg" });
+  const v = Play.clamp(frac, 0, 1) * w;
+  if (v > 0) S("rect", { x, y, width: Math.max(1, v), height: h, rx: 3, class: cls });
+}
+
+function size() {
+  const r = fig.getBoundingClientRect();
+  const W = Math.max(280, Math.round(r.width || 600)), H = Math.max(240, Math.round(r.height || 360));
+  fig.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  return { W, H };
+}
+
+function drawGuess(W, H) {
+  const cx = W * 0.5, g = H - 34;
+  const t = drawTree(cx, g, Math.min(W * 0.4, 220), H, H0.tree0 + GAIN * 0.15, P.t("fPot"));
+  text(cx, Math.max(40, t.top - 14), "?", "q", "middle").setAttribute("class", "q");
+  const sx = W - 46, sy = 44;
+  S("circle", { cx: sx, cy: sy, r: 18, class: "sun" });
+  text(sx, sy + 38, P.t("fSun"), "m", "middle");
+  arrow(sx - 26, sy + 14, cx + 30, t.top + 26);
+  text(16, 40, P.t("fAir"), "m", "start");
+  arrow(40, 52, cx - 34, t.top + 26);
+  text(16, H * 0.62, P.t("fWater"), "m", "start");
+  arrow(56, H * 0.62 - 4, cx - Math.min(W * 0.2, 70), t.potTop + 6);
+}
+
+function drawWillow(W, H) {
+  const y = +year.value, w = willow(y);
+  const split = W * 0.47;
+  drawTree(split / 2 + 4, H - 34, split - 8, H, w.tree, P.t("fYear", { y: f(y, 1) }));
+  const x0 = split + 8, cw = W - x0 - 12, gap = 10, ch = (H - 24 - gap) / 2;
+  const cards = [
+    { y: 12, name: P.t("fTree"), val: f(w.tree, 2) + " kg", d: "+" + f(w.tree - H0.tree0, 2) + " kg", fr: (w.tree - H0.tree0) / 80, cls: "bA",
+      sub: P.t("fStart", { v: f(H0.tree0, 2) }) },
+    { y: 12 + ch + gap, name: P.t("fSoil"), val: f(w.soil, 3) + " kg", d: "−" + f((H0.soil0 - w.soil) * 1000, 0) + " g", fr: (H0.soil0 - w.soil) / 80, cls: "bB",
+      sub: P.t("fSame") },
+  ];
+  const k = ch / 150;
+  cards.forEach((c) => {
+    S("rect", { x: x0, y: c.y, width: cw, height: ch, rx: 10, class: "panel" });
+    text(x0 + 12, c.y + 22 * k + 4, c.name, "m b");
+    text(x0 + 12, c.y + 52 * k + 6, c.val, "big");
+    text(x0 + 12, c.y + 80 * k + 6, c.d, "b");
+    bar(x0 + 12, c.y + 96 * k + 4, cw - 24, 10, c.fr, c.cls);
+    text(x0 + 12, c.y + 128 * k + 6, c.sub, "m");
+  });
+}
+
+function drawAtoms(W, H) {
+  const g = +glu.value;
+  const amt = { co2: g * PER.CO2, h2o: g * PER.H2O, o2: g * PER.O2 };
+  const max = 1000 * PER.CO2;
+  const eqY = 26;
+  text(W / 2, eqY, "6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂", "eq", "middle");
+  const rows = [
+    [P.t("mCO2"), amt.co2, "bC"], [P.t("mH2O"), amt.h2o, "bH"],
+    [P.t("mGlu"), g, "bA"], [P.t("mO2"), amt.o2, "bB"],
+  ];
+  const lw = W < 420 ? 84 : 104, vw = 68, top = 44, rh = Math.min(34, (H - 170) / 4);
+  rows.forEach((r, i) => {
+    const yy = top + i * rh + (i >= 2 ? 6 : 0);
+    text(12, yy + 15, r[0], "m");
+    bar(12 + lw, yy + 4, W - 24 - lw - vw, 14, r[1] / max, r[2]);
+    text(W - 12, yy + 16, f(r[1], 0) + " g", "", "end");
+  });
+  const by = top + 4 * rh + 26;
+  text(W / 2, by, P.t("fBal", { a: f(amt.co2 + amt.h2o, 1), b: f(g + amt.o2, 1) }), "m", "middle");
+  const cy = by + 30;
+  text(12, cy, P.t("fComp"), "m b");
+  const bw = W - 24, segs = [[SHARE.C, "bC", P.t("fC")], [SHARE.O, "bC", P.t("fO")], [SHARE.H, "bH", P.t("fH")]];
+  let x = 12;
+  segs.forEach((s, i) => {
+    const w = s[0] * bw;
+    S("rect", { x, y: cy + 10, width: Math.max(1, w - 2), height: 22, rx: 3, class: s[1], opacity: i === 1 ? 0.7 : 1 });
+    if (w > 22) text(x + w / 2, cy + 26, s[2], "b", "middle").style.fill = "var(--surface)";
+    x += w;
+  });
+  text(12, cy + 52, P.t("fFromAir", { p: pct(FROM_AIR) }), "", "start");
+  text(W - 12, cy + 52, P.t("fFromWater", { p: pct(FROM_WATER) }), "", "end");
+  Play.live(liveEl, P.t("live3", { g: f(g, 0), co2: f(amt.co2, 1), h2o: f(amt.h2o, 1), o2: f(amt.o2, 1), per: f(PER.CO2, 2) }));
+}
+
+function drawRule(W, H) {
+  const lw = W < 420 ? 88 : 110, vw = 74, bw = W - 24 - lw - vw;
+  text(12, 26, P.t("fYear", { y: 5 }), "m b");
+  [[P.t("fGain"), GAIN, f(GAIN, 1) + " kg", "bA"], [P.t("fLoss"), H0.soilLoss, f(H0.soilLoss * 1000, 0) + " g", "bB"]].forEach((r, i) => {
+    const y = 40 + i * 32;
+    text(12, y + 15, r[0], "m");
+    bar(12 + lw, y + 4, bw, 14, r[1] / GAIN, r[3]);
+    text(W - 12, y + 16, r[2], "b", "end");
+  });
+  const sy = 40 + 2 * 32 + 30;
+  text(12, sy, P.t("fSugar"), "m b");
+  const bw2 = W - 24, wa = FROM_AIR * bw2;
+  S("rect", { x: 12, y: sy + 10, width: wa - 2, height: 26, rx: 3, class: "bC" });
+  S("rect", { x: 12 + wa, y: sy + 10, width: Math.max(1, bw2 - wa), height: 26, rx: 3, class: "bH" });
+  text(12, sy + 58, P.t("fAirS") + " " + pct(FROM_AIR) + "%", "b");
+  text(W - 12, sy + 58, P.t("fWaterS") + " " + pct(FROM_WATER) + "%", "b", "end");
+  const my = Math.min(H - 20, sy + 96);
+  S("circle", { cx: 20, cy: my - 5, r: 6, class: "bB" });
+  text(34, my, P.t("fMin"), "m");
+}
+
+function draw() {
+  const { W, H } = size();
+  fig.innerHTML = "";
+  if (step === 0) drawGuess(W, H);
+  else if (step === 1) drawWillow(W, H);
+  else if (step === 2) drawAtoms(W, H);
+  else drawRule(W, H);
+  const y = +year.value, w = willow(y);
+  document.getElementById("yearVal").textContent = P.t("yearVal", { y: f(y, 1) });
+  document.getElementById("gluVal").textContent = f(+glu.value, 0) + (P.lang === "zh" ? " 克" : " g");
+  playBtn.textContent = raf ? P.t("pause") : P.t("play");
+  const gain = roundSig(GAIN, 2), loss = f(H0.soilLoss * 1000, 0);
+  if (step === 0) { extra.textContent = predictNote; Play.live(liveEl, ""); }
+  if (step === 1) {
+    extra.textContent = y >= 5 ? P.t("x2b", { gain: f(GAIN, 0), loss, ratio: f(roundSig(GAIN / H0.soilLoss, 2), 0) }) : P.t("x2a");
+    Play.live(liveEl, P.t("live2", { y: f(y, 1), tree: f(w.tree, 2), dt: "+" + f(w.tree - H0.tree0, 2), soil: f(w.soil, 3), ds: "−" + f((H0.soil0 - w.soil) * 1000, 0) }));
+  }
+  if (step === 2) extra.textContent = P.t("x3", { hp: pct(FROM_WATER) });
+  if (step === 3) {
+    extra.textContent = P.t("x4", { gain: f(gain, 0), dry: f(roundSig(DRY, 2), 0), co2: f(roundSig(DRY * PER.CO2, 2), 0) });
+    Play.live(liveEl, P.t("live4", { gain: f(GAIN, 1), loss, ap: pct(FROM_AIR), hp: pct(FROM_WATER) }));
+  }
+}
+
+// ---------- animation (never autoplays) ----------
+function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
+function tick(t) {
+  const dt = last ? (t - last) / 1000 : 0;
+  last = t;
+  yf = Play.clamp(yf + dt, 0, 5);           // one year per second; keep the float, the slider snaps to 0.1
+  const v = yf;
+  year.value = v;
+  if (v >= 5) { stop(); draw(); return; }
+  raf = requestAnimationFrame(tick);
+  draw();
+}
+playBtn.addEventListener("click", () => {
+  if (raf) { stop(); draw(); return; }
+  if (+year.value >= 5) year.value = 0;
+  yf = +year.value;
+  last = 0;
+  raf = requestAnimationFrame(tick);
+  draw();
+});
+
+// ---------- steps ----------
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q"),
+  options: [{ label: P.t("o1") }, { label: P.t("o2") }, { label: P.t("o3"), right: true }, { label: P.t("o4") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, (i) => { predictNote = P.t("fb" + (i + 1)); if (step === 0) extra.textContent = predictNote; });
+
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3"), P.t("s4")], (i) => {
+  step = i;
+  const k = i + 1;
+  if (i !== 1) stop();
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  document.getElementById("predict").hidden = i !== 0;
+  document.getElementById("ctlYear").hidden = i !== 1;
+  document.getElementById("ctlGlu").hidden = i !== 2;
+  draw();
+});
+
+year.addEventListener("input", () => { stop(); draw(); });
+glu.addEventListener("input", draw);
+document.getElementById("reset").addEventListener("click", () => {
+  stop(); year.value = 0; glu.value = 100; predictNote = ""; pr.reset(); st.go(0);
+});
+if ("ResizeObserver" in window) new ResizeObserver(() => draw()).observe(fig);
+else window.addEventListener("resize", draw);
+</script>
+</body>
+</html>

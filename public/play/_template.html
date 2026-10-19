@@ -1,0 +1,104 @@
+<!doctype html>
+<!-- Template for /play/<subject>/<lesson>.html. Copy it, keep the structure, replace the content.
+     Shared assets are one level up: ../play.css, ../play.js. No other external files. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Template</title>
+<link rel="stylesheet" href="play.css">
+<style>
+  /* page-specific styles only; colours come from play.css variables */
+  .bar { fill: var(--a); }
+</style>
+</head>
+<body data-subject="science">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 600 360" role="img" data-t-aria="figAria"></svg>
+      <div class="controls">
+        <label for="n" data-t="nLabel"></label>
+        <input type="range" id="n" min="1" max="10" value="3">
+        <span class="val" id="nVal"></span>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Template", eyebrow: "Science · Stage 1", h1: "One sentence that states the insight",
+    intro: "One line telling the reader what to do.", reset: "Reset", figAria: "Bars that grow with the slider",
+    nLabel: "How many", s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "What do you think will happen?", b1: "Pick an answer, then move the slider.",
+    k2: "Hands on", t2: "Move the slider", b2: "Watch the bars.", k3: "The rule", t3: "Say the rule", b3: "Each step adds one bar.",
+    q: "If you add one more, what happens?", o1: "One more bar", o2: "Nothing", right: "Yes — check it with the slider.", wrong: "Try it and see.",
+    liveN: "{n} bars", resultTitle: "What we found", resultMain: "bars = n", resultNote: "A short caution.",
+    explainK: "Explain it", explainQ: "Tell someone why…", homeK: "Try at home", homeQ: "Something with real objects.",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "模板", eyebrow: "科学 · 阶段 1", h1: "一句话说出这页的洞察",
+    intro: "一句话告诉读者做什么。", reset: "重置", figAria: "随滑块变长的柱子",
+    nLabel: "个数", s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "你觉得会怎样？", b1: "先选一个答案，再拖滑块。",
+    k2: "动手", t2: "拖滑块", b2: "看柱子。", k3: "规律", t3: "说出规律", b3: "每多一步多一根。",
+    q: "再加一个会怎样？", o1: "多一根", o2: "不变", right: "对，用滑块验证一下。", wrong: "试试看。",
+    liveN: "{n} 根", resultTitle: "我们发现", resultMain: "柱子数 = n", resultNote: "一句提醒。",
+    explainK: "说一说", explainQ: "跟别人讲讲为什么……", homeK: "家里做一做", homeQ: "一个用实物的活动。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const fig = document.getElementById("fig"), n = document.getElementById("n");
+function draw() {
+  const v = +n.value;
+  fig.innerHTML = "";
+  for (let i = 0; i < v; i++) Play.svg("rect", { class: "bar", x: 40 + i * 52, y: 300 - (i + 1) * 24, width: 40, height: (i + 1) * 24, rx: 4 }, fig);
+  document.getElementById("nVal").textContent = v;
+  Play.live(document.getElementById("live"), P.t("liveN", { n: v }));
+}
+const pr = Play.predict(document.getElementById("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1"), right: true }, { label: P.t("o2") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps(document.getElementById("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  document.getElementById("kicker").textContent = P.t("k" + k);
+  document.getElementById("stepTitle").textContent = P.t("t" + k);
+  document.getElementById("stepBody").textContent = P.t("b" + k);
+  document.getElementById("predict").hidden = i !== 0;
+});
+n.addEventListener("input", draw);
+document.getElementById("reset").addEventListener("click", () => { n.value = 3; pr.reset(); st.go(0); draw(); });
+draw();
+</script>
+</body>
+</html>

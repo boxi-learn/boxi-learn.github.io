@@ -1,0 +1,57 @@
+---
+import "../styles/global.css";
+import { type Lang, t, other } from "../data/site";
+
+interface Props {
+  lang: Lang;
+  title?: string;
+  description?: string;
+  /** Path after /<lang>/, used for the language switch and hreflang. */
+  path?: string;
+}
+const { lang, title, description, path = "" } = Astro.props;
+const siteName = t("site", lang);
+const fullTitle = title ? `${title} · ${siteName}` : `${siteName} — ${t("tagline", lang)}`;
+const alt = other(lang);
+---
+
+<!doctype html>
+<html lang={lang === "zh" ? "zh-CN" : "en"}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description ?? t("heroLead", lang)} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" hreflang="en" href={new URL(`/en/${path}`, Astro.site)} />
+    <link rel="alternate" hreflang="zh" href={new URL(`/zh/${path}`, Astro.site)} />
+  </head>
+  <body>
+    <header class="top">
+      <div class="wrap">
+        <a class="brand" href={`/${lang}/`}>
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="2" y="2" width="28" height="28" rx="8" fill="var(--a)" />
+            <path d="M16 25 V14 M16 17 C 11 17 9 13 9 9 C 13 9 16 12 16 17 M16 15 C 21 15 23 11 23 7 C 19 7 16 10 16 15" stroke="var(--surface)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          {siteName}
+        </a>
+        <nav class="main">
+          <a href={`/${lang}/#subjects`}>{t("subjects", lang)}</a>
+          <a href={`/${lang}/#stages`}>{t("stages", lang)}</a>
+          <a class="lang" href={`/${alt}/${path}`} hreflang={alt} lang={alt === "zh" ? "zh-CN" : "en"}>{t("switchLang", lang)}</a>
+        </nav>
+      </div>
+    </header>
+    <main>
+      <div class="wrap">
+        <slot />
+      </div>
+    </main>
+    <footer class="bottom">
+      <div class="wrap">
+        <p>{t("license", lang)}</p>
+      </div>
+    </footer>
+  </body>
+</html>

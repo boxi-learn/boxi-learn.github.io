@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why is summer hot?</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .pane { width: 100%; height: auto; display: block; touch-action: none; }
+  #top { cursor: grab; }
+  #top:active { cursor: grabbing; }
+  .lb { font-size: 13px; fill: var(--muted); }
+  .lbf { font-size: 13px; fill: var(--fg); font-weight: 650; }
+  .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+  .controls label { min-width: 6.5em; }
+  .controls .val { min-width: 5.2em; }
+  .presets { padding-top: 0; }
+  #chart .lb, #chart .lbf { font-size: 14px; }
+  .result .math { white-space: normal; }
+  .chartbox { padding: 0 14px 14px; }
+  #chart { width: 100%; max-width: 460px; height: auto; display: block; margin: 0 auto; }
+  .read { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 6px 0 10px; font-size: 14px; }
+  .read dt { color: var(--muted); }
+  .read dd { margin: 0; font-variant-numeric: tabular-nums; color: var(--fg); }
+  .read dd.big { font-weight: 700; }
+  @media (max-width: 560px) {
+    .panes { grid-template-columns: 1fr; }
+    .controls label { min-width: 0; }
+  }
+</style>
+</head>
+<body data-subject="geography">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <button type="button" class="small" id="playBtn"></button>
+      <button type="button" class="small" id="reset" data-t="reset"></button>
+    </div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <div class="panes">
+        <svg class="pane" id="top" viewBox="0 0 300 272" role="slider" tabindex="0" data-t-aria="topAria"></svg>
+        <svg class="pane" id="side" viewBox="0 0 300 272" role="img" data-t-aria="sideAria"></svg>
+      </div>
+      <div class="controls">
+        <label for="day" data-t="dayLabel"></label>
+        <input type="range" id="day" min="1" max="365" step="1" value="172">
+        <span class="val" id="dayVal"></span>
+      </div>
+      <div class="controls">
+        <label for="lat" data-t="latLabel"></label>
+        <input type="range" id="lat" min="-90" max="90" step="1" value="40">
+        <span class="val" id="latVal"></span>
+      </div>
+      <div class="controls presets">
+        <button type="button" class="small" data-lat="40" data-t="pBj"></button>
+        <button type="button" class="small" data-lat="0" data-t="pEq"></button>
+        <button type="button" class="small" data-lat="-34" data-t="pSy"></button>
+        <button type="button" class="small" data-lat="90" data-t="pNp"></button>
+      </div>
+      <div class="controls">
+        <label for="tilt" data-t="tiltLabel"></label>
+        <input type="range" id="tilt" min="0" max="40" step="0.01" value="23.44">
+        <span class="val" id="tiltVal"></span>
+        <button type="button" class="small" id="tEarth" data-t="tEarth"></button>
+        <button type="button" class="small" id="tZero" data-t="tZero"></button>
+      </div>
+      <div class="chartbox">
+        <svg id="chart" viewBox="0 0 340 184" role="img" data-t-aria="chartAria"></svg>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <dl class="read">
+        <dt data-t="rDate"></dt><dd id="oDate" class="big"></dd>
+        <dt data-t="rElev"></dt><dd id="oElev" class="big"></dd>
+        <dt data-t="rDay"></dt><dd id="oDay" class="big"></dd>
+        <dt data-t="rNoon"></dt><dd id="oNoon"></dd>
+        <dt data-t="rDaily"></dt><dd id="oDaily"></dd>
+        <dt data-t="rDist"></dt><dd id="oDist"></dd>
+      </dl>
+      <p class="note" id="live"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Why is summer hot?", eyebrow: "Geography · Stage 2", h1: "Summer comes from Earth's tilt, not from being closer to the Sun",
+    intro: "Move Earth around the Sun, pick a place on Earth, and watch the noon Sun and the length of the day.",
+    reset: "Reset", play: "Play the year", pause: "Pause",
+    topAria: "Top view of Earth's orbit. Drag Earth, or use the arrow keys, to change the date.",
+    sideAria: "Side view of Earth at noon with sunlight from the left, showing the tilted axis and your latitude.",
+    chartAria: "Day length through the year at the chosen latitude.",
+    dayLabel: "Date", latLabel: "Latitude", tiltLabel: "Axis tilt",
+    pBj: "Beijing 40°N", pEq: "Equator", pSy: "Sydney 34°S", pNp: "North Pole",
+    tEarth: "Earth 23.44°", tZero: "No tilt",
+    s1: "Guess", s2: "Try", s3: "Rule",
+    k1: "Predict first", t1: "Why is July hot in Beijing?", b1: "Pick an answer. In the next step you will test it by moving Earth around the Sun.",
+    k2: "Hands on", t2: "Move Earth through the year",
+    b2: "Drag Earth in the top view, or use the date slider. Watch the noon Sun and the day length. Now find the date when Earth is closest to the Sun — is it summer in Beijing then? Last, set the tilt to 0° and play the year.",
+    k3: "The rule", t3: "It's the tilt",
+    b3: "Earth's axis is tilted 23.44° and always points the same way in space. For half the year your hemisphere leans toward the Sun: the noon Sun climbs higher, so light hits the ground more squarely, and days are longer. That is summer. The distance changes by only about 3%, and Earth is closest in January. So the southern hemisphere has the opposite seasons: summer in December, winter in June.",
+    q: "In Beijing July is hot and January is cold. Why?",
+    o1: "Earth is closer to the Sun in July", o2: "The tilted axis makes the July Sun higher and the days longer", o3: "The Sun itself burns hotter in July",
+    right: "Yes. Check it in step 2: watch the Sun's height and the day length.",
+    wrong: "Many people think so. Test it in step 2 — find out when Earth is really closest to the Sun.",
+    topTitle: "Top view (to scale)", sideTitle: "Side view at noon", sunlight: "sunlight", north: "N",
+    peri: "closest Jan 3 · farthest Jul 4", latCap: "orange line: {lat}", sunAt: "Sun {e}°", noSun: "no Sun",
+    mJun: "Jun", mDec: "Dec", mMar: "Mar", mSep: "Sep",
+    chartTitle: "Day length at {lat}", hrs: "h", closest: "closest", farthest: "farthest",
+    months: "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec", ini: "J,F,M,A,M,J,J,A,S,O,N,D",
+    date: "{m} {d}",
+    latN: "{v}°N", latS: "{v}°S", lat0: "0° (equator)", deg: "{v}°",
+    rDate: "Date", rDist: "Sun–Earth distance", rElev: "Noon Sun height", rDay: "Day length",
+    rNoon: "Noon sunlight on flat ground", rDaily: "Sunlight over the whole day",
+    vDist: "{r} AU ({p} vs average)", vElev: "{e}° above the horizon", vBelow: "below the horizon all day",
+    vDay: "{h} h {m} min", vDay24: "24 h — the Sun never sets", vDay0: "0 h — the Sun never rises",
+    vNoon: "{s}% of an overhead Sun", vDaily: "{q} (equator in March = 100)",
+    liveSum: "{date}, {lat}: noon Sun {e}, day {d}.",
+    noteClose: "Earth is near its closest to the Sun right now — and it is winter here.",
+    noteFar: "Earth is near its farthest from the Sun right now — and it is summer here.",
+    noteFlat: "No tilt: every day is like the March equinox — the seasons are gone.",
+    resultTitle: "What we found", resultMain: "tilt → Sun height + day length → seasons",
+    resultNote: "Distance changes only ±1.7% (closest in early January). The two hemispheres have opposite seasons.",
+    explainK: "Explain it", explainQ: "A friend says summer is when Earth is closer to the Sun. Use one fact about January and one about Australia to change their mind.",
+    homeK: "Try at home", homeQ: "Shine a torch straight down on paper, then at a slant, and trace the bright patch each time. The slanted patch is bigger, so each bit of paper gets less light. Bonus: measure your noon shadow once a month.",
+    foot: "Data: axial tilt 23.44°; orbital eccentricity 0.0167; closest to the Sun (perihelion) about Jan 3, farthest (aphelion) about Jul 4. Model: Sun's declination δ ≈ −tilt·cos(2π(N+10)/365) for day N; noon Sun height = 90° − |φ − δ|; day length from cos H₀ = −tan φ · tan δ, without air refraction (real days are a few minutes longer); sunlight ∝ sin(height) ÷ distance². Orbit drawn to scale. CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "夏天为什么热？", eyebrow: "地理 · 阶段 2", h1: "夏天来自地轴倾斜，不是因为离太阳近",
+    intro: "让地球绕太阳转，选地球上一个地方，看正午太阳有多高、白天有多长。",
+    reset: "重置", play: "播放一年", pause: "暂停",
+    topAria: "地球公转轨道俯视图。拖动地球或用方向键改日期。",
+    sideAria: "正午时地球侧视图，阳光从左边来，显示倾斜的地轴和所选纬度。",
+    chartAria: "所选纬度一年中的白天长度。",
+    dayLabel: "日期", latLabel: "纬度", tiltLabel: "地轴倾角",
+    pBj: "北京 北纬40°", pEq: "赤道", pSy: "悉尼 南纬34°", pNp: "北极点",
+    tEarth: "地球 23.44°", tZero: "不倾斜",
+    s1: "先猜", s2: "动手", s3: "规律",
+    k1: "先猜一猜", t1: "北京的七月为什么热？", b1: "先选一个答案。下一步你会让地球绕太阳转，亲手检验。",
+    k2: "动手", t2: "让地球走完一年",
+    b2: "在俯视图里拖动地球，或拖日期滑块。看正午太阳的高度和白天长度。再找一找：地球哪一天离太阳最近？那时北京是夏天吗？最后把倾角调到 0°，播放一年。",
+    k3: "规律", t3: "原因是倾斜",
+    b3: "地轴倾斜 23.44°，而且在太空中始终指向同一个方向。一年里有半年你所在的半球朝太阳倾：正午太阳更高，阳光更正地照在地面上，白天也更长——这就是夏天。距离只变化约 3%，而且一月最近。所以南半球的季节正好相反：十二月是夏天，六月是冬天。",
+    q: "北京七月热、一月冷，为什么？",
+    o1: "七月地球离太阳更近", o2: "地轴倾斜让七月的太阳更高、白天更长", o3: "七月太阳本身烧得更旺",
+    right: "对。到第 2 步检验：看太阳高度和白天长度。",
+    wrong: "很多人这样想。到第 2 步检验一下——看看地球到底哪天离太阳最近。",
+    topTitle: "俯视图（按比例）", sideTitle: "正午侧视图", sunlight: "阳光", north: "北",
+    peri: "1月3日最近 · 7月4日最远", latCap: "橙线：{lat}", sunAt: "太阳 {e}°", noSun: "不见太阳",
+    mJun: "6月", mDec: "12月", mMar: "3月", mSep: "9月",
+    chartTitle: "{lat}的白天长度", hrs: "时", closest: "最近", farthest: "最远",
+    months: "1月,2月,3月,4月,5月,6月,7月,8月,9月,10月,11月,12月", ini: "1,2,3,4,5,6,7,8,9,10,11,12",
+    date: "{m}{d}日",
+    latN: "北纬{v}°", latS: "南纬{v}°", lat0: "0°（赤道）", deg: "{v}°",
+    rDate: "日期", rDist: "日地距离", rElev: "正午太阳高度", rDay: "白天长度",
+    rNoon: "正午地面接收的阳光", rDaily: "全天接收的阳光",
+    vDist: "{r} 天文单位（比平均 {p}）", vElev: "高出地平线 {e}°", vBelow: "整天在地平线以下",
+    vDay: "{h} 小时 {m} 分", vDay24: "24 小时——太阳不落（极昼）", vDay0: "0 小时——太阳不升（极夜）",
+    vNoon: "太阳直射时的 {s}%", vDaily: "{q}（三月赤道 = 100）",
+    liveSum: "{date}，{lat}：正午太阳{e}，白天{d}。",
+    noteClose: "地球现在差不多离太阳最近——而这里正是冬天。",
+    noteFar: "地球现在差不多离太阳最远——而这里正是夏天。",
+    noteFlat: "不倾斜：每天都像春分——四季消失了。",
+    resultTitle: "我们发现", resultMain: "倾斜 → 太阳高度 + 白天长度 → 四季",
+    resultNote: "日地距离只变化 ±1.7%，而且一月初最近。南北半球季节相反。",
+    explainK: "说一说", explainQ: "朋友说夏天是因为地球离太阳近。用一条关于一月的事实、一条关于澳大利亚的事实，说服他。",
+    homeK: "家里做一做", homeQ: "用手电筒垂直照一张纸，再斜着照，每次描出亮斑。斜照的亮斑更大，每一小块纸分到的光更少。加分：每月量一次正午时自己的影子。",
+    foot: "数据：地轴倾角 23.44°；轨道偏心率 0.0167；近日点约 1 月 3 日，远日点约 7 月 4 日。模型：第 N 天太阳直射纬度 δ ≈ −倾角·cos(2π(N+10)/365)；正午太阳高度 = 90° − |φ − δ|；白天长度由 cos H₀ = −tan φ · tan δ 算出，未计大气折射（实际白天长几分钟）；阳光 ∝ sin(高度) ÷ 距离²。轨道按比例画。CC BY 4.0 · Boxi Yu",
+  },
+});
+
+/* ---------- model (pure functions, no NaN at φ = ±90° or tilt = 0) ---------- */
+const YEAR = 365, ECC = 0.0167, PERI = 3, APH = 185, TILT0 = 23.44, RAD = Math.PI / 180;
+const decl = (N, tilt) => -tilt * Math.cos(2 * Math.PI * (N + 10) / YEAR);
+const dist = (N) => (1 - ECC * ECC) / (1 + ECC * Math.cos(2 * Math.PI * (N - PERI) / YEAR)); // AU
+const noonElev = (phi, d) => 90 - Math.abs(phi - d);
+function halfDay(phi, d) { // sunrise hour angle H0 in [0, π]
+  const num = -Math.sin(phi * RAD) * Math.sin(d * RAD), den = Math.cos(phi * RAD) * Math.cos(d * RAD);
+  if (den < 1e-9) return num < -1e-12 ? Math.PI : num > 1e-12 ? 0 : Math.PI / 2;
+  return Math.acos(Play.clamp(num / den, -1, 1));
+}
+const dayLen = (phi, d) => 24 * halfDay(phi, d) / Math.PI;
+function daily(phi, d, r) { // whole-day sunlight, equator at equinox (1 AU) = 100
+  const H = halfDay(phi, d);
+  const q = H * Math.sin(phi * RAD) * Math.sin(d * RAD) + Math.cos(phi * RAD) * Math.cos(d * RAD) * Math.sin(H);
+  return Math.max(0, 100 * q / (r * r));
+}
+
+/* ---------- state ---------- */
+const $ = (id) => document.getElementById(id);
+const dayEl = $("day"), latEl = $("lat"), tiltEl = $("tilt");
+const S = { N: 172, phi: 40, tilt: TILT0 };
+const MLEN = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const MONTHS = P.t("months").split(","), INI = P.t("ini").split(",");
+function md(N) { let n = Math.round(N), m = 0; while (m < 11 && n > MLEN[m]) { n -= MLEN[m]; m++; } return [m, Math.max(1, n)]; }
+const dateStr = (N) => { const [m, d] = md(N); return P.t("date", { m: MONTHS[m], d }); };
+const latStr = (v) => (Math.abs(v) < 0.5 ? P.t("lat0") : P.t(v > 0 ? "latN" : "latS", { v: Math.round(Math.abs(v)) }));
+const wrapN = (N) => ((Math.round(N) - 1) % YEAR + YEAR) % YEAR + 1;
+
+/* ---------- top view ---------- */
+const topv = $("top"), side = $("side"), chart = $("chart");
+const TC = { x: 150, y: 128, a: 92 };
+const theta = (N) => Math.PI + 2 * Math.PI * (N - 172) / YEAR; // Jun solstice on the left, counter-clockwise
+function orbitXY(N, k = 1) { const r = dist(N) * TC.a * k, t = theta(N); return [TC.x + r * Math.cos(t), TC.y - r * Math.sin(t)]; }
+function txt(parent, x, y, s, cls, anchor) {
+  const t = Play.svg("text", { x, y, class: cls || "lb", "text-anchor": anchor || "start" }, parent);
+  t.textContent = s;
+  return t;
+}
+function drawTop() {
+  topv.innerHTML = "";
+  txt(topv, 8, 18, P.t("topTitle"), "lbf");
+  let d = "";
+  for (let N = 0; N <= YEAR; N += 3) { const [x, y] = orbitXY(N); d += (N ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1); }
+  Play.svg("path", { d: d + "Z", fill: "none", stroke: "var(--line)", "stroke-width": 2 }, topv);
+  [[PERI, "var(--no)"], [APH, "var(--c)"]].forEach(([N, c]) => { const [x, y] = orbitXY(N); Play.svg("circle", { cx: x, cy: y, r: 3.5, fill: c }, topv); });
+  [[172, "mJun", "middle", 0, -16], [355, "mDec", "middle", 0, 26], [80, "mMar", "end", -16, 5], [264, "mSep", "end", -16, 5]].forEach(([N, k, an, dx, dy]) => {
+    const [x, y] = orbitXY(N); txt(topv, x + dx, y + dy, P.t(k), "lb", an);
+  });
+  Play.svg("circle", { cx: TC.x, cy: TC.y, r: 15, fill: "var(--hl)" }, topv);
+  const [ex, ey] = orbitXY(S.N), t = theta(S.N);
+  // Earth: day side faces the Sun
+  const ux = -Math.cos(t), uy = Math.sin(t); // unit vector Earth → Sun (screen)
+  const g = Play.svg("g", {}, topv);
+  Play.svg("circle", { cx: ex, cy: ey, r: 10, fill: "var(--c)" }, g);
+  const px = -uy * 10, py = ux * 10; // perpendicular
+  // night half: the arc that bulges away from the Sun (through E − u·10)
+  const sweep = px * -uy - py * -ux < 0 ? 1 : 0;
+  Play.svg("path", { d: `M${ex + px} ${ey + py} A10 10 0 0 ${sweep} ${ex - px} ${ey - py} Z`, fill: "var(--fg)", opacity: 0.45 }, g);
+  // north-pole lean: fixed direction in space (toward the Sun at the June solstice = screen right)
+  const L = 28 * Math.sin(S.tilt * RAD);
+  if (L > 1) {
+    Play.svg("line", { x1: ex, y1: ey, x2: ex + L, y2: ey, stroke: "var(--fg)", "stroke-width": 2.5, "stroke-linecap": "round" }, g);
+    txt(g, ex + L + 4, ey + 4, P.t("north"), "lbf halo");
+  }
+  Play.svg("circle", { cx: ex, cy: ey, r: 20, fill: "transparent" }, g); // larger touch target
+  txt(topv, TC.x, 264, P.t("peri"), "lb", "middle");
+  topv.setAttribute("aria-valuemin", 1); topv.setAttribute("aria-valuemax", YEAR);
+  topv.setAttribute("aria-valuenow", S.N); topv.setAttribute("aria-valuetext", dateStr(S.N));
+}
+
+/* ---------- side view (Sun to the left, axis leans toward it by δ) ---------- */
+const SC = { x: 176, y: 132, R: 76 };
+function drawSide(d) {
+  side.innerHTML = "";
+  const { x: cx, y: cy, R } = SC, dr = d * RAD, pr = S.phi * RAD;
+  const uN = [-Math.sin(dr), -Math.cos(dr)], uE = [-Math.cos(dr), Math.sin(dr)]; // north, equator toward Sun
+  const at = (lat, sgn) => [cx + R * (Math.cos(lat) * uE[0] * sgn + Math.sin(lat) * uN[0]), cy + R * (Math.cos(lat) * uE[1] * sgn + Math.sin(lat) * uN[1])];
+  txt(side, 8, 18, P.t("sideTitle"), "lbf");
+  for (let y = cy - R + 10; y <= cy + R - 10; y += 15) {
+    const xs = cx - Math.sqrt(R * R - (y - cy) * (y - cy));
+    Play.svg("line", { x1: 6, y1: y, x2: xs, y2: y, stroke: "var(--hl)", "stroke-width": Math.abs(y - cy) < 8 ? 2.4 : 1.2, opacity: 0.85 }, side);
+  }
+  txt(side, 8, cy - R - 8, P.t("sunlight") + " →", "lb");
+  Play.svg("circle", { cx, cy, r: R, fill: "var(--c)", opacity: 0.25, stroke: "var(--c)", "stroke-width": 1.5 }, side);
+  Play.svg("path", { d: `M${cx} ${cy - R} A${R} ${R} 0 0 1 ${cx} ${cy + R} Z`, fill: "var(--fg)", opacity: 0.28 }, side);
+  const [e1, e2] = [at(0, 1), at(0, -1)];
+  Play.svg("line", { x1: e1[0], y1: e1[1], x2: e2[0], y2: e2[1], stroke: "var(--muted)", "stroke-dasharray": "4 4", "stroke-width": 1.2 }, side);
+  const n1 = [cx + uN[0] * (R + 16), cy + uN[1] * (R + 16)], n2 = [cx - uN[0] * (R + 16), cy - uN[1] * (R + 16)];
+  Play.svg("line", { x1: n2[0], y1: n2[1], x2: n1[0], y2: n1[1], stroke: "var(--fg)", "stroke-width": 2 }, side);
+  txt(side, n1[0] + uN[0] * 8, n1[1] + uN[1] * 8 + 4, P.t("north"), "lbf halo", "middle");
+  const a = at(pr, 1), b = at(pr, -1);
+  Play.svg("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: "var(--b)", "stroke-width": 3, "stroke-linecap": "round" }, side);
+  Play.svg("circle", { cx: a[0], cy: a[1], r: 5, fill: "var(--b)", stroke: "var(--surface)", "stroke-width": 1.5 }, side);
+  const el = noonElev(S.phi, d);
+  const lab = el > -0.05 ? P.t("sunAt", { e: Play.fmt(Math.max(0, el), 0) }) : P.t("noSun");
+  txt(side, a[0] - 10, a[1] + 4, lab, "lbf halo", "end");
+  txt(side, 150, 264, P.t("latCap", { lat: latStr(S.phi) }), "lb", "middle");
+}
+
+/* ---------- chart: day length over the year ---------- */
+const CH = { l: 30, r: 332, t: 44, b: 160 };
+const cxN = (N) => CH.l + (CH.r - CH.l) * (N - 1) / (YEAR - 1), cyH = (h) => CH.b - (CH.b - CH.t) * h / 24;
+function drawChart() {
+  chart.innerHTML = "";
+  txt(chart, CH.l, 14, P.t("chartTitle", { lat: latStr(S.phi) }), "lbf");
+  [0, 6, 12, 18, 24].forEach((h) => {
+    Play.svg("line", { x1: CH.l, x2: CH.r, y1: cyH(h), y2: cyH(h), stroke: "var(--line)", "stroke-width": 1 }, chart);
+    txt(chart, CH.l - 5, cyH(h) + 4, String(h), "lb", "end");
+  });
+  let start = 1;
+  for (let m = 0; m < 12; m++) {
+    if (m % 2 === 0 || P.lang === "en") txt(chart, cxN(start + MLEN[m] / 2), CH.b + 16, INI[m], "lb", "middle");
+    start += MLEN[m];
+  }
+  [[PERI, "closest", "var(--no)", "start"], [APH, "farthest", "var(--c)", "middle"]].forEach(([N, k, c, an]) => {
+    Play.svg("line", { x1: cxN(N), x2: cxN(N), y1: CH.t - 8, y2: CH.b, stroke: c, "stroke-dasharray": "3 3", "stroke-width": 1.2 }, chart);
+    txt(chart, cxN(N) + (an === "start" ? 2 : 0), CH.t - 12, P.t(k), "lb", an);
+  });
+  let d = "";
+  for (let N = 1; N <= YEAR; N += 2) d += (N > 1 ? "L" : "M") + cxN(N).toFixed(1) + " " + cyH(dayLen(S.phi, decl(N, S.tilt))).toFixed(1);
+  Play.svg("path", { d, fill: "none", stroke: "var(--a)", "stroke-width": 2.5, "stroke-linejoin": "round" }, chart);
+  const h = dayLen(S.phi, decl(S.N, S.tilt));
+  Play.svg("line", { x1: cxN(S.N), x2: cxN(S.N), y1: CH.t, y2: CH.b, stroke: "var(--fg)", "stroke-width": 1, opacity: 0.5 }, chart);
+  Play.svg("circle", { cx: cxN(S.N), cy: cyH(h), r: 5, fill: "var(--a)", stroke: "var(--surface)", "stroke-width": 2 }, chart);
+  txt(chart, CH.r, 14, Play.fmt(h, 1) + " " + P.t("hrs"), "lbf", "end");
+}
+
+/* ---------- readout ---------- */
+function dayText(h) {
+  if (h >= 23.99) return P.t("vDay24");
+  if (h <= 0.01) return P.t("vDay0");
+  let H = Math.floor(h), M = Math.round((h - H) * 60);
+  if (M === 60) { H++; M = 0; }
+  return P.t("vDay", { h: H, m: M });
+}
+function render() {
+  const d = decl(S.N, S.tilt), r = dist(S.N), el = noonElev(S.phi, d), h = dayLen(S.phi, d);
+  dayEl.value = S.N; latEl.value = S.phi; tiltEl.value = S.tilt;
+  $("dayVal").textContent = dateStr(S.N);
+  $("latVal").textContent = latStr(S.phi);
+  $("tiltVal").textContent = P.t("deg", { v: Play.fmt(S.tilt, S.tilt % 1 ? 2 : 0) });
+  drawTop(); drawSide(d); drawChart();
+  const p = (r - 1) * 100;
+  $("oDate").textContent = dateStr(S.N);
+  $("oDist").textContent = P.t("vDist", { r: Play.fmt(r, 3), p: (p >= 0 ? "+" : "−") + Play.fmt(Math.abs(p), 1) + "%" });
+  $("oElev").textContent = el > -0.05 ? P.t("vElev", { e: Play.fmt(Math.max(0, el), 1) }) : P.t("vBelow");
+  $("oDay").textContent = dayText(h);
+  $("oNoon").textContent = P.t("vNoon", { s: Play.fmt(100 * Math.max(0, Math.sin(el * RAD)), 0) });
+  $("oDaily").textContent = P.t("vDaily", { q: Play.fmt(daily(S.phi, d, r), 0) });
+  let note = P.t("liveSum", { date: dateStr(S.N), lat: latStr(S.phi), e: el > -0.05 ? Play.fmt(Math.max(0, el), 0) + "°" : "—", d: dayText(h) });
+  const lean = d * Math.sign(S.phi); // >0: this hemisphere leans toward the Sun
+  if (S.tilt < 0.5) note += " " + P.t("noteFlat");
+  else if (Math.abs(S.phi) >= 15 && r < 0.986 && lean < -15) note += " " + P.t("noteClose");
+  else if (Math.abs(S.phi) >= 15 && r > 1.014 && lean > 15) note += " " + P.t("noteFar");
+  Play.live($("live"), note);
+}
+
+/* ---------- interaction ---------- */
+let anim = 0, last = 0;
+const playBtn = $("playBtn");
+function stop() { if (anim) cancelAnimationFrame(anim); anim = 0; playBtn.textContent = P.t("play"); }
+function tick(ts) {
+  if (last) S.N = wrapN(S.N + Math.max(1, Math.round((ts - last) * 0.03)));
+  last = ts; render(); anim = requestAnimationFrame(tick);
+}
+playBtn.addEventListener("click", () => { if (anim) stop(); else { last = 0; playBtn.textContent = P.t("pause"); anim = requestAnimationFrame(tick); } });
+
+function fromPointer(e) {
+  const p = Play.pointer(topv, e);
+  const t = Math.atan2(TC.y - p.y, p.x - TC.x);
+  S.N = wrapN(172 + (t - Math.PI) * YEAR / (2 * Math.PI));
+  render();
+}
+let dragging = false;
+topv.addEventListener("pointerdown", (e) => { stop(); dragging = true; topv.setPointerCapture(e.pointerId); fromPointer(e); });
+topv.addEventListener("pointermove", (e) => { if (dragging) fromPointer(e); });
+topv.addEventListener("pointerup", () => (dragging = false));
+topv.addEventListener("pointercancel", () => (dragging = false));
+topv.addEventListener("keydown", (e) => {
+  const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 30, PageDown: -30 }[e.key];
+  if (step) { stop(); S.N = wrapN(S.N + step * (e.shiftKey ? 10 : 1)); render(); e.preventDefault(); }
+});
+dayEl.addEventListener("input", () => { stop(); S.N = Play.clamp(+dayEl.value, 1, YEAR); render(); });
+latEl.addEventListener("input", () => { S.phi = Play.clamp(+latEl.value, -90, 90); render(); });
+tiltEl.addEventListener("input", () => { S.tilt = Play.clamp(+tiltEl.value, 0, 40); render(); });
+tiltEl.addEventListener("keydown", (e) => { // whole degrees from the keyboard
+  const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 5, PageDown: -5 }[e.key];
+  if (step) { S.tilt = Play.clamp(Math.round(S.tilt) + step, 0, 40); render(); e.preventDefault(); }
+});
+document.querySelectorAll("[data-lat]").forEach((b) => b.addEventListener("click", () => { S.phi = +b.dataset.lat; render(); }));
+$("tEarth").addEventListener("click", () => { S.tilt = TILT0; render(); });
+$("tZero").addEventListener("click", () => { S.tilt = 0; render(); });
+
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("o1") }, { label: P.t("o2"), right: true }, { label: P.t("o3") }], right: P.t("right"), wrong: P.t("wrong"),
+});
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+});
+$("reset").addEventListener("click", () => { stop(); Object.assign(S, { N: 172, phi: 40, tilt: TILT0 }); pr.reset(); st.go(0); render(); });
+stop();
+render();
+</script>
+</body>
+</html>

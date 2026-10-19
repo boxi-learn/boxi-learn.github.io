@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tell the robot exactly what to do</title>
+<link rel="stylesheet" href="../play.css">
+<style>
+  .stage svg.main { height: auto; aspect-ratio: 1 / 1; max-height: 420px; }
+  @media (max-width: 560px) { .stage svg.main { height: auto; max-height: none; } }
+  #fig:focus-visible { outline: 3px solid var(--hl); outline-offset: -3px; }
+  .cell { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  .wall { fill: var(--b); }
+  .wallx { stroke: var(--surface); stroke-width: 2; opacity: .45; }
+  .star { fill: var(--hl); stroke: var(--fg); stroke-width: 1.2; }
+  .dot { fill: var(--surface); stroke: var(--a); stroke-width: 3; }
+  .dot.got { fill: var(--a); }
+  .home { fill: none; stroke: var(--a); stroke-width: 2.5; stroke-dasharray: 5 4; }
+  .mark { fill: var(--soft); stroke: var(--c); stroke-width: 2; }
+  .marktx { fill: var(--c); font: 700 14px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .trail { fill: none; stroke: var(--a); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; opacity: .35; }
+  .rbody { fill: var(--a); stroke: var(--fg); stroke-width: 1.5; }
+  .rnose { fill: var(--surface); }
+  .rbump .rbody { fill: var(--no); }
+  .pane { padding: 10px 14px 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .lbl { font-size: 12px; color: var(--muted); font-weight: 650; margin-right: 2px; }
+  .pal button { font-weight: 650; }
+  .pal .ic, .cmd .ic { display: inline-block; width: 1.2em; text-align: center; color: var(--a); font-weight: 800; }
+  .prog { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; min-height: 40px; padding: 8px; border: 1px dashed var(--line); border-radius: 10px; background: var(--bg); }
+  .prog .empty { font-size: 13px; color: var(--muted); padding: 4px 2px; }
+  .cmd { font-size: 14px; padding: 5px 9px; white-space: nowrap; }
+  .cmd .n { font-size: 11px; color: var(--muted); margin-right: 4px; font-variant-numeric: tabular-nums; }
+  .cmd.sel, .rep.sel > .rh .cmd { border-color: var(--a); box-shadow: 0 0 0 2px var(--a) inset; }
+  .cmd.cur { background: var(--hl); color: #1a2822; border-color: var(--hl); }
+  .cmd.cur .n, .cmd.cur .ic { color: #1a2822; }
+  .cmd.bad { background: var(--no); color: #fff; border-color: var(--no); }
+  .cmd.bad .n, .cmd.bad .ic { color: #fff; }
+  .cmd:disabled { cursor: default; opacity: 1; }
+  .rep { border: 2px solid var(--a); border-radius: 12px; padding: 4px 6px 6px; display: flex; flex-direction: column; gap: 5px; max-width: 100%; }
+  .rep .rh { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .rep .rh button.nb { font-size: 13px; padding: 2px 9px; }
+  .rep .rn { font-weight: 750; min-width: 1.2em; text-align: center; font-variant-numeric: tabular-nums; }
+  .rep .lap { font-size: 12px; color: var(--muted); }
+  .rep .body { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 14px; border-left: 3px solid var(--soft); min-height: 30px; align-items: center; }
+  .where { font-size: 12px; color: var(--muted); }
+  .count { font-size: 13px; color: var(--muted); }
+  .count b { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .cmp { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14px; background: var(--soft); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; justify-content: start; }
+  .cmp b { font-variant-numeric: tabular-nums; }
+  .msg { font-size: 14px; color: var(--fg); margin: 0; min-height: 1.6em; }
+  .msg.ok { font-weight: 650; }
+  .msg.ok::before { content: "✓ "; color: var(--a); font-weight: 800; }
+  .msg.no { color: var(--no); font-weight: 650; }
+  .msg.no::before { content: "! "; font-weight: 800; }
+  button.primary { background: var(--a); color: var(--surface); border-color: var(--a); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .lvl button.done::after { content: " ✓"; color: var(--a); }
+  .lvl button.on.done::after { color: var(--bg); }
+</style>
+</head>
+<body data-subject="computing">
+<div class="play">
+  <div class="topline"><span class="eyebrow" data-t="eyebrow"></span><span class="langs"></span></div>
+  <h1 data-t="h1"></h1>
+  <p class="intro" data-t="intro"></p>
+
+  <div class="navrow">
+    <div class="steps" id="steps"></div>
+    <div class="tools"><button type="button" class="small" id="reset" data-t="reset"></button></div>
+  </div>
+
+  <section class="stage">
+    <div class="visual">
+      <svg class="main" id="fig" viewBox="0 0 360 360" role="img" tabindex="0" data-t-aria="figAria"></svg>
+      <div class="pane">
+        <div class="row lvl" id="lvlRow"></div>
+        <div class="row pal" id="pal">
+          <span class="lbl" data-t="addLbl"></span>
+          <button type="button" data-op="F"><span class="ic">↑</span> <span data-t="opF"></span></button>
+          <button type="button" data-op="L"><span class="ic">↺</span> <span data-t="opL"></span></button>
+          <button type="button" data-op="R"><span class="ic">↻</span> <span data-t="opR"></span></button>
+          <button type="button" data-op="rep" id="addRep"><span class="ic">⟳</span> <span data-t="opRep"></span></button>
+        </div>
+        <div class="prog" id="prog" aria-live="off"></div>
+        <div class="row" id="editRow">
+          <button type="button" class="small" id="mvL" data-t="mvL"></button>
+          <button type="button" class="small" id="mvR" data-t="mvR"></button>
+          <button type="button" class="small" id="del" data-t="del"></button>
+          <button type="button" class="small" id="clr" data-t="clr"></button>
+          <span class="where" id="where"></span>
+        </div>
+        <div class="row">
+          <button type="button" class="primary" id="run"></button>
+          <button type="button" id="stepBtn" data-t="stepBtn"></button>
+          <button type="button" id="back" data-t="back"></button>
+          <button type="button" id="swap" data-t="swap"></button>
+          <span class="count" id="count"></span>
+        </div>
+        <p class="msg" id="live"></p>
+      </div>
+    </div>
+    <div class="explain">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="predict"></div>
+      <p id="stepBody"></p>
+      <div class="cmp" id="cmp" hidden></div>
+      <p class="note" data-t="keys"></p>
+    </div>
+  </section>
+
+  <div class="result">
+    <div><div class="rt" data-t="resultTitle"></div><div class="math" data-t="resultMain"></div></div>
+    <div class="rn" data-t="resultNote"></div>
+  </div>
+  <div class="explainit">
+    <div><div class="kicker" data-t="explainK"></div><span data-t="explainQ"></span></div>
+    <div><div class="kicker" data-t="homeK"></div><span data-t="homeQ"></span></div>
+  </div>
+  <p class="foot" data-t="foot"></p>
+</div>
+<script src="../play.js"></script>
+<script id="logic">
+/* Pure logic (no DOM) so it can be checked in node. Grid 6×6, x right, y down; d: 0 up, 1 right, 2 down, 3 left. */
+const N = 6;
+const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const PRE = { key: "pre", kind: "pre", start: { x: 1, y: 4, d: 0 }, walls: [], marks: { A: [1, 1], B: [2, 2], C: [4, 4] },
+  prog: ["F", "F", "R", "F"], swapped: ["R", "F", "F", "F"] };
+const LEVELS = [
+  { key: "l1", kind: "star", start: { x: 1, y: 5, d: 0 }, goal: [3, 3], walls: [[2, 5], [3, 5], [3, 4]] },
+  { key: "l2", kind: "star", start: { x: 0, y: 5, d: 0 }, goal: [2, 5], walls: [[1, 5], [1, 4], [1, 3], [3, 1], [2, 1]] },
+  { key: "l3", kind: "star", start: { x: 0, y: 5, d: 0 }, goal: [1, 0],
+    walls: [[0, 3], [1, 3], [2, 3], [2, 1], [3, 1], [4, 1], [5, 1], [0, 1], [4, 3], [5, 3]] },
+  { key: "sq1", kind: "tour", start: { x: 2, y: 3, d: 0 }, walls: [[5, 0], [0, 5]],
+    dots: [[2, 2], [3, 2], [3, 3], [2, 3]], budget: 3 },
+  { key: "sq2", kind: "tour", start: { x: 1, y: 4, d: 0 }, walls: [[2, 2], [3, 2], [2, 3], [3, 3]],
+    dots: [[1, 3], [1, 2], [1, 1], [2, 1], [3, 1], [4, 1], [4, 2], [4, 3], [4, 4], [3, 4], [2, 4], [1, 4]], budget: 5 },
+];
+function blocked(lv, x, y) {
+  return x < 0 || y < 0 || x >= N || y >= N || lv.walls.some((w) => w[0] === x && w[1] === y);
+}
+/* One command → new state; bump = forward into a wall or the edge (state unchanged). */
+function apply(lv, s, op) {
+  if (op === "L") return { s: { x: s.x, y: s.y, d: (s.d + 3) % 4 } };
+  if (op === "R") return { s: { x: s.x, y: s.y, d: (s.d + 1) % 4 } };
+  const nx = s.x + DIRS[s.d][0], ny = s.y + DIRS[s.d][1];
+  if (blocked(lv, nx, ny)) return { s, bump: true };
+  return { s: { x: nx, y: ny, d: s.d } };
+}
+/* Program items: {op:"F"|"L"|"R"} or {op:"rep", n, body:[…]}. Flatten into the run order. */
+function flatten(prog, out, rep, lap) {
+  out = out || [];
+  for (const it of prog) {
+    if (it.op === "rep") { for (let k = 0; k < it.n; k++) flatten(it.body, out, it, k); }
+    else out.push({ op: it.op, item: it, rep: rep || null, lap: lap || 0 });
+  }
+  return out;
+}
+function written(prog) { return prog.reduce((a, it) => a + (it.op === "rep" ? 1 + written(it.body) : 1), 0); }
+function simulate(lv, prog) {
+  let s = { ...lv.start };
+  const path = [[s.x, s.y]];
+  const ops = flatten(prog);
+  for (let i = 0; i < ops.length; i++) {
+    const r = apply(lv, s, ops[i].op);
+    if (r.bump) return { s, path, bump: i };
+    s = r.s;
+    if (ops[i].op === "F") path.push([s.x, s.y]);
+  }
+  return { s, path, bump: -1 };
+}
+/* Verdict after a full run. */
+function judge(lv, prog, res) {
+  if (res.bump >= 0) return { ok: false, why: "bump" };
+  if (lv.kind === "star" || lv.kind === "pre") {
+    if (!lv.goal) return { ok: true };
+    return res.s.x === lv.goal[0] && res.s.y === lv.goal[1] ? { ok: true } : { ok: false, why: "miss" };
+  }
+  const missed = lv.dots.filter((d) => !res.path.some((p) => p[0] === d[0] && p[1] === d[1])).length;
+  if (missed) return { ok: false, why: "dots", missed };
+  if (res.s.x !== lv.start.x || res.s.y !== lv.start.y) return { ok: false, why: "home" };
+  if (written(prog) > lv.budget) return { ok: false, why: "budget", works: true };
+  return { ok: true };
+}
+/* Shortest straight-line program (no loops) to the star: breadth-first search over (x, y, facing). */
+function shortest(lv) {
+  const key = (s) => s.x + "," + s.y + "," + s.d;
+  const seen = { [key(lv.start)]: 0 };
+  const q = [lv.start];
+  while (q.length) {
+    const s = q.shift(), k = seen[key(s)];
+    if (s.x === lv.goal[0] && s.y === lv.goal[1]) return k;
+    for (const op of ["F", "L", "R"]) {
+      const r = apply(lv, s, op);
+      if (r.bump || key(r.s) in seen) continue;
+      seen[key(r.s)] = k + 1;
+      q.push(r.s);
+    }
+  }
+  return Infinity;
+}
+if (typeof module !== "undefined") module.exports = { PRE, LEVELS, apply, flatten, written, simulate, judge, shortest };
+</script>
+<script>
+const P = Play.setup({
+  en: {
+    title: "Tell the robot exactly what to do", eyebrow: "Computing · Stage 1",
+    h1: "A program is a list of exact steps, run in order",
+    intro: "Build a list of commands, run it, and watch the robot do exactly what you wrote — nothing more, nothing less.",
+    reset: "Reset", figAria: "A 6 by 6 grid with a robot, walls and a goal",
+    s1: "Guess", s2: "Try", s3: "Loop",
+    k1: "Predict first", t1: "Where will the robot end up?",
+    b1: "The robot starts facing up. It runs these four commands from left to right. Pick A, B or C, then press Run.",
+    k2: "Hands on", t2: "Get the robot to the star",
+    b2: "Add commands, then Run. If it goes wrong, use Step: one command at a time, the current one lit up. Find the first step that does something you did not expect.",
+    k3: "The rule", t3: "Same steps again? Say them once",
+    b3: "Visit every dot and come back home. A repeat block runs the commands inside it again and again. Stay within the command limit.",
+    q: "After forward, forward, turn right, forward — where is the robot?",
+    oA: "A", oB: "B", oC: "C",
+    right: "Yes — it moves up two, turns, then moves one to the right. Run it to check.",
+    wrong: "Run it and watch each step. The robot follows the order you wrote.",
+    addLbl: "Add:", opF: "Forward", opL: "Turn left", opR: "Turn right", opRep: "Repeat",
+    nameF: "forward", nameL: "turn left", nameR: "turn right", nameRep: "repeat",
+    mvL: "◀ Earlier", mvR: "Later ▶", del: "Remove", clr: "Clear all",
+    whereEnd: "New commands go at the end.", whereAfter: "New commands go after #{n}.", whereIn: "New commands go inside the repeat.",
+    run: "▶ Run", pause: "❚❚ Pause", stepBtn: "Step", back: "⟲ Back to start", swap: "Run them in another order",
+    emptyProg: "Empty — add commands.", emptyRep: "empty",
+    lap: "lap {k} of {n}", times: "times",
+    lv1: "Level 1", lv2: "Level 2", lv3: "Level 3", sq1: "Small square", sq2: "Big square",
+    count: "Commands: {w}", countLoop: "Written: {w} · run: {u} · limit: {b}",
+    cmpW: "Commands you wrote", cmpU: "Commands without repeat", cmpB: "Limit",
+    pickFirst: "Pick A, B or C first.",
+    preDone: "The robot stopped at {m}. Each command ran once, in order.",
+    swapDone: "Same four commands, turn first: now it stops at {m}. Change the order, change the result.",
+    bump: "Bump! Command #{n} ({c}) runs into a wall, so the robot stopped. It does exactly what you wrote — fix that step.",
+    miss: "The program finished, but the robot is not on the star. Press Step to see where it goes off course.",
+    win: "Star reached with {w} commands. The shortest possible is {m}.",
+    winBest: "Star reached with {w} commands — that is the shortest possible!",
+    dots: "Finished, but {k} dot(s) not visited yet. Step through to see the path.",
+    home: "All dots visited, but the robot is not back home (dashed square).",
+    budget: "It works! But you wrote {w} commands and the limit is {b}. The same steps repeat — can a repeat block say them once?",
+    winLoop: "Done in {w} commands! Without repeat it would take {u}.",
+    noProg: "Add a command first.",
+    keys: "Keyboard: click the grid, then ↑ forward, ← turn left, → turn right, Backspace removes the last command, Enter runs, Space steps.",
+    resultTitle: "What we found", resultMain: "program = exact steps, in order",
+    resultNote: "The computer never guesses what you meant: swap two steps and the robot goes somewhere else. When steps repeat, “repeat 4 { forward, turn right }” says them once.",
+    explainK: "Explain it",
+    explainQ: "Your friend wrote “turn right, forward, forward” but meant “forward, forward, turn right”. Explain why the robot ends up somewhere else, and how stepping through one command at a time shows the mistake.",
+    homeK: "Try at home",
+    homeQ: "Put a toy across the room. A grown-up plays the robot and only understands “step forward”, “turn left”, “turn right”. Write the commands on paper first, then read them out one by one.",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+  zh: {
+    title: "一步一步告诉机器人", eyebrow: "信息科技 · 阶段 1",
+    h1: "程序就是一串按顺序执行的准确步骤",
+    intro: "拼一串指令，运行它，看机器人照你写的做——不多做一步，也不少做一步。",
+    reset: "重置", figAria: "6 × 6 的格子，有机器人、墙和目标",
+    s1: "先猜", s2: "动手", s3: "循环",
+    k1: "先猜一猜", t1: "机器人会停在哪里？",
+    b1: "机器人一开始朝上，从左到右执行这四条指令。先选 A、B 或 C，再按运行。",
+    k2: "动手", t2: "让机器人走到星星",
+    b2: "添加指令，再按运行。走错了就按「单步」：一次只执行一条，正在执行的那条会亮起来。找到第一条和你想的不一样的指令。",
+    k3: "规律", t3: "同样的步骤又来一遍？只写一次",
+    b3: "走过每个圆点，再回到家。「重复」块会把里面的指令一遍遍执行。指令条数不能超过上限。",
+    q: "前进、前进、右转、前进之后，机器人在哪里？",
+    oA: "A", oB: "B", oC: "C",
+    right: "对——先往上走两格，转身，再往右走一格。按运行验证一下。",
+    wrong: "运行一下，看每一步。机器人按你写的顺序做。",
+    addLbl: "添加：", opF: "前进", opL: "左转", opR: "右转", opRep: "重复",
+    nameF: "前进", nameL: "左转", nameR: "右转", nameRep: "重复",
+    mvL: "◀ 往前挪", mvR: "往后挪 ▶", del: "删除", clr: "全部清空",
+    whereEnd: "新指令加在最后。", whereAfter: "新指令加在第 {n} 条后面。", whereIn: "新指令加在重复块里面。",
+    run: "▶ 运行", pause: "❚❚ 暂停", stepBtn: "单步", back: "⟲ 回到起点", swap: "换个顺序运行",
+    emptyProg: "还是空的——添加指令吧。", emptyRep: "空",
+    lap: "第 {k} / {n} 遍", times: "次",
+    lv1: "第 1 关", lv2: "第 2 关", lv3: "第 3 关", sq1: "小正方形", sq2: "大正方形",
+    count: "指令：{w} 条", countLoop: "写了 {w} 条 · 实际执行 {u} 条 · 上限 {b} 条",
+    cmpW: "你写的指令", cmpU: "不用重复要写", cmpB: "上限",
+    pickFirst: "先选 A、B 或 C。",
+    preDone: "机器人停在 {m}。每条指令按顺序执行了一次。",
+    swapDone: "还是这四条，只是先转身：现在停在 {m}。顺序变了，结果就变了。",
+    bump: "撞墙了！第 {n} 条（{c}）撞到墙，机器人停下了。它完全照你写的做——改改这一步。",
+    miss: "程序执行完了，可机器人不在星星上。按「单步」看看从哪一步开始走偏。",
+    win: "用 {w} 条指令到达星星。最少可以 {m} 条。",
+    winBest: "用 {w} 条指令到达星星——这已经是最少的了！",
+    dots: "执行完了，还有 {k} 个圆点没走到。单步走一遍看看路线。",
+    home: "圆点都走到了，可机器人没回到家（虚线方框）。",
+    budget: "能走通！不过你写了 {w} 条，上限是 {b} 条。同样的步骤在重复——能不能用重复块只写一次？",
+    winLoop: "只用 {w} 条就完成了！不用重复要写 {u} 条。",
+    noProg: "先添加一条指令。",
+    keys: "键盘：先点一下格子，↑ 前进，← 左转，→ 右转，退格键删掉最后一条，回车运行，空格单步。",
+    resultTitle: "我们发现", resultMain: "程序 = 按顺序执行的准确步骤",
+    resultNote: "电脑从不猜你的意思：两步换个顺序，机器人就去了别处。步骤重复时，「重复 4 次 { 前进，右转 }」只写一次就够了。",
+    explainK: "说一说",
+    explainQ: "朋友写了「右转、前进、前进」，其实想写「前进、前进、右转」。说说为什么机器人会走到别处，以及一步一步执行怎样帮你找到这个错。",
+    homeK: "家里做一做",
+    homeQ: "在房间另一头放个玩具。请大人当机器人，只听得懂「向前一步」「左转」「右转」。先把指令写在纸上，再一条条念出来。",
+    foot: "CC BY 4.0 · Boxi Yu",
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const fig = $("fig"), progEl = $("prog");
+const C = 56, O = 12, cx = (x) => O + x * C + C / 2;
+const ICON = { F: "↑", L: "↺", R: "↻" };
+let uid = 1;
+const mk = (op) => (op === "rep" ? { id: uid++, op, n: 4, body: [] } : { id: uid++, op });
+
+/* ---------- state ---------- */
+let step = 0, lvIdx = { star: 0, tour: 3 }, lv = PRE;
+let progs = {}, sel = {}, solved = {};
+let ex = null;          // execution: {ops, i, s, angle, path, status}
+let timer = null, running = false, anim = null;
+let preRuns = 0, picked = false, swapMode = false;
+
+function freshState() {
+  progs = { pre: PRE.prog.map(mk), preSwap: PRE.swapped.map(mk) };
+  LEVELS.forEach((l) => (progs[l.key] = []));
+  sel = {}; solved = {};
+}
+
+/* ---------- drawing ---------- */
+let gTrail, gRobot, dotEls = [];
+function drawLevel() {
+  fig.innerHTML = "";
+  const g = Play.svg("g", {}, fig);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++)
+    Play.svg("rect", { class: "cell", x: O + x * C, y: O + y * C, width: C, height: C }, g);
+  lv.walls.forEach(([x, y]) => {
+    Play.svg("rect", { class: "wall", x: O + x * C + 3, y: O + y * C + 3, width: C - 6, height: C - 6, rx: 6 }, g);
+    Play.svg("path", { class: "wallx", d: `M${O + x * C + 6} ${O + y * C + C / 2}H${O + x * C + C - 6}M${O + x * C + C / 2} ${O + y * C + 6}V${O + y * C + C / 2}`, fill: "none" }, g);
+  });
+  if (lv.marks) Object.entries(lv.marks).forEach(([k, [x, y]]) => {
+    Play.svg("rect", { class: "mark", x: O + x * C + 4, y: O + y * C + 4, width: C - 8, height: C - 8, rx: 8 }, g);
+    Play.svg("text", { class: "marktx", x: O + x * C + 13, y: O + y * C + 14 }, g).textContent = k;
+  });
+  if (lv.kind === "tour") Play.svg("rect", { class: "home", x: O + lv.start.x * C + 4, y: O + lv.start.y * C + 4, width: C - 8, height: C - 8, rx: 8 }, g);
+  if (lv.goal) {
+    const [gx, gy] = lv.goal, pts = [];
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 ? 9 : 21, a = -Math.PI / 2 + (i * Math.PI) / 5;
+      pts.push((cx(gx) + r * Math.cos(a)).toFixed(1) + "," + (cx(gy) + r * Math.sin(a)).toFixed(1));
+    }
+    Play.svg("polygon", { class: "star", points: pts.join(" ") }, g);
+  }
+  dotEls = (lv.dots || []).map(([x, y]) => Play.svg("circle", { class: "dot", cx: cx(x), cy: cx(y), r: 8 }, g));
+  gTrail = Play.svg("polyline", { class: "trail", points: "" }, fig);
+  gRobot = Play.svg("g", {}, fig);
+  Play.svg("circle", { class: "rbody", cx: 0, cy: 0, r: 17 }, gRobot);
+  Play.svg("polygon", { class: "rbody", points: "0,-24 9,-13 -9,-13" }, gRobot);
+  Play.svg("polygon", { class: "rnose", points: "0,-11 8,6 0,2 -8,6" }, gRobot);
+}
+function placeRobot(x, y, ang) {
+  gRobot.setAttribute("transform", `translate(${(O + x * C + C / 2).toFixed(1)} ${(O + y * C + C / 2).toFixed(1)}) rotate(${ang.toFixed(1)})`);
+}
+function drawTrail(path) {
+  gTrail.setAttribute("points", path.map(([x, y]) => cx(x) + "," + cx(y)).join(" "));
+  dotEls.forEach((el, i) => {
+    const d = lv.dots[i];
+    el.classList.toggle("got", path.some((p) => p[0] === d[0] && p[1] === d[1]));
+  });
+}
+
+/* ---------- program editor ---------- */
+const prog = () => (lv.kind === "pre" && swapMode ? progs.preSwap : progs[lv.key]);
+function locate(id, list = prog(), parent = null) {
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].id === id) return { list, i, parent };
+    if (list[i].op === "rep") { const r = locate(id, list[i].body, list[i]); if (r) return r; }
+  }
+  return null;
+}
+function edited() { stopRun(); ex = null; showRobotAtStart(); renderProg(); setMsg(""); }
+function add(op) {
+  if (lv.kind === "pre") return;
+  const it = mk(op), s = sel[lv.key], at = s != null && locate(s);
+  if (op === "rep") {
+    // a repeat goes at the top level, after the selected top-level item
+    let i = prog().length;
+    if (at) { const top = at.parent ? locate(at.parent.id) : at; i = top.i + 1; }
+    prog().splice(i, 0, it);
+  } else if (at && at.list[at.i].op === "rep") at.list[at.i].body.push(it);
+  else if (at) at.list.splice(at.i + 1, 0, it);
+  else prog().push(it);
+  sel[lv.key] = it.id;
+  edited();
+}
+function move(dir) {
+  const at = locate(sel[lv.key]);
+  if (!at) return;
+  const j = at.i + dir;
+  if (j < 0 || j >= at.list.length) return;
+  [at.list[at.i], at.list[j]] = [at.list[j], at.list[at.i]];
+  edited();
+}
+function removeSel() {
+  const at = locate(sel[lv.key]);
+  if (!at) return;
+  at.list.splice(at.i, 1);
+  sel[lv.key] = at.i > 0 ? at.list[at.i - 1].id : at.parent ? at.parent.id : null;
+  edited();
+}
+function removeLast() {
+  const p = prog();
+  if (!p.length) return;
+  const last = p[p.length - 1];
+  if (last.op === "rep" && last.body.length) last.body.pop(); else p.pop();
+  sel[lv.key] = null;
+  edited();
+}
+function chip(it, label) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "cmd";
+  b.dataset.id = it.id;
+  b.innerHTML = `<span class="n">${label}</span>` + (it.op === "rep" ? `<span class="ic">⟳</span> ` : `<span class="ic">${ICON[it.op]}</span> `);
+  b.appendChild(document.createTextNode(P.t("name" + (it.op === "rep" ? "Rep" : it.op))));
+  if (lv.kind === "pre") b.disabled = true;
+  else b.addEventListener("click", () => { sel[lv.key] = sel[lv.key] === it.id ? null : it.id; renderProg(); });
+  if (sel[lv.key] === it.id) b.classList.add("sel");
+  return b;
+}
+function renderProg() {
+  progEl.innerHTML = "";
+  const p = prog();
+  if (!p.length) {
+    const e = document.createElement("span");
+    e.className = "empty"; e.textContent = P.t("emptyProg");
+    progEl.appendChild(e);
+  }
+  const cur = ex && ex.i > 0 && ex.status !== "fresh" ? ex.ops[ex.i - 1] : null;
+  const bad = ex && ex.status === "bump" ? ex.ops[ex.i] : null;
+  const mark = (b, it) => {
+    if (bad && bad.item === it) b.classList.add("bad");
+    else if (cur && cur.item === it && !bad) b.classList.add("cur");
+  };
+  p.forEach((it, i) => {
+    if (it.op !== "rep") { const b = chip(it, i + 1); mark(b, it); progEl.appendChild(b); return; }
+    const box = document.createElement("div");
+    box.className = "rep" + (sel[lv.key] === it.id ? " sel" : "");
+    const head = document.createElement("div");
+    head.className = "rh";
+    head.appendChild(chip(it, i + 1));
+    const minus = document.createElement("button"), plus = document.createElement("button"), nn = document.createElement("span");
+    minus.type = plus.type = "button"; minus.className = plus.className = "nb";
+    minus.textContent = "−"; plus.textContent = "+";
+    minus.setAttribute("aria-label", "−1"); plus.setAttribute("aria-label", "+1");
+    nn.className = "rn"; nn.textContent = it.n;
+    minus.disabled = it.n <= 2; plus.disabled = it.n >= 9;
+    minus.addEventListener("click", () => { it.n = Play.clamp(it.n - 1, 2, 9); edited(); });
+    plus.addEventListener("click", () => { it.n = Play.clamp(it.n + 1, 2, 9); edited(); });
+    const tm = document.createElement("span"); tm.className = "lap"; tm.textContent = P.t("times") + " {";
+    head.append(minus, nn, plus, tm);
+    const lapOp = cur && cur.rep === it ? cur : bad && bad.rep === it ? bad : null;
+    if (lapOp) { const l = document.createElement("span"); l.className = "lap"; l.textContent = "· " + P.t("lap", { k: lapOp.lap + 1, n: it.n }); head.appendChild(l); }
+    const body = document.createElement("div");
+    body.className = "body";
+    if (!it.body.length) { const e = document.createElement("span"); e.className = "lap"; e.textContent = P.t("emptyRep"); body.appendChild(e); }
+    it.body.forEach((b2, j) => { const b = chip(b2, (i + 1) + "." + (j + 1)); mark(b, b2); body.appendChild(b); });
+    const foot = document.createElement("span"); foot.className = "lap"; foot.textContent = "}";
+    box.append(head, body, foot);
+    progEl.appendChild(box);
+  });
+  // where new commands go, edit buttons, counts
+  const at = sel[lv.key] != null ? locate(sel[lv.key]) : null;
+  if (!at) sel[lv.key] = null;
+  const selIt = at && at.list[at.i];
+  $("where").textContent = !at ? P.t("whereEnd") : selIt.op === "rep" || at.parent ? P.t("whereIn")
+    : P.t("whereAfter", { n: at.i + 1 });
+  $("mvL").disabled = !at || at.i === 0;
+  $("mvR").disabled = !at || at.i === at.list.length - 1;
+  $("del").disabled = !at;
+  $("clr").disabled = !p.length;
+  const w = written(p), u = flatten(p).length;
+  $("count").textContent = lv.kind === "tour" ? P.t("countLoop", { w, u, b: lv.budget }) : lv.kind === "star" ? P.t("count", { w }) : "";
+  const cmp = $("cmp");
+  cmp.hidden = lv.kind !== "tour";
+  if (lv.kind === "tour") {
+    cmp.innerHTML = "";
+    [["cmpW", w], ["cmpU", u], ["cmpB", lv.budget]].forEach(([k, v]) => {
+      const a = document.createElement("span"); a.textContent = P.t(k);
+      const b = document.createElement("b"); b.textContent = v;
+      cmp.append(a, b);
+    });
+  }
+}
+
+/* ---------- running ---------- */
+function startExec(list) {
+  ex = { ops: flatten(list), i: 0, s: { ...lv.start }, angle: lv.start.d * 90, path: [[lv.start.x, lv.start.y]], status: "fresh" };
+}
+function showRobotAtStart() {
+  cancelAnim();
+  gRobot.classList.remove("rbump");
+  placeRobot(lv.start.x, lv.start.y, lv.start.d * 90);
+  drawTrail([[lv.start.x, lv.start.y]]);
+}
+function cancelAnim() { if (anim) { cancelAnimationFrame(anim.raf); anim = null; } }
+function tween(from, to, ms, done) {
+  cancelAnim();
+  if (ms <= 0) { placeRobot(to.x, to.y, to.a); done(); return; }
+  const t0 = performance.now();
+  anim = { raf: 0 };
+  const f = (t) => {
+    const k = Math.min(1, (t - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    placeRobot(from.x + (to.x - from.x) * e, from.y + (to.y - from.y) * e, from.a + (to.a - from.a) * e);
+    if (k < 1) anim.raf = requestAnimationFrame(f); else { anim = null; done(); }
+  };
+  anim.raf = requestAnimationFrame(f);
+}
+const list = prog;
+/* Execute one command; calls after() when its animation is done. */
+function doOne(ms, after) {
+  if (!ex || ex.status === "done" || ex.status === "bump") { startExec(list()); showRobotAtStart(); setMsg(""); }
+  if (!ex.ops.length) { setMsg(P.t("noProg"), "no"); stopRun(); return; }
+  const o = ex.ops[ex.i], r = apply(lv, ex.s, o.op);
+  const from = { x: ex.s.x, y: ex.s.y, a: ex.angle };
+  if (r.bump) {
+    ex.status = "bump";
+    renderProg();
+    gRobot.classList.add("rbump");
+    const dx = DIRS[ex.s.d][0] * .22, dy = DIRS[ex.s.d][1] * .22;
+    tween(from, { x: from.x + dx, y: from.y + dy, a: from.a }, ms / 2, () => tween({ x: from.x + dx, y: from.y + dy, a: from.a }, from, ms / 2, () => {}));
+    setMsg(P.t("bump", { n: opNumber(o), c: P.t("name" + o.op) }), "no");
+    stopRun();
+    return;
+  }
+  ex.angle += o.op === "L" ? -90 : o.op === "R" ? 90 : 0;
+  ex.s = r.s;
+  if (o.op === "F") ex.path.push([ex.s.x, ex.s.y]);
+  ex.i++;
+  ex.status = ex.i >= ex.ops.length ? "done" : "mid";
+  renderProg();
+  tween(from, { x: ex.s.x, y: ex.s.y, a: ex.angle }, ms, () => {
+    drawTrail(ex.path);
+    if (ex.status === "done") { finish(); stopRun(); renderProg(); }
+    else if (after) after();
+  });
+}
+function opNumber(o) {
+  const p = list();
+  for (let i = 0; i < p.length; i++) {
+    if (p[i] === o.item) return String(i + 1);
+    if (p[i].op === "rep") { const j = p[i].body.indexOf(o.item); if (j >= 0) return (i + 1) + "." + (j + 1); }
+  }
+  return "?";
+}
+function finish() {
+  const res = { s: ex.s, path: ex.path, bump: -1 };
+  if (lv.kind === "pre") {
+    const m = Object.entries(PRE.marks).find(([, [x, y]]) => x === ex.s.x && y === ex.s.y);
+    setMsg(P.t(swapMode ? "swapDone" : "preDone", { m: m ? m[0] : "?" }), "ok");
+    if (!swapMode) { preRuns++; $("swap").hidden = false; }
+    return;
+  }
+  const p = prog(), v = judge(lv, p, res), w = written(p), u = flatten(p).length;
+  if (v.ok) {
+    solved[lv.key] = true;
+    if (lv.kind === "star") { const m = shortest(lv); setMsg(P.t(w <= m ? "winBest" : "win", { w, m }), "ok"); }
+    else setMsg(P.t("winLoop", { w, u }), "ok");
+    renderLevels();
+  } else if (v.why === "miss") setMsg(P.t("miss"), "no");
+  else if (v.why === "dots") setMsg(P.t("dots", { k: v.missed }), "no");
+  else if (v.why === "home") setMsg(P.t("home"), "no");
+  else if (v.why === "budget") setMsg(P.t("budget", { w, b: lv.budget }), "no");
+}
+const msg = $("live");
+function setMsg(t, cls) { msg.className = "msg" + (cls ? " " + cls : ""); Play.live(msg, t); }
+const SPEED = 420;
+function loop() { if (!running) return; doOne(Play.reduced ? 0 : SPEED, () => { timer = setTimeout(loop, Play.reduced ? 380 : 90); }); }
+function canRun() {
+  if (lv.kind === "pre" && !picked) { setMsg(P.t("pickFirst"), "no"); return false; }
+  return true;
+}
+function run(swapped) {
+  if (running) { stopRun(); return; }
+  if (anim || !canRun()) return;
+  if (lv.kind === "pre" && swapped !== swapMode) { swapMode = swapped; ex = null; showRobotAtStart(); renderProg(); }
+  if (!ex || ex.status !== "mid") { startExec(list()); showRobotAtStart(); renderProg(); setMsg(""); }
+  if (!ex.ops.length) { setMsg(P.t("noProg"), "no"); return; }
+  running = true;
+  $("run").textContent = P.t("pause");
+  loop();
+}
+function stopRun() {
+  running = false;
+  clearTimeout(timer);
+  $("run").textContent = P.t("run");
+}
+function stepOnce() {
+  if (running) stopRun();
+  if (!canRun()) return;
+  if (anim) return;
+  if (!ex || ex.status === "fresh") setMsg("");
+  doOne(Play.reduced ? 0 : 260);
+}
+function backToStart() { stopRun(); ex = null; showRobotAtStart(); renderProg(); setMsg(""); }
+
+/* ---------- levels and steps ---------- */
+function renderLevels() {
+  const row = $("lvlRow");
+  row.innerHTML = "";
+  row.hidden = step === 0;
+  if (step === 0) return;
+  const keys = step === 1 ? [0, 1, 2] : [3, 4];
+  keys.forEach((i) => {
+    const l = LEVELS[i], b = document.createElement("button");
+    b.type = "button"; b.className = "small";
+    b.textContent = P.t(l.key === "sq1" || l.key === "sq2" ? l.key : "lv" + (i + 1));
+    b.classList.toggle("on", lv === l);
+    b.classList.toggle("done", !!solved[l.key]);
+    b.setAttribute("aria-pressed", lv === l ? "true" : "false");
+    b.addEventListener("click", () => { lvIdx[l.kind] = i; setLevel(l); });
+    row.appendChild(b);
+  });
+}
+function setLevel(l) {
+  stopRun();
+  lv = l; ex = null;
+  drawLevel(); showRobotAtStart();
+  renderLevels(); renderProg(); setMsg("");
+  $("pal").hidden = $("editRow").hidden = lv.kind === "pre";
+  $("addRep").hidden = lv.kind !== "tour";
+  $("swap").hidden = lv.kind !== "pre" || preRuns === 0;
+}
+freshState();
+const pr = Play.predict($("predict"), {
+  q: P.t("q"), options: [{ label: P.t("oA") }, { label: P.t("oB"), right: true }, { label: P.t("oC") }],
+  right: P.t("right"), wrong: P.t("wrong"),
+}, () => { picked = true; if (msg.textContent === P.t("pickFirst")) setMsg(""); });
+const st = Play.steps($("steps"), [P.t("s1"), P.t("s2"), P.t("s3")], (i) => {
+  step = i;
+  const k = i + 1;
+  $("kicker").textContent = P.t("k" + k);
+  $("stepTitle").textContent = P.t("t" + k);
+  $("stepBody").textContent = P.t("b" + k);
+  $("predict").hidden = i !== 0;
+  swapMode = false;
+  setLevel(i === 0 ? PRE : LEVELS[i === 1 ? lvIdx.star : lvIdx.tour]);
+});
+
+/* ---------- wiring ---------- */
+document.querySelectorAll("#pal [data-op]").forEach((b) => b.addEventListener("click", () => add(b.dataset.op)));
+$("mvL").addEventListener("click", () => move(-1));
+$("mvR").addEventListener("click", () => move(1));
+$("del").addEventListener("click", removeSel);
+$("clr").addEventListener("click", () => { progs[lv.key] = []; sel[lv.key] = null; edited(); });
+$("run").addEventListener("click", () => run(false));
+$("swap").addEventListener("click", () => run(true));
+$("stepBtn").addEventListener("click", stepOnce);
+$("back").addEventListener("click", backToStart);
+fig.addEventListener("keydown", (e) => {
+  const k = e.key;
+  if (k === "ArrowUp") add("F");
+  else if (k === "ArrowLeft") add("L");
+  else if (k === "ArrowRight") add("R");
+  else if (k === "Backspace" || k === "Delete") removeLast();
+  else if (k === "Enter") run(false);
+  else if (k === " ") stepOnce();
+  else return;
+  e.preventDefault();
+});
+$("reset").addEventListener("click", () => {
+  stopRun(); freshState(); preRuns = 0; picked = false; swapMode = false;
+  lvIdx = { star: 0, tour: 3 }; pr.reset(); st.go(0);
+});
+st.go(0);
+</script>
+</body>
+</html>

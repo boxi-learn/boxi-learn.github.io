@@ -1,0 +1,63 @@
+---
+import Base from "../../layouts/Base.astro";
+import { type Lang, LANGS, SUBJECTS, STAGES, CROSS_SEEDS, MATH_URL, t } from "../../data/site";
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const lang = Astro.params.lang as Lang;
+const readyCount = (s: (typeof SUBJECTS)[number]) => s.lessons.filter((l) => l.status === "ready").length;
+---
+
+<Base lang={lang}>
+  <section class="hero">
+    <p class="eyebrow">K12 · {t("subjects", lang)} · {t("stages", lang)} 0–4</p>
+    <h1>{t("tagline", lang)}</h1>
+    <p class="lead">{t("heroLead", lang)}</p>
+    <p class="rule">{t("rule", lang)}</p>
+  </section>
+
+  <h2 id="subjects">{t("subjects", lang)}</h2>
+  <div class="subjects">
+    <a class="card subj s-math" href={`${MATH_URL}/${lang}/`}>
+      <div class="name">{t("math", lang)} ↗</div>
+      <p class="meta">{t("mathTag", lang)}</p>
+      <div class="stagebar">{[0, 1, 2, 3, 4].map(() => <span class="on" />)}</div>
+    </a>
+    {SUBJECTS.map((s) => (
+      <a class={`card subj s-${s.id}`} href={`/${lang}/${s.id}/`}>
+        <div class="name">{s.name[lang]}</div>
+        <p class="meta">{s.tagline[lang]}</p>
+        <p class="meta">
+          {t("lessonCount", lang).replace("{n}", String(s.lessons.length)).replace("{r}", String(readyCount(s)))}
+        </p>
+        <div class="stagebar" aria-label={`${t("stages", lang)} ${s.stages.join(", ")}`}>
+          {[0, 1, 2, 3, 4].map((n) => <span class={s.stages.includes(n) ? "on" : ""} />)}
+        </div>
+      </a>
+    ))}
+  </div>
+
+  <h2 id="stages">{t("stages", lang)}</h2>
+  <div class="stages">
+    {STAGES.map((st) => (
+      <a class="card" href={`/${lang}/stage/${st.n}/`}>
+        <span class="stage-num">{st.n}</span>
+        <div class="q">{st.name[lang]}</div>
+        <div class="meta">{st.age[lang]}</div>
+        <p class="meta">{st.theme[lang]}</p>
+      </a>
+    ))}
+  </div>
+
+  <h2>{t("crossSeeds", lang)}</h2>
+  <div class="seeds">
+    {CROSS_SEEDS.map((s) => (
+      <div class="card">
+        <span class="seed-id">{s.id}</span>
+        <h3>{s.name[lang]}</h3>
+        <p class="meta">{s.what[lang]}</p>
+      </div>
+    ))}
+  </div>
+</Base>
