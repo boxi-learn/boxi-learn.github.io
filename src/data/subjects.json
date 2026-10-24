@@ -5717,33 +5717,6 @@
    ],
    "lessons": [
     {
-     "slug": "be-the-robot",
-     "stage": 0,
-     "seeds": [
-      "CS-1",
-      "X-4"
-     ],
-     "grade": {
-      "cn": "?",
-      "us": "PreK",
-      "uk": "Reception"
-     },
-     "status": "planned",
-     "title": {
-      "en": "Be the robot",
-      "zh": "我来当机器人"
-     },
-     "insight": {
-      "en": "A robot only does exactly what it is told, one instruction at a time.",
-      "zh": "机器人只做你说的那一句，一次一句。"
-     },
-     "misconception": {
-      "en": "The robot will work out what you meant.",
-      "zh": "机器人会自己明白你的意思。"
-     },
-     "play": null
-    },
-    {
      "slug": "robot-commands",
      "stage": 1,
      "seeds": [
